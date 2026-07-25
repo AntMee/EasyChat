@@ -194,6 +194,16 @@ public class SelectionTranslationService : IDisposable
     private void OnMouseUp(object? sender, SimpleMouseEventArgs e)
     {
         if (_configurationService.SelectionTranslation?.Enabled != true) return;
+
+        // Releasing the mouse after dragging the translation window must not start
+        // another selection capture or show the selection icon.
+        if (_currentTranslateWindow?.IsVisible == true)
+        {
+            _downPoint = null;
+            _logger.LogDebug("Ignoring MouseUp while translation window is open");
+            return;
+        }
+
         if (_downPoint == null) return;
 
         var (x1, y1) = _downPoint.Value;
@@ -225,18 +235,27 @@ public class SelectionTranslationService : IDisposable
                     
                     // Check if canceled
                     if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+
+                    // The translation window may have opened while this capture was
+                    // waiting; do not continue after the user interacted with it.
+                    if (await Dispatcher.UIThread.InvokeAsync(() => _currentTranslateWindow?.IsVisible == true))
+                        return;
                     
-                    // Backup clipboard (Must be on UI Thread)
-                    var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
+                    // This work already runs off the UI thread. Keeping the complete
+                    // clipboard snapshot here prevents OLE format enumeration from
+                    // blocking Avalonia while the user finishes a selection.
+                    var backup = await ClipboardHelper.BackupClipboardAsync(_logger);
                     
                     var text = await _platformService.GetSelectedTextAsync(x2, y2);
                     _lastSelectedText = text;
                     
-                    // Restore clipboard (Must be on UI Thread)
-                    await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger));
+                    await ClipboardHelper.RestoreClipboardAsync(backup, _logger);
                     
                     // Check if canceled again before showing
                     if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+
+                    if (await Dispatcher.UIThread.InvokeAsync(() => _currentTranslateWindow?.IsVisible == true))
+                        return;
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
@@ -289,14 +308,12 @@ public class SelectionTranslationService : IDisposable
                     return;
                 }
                     
-                // Backup clipboard (Must be on UI Thread)
-                var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
+                var backup = await ClipboardHelper.BackupClipboardAsync(_logger);
                     
                 var text = await _platformService.GetSelectedTextAsync(e.X, e.Y);
                 _lastSelectedText = text;
                     
-                // Restore clipboard (Must be on UI Thread)
-                await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger));
+                await ClipboardHelper.RestoreClipboardAsync(backup, _logger);
                     
                 if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
 
