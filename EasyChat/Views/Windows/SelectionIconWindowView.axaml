@@ -17,7 +17,7 @@
         ShowActivated="False"
         WindowStartupLocation="Manual">
     
-    <Border CornerRadius="16" 
+    <Border CornerRadius="16"
             Background="{DynamicResource SukiPrimaryColor}"
             Width="32" Height="32"
             HorizontalAlignment="Center"

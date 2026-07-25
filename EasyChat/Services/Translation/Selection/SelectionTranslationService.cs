@@ -336,18 +336,7 @@ public class SelectionTranslationService : IDisposable
             // Capture current generation
             var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
-            // Give the user immediate feedback while the selection is copied.
-            // Clipboard/OLE access below can take a few frames, so waiting for
-            // the text before showing the window makes the selection feel stuck.
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
-
-                ShowIcon(x2, y2);
-                _iconWindow?.ShowLoading();
-            }, DispatcherPriority.Input);
-            
-            // Get selected text using UI Automation
+            // Do not show an icon until a non-empty text selection is confirmed.
             Task.Run(async () =>
             {
                 try
@@ -392,12 +381,18 @@ public class SelectionTranslationService : IDisposable
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        _logger.LogInformation("Got selected text: {Length} chars", text.Length);
+                        _logger.LogInformation(
+                            "Selected text captured using {Method}: {Length} chars",
+                            _platformService.LastSelectedTextCaptureMethod ?? "Unknown",
+                            text.Length);
                         // Show icon only if text is found
                         await Dispatcher.UIThread.InvokeAsync(() => 
                         {
                             if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
+                            {
+                                ShowIcon(x2, y2);
                                 _iconWindow?.HideLoading();
+                            }
                         });
 
                         // Restoring all formats can block in the OLE clipboard
@@ -437,15 +432,7 @@ public class SelectionTranslationService : IDisposable
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
-
-            ShowIcon(e.X, e.Y);
-            _iconWindow?.ShowLoading();
-        }, DispatcherPriority.Input);
-
-        // Get selected text using UI Automation
+        // Do not show an icon until a non-empty text selection is confirmed.
         Task.Run(async () =>
         {
             try
@@ -478,12 +465,18 @@ public class SelectionTranslationService : IDisposable
 
                 if (!string.IsNullOrWhiteSpace(text))
                 {
-                    _logger.LogInformation("Got selected text (Double Click): {Length} chars", text.Length);
+                    _logger.LogInformation(
+                        "Selected text captured using {Method}: {Length} chars",
+                        _platformService.LastSelectedTextCaptureMethod ?? "Unknown",
+                        text.Length);
                     // Show icon only if text is found
                     await Dispatcher.UIThread.InvokeAsync(() => 
                     {
                         if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
+                        {
+                            ShowIcon(e.X, e.Y);
                             _iconWindow?.HideLoading();
+                        }
                     });
 
                     await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
@@ -738,9 +731,14 @@ public class SelectionTranslationService : IDisposable
         var text = await _platformService.GetSelectedTextAsync(x, y);
 
         // Restore clipboard (Must be on UI Thread)
-        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger));
+            await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger));
 
             if (string.IsNullOrWhiteSpace(text)) return;
+
+            _logger.LogInformation(
+                "Selected text captured using {Method}: {Length} chars",
+                _platformService.LastSelectedTextCaptureMethod ?? "Unknown",
+                text.Length);
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {

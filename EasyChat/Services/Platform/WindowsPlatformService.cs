@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Input.Platform;
 using EasyChat.Services.Abstractions;
@@ -12,6 +13,7 @@ namespace EasyChat.Services.Platform;
 public class WindowsPlatformService : IPlatformService
 {
     private readonly ILogger<WindowsPlatformService> _logger;
+    public string? LastSelectedTextCaptureMethod { get; private set; }
     public WindowsPlatformService(ILogger<WindowsPlatformService> logger)
     {
         _logger = logger;
@@ -196,12 +198,31 @@ public class WindowsPlatformService : IPlatformService
     
     public async Task<string?> GetSelectedTextAsync(int? x = null, int? y = null)
     {
-        // User requested Clipboard approach ensuring original content is restored.
-        // Backup/Restore is handled by the caller (SelectionTranslationService) using ClipboardHelper.
-        // This method strictly performs: Clear -> Save modifier state -> Release modifiers -> Copy (Ctrl+C) -> Restore modifiers -> Read.
-        
         return await Task.Run(async () =>
         {
+            LastSelectedTextCaptureMethod = null;
+
+            // Traditional edit controls expose their selection through window
+            // messages. This path does not touch the clipboard or inject input.
+            var text = TryGetSelectedTextFromFocusedControl();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                LastSelectedTextCaptureMethod = "EM_GETSEL/WM_GETTEXT";
+                _logger.LogInformation("Selected text captured using EM_GETSEL/WM_GETTEXT: {Length} chars", text.Length);
+                return text;
+            }
+
+            // Some controls implement the copy command but do not expose their
+            // text through EM_GETSEL. Ask the focused control to copy directly
+            // before falling back to synthesized Ctrl+C.
+            text = await TryCopySelectedTextWithWindowMessageAsync();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                LastSelectedTextCaptureMethod = "WM_COPY";
+                _logger.LogInformation("Selected text captured using WM_COPY: {Length} chars", text.Length);
+                return text;
+            }
+
             const ushort vkControl = 0x11;
             const ushort vkC = 0x43;
 
@@ -318,7 +339,8 @@ public class WindowsPlatformService : IPlatformService
                 
                 if (!string.IsNullOrEmpty(result))
                 {
-                    _logger.LogDebug("Got text via Clipboard: {Length} chars", result.Length);
+                    LastSelectedTextCaptureMethod = "Ctrl+C";
+                    _logger.LogInformation("Selected text captured using Ctrl+C: {Length} chars", result.Length);
                 }
                 
                 return result;
@@ -347,6 +369,104 @@ public class WindowsPlatformService : IPlatformService
                 }
             }
         });
+    }
+
+    private string? TryGetSelectedTextFromFocusedControl()
+    {
+        var focusedWindow = GetFocusedWindow();
+        if (focusedWindow == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        Win32.SendMessage(focusedWindow, Constants.Windows.EM_GETSEL, out var selectionStart, out var selectionEnd);
+        if (selectionEnd <= selectionStart)
+        {
+            return null;
+        }
+
+        var textLength = Win32.SendMessage(focusedWindow, Constants.Windows.WM_GETTEXTLENGTH, IntPtr.Zero, IntPtr.Zero).ToInt64();
+        if (textLength <= 0 || textLength > Constants.Windows.MaxWindowTextLength)
+        {
+            return null;
+        }
+
+        var buffer = new StringBuilder((int)textLength + 1);
+        Win32.SendMessage(focusedWindow, Constants.Windows.WM_GETTEXT, buffer.Capacity, buffer);
+        var windowText = buffer.ToString();
+        if (selectionStart < 0 || selectionStart >= windowText.Length)
+        {
+            return null;
+        }
+
+        var selectedLength = Math.Min(selectionEnd, windowText.Length) - selectionStart;
+        return selectedLength > 0 ? windowText.Substring(selectionStart, selectedLength) : null;
+    }
+
+    private async Task<string?> TryCopySelectedTextWithWindowMessageAsync()
+    {
+        var focusedWindow = GetFocusedWindow();
+        if (focusedWindow == IntPtr.Zero || !ClearClipboard())
+        {
+            return null;
+        }
+
+        Win32.SendMessage(focusedWindow, Constants.Windows.WM_COPY, IntPtr.Zero, IntPtr.Zero);
+        // WM_COPY is synchronous for standard controls. Do not delay the
+        // Ctrl+C fallback for applications that ignore this message.
+        return await WaitForClipboardTextAsync(5);
+    }
+
+    private static IntPtr GetFocusedWindow()
+    {
+        var foregroundWindow = Win32.GetForegroundWindow();
+        if (foregroundWindow == IntPtr.Zero)
+        {
+            return IntPtr.Zero;
+        }
+
+        var threadId = Win32.GetWindowThreadProcessId(foregroundWindow, out _);
+        var threadInfo = new Win32.GUITHREADINFO { cbSize = Marshal.SizeOf<Win32.GUITHREADINFO>() };
+        return Win32.GetGUIThreadInfo(threadId, ref threadInfo) && threadInfo.hwndFocus != IntPtr.Zero
+            ? threadInfo.hwndFocus
+            : foregroundWindow;
+    }
+
+    private static bool ClearClipboard()
+    {
+        if (!Win32.OpenClipboard(IntPtr.Zero))
+        {
+            return false;
+        }
+
+        try
+        {
+            return Win32.EmptyClipboard();
+        }
+        finally
+        {
+            Win32.CloseClipboard();
+        }
+    }
+
+    private async Task<string?> WaitForClipboardTextAsync(int attempts = 20)
+    {
+        for (var i = 0; i < attempts; i++)
+        {
+            await Task.Delay(10);
+            if (!IsClipboardTextAvailable())
+            {
+                continue;
+            }
+
+            var text = GetClipboardTextWin32();
+            if (!string.IsNullOrEmpty(text))
+            {
+                return text;
+            }
+        }
+
+        return null;
     }
 
     private bool IsClipboardTextAvailable()
@@ -456,6 +576,12 @@ public class WindowsPlatformService : IPlatformService
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint msg, out int wParam, out int lParam);
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern int SendMessage(IntPtr hWnd, uint msg, int wParam, StringBuilder lParam);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO lpgui);
+
         [DllImport("user32.dll")]
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
@@ -544,6 +670,29 @@ public class WindowsPlatformService : IPlatformService
         
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct GUITHREADINFO
+        {
+            public int cbSize;
+            public uint flags;
+            public IntPtr hwndActive;
+            public IntPtr hwndFocus;
+            public IntPtr hwndCapture;
+            public IntPtr hwndMenuOwner;
+            public IntPtr hwndMoveSize;
+            public IntPtr hwndCaret;
+            public RECT rcCaret;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
         
         [StructLayout(LayoutKind.Sequential)]
         public struct FORMATETC

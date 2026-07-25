@@ -58,5 +58,10 @@ public static class Constant
 public static class Windows
 {
     // Windows Message Constants
+    public const uint WM_COPY = 0x0301;
     public const uint WM_CHAR = 0x0102;
+    public const uint WM_GETTEXT = 0x000D;
+    public const uint WM_GETTEXTLENGTH = 0x000E;
+    public const uint EM_GETSEL = 0x00B0;
+    public const int MaxWindowTextLength = 1_000_000;
 }
