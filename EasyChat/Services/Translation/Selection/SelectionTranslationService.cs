@@ -331,9 +331,21 @@ public class SelectionTranslationService : IDisposable
             _logger.LogInformation("Drag detected, getting selected text...");
             _lastIconX = x2;
             _lastIconY = y2;
+            _lastSelectedText = null;
             
             // Capture current generation
             var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
+
+            // Give the user immediate feedback while the selection is copied.
+            // Clipboard/OLE access below can take a few frames, so waiting for
+            // the text before showing the window makes the selection feel stuck.
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+
+                ShowIcon(x2, y2);
+                _iconWindow?.ShowLoading();
+            }, DispatcherPriority.Input);
             
             // Get selected text using UI Automation
             Task.Run(async () =>
@@ -354,7 +366,11 @@ public class SelectionTranslationService : IDisposable
                     // Avalonia's Win32 clipboard implementation is UI-thread
                     // affine. The snapshot itself must therefore be created on
                     // the dispatcher.
-                    var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
+                    // Let the pending icon render and input events run before
+                    // enumerating the clipboard formats on the UI thread.
+                    var backup = await Dispatcher.UIThread.InvokeAsync(
+                        () => ClipboardHelper.BackupClipboardAsync(_logger),
+                        DispatcherPriority.Background);
                     
                     var text = await _platformService.GetSelectedTextAsync(x2, y2);
                     _lastSelectedText = text;
@@ -381,7 +397,7 @@ public class SelectionTranslationService : IDisposable
                         await Dispatcher.UIThread.InvokeAsync(() => 
                         {
                             if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
-                                ShowIcon(x2, y2);
+                                _iconWindow?.HideLoading();
                         });
 
                         // Restoring all formats can block in the OLE clipboard
@@ -390,6 +406,7 @@ public class SelectionTranslationService : IDisposable
                     }
                     else
                     {
+                        await Dispatcher.UIThread.InvokeAsync(HideIcon, DispatcherPriority.Input);
                         await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger), DispatcherPriority.Background);
                         _logger.LogDebug("No text selected (or extraction failed)");
                     }
@@ -397,6 +414,11 @@ public class SelectionTranslationService : IDisposable
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error getting selected text");
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
+                            HideIcon();
+                    }, DispatcherPriority.Input);
                 }
             });
         }
@@ -411,8 +433,17 @@ public class SelectionTranslationService : IDisposable
         _lastDoubleClickTime = DateTime.Now;
         _lastIconX = e.X;
         _lastIconY = e.Y;
+        _lastSelectedText = null;
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+
+            ShowIcon(e.X, e.Y);
+            _iconWindow?.ShowLoading();
+        }, DispatcherPriority.Input);
 
         // Get selected text using UI Automation
         Task.Run(async () =>
@@ -430,7 +461,9 @@ public class SelectionTranslationService : IDisposable
                     return;
                 }
                     
-                var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
+                var backup = await Dispatcher.UIThread.InvokeAsync(
+                    () => ClipboardHelper.BackupClipboardAsync(_logger),
+                    DispatcherPriority.Background);
                     
                 var text = await _platformService.GetSelectedTextAsync(e.X, e.Y);
                 _lastSelectedText = text;
@@ -450,13 +483,14 @@ public class SelectionTranslationService : IDisposable
                     await Dispatcher.UIThread.InvokeAsync(() => 
                     {
                         if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
-                            ShowIcon(e.X, e.Y);
+                            _iconWindow?.HideLoading();
                     });
 
                     await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
                 }
                 else
                 {
+                    await Dispatcher.UIThread.InvokeAsync(HideIcon, DispatcherPriority.Input);
                     await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger), DispatcherPriority.Background);
                     _logger.LogDebug("No text selected (Double Click) - Text was empty");
                 }
@@ -464,6 +498,11 @@ public class SelectionTranslationService : IDisposable
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting selected text (Double Click)");
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
+                        HideIcon();
+                }, DispatcherPriority.Input);
             }
         });
     }

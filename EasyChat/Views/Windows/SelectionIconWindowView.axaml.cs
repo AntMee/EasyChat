@@ -76,6 +76,15 @@ public partial class SelectionIconWindowView : Window
         
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
+            // The icon is shown in a loading state while the selected text is
+            // being captured. Do not translate stale text from a previous
+            // selection if the user clicks during that short window.
+            if (_isLoading)
+            {
+                e.Handled = true;
+                return;
+            }
+
             e.Handled = true;
             TranslateClicked?.Invoke(this, EventArgs.Empty);
         }
