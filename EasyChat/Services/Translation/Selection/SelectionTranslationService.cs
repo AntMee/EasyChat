@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
@@ -681,8 +682,15 @@ public class SelectionTranslationService : IDisposable
 
     public async Task TranslateCurrentSelectionAsync()
     {
-        var (x, y) = _platformService.GetCursorPosition();
-        _logger.LogInformation("Shortcut Translate at {X}, {Y}", x, y);
+        try
+        {
+            // Global hotkeys are raised on key-down, so Ctrl/Alt may still be
+            // physically held when this method starts. Wait for the hotkey to
+            // finish before the selection copier's Ctrl/C safety guard runs.
+            await WaitForShortcutKeysReleasedAsync();
+
+            var (x, y) = _platformService.GetCursorPosition();
+            _logger.LogInformation("Shortcut Translate at {X}, {Y}", x, y);
 
         // Backup clipboard (Must be on UI Thread)
         var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
@@ -693,10 +701,10 @@ public class SelectionTranslationService : IDisposable
         // Restore clipboard (Must be on UI Thread)
         await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger));
 
-        if (string.IsNullOrWhiteSpace(text)) return;
+            if (string.IsNullOrWhiteSpace(text)) return;
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
              // Close existing (Singleton)
             try { _currentTranslateWindow?.Close(); } catch { /* Ignore */ }
 
@@ -720,8 +728,32 @@ public class SelectionTranslationService : IDisposable
             ShowDialogAtPosition(dialog, x, y);
             
             _logger.LogInformation("Opened translation window via shortcut");
-        });
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to translate current selection from shortcut");
+        }
     }
+
+    private static async Task WaitForShortcutKeysReleasedAsync()
+    {
+        for (var i = 0; i < 30; i++)
+        {
+            var controlDown = (GetAsyncKeyState(0x11) & 0x8000) != 0;
+            var altDown = (GetAsyncKeyState(0x12) & 0x8000) != 0;
+            var shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
+            if (!controlDown && !altDown && !shiftDown)
+            {
+                return;
+            }
+
+            await Task.Delay(10);
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int virtualKey);
 
     public void Dispose()
     {
