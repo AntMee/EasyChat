@@ -2346,6 +2346,35 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("UseProxy", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Enable thinking.
+        /// </summary>
+        public static string EnableThinking {
+            get {
+                return ResourceManager.GetString("EnableThinking", resourceCulture);
+            }
+        }
+
+        public static string FetchModels {
+            get { return ResourceManager.GetString("FetchModels", resourceCulture); }
+        }
+
+        public static string FetchingModels {
+            get { return ResourceManager.GetString("FetchingModels", resourceCulture); }
+        }
+
+        public static string ModelApiUrlRequired {
+            get { return ResourceManager.GetString("ModelApiUrlRequired", resourceCulture); }
+        }
+
+        public static string NoModelsFound {
+            get { return ResourceManager.GetString("NoModelsFound", resourceCulture); }
+        }
+
+        public static string FetchModelsFailed {
+            get { return ResourceManager.GetString("FetchModelsFailed", resourceCulture); }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Model.

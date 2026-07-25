@@ -318,6 +318,24 @@
     <data name="UseProxy" xml:space="preserve">
   <value>使用代理</value>
   </data>
+    <data name="EnableThinking" xml:space="preserve">
+  <value>启用思考</value>
+  </data>
+    <data name="FetchModels" xml:space="preserve">
+  <value>获取模型</value>
+  </data>
+    <data name="FetchingModels" xml:space="preserve">
+  <value>获取中...</value>
+  </data>
+    <data name="ModelApiUrlRequired" xml:space="preserve">
+  <value>请输入 API 地址。</value>
+  </data>
+    <data name="NoModelsFound" xml:space="preserve">
+  <value>供应商没有返回模型。</value>
+  </data>
+    <data name="FetchModelsFailed" xml:space="preserve">
+  <value>获取模型失败：{0}</value>
+  </data>
     <data name="TestConnection" xml:space="preserve">
   <value>测试连接</value>
   </data>

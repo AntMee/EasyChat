@@ -50,18 +50,12 @@
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
                                                     <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                                        <!-- Show image icon for OpenAI/Gemini/Claude, MaterialIcon for Custom -->
                                                         <Panel Width="20" Height="20" Margin="0,0,10,0">
-                                                            <Border ClipToBounds="True"
-                                                                    CornerRadius="4"
-                                                                    IsVisible="{Binding ModelType, Converter={x:Static converts:AiModelTypeConverters.IsNotCustom}}">
+                                                            <Border ClipToBounds="True" CornerRadius="4">
                                                                 <Image
                                                                     Source="{Binding ModelType, Converter={x:Static converts:AiModelTypeConverters.ToIcon}}"
                                                                     Stretch="UniformToFill" />
                                                             </Border>
-                                                            <avalonia:MaterialIcon Kind="Robot"
-                                                                    Width="20" Height="20"
-                                                                    IsVisible="{Binding ModelType, Converter={x:Static converts:AiModelTypeConverters.IsCustom}}" />
                                                         </Panel>
                                                         <TextBlock VerticalAlignment="Center"
                                                                 Text="{Binding Name}" FontWeight="Bold" />

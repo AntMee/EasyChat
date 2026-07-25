@@ -44,13 +44,6 @@ public class SettingViewModel : Page
     private readonly ITtsService _ttsService;
     private readonly IAudioPlayer _audioPlayer;
 
-    private List<string> _claudeModels;
-
-    private List<string> _geminiModels;
-
-    private List<string> _openaiModels;
-
-
     public SettingViewModel(ISukiDialogManager dialogManager, ISukiToastManager toastManager, IConfigurationService configurationService, ITtsService ttsService, IAudioPlayer audioPlayer) : base(
         Resources.Settings, MaterialIconKind.Settings, 1)
     {
@@ -59,10 +52,6 @@ public class SettingViewModel : Page
         _configurationService = configurationService;
         _ttsService = ttsService;
         _audioPlayer = audioPlayer;
-        _openaiModels = ModelList.OpenAiModels;
-        _geminiModels = ModelList.GeminiModels;
-        _claudeModels = ModelList.ClaudeModels;
-
         // Initialize ConfiguredModels wrapper
         RefreshConfiguredModels();
 
@@ -634,7 +623,7 @@ public class SettingViewModel : Page
             var logger = loggerFactory.CreateLogger<OpenAiService>();
 
             var prompt = _configurationService.Prompts?.ActivePromptContent ?? Prompts.DefaultPromptContent;
-            var service = new OpenAiService(model.ApiUrl, model.ApiKey, model.Model, proxy, prompt, logger);
+            var service = new OpenAiService(model.ApiUrl, model.ApiKey, model.Model, proxy, prompt, logger, model.EnableThinking);
             var source = LanguageService.GetLanguage("en");
             var target = LanguageService.GetLanguage("zh-Hans");
             await service.TranslateAsync("Hello", source, target);

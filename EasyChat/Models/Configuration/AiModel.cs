@@ -11,6 +11,7 @@ public enum AiModelType
     OpenAi,
     Gemini,
     Claude,
+    DeepSeek,
     Custom
 }
 
@@ -107,13 +108,6 @@ public class CustomAiModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _enableThinking, value);
     }
 
-    public string IconPath => ModelType switch
-    {
-        AiModelType.OpenAi => "avares://EasyChat/Assets/Images/Engine/openai.png",
-        AiModelType.Gemini => "avares://EasyChat/Assets/Images/Engine/gemini.png",
-        AiModelType.Claude => "avares://EasyChat/Assets/Images/Engine/claude.png",
-        _ => "avares://EasyChat/Assets/Images/Engine/custom.png"
-    };
 }
 
 /// <summary>
