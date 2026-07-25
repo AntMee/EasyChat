@@ -76,6 +76,21 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Width" Value="28"/>
             <Setter Property="Height" Value="28"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Opacity" Value="0.7"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Opacity" Value="1"/>
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="Opacity" Value="0.45"/>
+            </Style>
         </Style>
 
         <Style Selector="StackPanel.StreamingSkeleton">
