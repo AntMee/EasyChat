@@ -25,9 +25,11 @@ public class SelectionTranslationService : IDisposable
     
     private SelectionIconWindowView? _iconWindow;
     private TranslationDictionaryWindowView? _currentTranslateWindow;
+    private TranslationDictionaryWindowView? _prewarmedTranslateWindow;
     private int _lastIconX;
     private int _lastIconY;
     private string? _lastSelectedText;
+    private bool _disposed;
 
     public SelectionTranslationService(
         IMouseHookService mouseHookService,
@@ -94,14 +96,87 @@ public class SelectionTranslationService : IDisposable
 
     private void StartHook()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         try
         {
             _mouseHookService.Start();
+
+            // Construct the first-use windows while the app is idle. Creating an
+            // Avalonia window loads XAML and creates a native handle; doing that
+            // from the first mouse interaction causes a visible input hitch.
+            Dispatcher.UIThread.Post(PrewarmSelectionWindows, DispatcherPriority.Background);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start mouse hook service");
         }
+    }
+
+    private void PrewarmSelectionWindows()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var iconWindow = EnsureIconWindow();
+
+        // Create the native window and renderer during idle time so first use
+        // does not need to load XAML or allocate the platform window.
+        try
+        {
+            if (!iconWindow.IsVisible)
+            {
+                var opacity = iconWindow.Opacity;
+                iconWindow.Opacity = 0;
+                iconWindow.Position = new PixelPoint(-10000, -10000);
+                iconWindow.Show();
+                iconWindow.Topmost = true;
+                iconWindow.Hide();
+                iconWindow.Opacity = opacity;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Unable to prewarm selection icon window");
+        }
+
+        if (_prewarmedTranslateWindow != null)
+        {
+            return;
+        }
+
+        try
+        {
+            var window = new TranslationDictionaryWindowView();
+            var opacity = window.Opacity;
+            window.Opacity = 0;
+            window.Position = new PixelPoint(-10000, -10000);
+            window.Show();
+            window.Hide();
+            window.Opacity = opacity;
+            _prewarmedTranslateWindow = window;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Unable to prewarm translation window");
+        }
+    }
+
+    private SelectionIconWindowView EnsureIconWindow()
+    {
+        if (_iconWindow != null)
+        {
+            return _iconWindow;
+        }
+
+        _iconWindow = new SelectionIconWindowView();
+        _iconWindow.TranslateClicked += OnTranslateClicked;
+        return _iconWindow;
     }
 
     private void OnMouseDown(object? sender, SimpleMouseEventArgs e)
@@ -184,9 +259,7 @@ public class SelectionTranslationService : IDisposable
     {
         try
         {
-            // Generation update matches OnMouseDown's sync call, but we do UI cleanup here
-             _iconWindow?.Close();
-             _iconWindow = null;
+            _iconWindow?.Hide();
         }
         catch { /* Ignore */ }
     }
@@ -241,21 +314,28 @@ public class SelectionTranslationService : IDisposable
                     if (await Dispatcher.UIThread.InvokeAsync(() => _currentTranslateWindow?.IsVisible == true))
                         return;
                     
-                    // This work already runs off the UI thread. Keeping the complete
-                    // clipboard snapshot here prevents OLE format enumeration from
-                    // blocking Avalonia while the user finishes a selection.
-                    var backup = await ClipboardHelper.BackupClipboardAsync(_logger);
+                    // Avalonia's Win32 clipboard implementation is UI-thread
+                    // affine. The snapshot itself must therefore be created on
+                    // the dispatcher.
+                    var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
                     
                     var text = await _platformService.GetSelectedTextAsync(x2, y2);
                     _lastSelectedText = text;
-                    
-                    await ClipboardHelper.RestoreClipboardAsync(backup, _logger);
+
+                    var selectionClipboardSequence = ClipboardHelper.GetClipboardSequenceNumber();
                     
                     // Check if canceled again before showing
-                    if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+                    if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration))
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                        return;
+                    }
 
                     if (await Dispatcher.UIThread.InvokeAsync(() => _currentTranslateWindow?.IsVisible == true))
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
                         return;
+                    }
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
@@ -266,10 +346,15 @@ public class SelectionTranslationService : IDisposable
                             if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
                                 ShowIcon(x2, y2);
                         });
+
+                        // Restoring all formats can block in the OLE clipboard
+                        // implementation. Do it after the icon's first frame.
+                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
                     }
                     else
                     {
-                         _logger.LogDebug("No text selected (or extraction failed)");
+                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger), DispatcherPriority.Background);
+                        _logger.LogDebug("No text selected (or extraction failed)");
                     }
                 }
                 catch (Exception ex)
@@ -308,14 +393,18 @@ public class SelectionTranslationService : IDisposable
                     return;
                 }
                     
-                var backup = await ClipboardHelper.BackupClipboardAsync(_logger);
+                var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
                     
                 var text = await _platformService.GetSelectedTextAsync(e.X, e.Y);
                 _lastSelectedText = text;
+
+                var selectionClipboardSequence = ClipboardHelper.GetClipboardSequenceNumber();
                     
-                await ClipboardHelper.RestoreClipboardAsync(backup, _logger);
-                    
-                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration))
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                    return;
+                }
 
                 if (!string.IsNullOrWhiteSpace(text))
                 {
@@ -326,10 +415,13 @@ public class SelectionTranslationService : IDisposable
                         if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
                             ShowIcon(e.X, e.Y);
                     });
+
+                    await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
                 }
                 else
                 {
-                     _logger.LogDebug("No text selected (Double Click) - Text was empty");
+                    await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger), DispatcherPriority.Background);
+                    _logger.LogDebug("No text selected (Double Click) - Text was empty");
                 }
             }
             catch (Exception ex)
@@ -342,22 +434,17 @@ public class SelectionTranslationService : IDisposable
     private void ShowIcon(int x, int y)
     {
         _logger.LogDebug("Showing icon at {X}, {Y}", x, y);
-        
-        if (_iconWindow == null)
-        {
-            _iconWindow = new SelectionIconWindowView();
-            _iconWindow.TranslateClicked += OnTranslateClicked;
-        }
+
+        var iconWindow = EnsureIconWindow();
         
         // Ensure window is usable (in case it was closed externally)
         try 
         {
             // Set position
             var pixelPoint = new PixelPoint(x + 10, y + 10);
-            _iconWindow.Position = pixelPoint;
-            
-            _iconWindow.Show();
-            _iconWindow.Topmost = true;
+            iconWindow.Position = pixelPoint;
+            iconWindow.Show();
+            iconWindow.Topmost = true;
             // DO NOT Activate() to avoid stealing focus
         }
         catch
@@ -395,7 +482,8 @@ public class SelectionTranslationService : IDisposable
                 // Check cancellation
                 if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
 
-                // Create and prepare the dialog on the UI thread
+                // Create the dialog on the UI thread. The first instance is
+                // normally prewarmed during idle time.
                 TranslationDictionaryWindowView? dialog = null;
                 
                 await Dispatcher.UIThread.InvokeAsync(() =>
@@ -407,7 +495,8 @@ public class SelectionTranslationService : IDisposable
                     // Close existing window if any (Singleton behavior)
                     try { _currentTranslateWindow?.Close(); } catch { /* Ignore if already closing */ }
 
-                    dialog = new TranslationDictionaryWindowView();
+                    dialog = _prewarmedTranslateWindow ?? new TranslationDictionaryWindowView();
+                    _prewarmedTranslateWindow = null;
                     _currentTranslateWindow = dialog;
                     
                     // Handle cleanup when closed manually
@@ -417,6 +506,11 @@ public class SelectionTranslationService : IDisposable
                         {
                             _currentTranslateWindow = null;
                         }
+
+                        // Keep the next dialog ready after the current native
+                        // window is released, so later selections avoid a first
+                        // use XAML/window-creation pause as well.
+                        Dispatcher.UIThread.Post(PrewarmSelectionWindows, DispatcherPriority.Background);
                     };
                 });
                 
@@ -439,20 +533,25 @@ public class SelectionTranslationService : IDisposable
                     return;
                 }
                 
-                // Initialize asynchronously - this does the heavy lifting
-                await dialog.InitializeAsync(text);
-                
-                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
-                
-                // Now show the prepared dialog on UI thread
+                // Show the shell before starting translation. Waiting for the
+                // provider here made the first fully-populated layout arrive as
+                // one large UI update and briefly block mouse input.
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
 
+                    dialog.SetSourceText(text);
                     ShowDialogAtPosition(dialog, x, y);
                     HideIconAndLoading();
-                    _logger.LogInformation("SelectionTranslateDialog opened successfully");
                 });
+
+                // Translation and result binding happen asynchronously while the
+                // already-visible window displays its loading/empty state.
+                await dialog.InitializeAsync(text);
+
+                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+
+                _logger.LogInformation("SelectionTranslateDialog opened successfully");
             }
             catch (Exception ex)
             {
@@ -585,6 +684,12 @@ public class SelectionTranslationService : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         _mouseHookService.MouseDown -= OnMouseDown;
         _mouseHookService.MouseUp -= OnMouseUp;
         _mouseHookService.MouseDoubleClick -= OnMouseDoubleClick;
@@ -593,6 +698,9 @@ public class SelectionTranslationService : IDisposable
         {
             _iconWindow.TranslateClicked -= OnTranslateClicked;
             _iconWindow.Close();
+            _iconWindow = null;
         }
+
+        _prewarmedTranslateWindow?.Close();
     }
 }

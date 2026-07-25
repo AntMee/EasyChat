@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -91,6 +92,34 @@ public static class ClipboardHelper
             }
         }
     }
+
+    public static async Task RestoreClipboardIfUnchangedAsync(
+        ClipboardSnapshot? backup,
+        uint expectedClipboardSequence,
+        ILogger? logger = null)
+    {
+        if (backup == null) return;
+
+        // A real user copy wins over restoring the clipboard snapshot. This is
+        // especially important now that restoration is deferred until after the
+        // selection icon has been made visible.
+        if (GetClipboardSequenceNumber() != expectedClipboardSequence)
+        {
+            logger?.LogDebug("Skipping clipboard restoration because clipboard changed after selection capture");
+            backup.Dispose();
+            return;
+        }
+
+        await RestoreClipboardAsync(backup, logger);
+    }
+
+    public static uint GetClipboardSequenceNumber()
+    {
+        return GetClipboardSequenceNumberNative();
+    }
+
+    [DllImport("user32.dll", EntryPoint = "GetClipboardSequenceNumber")]
+    private static extern uint GetClipboardSequenceNumberNative();
 
     private static object? CloneValue(object? value)
     {

@@ -202,6 +202,18 @@ public class WindowsPlatformService : IPlatformService
         
         return await Task.Run(async () =>
         {
+            const ushort vkControl = 0x11;
+            const ushort vkC = 0x43;
+
+            // Never synthesize Ctrl+C while the user is interacting with either
+            // key. Releasing a real Ctrl key can turn the user's C press into a
+            // literal character in the focused application.
+            if (IsKeyDown(vkControl) || IsKeyDown(vkC))
+            {
+                _logger.LogDebug("Skipping selection capture while Ctrl or C is pressed by the user");
+                return null;
+            }
+
             // Track which modifier keys the user is currently pressing
             var pressedModifiers = new List<ushort>();
             
@@ -233,9 +245,14 @@ public class WindowsPlatformService : IPlatformService
                 
                 // 2. Detect and temporarily release user's modifier keys
                 await Task.Delay(10);
+
+                if (IsKeyDown(vkControl) || IsKeyDown(vkC))
+                {
+                    _logger.LogDebug("Skipping selection capture while Ctrl or C is pressed by the user");
+                    return null;
+                }
                 
                 // Check which modifier keys are currently pressed by user
-                if ((Win32.GetAsyncKeyState(0x11) & 0x8000) != 0) pressedModifiers.Add(0x11); // VK_CONTROL
                 if ((Win32.GetAsyncKeyState(0x10) & 0x8000) != 0) pressedModifiers.Add(0x10); // VK_SHIFT  
                 if ((Win32.GetAsyncKeyState(0x12) & 0x8000) != 0) pressedModifiers.Add(0x12); // VK_MENU (Alt)
                 
@@ -255,6 +272,12 @@ public class WindowsPlatformService : IPlatformService
                     
                     // Small delay to let the release take effect
                     await Task.Delay(5);
+                }
+
+                if (IsKeyDown(vkControl) || IsKeyDown(vkC))
+                {
+                    _logger.LogDebug("Skipping synthetic Ctrl+C because user is pressing Ctrl or C");
+                    return null;
                 }
                 
                 // 3. Send Ctrl+C
@@ -330,6 +353,11 @@ public class WindowsPlatformService : IPlatformService
     {
         // CF_UNICODETEXT = 13
         return Win32.IsClipboardFormatAvailable(13);
+    }
+
+    private static bool IsKeyDown(ushort virtualKey)
+    {
+        return (Win32.GetAsyncKeyState(virtualKey) & 0x8000) != 0;
     }
     
     private string? GetClipboardTextWin32()
