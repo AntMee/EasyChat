@@ -14,4 +14,5 @@ public class Config
     public ScreenshotConfig ScreenshotConf { get; set; } = new();
     public SelectionTranslationConfig SelectionTranslationConf { get; set; } = new();
     public TtsConfig TtsConf { get; set; } = new();
+    public TextAssistConfig TextAssistConf { get; set; } = new();
 }

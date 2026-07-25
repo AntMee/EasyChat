@@ -23,6 +23,34 @@
 
         <!-- Tab Control -->
         <TabControl>
+            <TabItem Header="{x:Static lang:Resources.TextAssistShortcuts}">
+                <StackPanel Spacing="15" Margin="0 20">
+                    <ItemsControl ItemsSource="{Binding TextAssistShortcuts}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="config:ShortcutEntry">
+                                <suki:GlassCard Margin="0 0 0 10" Padding="18">
+                                    <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                                        <TextBlock Grid.Column="0" Text="{Binding DisplayText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <controls:KeySequenceDisplay Grid.Column="1" KeyCombination="{Binding KeyCombination}" MinWidth="130" Margin="10 0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2" IsChecked="{Binding IsEnabled}" Margin="10 0" />
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="0">
+                                            <Button Classes="Flat" CornerRadius="8,0,0,8" Command="{Binding $parent[ItemsControl].((viewModels:ShortcutViewModel)DataContext).EditEntryCommand}" CommandParameter="{Binding}" ToolTip.Tip="{x:Static lang:Resources.Edit}">
+                                                <avalonia:MaterialIcon Kind="Pencil" />
+                                            </Button>
+                                            <Button Classes="Flat Danger" CornerRadius="0,8,8,0" Command="{Binding $parent[ItemsControl].((viewModels:ShortcutViewModel)DataContext).RemoveEntryCommand}" CommandParameter="{Binding}" ToolTip.Tip="{x:Static lang:Resources.Delete}">
+                                                <avalonia:MaterialIcon Kind="TrashCan" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </suki:GlassCard>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Classes="Flat" Command="{Binding AddEntryCommand}" CommandParameter="TextAssist" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal"><avalonia:MaterialIcon Kind="Plus" /><TextBlock Margin="5 0 0 0" Text="{x:Static lang:Resources.AddTextAssistShortcut}" /></StackPanel>
+                    </Button>
+                </StackPanel>
+            </TabItem>
             <!-- Basic Hotkeys Tab -->
             <TabItem Header="{x:Static lang:Resources.BasicShortcuts}">
                 <StackPanel Spacing="15" Margin="0 20">

@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 using EasyChat.Models.Configuration;
 using EasyChat.Models.Translation.Selection;
 using EasyChat.Services.Abstractions;
+using EasyChat.Services.Streaming;
 using Microsoft.Extensions.Logging;
 using OpenAI;
 using OpenAI.Chat;
@@ -173,9 +174,11 @@ Emit events in exactly the documented order and always finish with `{"event":"do
 
         var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         jsonOptions.Converters.Add(new JsonStringEnumConverter());
-        var reader = new SelectionTranslationStreamDecoder(line =>
+        var reader = new JsonLinesDeltaStreamDecoder<SelectionTranslationStreamEvent>(line =>
             JsonSerializer.Deserialize<SelectionTranslationStreamEvent>(line, jsonOptions)
-            ?? throw new JsonException("Empty structured translation event."));
+            ?? throw new JsonException("Empty structured translation event."),
+            "translation_delta",
+            "text");
 
         // Streaming iterators cannot yield from a try/catch block. Let transport and
         // protocol failures flow to the caller, which already owns the UI error state.

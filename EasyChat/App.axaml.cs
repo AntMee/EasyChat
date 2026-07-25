@@ -38,6 +38,7 @@ using SukiUI.Toasts;
 using EasyChat.Services.Translation.Selection;
 using EasyChat.ViewModels.Windows;
 using EasyChat.Services.Text;
+using EasyChat.Services.TextAssist;
 
 
 namespace EasyChat;
@@ -149,6 +150,8 @@ public class App : Application
             services.AddTransient<Page, AboutViewModel>();
             services.AddTransient<Page, PromptViewModel>();
             services.AddTransient<Page, SpeechRecognitionViewModel>();
+            services.AddTransient<Page, TextAssistViewModel>();
+            services.AddTransient<TextAssistViewModel>();
 
             // ViewModels
             services.AddSingleton<MainWindowViewModel>();
@@ -158,12 +161,17 @@ public class App : Application
             services.AddSingleton<IShortcutActionHandler, InputTranslateHandler>();
             services.AddSingleton<IShortcutActionHandler, SwitchEngineHandler>();
             services.AddSingleton<IShortcutActionHandler, SelectionTranslateHandler>();
+            services.AddSingleton<IShortcutActionHandler, QuickTranslateHandler>();
+            services.AddSingleton<IShortcutActionHandler, QuickCorrectHandler>();
 
             // Global Shortcuts Service
             services.AddSingleton<GlobalShortcutService>();
 
             // Language Services
             services.AddSingleton<LanguageService>();
+            services.AddSingleton<TextAssistProfileResolver>();
+            services.AddSingleton<ISelectedTextCaptureService, SelectedTextCaptureService>();
+            services.AddSingleton<ITextAssistService, TextAssistService>();
             
             // Speech Recognition Service
             services.AddSingleton<ISpeechRecognitionService, SpeechRecognitionService>();

@@ -2525,5 +2525,23 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("TypingFollowConfigTooltip", resourceCulture);
             }
         }
+        public static string TextAssist => ResourceManager.GetString("TextAssist", resourceCulture);
+        public static string TextAssistSubtitle => ResourceManager.GetString("TextAssistSubtitle", resourceCulture);
+        public static string TextAssistTranslate => ResourceManager.GetString("TextAssistTranslate", resourceCulture);
+        public static string TextAssistCorrect => ResourceManager.GetString("TextAssistCorrect", resourceCulture);
+        public static string TextAssistInputWatermark => ResourceManager.GetString("TextAssistInputWatermark", resourceCulture);
+        public static string TextAssistFollowGlobal => ResourceManager.GetString("TextAssistFollowGlobal", resourceCulture);
+        public static string TextAssistRun => ResourceManager.GetString("TextAssistRun", resourceCulture);
+        public static string TextAssistIssues => ResourceManager.GetString("TextAssistIssues", resourceCulture);
+        public static string TextAssistCorrectedResult => ResourceManager.GetString("TextAssistCorrectedResult", resourceCulture);
+        public static string TextAssistAnnotatedOriginal => ResourceManager.GetString("TextAssistAnnotatedOriginal", resourceCulture);
+        public static string TextAssistShortcuts => ResourceManager.GetString("TextAssistShortcuts", resourceCulture);
+        public static string AddTextAssistShortcut => ResourceManager.GetString("AddTextAssistShortcut", resourceCulture);
+        public static string TextAssistCategoryGrammar => ResourceManager.GetString("TextAssistCategoryGrammar", resourceCulture);
+        public static string TextAssistCategorySpelling => ResourceManager.GetString("TextAssistCategorySpelling", resourceCulture);
+        public static string TextAssistCategoryWordChoice => ResourceManager.GetString("TextAssistCategoryWordChoice", resourceCulture);
+        public static string TextAssistCategoryStyle => ResourceManager.GetString("TextAssistCategoryStyle", resourceCulture);
+        public static string Action_QuickTranslate => ResourceManager.GetString("Action_QuickTranslate", resourceCulture);
+        public static string Action_QuickCorrect => ResourceManager.GetString("Action_QuickCorrect", resourceCulture);
     }
 }

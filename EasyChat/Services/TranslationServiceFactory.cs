@@ -50,6 +50,9 @@ public class TranslationServiceFactory : ITranslationServiceFactory
     }
 
     public ITranslation CreateAiServiceById(string id)
+        => CreateAiServiceById(id, null);
+
+    public ITranslation CreateAiServiceById(string id, string? promptOverride)
     {
         var model = _config.AiModelConf.ConfiguredModels.FirstOrDefault(m => m.Id == id);
         
@@ -59,19 +62,22 @@ public class TranslationServiceFactory : ITranslationServiceFactory
              throw new ArgumentException($"Unknown AI model ID: {id}");
         }
 
-        return CreateAiServiceFromModel(model);
+        return CreateAiServiceFromModel(model, promptOverride);
     }
 
     public ITranslation CreateAiService(string modelName)
+        => CreateAiService(modelName, null);
+
+    public ITranslation CreateAiService(string modelName, string? promptOverride)
     {
         var model = _config.AiModelConf.ConfiguredModels.FirstOrDefault(m => m.Name == modelName);
         if (model == null)
             throw new ArgumentException($"Unknown AI model: {modelName}");
 
-        return CreateAiServiceFromModel(model);
+        return CreateAiServiceFromModel(model, promptOverride);
     }
 
-    private ITranslation CreateAiServiceFromModel(CustomAiModel model)
+    private ITranslation CreateAiServiceFromModel(CustomAiModel model, string? promptOverride = null)
     {
         _logger.LogDebug("Creating AI service: Name={Name}, Type={Type}, URL={Url}, Model={Model}", 
             model.Name, model.ModelType, model.ApiUrl, model.Model);
@@ -80,7 +86,9 @@ public class TranslationServiceFactory : ITranslationServiceFactory
         string apiUrl = model.ApiUrl;
         string modelId = model.Model;
 
-        var prompt = _configurationService.Prompts?.ActivePromptContent ?? Prompts.DefaultPromptContent;
+        var prompt = string.IsNullOrWhiteSpace(promptOverride)
+            ? _configurationService.Prompts?.ActivePromptContent ?? Prompts.DefaultPromptContent
+            : promptOverride;
 
         return new OpenAiService(
             apiUrl,

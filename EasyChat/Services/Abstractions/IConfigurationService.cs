@@ -16,4 +16,5 @@ public interface IConfigurationService
     SelectionTranslationConfig? SelectionTranslation { get; }
     SpeechRecognitionConfig? SpeechRecognition { get; }
     TtsConfig? Tts { get; }
+    TextAssistConfig? TextAssist { get; }
 }

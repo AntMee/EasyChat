@@ -10,6 +10,7 @@ using EasyChat.Views.Windows;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using EasyChat.ViewModels.Windows;
+using EasyChat.Services.TextAssist;
 
 namespace EasyChat.Services.Translation.Selection;
 
@@ -19,6 +20,7 @@ public class SelectionTranslationService : IDisposable
     private readonly IConfigurationService _configurationService;
     private readonly IPlatformService _platformService;
     private readonly ILogger<SelectionTranslationService> _logger;
+    private readonly ISelectedTextCaptureService _selectedTextCaptureService;
 
     private (int x, int y)? _downPoint;
     
@@ -37,12 +39,14 @@ public class SelectionTranslationService : IDisposable
         IMouseHookService mouseHookService,
         IConfigurationService configurationService,
         IPlatformService platformService,
-        ILogger<SelectionTranslationService> logger)
+        ILogger<SelectionTranslationService> logger,
+        ISelectedTextCaptureService selectedTextCaptureService)
     {
         _mouseHookService = mouseHookService;
         _configurationService = configurationService;
         _platformService = platformService;
         _logger = logger;
+        _selectedTextCaptureService = selectedTextCaptureService;
 
         _mouseHookService.MouseDown += OnMouseDown;
         _mouseHookService.MouseUp += OnMouseUp;
@@ -716,24 +720,11 @@ public class SelectionTranslationService : IDisposable
     {
         try
         {
-            // Global hotkeys are raised on key-down, so Ctrl/Alt may still be
-            // physically held when this method starts. Wait for the hotkey to
-            // finish before the selection copier's Ctrl/C safety guard runs.
-            await WaitForShortcutKeysReleasedAsync();
-
-            var (x, y) = _platformService.GetCursorPosition();
-            _logger.LogInformation("Shortcut Translate at {X}, {Y}", x, y);
-
-        // Backup clipboard (Must be on UI Thread)
-        var backup = await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.BackupClipboardAsync(_logger));
-
-        // Get text
-        var text = await _platformService.GetSelectedTextAsync(x, y);
-
-        // Restore clipboard (Must be on UI Thread)
-            await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger));
-
-            if (string.IsNullOrWhiteSpace(text)) return;
+            var snapshot = await _selectedTextCaptureService.CaptureAsync();
+            if (snapshot == null) return;
+            var text = snapshot.Text;
+            var x = snapshot.X;
+            var y = snapshot.Y;
 
             _logger.LogInformation(
                 "Selected text captured using {Method}: {Length} chars",
@@ -772,25 +763,6 @@ public class SelectionTranslationService : IDisposable
             _logger.LogError(ex, "Failed to translate current selection from shortcut");
         }
     }
-
-    private static async Task WaitForShortcutKeysReleasedAsync()
-    {
-        for (var i = 0; i < 30; i++)
-        {
-            var controlDown = (GetAsyncKeyState(0x11) & 0x8000) != 0;
-            var altDown = (GetAsyncKeyState(0x12) & 0x8000) != 0;
-            var shiftDown = (GetAsyncKeyState(0x10) & 0x8000) != 0;
-            if (!controlDown && !altDown && !shiftDown)
-            {
-                return;
-            }
-
-            await Task.Delay(10);
-        }
-    }
-
-    [DllImport("user32.dll")]
-    private static extern short GetAsyncKeyState(int virtualKey);
 
     public void Dispose()
     {

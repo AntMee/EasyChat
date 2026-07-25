@@ -851,4 +851,22 @@
     <data name="TypingFollowConfigTooltip" xml:space="preserve">
         <value>When enabled, source and target languages will sync with global configuration.</value>
     </data>
+  <data name="TextAssist" xml:space="preserve"><value>Translate / Correct</value></data>
+  <data name="TextAssistSubtitle" xml:space="preserve"><value>Translate naturally or polish your writing with streaming feedback.</value></data>
+  <data name="TextAssistTranslate" xml:space="preserve"><value>Translate</value></data>
+  <data name="TextAssistCorrect" xml:space="preserve"><value>Correct</value></data>
+  <data name="TextAssistInputWatermark" xml:space="preserve"><value>Enter text...</value></data>
+  <data name="TextAssistFollowGlobal" xml:space="preserve"><value>Follow global settings</value></data>
+  <data name="TextAssistRun" xml:space="preserve"><value>Run</value></data>
+  <data name="TextAssistIssues" xml:space="preserve"><value>Issues and suggestions</value></data>
+  <data name="TextAssistCorrectedResult" xml:space="preserve"><value>Corrected result</value></data>
+  <data name="TextAssistAnnotatedOriginal" xml:space="preserve"><value>Issues in the original text</value></data>
+  <data name="TextAssistShortcuts" xml:space="preserve"><value>Text assist shortcuts</value></data>
+  <data name="AddTextAssistShortcut" xml:space="preserve"><value>Add text assist shortcut</value></data>
+  <data name="TextAssistCategoryGrammar" xml:space="preserve"><value>Grammar</value></data>
+  <data name="TextAssistCategorySpelling" xml:space="preserve"><value>Spelling</value></data>
+  <data name="TextAssistCategoryWordChoice" xml:space="preserve"><value>Word choice</value></data>
+  <data name="TextAssistCategoryStyle" xml:space="preserve"><value>Style</value></data>
+  <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate selection</value></data>
+  <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct selection</value></data>
 </root>

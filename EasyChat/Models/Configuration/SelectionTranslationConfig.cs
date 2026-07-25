@@ -42,6 +42,13 @@ public class SelectionTranslationConfig : ReactiveObject
     }
 
     [JsonProperty]
+    public string? PromptId
+    {
+        get => field;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    [JsonProperty]
     public SelectionTriggerMode TriggerMode
     {
         get => _triggerMode;

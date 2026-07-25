@@ -32,6 +32,7 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
         SpeechRecognition = ConfigUtil.LoadConfig<SpeechRecognitionConfig>(Constant.SpeechRecognitionConf);
         SelectionTranslation = ConfigUtil.LoadConfig<SelectionTranslationConfig>(Constant.SelectionTranslationConf);
         Tts = ConfigUtil.LoadConfig<TtsConfig>(Constant.TtsConf);
+        TextAssist = ConfigUtil.LoadConfig<TextAssistConfig>(TextAssistConstants.ConfigName);
 
         // Set global access for legacy compatibility (if needed)
         Global.Config.GeneralConf = General;
@@ -41,6 +42,7 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
         Global.Config.ShortcutConf = Shortcut;
         Global.Config.SelectionTranslationConf = SelectionTranslation;
         Global.Config.TtsConf = Tts;
+        Global.Config.TextAssistConf = TextAssist;
         
         // Ensure initial IDs are persisted (especially just after migration)
         ConfigUtil.SaveConfig(Constant.MachineTransConf, MachineTrans);
@@ -63,6 +65,7 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
     public SelectionTranslationConfig SelectionTranslation { get; }
     public SpeechRecognitionConfig SpeechRecognition { get; }
     public TtsConfig Tts { get; }
+    public TextAssistConfig TextAssist { get; }
 
     private void SetupAutoSave()
     {
@@ -327,6 +330,14 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
             {
                 _logger.LogDebug("Auto-saving Tts configuration");
                 ConfigUtil.SaveConfig(Constant.TtsConf, Tts);
+             });
+
+        TextAssist.Changed
+            .Throttle(TimeSpan.FromMilliseconds(500))
+            .Subscribe(_ =>
+            {
+                _logger.LogDebug("Auto-saving TextAssist configuration");
+                ConfigUtil.SaveConfig(TextAssistConstants.ConfigName, TextAssist);
             });
     }
 }

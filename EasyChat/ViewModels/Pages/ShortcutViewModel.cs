@@ -27,6 +27,8 @@ public class ShortcutViewModel : Page
     // Language switch shortcuts
     private ObservableCollection<ShortcutEntry> _languageShortcuts = new();
 
+    private ObservableCollection<ShortcutEntry> _textAssistShortcuts = new();
+
     public ShortcutViewModel(ISukiDialogManager dialogManager, IConfigurationService configurationService) : base(
         Resources.Shortcut, MaterialIconKind.Keyboard, 2)
     {
@@ -59,6 +61,12 @@ public class ShortcutViewModel : Page
         set => this.RaiseAndSetIfChanged(ref _languageShortcuts, value);
     }
 
+    public ObservableCollection<ShortcutEntry> TextAssistShortcuts
+    {
+        get => _textAssistShortcuts;
+        set => this.RaiseAndSetIfChanged(ref _textAssistShortcuts, value);
+    }
+
     // public ReactiveCommand<Unit, Unit> SaveCommand { get; } // Removed
     // public ReactiveCommand<Unit, Unit> RestoreCommand { get; } // Removed
 
@@ -67,6 +75,7 @@ public class ShortcutViewModel : Page
     public ReactiveCommand<ShortcutEntry, Unit> RemoveEntryCommand { get; }
 
     private readonly string[] _basicTypes = { "Screenshot", "InputTranslate", "SelectionTranslate" };
+    private readonly string[] _textAssistTypes = { "QuickTranslate", "QuickCorrect" };
     private readonly string[] _languageTypes = { "SwitchEngineSourceTarget" };
 
     private void LoadShortcutsFromService()
@@ -79,6 +88,8 @@ public class ShortcutViewModel : Page
 
         LanguageShortcuts = new ObservableCollection<ShortcutEntry>(
             entries.Where(e => _languageTypes.Contains(e.ActionType)));
+        TextAssistShortcuts = new ObservableCollection<ShortcutEntry>(
+            entries.Where(e => _textAssistTypes.Contains(e.ActionType)));
     }
 
     // AttachAutoSave and OnItemPropertyChanged removed (handled by service)
@@ -91,7 +102,12 @@ public class ShortcutViewModel : Page
         ShortcutEntry? template;
         string[] allowedTypes;
 
-        if (category == "Basic")
+        if (category == "TextAssist")
+        {
+            template = new ShortcutEntry { ActionType = "QuickTranslate" };
+            allowedTypes = _textAssistTypes;
+        }
+        else if (category == "Basic")
         {
             template = new ShortcutEntry { ActionType = "Screenshot" };
             allowedTypes = _basicTypes;
@@ -108,7 +124,11 @@ public class ShortcutViewModel : Page
     private void EditEntry(ShortcutEntry entry)
     {
         string[] allowedTypes;
-        if (_basicTypes.Contains(entry.ActionType))
+        if (_textAssistTypes.Contains(entry.ActionType))
+        {
+            allowedTypes = _textAssistTypes;
+        }
+        else if (_basicTypes.Contains(entry.ActionType))
         {
             allowedTypes = _basicTypes;
         }

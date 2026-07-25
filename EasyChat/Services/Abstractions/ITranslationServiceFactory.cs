@@ -19,11 +19,15 @@ public interface ITranslationServiceFactory
     /// <param name="providerName">Provider name: "OpenAI", "Gemini", or "Claude"</param>
     ITranslation CreateAiService(string providerName);
 
+    ITranslation CreateAiService(string providerName, string? promptOverride);
+
     /// <summary>
     ///     Creates a specific AI translation service by its unique ID.
     /// </summary>
     /// <param name="id">The unique ID of the AI model.</param>
     ITranslation CreateAiServiceById(string id);
+
+    ITranslation CreateAiServiceById(string id, string? promptOverride);
 
     /// <summary>
     ///     Creates a specific machine translation service.

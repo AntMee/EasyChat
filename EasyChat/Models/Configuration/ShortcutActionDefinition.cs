@@ -54,6 +54,16 @@ public abstract class ShortcutActionDefinition : IShortcutActionDefinition
             ActionType = "SelectionTranslate",
             ResourceKey = "Action_SelectionTranslate"
         },
+        new SimpleActionDefinition
+        {
+            ActionType = "QuickTranslate",
+            ResourceKey = "Action_QuickTranslate"
+        },
+        new SimpleActionDefinition
+        {
+            ActionType = "QuickCorrect",
+            ResourceKey = "Action_QuickCorrect"
+        },
         new StaticOptionsActionDefinition
         {
             ActionType = "SwitchSourceLang",

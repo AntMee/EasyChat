@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:lang="clr-namespace:EasyChat.Lang"
+        xmlns:pages="clr-namespace:EasyChat.Views.Pages"
+        x:Class="EasyChat.Views.Windows.TextAssistWindowView"
+        Width="820" Height="760" MinWidth="600" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        TransparencyLevelHint="Blur"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        CornerRadius="14"
+        Title="Text Assist">
+    <suki:GlassCard x:Name="MainCard" CornerRadius="14" Padding="0" Background="#E9141921">
+        <Grid RowDefinitions="Auto,*">
+            <Border Grid.Row="0" Padding="16,12" Background="#66000000"
+                    PointerPressed="OnHeaderPointerPressed">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <avalonia:MaterialIcon Kind="Translate" Width="20" Height="20" Foreground="{DynamicResource SukiPrimaryColor}" />
+                        <TextBlock Text="{x:Static lang:Resources.TextAssist}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource SukiText}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Click="OnCloseClick" Classes="Basic" ToolTip.Tip="Close">
+                        <avalonia:MaterialIcon Kind="Close" />
+                    </Button>
+                </Grid>
+            </Border>
+            <ContentControl Grid.Row="1" x:Name="EditorHost" />
+        </Grid>
+    </suki:GlassCard>
+</Window>

@@ -841,4 +841,22 @@
     <data name="TypingFollowConfigTooltip" xml:space="preserve">
         <value>开启后，源语言和目标语言将跟随全局配置。</value>
     </data>
+  <data name="TextAssist" xml:space="preserve"><value>翻译 / 纠正</value></data>
+  <data name="TextAssistSubtitle" xml:space="preserve"><value>流式翻译文本，或实时完善你的表达。</value></data>
+  <data name="TextAssistTranslate" xml:space="preserve"><value>翻译</value></data>
+  <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
+  <data name="TextAssistInputWatermark" xml:space="preserve"><value>输入文本...</value></data>
+  <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
+  <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
+  <data name="TextAssistIssues" xml:space="preserve"><value>错误与修改建议</value></data>
+  <data name="TextAssistCorrectedResult" xml:space="preserve"><value>修改结果</value></data>
+  <data name="TextAssistAnnotatedOriginal" xml:space="preserve"><value>原文中的错误</value></data>
+  <data name="TextAssistShortcuts" xml:space="preserve"><value>翻译与纠正快捷键</value></data>
+  <data name="AddTextAssistShortcut" xml:space="preserve"><value>添加翻译/纠正快捷键</value></data>
+  <data name="TextAssistCategoryGrammar" xml:space="preserve"><value>语法</value></data>
+  <data name="TextAssistCategorySpelling" xml:space="preserve"><value>拼写</value></data>
+  <data name="TextAssistCategoryWordChoice" xml:space="preserve"><value>用词</value></data>
+  <data name="TextAssistCategoryStyle" xml:space="preserve"><value>表达风格</value></data>
+  <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译选中文本</value></data>
+  <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正选中文本</value></data>
 </root>
