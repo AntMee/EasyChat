@@ -707,6 +707,18 @@
     <data name="EnableSelectionTranslation" xml:space="preserve">
         <value>Enable Selection Translation</value>
     </data>
+    <data name="SelectionTriggerMode" xml:space="preserve">
+        <value>Selection Method</value>
+    </data>
+    <data name="SelectionTriggerModeDoubleClick" xml:space="preserve">
+        <value>Double Click</value>
+    </data>
+    <data name="SelectionTriggerModeDragSelection" xml:space="preserve">
+        <value>Drag Selection</value>
+    </data>
+    <data name="SelectionTriggerModeAll" xml:space="preserve">
+        <value>All</value>
+    </data>
     <data name="SelectionTranslate_Title" xml:space="preserve">
         <value>Selection Translation</value>
     </data>

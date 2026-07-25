@@ -11,6 +11,7 @@ public class SelectionTranslationConfig : ReactiveObject
     private string _provider = "AI";
     private string? _aiModelId;
     private string? _machineProvider;
+    private SelectionTriggerMode _triggerMode = SelectionTriggerMode.All;
 
     [JsonProperty]
     public bool Enabled
@@ -39,4 +40,18 @@ public class SelectionTranslationConfig : ReactiveObject
         get => _aiModelId;
         set => this.RaiseAndSetIfChanged(ref _aiModelId, value);
     }
+
+    [JsonProperty]
+    public SelectionTriggerMode TriggerMode
+    {
+        get => _triggerMode;
+        set => this.RaiseAndSetIfChanged(ref _triggerMode, value);
+    }
+}
+
+public enum SelectionTriggerMode
+{
+    DoubleClick,
+    DragSelection,
+    All
 }

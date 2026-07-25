@@ -270,6 +270,25 @@ public class SettingViewModel : Page
 
     public List<string> TranslationEngineTypes { get; } = [Resources.AIEngine, Resources.MachineTranslation];
 
+    public List<SelectionTriggerModeOption> SelectionTriggerModes { get; } =
+    [
+        new(SelectionTriggerMode.DoubleClick, Resources.SelectionTriggerModeDoubleClick),
+        new(SelectionTriggerMode.DragSelection, Resources.SelectionTriggerModeDragSelection),
+        new(SelectionTriggerMode.All, Resources.SelectionTriggerModeAll)
+    ];
+
+    public SelectionTriggerMode SelectedSelectionTriggerMode
+    {
+        get => SelectionTranslationConf?.TriggerMode ?? SelectionTriggerMode.All;
+        set
+        {
+            if (SelectionTranslationConf == null || SelectionTranslationConf.TriggerMode == value) return;
+
+            SelectionTranslationConf.TriggerMode = value;
+            this.RaisePropertyChanged();
+        }
+    }
+
     public string SelectedSelectionTranslationEngine
     {
         get
@@ -809,3 +828,5 @@ public class SettingViewModel : Page
         }
     }
 }
+
+public sealed record SelectionTriggerModeOption(SelectionTriggerMode Value, string DisplayName);

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Threading;
 using EasyChat.Common;
+using EasyChat.Models.Configuration;
 using EasyChat.Services.Abstractions;
 using EasyChat.Views.Windows;
 using Microsoft.Extensions.Logging;
@@ -167,6 +168,18 @@ public class SelectionTranslationService : IDisposable
         }
     }
 
+    private bool HandlesDragSelection()
+    {
+        var mode = _configurationService.SelectionTranslation?.TriggerMode ?? SelectionTriggerMode.All;
+        return mode is SelectionTriggerMode.DragSelection or SelectionTriggerMode.All;
+    }
+
+    private bool HandlesDoubleClick()
+    {
+        var mode = _configurationService.SelectionTranslation?.TriggerMode ?? SelectionTriggerMode.All;
+        return mode is SelectionTriggerMode.DoubleClick or SelectionTriggerMode.All;
+    }
+
     private SelectionIconWindowView EnsureIconWindow()
     {
         if (_iconWindow != null)
@@ -181,27 +194,50 @@ public class SelectionTranslationService : IDisposable
 
     private void OnMouseDown(object? sender, SimpleMouseEventArgs e)
     {
-        if (_configurationService.SelectionTranslation?.Enabled != true) 
+        if (_configurationService.SelectionTranslation?.Enabled != true)
         {
             return;
         }
-        
-        _logger.LogDebug("Mouse Down at {X}, {Y}", e.X, e.Y);
-        
-        _downPoint = (e.X, e.Y);
-        
-        // Don't hide icon if clicking on the icon itself
-        // Check if click position is within icon window bounds
-        if (_iconWindow != null && _iconWindow.IsVisible)
+
+        // The global hook sees the mouse-down before the icon window does. Keep
+        // this guard before the trigger-mode branches so clicking the icon is
+        // delivered to its own handler instead of hiding it first.
+        if (_iconWindow?.IsVisible == true)
         {
             var iconPos = _iconWindow.Position;
             var iconBounds = new Rect(iconPos.X, iconPos.Y, 40, 40);
             if (iconBounds.Contains(new Point(e.X, e.Y)))
             {
                 _logger.LogDebug("Click is on icon window, not hiding");
-                return; // Don't hide - let the icon handle the click
+                return;
             }
         }
+
+        // Double-click mode does not use drag selection, but it still needs a
+        // mouse-down handler so a later single click can dismiss the icon.
+        if (!HandlesDragSelection())
+        {
+            if ((DateTime.Now - _lastDoubleClickTime).TotalMilliseconds < 500)
+            {
+                var distance = Math.Sqrt(Math.Pow(e.X - _lastIconX, 2) + Math.Pow(e.Y - _lastIconY, 2));
+                if (distance < 40)
+                {
+                    return;
+                }
+            }
+
+            if (_iconWindow?.IsVisible == true)
+            {
+                UpdateGeneration();
+                HideIcon();
+            }
+
+            return;
+        }
+        
+        _logger.LogDebug("Mouse Down at {X}, {Y}", e.X, e.Y);
+        
+        _downPoint = (e.X, e.Y);
         
         // Check if click is inside the Translation Window (if open)
         if (_currentTranslateWindow != null && _currentTranslateWindow.IsVisible)
@@ -266,7 +302,7 @@ public class SelectionTranslationService : IDisposable
 
     private void OnMouseUp(object? sender, SimpleMouseEventArgs e)
     {
-        if (_configurationService.SelectionTranslation?.Enabled != true) return;
+        if (_configurationService.SelectionTranslation?.Enabled != true || !HandlesDragSelection()) return;
 
         // Releasing the mouse after dragging the translation window must not start
         // another selection capture or show the selection icon.
@@ -367,7 +403,7 @@ public class SelectionTranslationService : IDisposable
 
     private void OnMouseDoubleClick(object? sender, SimpleMouseEventArgs e)
     {
-        if (_configurationService.SelectionTranslation?.Enabled != true) return;
+        if (_configurationService.SelectionTranslation?.Enabled != true || !HandlesDoubleClick()) return;
         
         _logger.LogInformation("Double Click detected at {X}, {Y}", e.X, e.Y);
         
@@ -495,9 +531,14 @@ public class SelectionTranslationService : IDisposable
                     // Close existing window if any (Singleton behavior)
                     try { _currentTranslateWindow?.Close(); } catch { /* Ignore if already closing */ }
 
-                    dialog = _prewarmedTranslateWindow ?? new TranslationDictionaryWindowView();
+                     dialog = _prewarmedTranslateWindow ?? new TranslationDictionaryWindowView();
                     _prewarmedTranslateWindow = null;
                     _currentTranslateWindow = dialog;
+
+                    if (dialog.DataContext is TranslationDictionaryWindowViewModel viewModel)
+                    {
+                        viewModel.ShowCloseButton = true;
+                    }
                     
                     // Handle cleanup when closed manually
                     dialog.Closed += (_, _) => 

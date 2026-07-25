@@ -1644,6 +1644,42 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("SelectionTranslation", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Selection Method.
+        /// </summary>
+        public static string SelectionTriggerMode {
+            get {
+                return ResourceManager.GetString("SelectionTriggerMode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to All.
+        /// </summary>
+        public static string SelectionTriggerModeAll {
+            get {
+                return ResourceManager.GetString("SelectionTriggerModeAll", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Double Click.
+        /// </summary>
+        public static string SelectionTriggerModeDoubleClick {
+            get {
+                return ResourceManager.GetString("SelectionTriggerModeDoubleClick", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Drag Selection.
+        /// </summary>
+        public static string SelectionTriggerModeDragSelection {
+            get {
+                return ResourceManager.GetString("SelectionTriggerModeDragSelection", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Restore Default.
