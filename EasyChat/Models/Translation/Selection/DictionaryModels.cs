@@ -1,18 +1,28 @@
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using ReactiveUI;
 
 namespace EasyChat.Models.Translation.Selection;
 
-public class DictionaryResult
+public class DictionaryResult : ReactiveObject
 {
-    public string Word { get; set; } = string.Empty;
-    public string Phonetic { get; set; } = string.Empty;
-    public string? PronunciationUrl { get; set; }
-    public string? Tips { get; set; }
-    public List<DictionaryExample> Examples { get; set; } = new();
+    public DictionaryResult()
+    {
+        Examples.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasExamples));
+        Forms.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasForms));
+    }
+
+    private string _word = string.Empty;
+    public string Word { get => _word; set => this.RaiseAndSetIfChanged(ref _word, value); }
+    private string _phonetic = string.Empty;
+    public string Phonetic { get => _phonetic; set => this.RaiseAndSetIfChanged(ref _phonetic, value); }
+    private string? _pronunciationUrl;
+    public string? PronunciationUrl { get => _pronunciationUrl; set => this.RaiseAndSetIfChanged(ref _pronunciationUrl, value); }
+    private string? _tips;
+    public string? Tips { get => _tips; set => this.RaiseAndSetIfChanged(ref _tips, value); }
+    public ObservableCollection<DictionaryExample> Examples { get; } = [];
     public bool HasExamples => Examples.Count > 0;
-    public List<DictionaryPart> Parts { get; set; } = new();
-    public List<DictionaryForm> Forms { get; set; } = new();
+    public ObservableCollection<DictionaryPart> Parts { get; } = [];
+    public ObservableCollection<DictionaryForm> Forms { get; } = [];
     public bool HasForms => Forms.Count > 0;
 }
 
@@ -49,10 +59,10 @@ public class DictionaryExample : ReactiveObject
     }
 }
 
-public class DictionaryPart
+public class DictionaryPart : ReactiveObject
 {
     public string PartOfSpeech { get; set; } = string.Empty; // e.g., "n.", "v."
-    public List<string> Definitions { get; set; } = new();
+    public ObservableCollection<string> Definitions { get; } = [];
 }
 
 public class TextToken

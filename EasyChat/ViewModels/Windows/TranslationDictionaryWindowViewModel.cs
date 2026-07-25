@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using EasyChat.Models.Translation.Selection;
 using EasyChat.Services.Abstractions;
 using EasyChat.Services.Speech.Tts;
@@ -22,6 +23,8 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
     private readonly IAudioPlayer _audioPlayer;
     private readonly ITokenizerFactory _tokenizerFactory;
     private TaskCompletionSource<bool>? _initializationTcs;
+    private bool _isShowingLookupResult;
+    private int _loadingOperationCount;
 
     private string _sourceText = string.Empty;
     public string SourceText
@@ -34,29 +37,55 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
     public string TranslationResult
     {
         get => _translationResult;
-        set => this.RaiseAndSetIfChanged(ref _translationResult, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _translationResult, value);
+            this.RaisePropertyChanged(nameof(ShowTranslationSkeleton));
+        }
     }
+
+    private string? _sentenceTranslationSnapshot;
 
     private bool _isLoading;
     public bool IsLoading
     {
         get => _isLoading;
-        set => this.RaiseAndSetIfChanged(ref _isLoading, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isLoading, value);
+            this.RaisePropertyChanged(nameof(ShowDictionarySkeleton));
+            this.RaisePropertyChanged(nameof(ShowTranslationSkeleton));
+        }
     }
 
     private bool _isWordMode;
     public bool IsWordMode
     {
         get => _isWordMode;
-        set => this.RaiseAndSetIfChanged(ref _isWordMode, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isWordMode, value);
+            this.RaisePropertyChanged(nameof(ShowDictionarySkeleton));
+            this.RaisePropertyChanged(nameof(ShowTranslationSkeleton));
+        }
     }
 
     private DictionaryResult? _dictionaryResult;
     public DictionaryResult? DictionaryResult
     {
         get => _dictionaryResult;
-        set => this.RaiseAndSetIfChanged(ref _dictionaryResult, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _dictionaryResult, value);
+            this.RaisePropertyChanged(nameof(ShowDictionarySkeleton));
+        }
     }
+
+    public bool ShowDictionarySkeleton =>
+        IsWordMode && IsLoading && (DictionaryResult is null || DictionaryResult.Parts.Count == 0);
+
+    public bool ShowTranslationSkeleton =>
+        !IsWordMode && IsLoading && string.IsNullOrEmpty(TranslationResult);
 
     private ObservableCollection<TextToken> _sourceTokens = [];
     public ObservableCollection<TextToken> SourceTokens
@@ -180,7 +209,7 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
         
         SourceText = text;
         
-        IsLoading = true;
+        BeginLoading();
 
         try 
         {
@@ -193,7 +222,7 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
         }
         finally
         {
-            IsLoading = false;
+            EndLoading();
             _initializationTcs.TrySetResult(true);
         }
     }
@@ -201,7 +230,7 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
     private string _currentSourceLang = "en";
     private string _currentTargetLang = "zh-CN";
 
-    private async Task PerformTranslationAsync(string text)
+    private async Task PerformTranslationAsync(string text, bool canNavigateBack = false, bool isLookup = false)
     {
         var sourceLang = _configurationService.General?.SourceLanguage.EnglishName ?? LanguageKeys.Auto.EnglishName;
         var targetLang = _configurationService.General?.TargetLanguage.EnglishName ?? throw new InvalidOperationException("Target language is not configured.");
@@ -211,62 +240,98 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
 
         if (sourceLang == LanguageKeys.Auto.EnglishName) _currentSourceLang = "en"; // Default fallback for TTS if auto?
 
-        var result = await _translationProvider.TranslateAsync(text, sourceLang, targetLang);
-
-        // Update source language if auto-detected
-        if (result.DetectedSourceLanguage is { } detected && !string.IsNullOrWhiteSpace(detected))
+        await foreach (var translationEvent in _translationProvider.StreamTranslateAsync(text, sourceLang, targetLang))
         {
-            if (_currentSourceLang != detected)
-            {
-                _currentSourceLang = detected;
-                // Trigger re-tokenization with new language
-                // Since this is reactive, setting SourceText again might trigger the pipeline, 
-                // but SourceText hasn't changed, so WhenAnyValue might not fire.
-                // We force update tokens here.
-                var tokenizer = _tokenizerFactory.GetTokenizer(_currentSourceLang);
-                var tokens = tokenizer.Tokenize(SourceText);
-                SourceTokens = new ObservableCollection<TextToken>(tokens);
-            }
+            await Dispatcher.UIThread.InvokeAsync(() => ApplyStreamingEvent(translationEvent, canNavigateBack, isLookup));
         }
+    }
 
-        if (result is WordTranslationResult wordResult)
+    private void ApplyStreamingEvent(SelectionTranslationStreamEvent translationEvent, bool canNavigateBack, bool isLookup)
+    {
+        switch (translationEvent)
         {
-            IsWordMode = true;
-            _canNavigateBack = false; // Initial load is word -> no back
-            
-            // Map to DictionaryResult
-            DictionaryResult = new DictionaryResult
-            {
-                Word = wordResult.Word,
-                Phonetic = wordResult.Phonetic,
-                Parts = wordResult.Definitions
-                    .GroupBy(d => d.Pos)
-                    .Select(g => new DictionaryPart
+            case SelectionTranslationStartedEvent started:
+                // The initial sentence request may still be streaming while a word lookup
+                // is open. Keep collecting it in the background without stealing the view.
+                if (!isLookup && _isShowingLookupResult && started.Mode == SelectionTranslationMode.Sentence)
+                {
+                    _sentenceTranslationSnapshot = string.Empty;
+                    break;
+                }
+
+                IsWordMode = started.Mode == SelectionTranslationMode.Word;
+                _canNavigateBack = IsWordMode ? canNavigateBack : true;
+                TranslationResult = string.Empty;
+                var pendingWord = IsWordMode ? DictionaryResult?.Word : null;
+                DictionaryResult = IsWordMode ? new DictionaryResult { Word = pendingWord ?? string.Empty } : null;
+                if (!IsWordMode && !isLookup)
+                {
+                    _sentenceTranslationSnapshot = string.Empty;
+                }
+                break;
+            case SelectionTranslationSourceDetectedEvent detected:
+                UpdateDetectedSourceLanguage(detected.Language);
+                break;
+            case SelectionTranslationDeltaEvent delta:
+                if (!isLookup)
+                {
+                    _sentenceTranslationSnapshot = (_sentenceTranslationSnapshot ?? string.Empty) + delta.Text;
+                    if (!IsWordMode)
                     {
-                        PartOfSpeech = g.Key,
-                        Definitions = g.Select(d => d.Meaning).ToList()
-                    }).ToList(),
-                Tips = wordResult.Tips,
-                Examples = wordResult.Examples.Select(e => new DictionaryExample
+                        TranslationResult = _sentenceTranslationSnapshot;
+                    }
+                }
+                else
                 {
-                    Origin = e.Origin,
-                    Translation = e.Translation
-                }).ToList(),
-                Forms = wordResult.Forms.Select(f => new DictionaryForm
+                    TranslationResult += delta.Text;
+                }
+                break;
+            case SelectionTranslationWordHeaderEvent header:
+                EnsureDictionaryResult().Word = header.Word;
+                EnsureDictionaryResult().Phonetic = header.Phonetic ?? string.Empty;
+                break;
+            case SelectionTranslationDefinitionEvent definition:
+                var dictionary = EnsureDictionaryResult();
+                var part = dictionary.Parts.FirstOrDefault(item => item.PartOfSpeech == (definition.Pos ?? string.Empty));
+                if (part == null)
                 {
-                    Label = f.Label,
-                    Word = f.Word
-                }).ToList()
-            };
+                    part = new DictionaryPart { PartOfSpeech = definition.Pos ?? string.Empty };
+                    dictionary.Parts.Add(part);
+                }
+                part.Definitions.Add(definition.Meaning);
+                this.RaisePropertyChanged(nameof(ShowDictionarySkeleton));
+                break;
+            case SelectionTranslationFormEvent form:
+                EnsureDictionaryResult().Forms.Add(new DictionaryForm { Label = form.Label, Word = form.Word });
+                break;
+            case SelectionTranslationTipsEvent tips:
+                EnsureDictionaryResult().Tips = tips.Text;
+                break;
+            case SelectionTranslationExampleEvent example:
+                EnsureDictionaryResult().Examples.Add(new DictionaryExample
+                {
+                    Origin = example.Origin,
+                    Translation = example.Translation
+                });
+                break;
         }
-        else if (result is SentenceTranslationResult sentenceResult)
+    }
+
+    private DictionaryResult EnsureDictionaryResult()
+    {
+        return DictionaryResult ??= new DictionaryResult();
+    }
+
+    private void UpdateDetectedSourceLanguage(string detected)
+    {
+        if (string.IsNullOrWhiteSpace(detected) || _currentSourceLang == detected)
         {
-             IsWordMode = false;
-             _canNavigateBack = true; // Can go back if we dive into words later (logic pending)
-             
-             TranslationResult = sentenceResult.Translation;
-             // We could also process Keywords here if we had a UI for it.
+            return;
         }
+
+        _currentSourceLang = detected;
+        var tokenizer = _tokenizerFactory.GetTokenizer(_currentSourceLang);
+        SourceTokens = new ObservableCollection<TextToken>(tokenizer.Tokenize(SourceText));
     }
 
     private void UpdateShowBackButton()
@@ -278,62 +343,18 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(word)) return;
 
-        IsLoading = true;
+        // Switch immediately so the clicked word is visible while the lookup runs.
+        _sentenceTranslationSnapshot = TranslationResult;
+        _isShowingLookupResult = true;
+        IsWordMode = true;
+        _canNavigateBack = true;
+        TranslationResult = string.Empty;
+        DictionaryResult = new DictionaryResult { Word = word };
+        BeginLoading();
         
         try
         {
-            var sourceLang = _configurationService.General?.SourceLanguage.EnglishName ?? LanguageKeys.Auto.EnglishName;
-            var targetLang = _configurationService.General?.TargetLanguage.EnglishName ?? throw new InvalidOperationException("Target language is not configured.");
-            
-            var result = await _translationProvider.TranslateAsync(word, sourceLang, targetLang);
-
-            // Update source language if auto-detected
-            if (result.DetectedSourceLanguage is { } detected && !string.IsNullOrWhiteSpace(detected))
-            {
-                if (_currentSourceLang != detected)
-                {
-                    _currentSourceLang = detected;
-                    // Trigger re-tokenization with new language
-                    var tokenizer = _tokenizerFactory.GetTokenizer(_currentSourceLang);
-                    var tokens = tokenizer.Tokenize(SourceText);
-                    SourceTokens = new ObservableCollection<TextToken>(tokens);
-                }
-            }
-            
-            if (result is WordTranslationResult wordResult)
-            {
-                IsWordMode = true;
-                _canNavigateBack = true; 
-                
-                 DictionaryResult = new DictionaryResult
-                {
-                    Word = wordResult.Word,
-                    Phonetic = wordResult.Phonetic,
-                    Parts = wordResult.Definitions
-                        .GroupBy(d => d.Pos)
-                        .Select(g => new DictionaryPart
-                        {
-                            PartOfSpeech = g.Key,
-                            Definitions = g.Select(d => d.Meaning).ToList()
-                        }).ToList(),
-                    Tips = wordResult.Tips,
-                    Examples = wordResult.Examples.Select(e => new DictionaryExample
-                    {
-                         Origin = e.Origin,
-                         Translation = e.Translation
-                    }).ToList(),
-                    Forms = wordResult.Forms.Select(f => new DictionaryForm
-                    {
-                        Label = f.Label,
-                        Word = f.Word
-                    }).ToList()
-                };
-            }
-            else
-            {
-                 IsWordMode = false; 
-                 TranslationResult = (result as SentenceTranslationResult)?.Translation ?? "";
-            }
+            await PerformTranslationAsync(word, canNavigateBack: true, isLookup: true);
         }
         catch (Exception)
         {
@@ -341,13 +362,30 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
         }
         finally
         {
-            IsLoading = false;
+            EndLoading();
         }
     }
     
     private void SwitchToSentenceMode()
     {
+        _isShowingLookupResult = false;
         IsWordMode = false;
+        if (_sentenceTranslationSnapshot != null)
+        {
+            TranslationResult = _sentenceTranslationSnapshot;
+        }
+    }
+
+    private void BeginLoading()
+    {
+        _loadingOperationCount++;
+        IsLoading = true;
+    }
+
+    private void EndLoading()
+    {
+        _loadingOperationCount = Math.Max(0, _loadingOperationCount - 1);
+        IsLoading = _loadingOperationCount > 0;
     }
 
     private async Task PlayTtsAsync(object? parameter)

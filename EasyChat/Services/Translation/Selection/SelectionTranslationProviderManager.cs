@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using EasyChat.Constants;
 using EasyChat.Models.Translation.Selection;
 using EasyChat.Services.Abstractions;
@@ -47,5 +48,22 @@ public class SelectionTranslationProviderManager : ISelectionTranslationProvider
 
         _logger.LogWarning("Unknown Selection Translation Provider: {Provider}. Defaulting to AI Provider.", provider);
         return await _aiProvider.TranslateAsync(text, sourceLang, targetLang, cancellationToken);
+    }
+
+    public async IAsyncEnumerable<SelectionTranslationStreamEvent> StreamTranslateAsync(
+        string text,
+        string sourceLang,
+        string targetLang,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var provider = _configurationService.SelectionTranslation?.Provider ?? Constant.SelectionTranslationProviderType.AiModel;
+        var stream = provider.Equals(Constant.SelectionTranslationProviderType.Machine, StringComparison.OrdinalIgnoreCase)
+            ? _machineProvider.StreamTranslateAsync(text, sourceLang, targetLang, cancellationToken)
+            : _aiProvider.StreamTranslateAsync(text, sourceLang, targetLang, cancellationToken);
+
+        await foreach (var translationEvent in stream.WithCancellation(cancellationToken))
+        {
+            yield return translationEvent;
+        }
     }
 }

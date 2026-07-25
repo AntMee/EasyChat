@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using EasyChat.Constants;
 using EasyChat.Models.Translation.Selection;
 using EasyChat.Services.Abstractions;
@@ -93,6 +94,19 @@ public class MachineSelectionTranslationProvider : ISelectionTranslationProvider
         {
             _logger.LogError(ex, "Machine Translation Failed");
             throw;
+        }
+    }
+
+    public async IAsyncEnumerable<SelectionTranslationStreamEvent> StreamTranslateAsync(
+        string text,
+        string sourceLang,
+        string targetLang,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var result = await TranslateAsync(text, sourceLang, targetLang, cancellationToken);
+        foreach (var translationEvent in SelectionTranslationStreamEventFactory.FromResult(result))
+        {
+            yield return translationEvent;
         }
     }
 }

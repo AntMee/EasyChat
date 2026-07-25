@@ -7,8 +7,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using EasyChat.Models.Configuration;
 using EasyChat.Models.Translation.Selection;
 using EasyChat.Services.Abstractions;
@@ -30,114 +32,36 @@ You are a professional translator and lexicographer proficient in [SourceLang] a
 # Task
 Source Language: [SourceLang]
 Target Language: [TargetLang]
-If Source Language is "Auto" or "Auto Detect", automatically detect it based on the input text.
+If Source Language is "Auto" or "Auto Detect", detect the input language.
+All translations, meanings, tips, and grammatical labels MUST be in [TargetLang].
 
-1. Analyze the user's input to determine if it is **"Word/Dictionary Mode"** or **"Sentence/Translation Mode"**.
-2. Return the result in the specified JSON format.
-3. **CRITICAL**: All translations, definitions, meanings, AND grammatical labels MUST be in **[TargetLang]**. Do NOT use Chinese unless [TargetLang] is Chinese.
+# Mode Selection (strict)
+First trim whitespace and trailing punctuation.
+- For space-based languages: no internal spaces means word mode; one or more spaces means sentence mode.
+- For Chinese, Japanese, and other no-space languages: 4 characters or fewer means word mode; otherwise sentence mode.
+Do not override these rules based on meaning or grammar.
 
-# Judgment Logic (STRICT HARD RULES)
+# Output Protocol: JSON Lines
+Return raw NDJSON only: one complete JSON object per line, no Markdown or explanatory text.
+Every line must contain the `event` property shown below. Escape all JSON strings correctly.
+Emit events in exactly the documented order and always finish with `{"event":"done"}`.
 
-**Step 1: Input Cleaning**
-- Remove leading/trailing whitespace.
-- Remove ALL trailing punctuation marks (e.g., "Schema." -> "Schema", "你好！" -> "你好").
+## Sentence mode
+1. `{"event":"start","mode":"sentence"}`
+2. `{"event":"source_detected","language":"en"}`
+3. One or more `{"event":"translation_delta","text":"..."}` events. Split the complete translation into natural short phrases so it can be rendered while you generate it. Concatenating `text` values must be the complete fluent translation.
+4. Zero to three `{"event":"keyword","word":"original term","meaning":"meaning in [TargetLang]"}` events.
+5. `{"event":"done"}`
 
-**Step 2: Detect Language Type & Apply Rule**
-
-**RULE A: For Space-Based Languages (English, French, Spanish, etc.)**
-- **Logic**: Count the spaces inside the cleaned string.
-- **IF Spaces == 0**: 
-  - **RESULT**: **Word Mode** (ABSOLUTE).
-  - (Examples: "Schema", "Translation", "Unbelievable" -> Word Mode).
-- **IF Spaces > 0**:
-  - **RESULT**: **Sentence Mode**.
-  - (Examples: "Look up", "Human rights", "I go home" -> Sentence Mode).
-
-**RULE B: For No-Space Languages (Chinese, Japanese, etc.)**
-- **Logic**: Count the character length.
-- **IF Length <= 4 characters**:
-  - **RESULT**: **Word Mode**.
-  - (Examples: "你", "测试", "四字成语" -> Word Mode).
-- **IF Length > 4 characters**:
-  - **RESULT**: **Sentence Mode**.
-  - (Examples: "我今天去超市", "这个东西很好吃" -> Sentence Mode).
-
-**Override**: Do NOT attempt to analyze grammar/meaning to switch modes. Stick strictly to the Space/Length count.
-
-# Output Schemas
-
-## Case 1: Word Mode
-
-{
-  "type": "word",
-  "detected_source_language": "The detected source language code (e.g. en, zh-CN, ja)",
-  "word": "The original word (lemma form if needed)",
-  "phonetic": "Phonetic symbol (IPA for English, Pinyin for Chinese, etc.)",
-  "forms": [ // Comprehensive list of ALL morphological forms
-    {
-       "label": "Tense/Form Name translated into [TargetLang] (e.g., '过去式', '复数', 'Comparatif')",
-       "word": "The word form"
-    }
-  ],
-  "definitions": [ 
-    {
-      "pos": "Part of speech (e.g., n., v., adj.)",
-      "meaning": "Meaning in [TargetLang]"
-    }
-  ],
-  "tips": "Usage tips, nuances, or grammatical notes in [TargetLang].",
-  "examples": [ // EXACTLY 3 examples
-    {
-      "origin": "Original sentence",
-      "translation": "Translation in [TargetLang]"
-    },
-    {
-      "origin": "Original sentence",
-      "translation": "Translation in [TargetLang]"
-    },
-    {
-      "origin": "Original sentence",
-      "translation": "Translation in [TargetLang]"
-    }
-  ]
-}
-
-## Case 2: Sentence Mode
-
-{
-  "type": "sentence",
-  "detected_source_language": "The detected source language code (e.g. en, zh-CN, ja)",
-  "origin": "Original text",
-  "translation": "Fluent translation of the ENTIRE text in [TargetLang]",
-  "key_words": [ // Extract 1-3 key terms
-    {
-      "word": "The original word",
-      "meaning": "Specific meaning in this context in [TargetLang]"
-    }
-  ]
-}
-
-# Critical Constraints
-
-1.  **Strict JSON Schema**: You must adhere **EXACTLY** to the JSON structures defined above.
-    - **DO NOT** add new keys.
-    - **DO NOT** rename keys.
-2.  **Raw JSON Only**: Return strictly raw JSON. Do NOT use Markdown code blocks.
-3.  **Phonetic Handling**:
-    - English: Use standard IPA inside double quotes (e.g., "/həˈləʊ/").
-    - Chinese: Use Pinyin with tones.
-    - Ensure all JSON strings are properly escaped.
-4.  **Completeness**:
-    - In Sentence Mode, you MUST translate every sentence in the input.
-    - In Word Mode, you MUST list all applicable morphological forms.
-5.  **Language Enforcer**:
-    - If [TargetLang] is Japanese, the output "meaning", "translation", "tips", and form "labels" MUST be in Japanese.
-    - If [TargetLang] is French, they MUST be in French.
-    - **Do NOT output Chinese unless [TargetLang] is Chinese.**
-6.  **Absolute Compliance Protocol**:
-    - Follow the Space/Length rules blindly. 
-    - Even if "Hot dog" is a noun phrase, since it has a space, output it as Sentence Mode.
-    - Even if "Schema" looks like a title, since it has no space, output it as Word Mode.
+## Word mode
+1. `{"event":"start","mode":"word"}`
+2. `{"event":"source_detected","language":"en"}`
+3. `{"event":"word_header","word":"lemma or original word","phonetic":"IPA or pronunciation"}`
+4. One or more `{"event":"definition","pos":"n.","meaning":"meaning in [TargetLang]"}` events.
+5. Zero or more `{"event":"form","label":"form name in [TargetLang]","word":"word form"}` events.
+6. Optionally one `{"event":"tips","text":"usage tips in [TargetLang]"}` event.
+7. Exactly three `{"event":"example","origin":"original sentence","translation":"translation in [TargetLang]"}` events.
+8. `{"event":"done"}`
 """;
 
     public AiSelectionTranslationProvider(
@@ -208,86 +132,69 @@ If Source Language is "Auto" or "Auto Detect", automatically detect it based on 
         return (chatClient, sourceLangOverride, targetLangOverride);
     }
 
-    [Experimental("OPENAI001")]
     public async Task<SelectionTranslationResult> TranslateAsync(string text, string sourceLang, string targetLang, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Translating text: {Text}, {Source} -> {Target}", text, sourceLang, targetLang);
-
-        try
+        var accumulator = new SelectionTranslationResultAccumulator(text);
+        await foreach (var translationEvent in StreamTranslateAsync(text, sourceLang, targetLang, cancellationToken))
         {
-            var (client, src, tgt) = CreateClientAndConfig(sourceLang, targetLang);
-            
-            var prompt = SystemPromptTemplate
-                .Replace("[SourceLang]", src)
-                .Replace("[TargetLang]", tgt);
+            accumulator.Apply(translationEvent);
+        }
 
-            List<ChatMessage> messages =
-            [
-                new SystemChatMessage(prompt),
-                new UserChatMessage(text)
-            ];
-            
-            var completionOptions = new ChatCompletionOptions
-            {
-                Temperature = 0.3f, 
-                MaxOutputTokenCount = 4000,
-                ReasoningEffortLevel = ChatReasoningEffortLevel.Low,
-            };
+        return accumulator.Build();
+    }
 
-            ChatCompletion completion = await client.CompleteChatAsync(messages, completionOptions, cancellationToken);
-            
-            var content = completion.Content[0].Text;
-            
-            _logger.LogDebug("Raw AI Response: {Content}", content);
+    public async IAsyncEnumerable<SelectionTranslationStreamEvent> StreamTranslateAsync(
+        string text,
+        string sourceLang,
+        string targetLang,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Streaming selection translation: {Source} -> {Target}, Length={Length}", sourceLang, targetLang, text.Length);
 
-            // Robust JSON extraction: Find first '{' and last '}'
-            var startIndex = content.IndexOf('{');
-            var endIndex = content.LastIndexOf('}');
-            
-            if (startIndex >= 0 && endIndex > startIndex)
-            {
-                content = content.Substring(startIndex, endIndex - startIndex + 1);
-            }
-            else
-            {
-                _logger.LogWarning("No JSON object found in AI response. Raw Content: {Raw}", content);
-                throw new InvalidOperationException("AI response did not contain valid JSON");
-            }
-            
-            // Fix common JSON error: unquoted phonetic "/.../"
-            // Looks for "phonetic": /.../ and replaces with "phonetic": "/.../"
-            try 
-            {
-                // Regex matches: "phonetic":\s*(/[^/]+/)
-                // We want to capture the slash-enclosed part and wrap it in quotes if it's not already
-                content = System.Text.RegularExpressions.Regex.Replace(content, @"""phonetic""\s*:\s*(/[^/]+(?<!\\)/)", @"""phonetic"": ""$1""");
-            }
-            catch { /* Ignore regex errors */ }
+        var (client, src, tgt) = CreateClientAndConfig(sourceLang, targetLang);
+        var prompt = SystemPromptTemplate
+            .Replace("[SourceLang]", src)
+            .Replace("[TargetLang]", tgt);
 
-            _logger.LogDebug("Processed JSON: {Content}", content);
-            
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            };
+        List<ChatMessage> messages =
+        [
+            new SystemChatMessage(prompt),
+            new UserChatMessage(text)
+        ];
 
-            try 
+        var completionOptions = new ChatCompletionOptions
+        {
+            Temperature = 0.3f,
+            MaxOutputTokenCount = 4000,
+#pragma warning disable OPENAI001
+            ReasoningEffortLevel = ChatReasoningEffortLevel.Low,
+#pragma warning restore OPENAI001
+        };
+
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        jsonOptions.Converters.Add(new JsonStringEnumConverter());
+        var reader = new SelectionTranslationStreamDecoder(line =>
+            JsonSerializer.Deserialize<SelectionTranslationStreamEvent>(line, jsonOptions)
+            ?? throw new JsonException("Empty structured translation event."));
+
+        // Streaming iterators cannot yield from a try/catch block. Let transport and
+        // protocol failures flow to the caller, which already owns the UI error state.
+#pragma warning disable OPENAI001
+        await foreach (var update in client.CompleteChatStreamingAsync(messages, completionOptions, cancellationToken))
+        {
+            foreach (var content in update.ContentUpdate)
             {
-                var result = JsonSerializer.Deserialize<SelectionTranslationResult>(content, options);
-                return result ?? throw new InvalidOperationException("Failed to deserialize translation result (null)");
-            }
-            catch (JsonException jsonEx)
-            {
-                 _logger.LogError(jsonEx, "JSON Deserialization failed. Content: {Content}", content);
-                 throw new InvalidOperationException($"JSON Parse Error: {jsonEx.Message}", jsonEx);
+                foreach (var translationEvent in reader.Append(content.Text))
+                {
+                    yield return translationEvent;
+                }
             }
         }
-        catch (Exception ex)
+#pragma warning restore OPENAI001
+
+        foreach (var translationEvent in reader.Complete())
         {
-            _logger.LogError(ex, "AI Selection Translation failed");
-            throw; 
+            yield return translationEvent;
         }
     }
 }
