@@ -21,6 +21,7 @@ using EasyChat.Services.Shortcuts.Handlers;
 using EasyChat.ViewModels;
 using EasyChat.ViewModels.Pages;
 using EasyChat.Views;
+using Page = EasyChat.Models.Page;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using Microsoft.Extensions.Logging;

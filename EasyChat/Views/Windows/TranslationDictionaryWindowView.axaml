@@ -13,7 +13,7 @@
         x:DataType="vm:TranslationDictionaryWindowViewModel"
         x:Name="TranslationWindow"
         Width="450" MinHeight="250" MaxHeight="600"
-        SystemDecorations="None"
+        WindowDecorations="None"
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"

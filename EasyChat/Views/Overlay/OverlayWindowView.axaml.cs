@@ -84,7 +84,7 @@ public partial class OverlayWindowView : Window
         // Window setup
         ShowInTaskbar = false;
         WindowState = WindowState.Normal;
-        SystemDecorations = SystemDecorations.None;
+        WindowDecorations = WindowDecorations.None;
         ExtendClientAreaToDecorationsHint = true;
         Topmost = true;
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Avalonia.Input.Platform;
 using EasyChat.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 

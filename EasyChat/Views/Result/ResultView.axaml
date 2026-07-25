@@ -8,7 +8,7 @@
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="False"
         CanResize="False"
-        SystemDecorations="None"
+        WindowDecorations="None"
         ExtendClientAreaToDecorationsHint="True"
         Topmost="True"
         TransparencyLevelHint="Blur"

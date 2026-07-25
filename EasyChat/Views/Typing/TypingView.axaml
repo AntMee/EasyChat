@@ -12,7 +12,7 @@
         x:Class="EasyChat.Views.Typing.TypingView"
         x:DataType="vm:TypingViewModel"
         WindowStartupLocation="CenterScreen"
-        SystemDecorations="None"
+        WindowDecorations="None"
         ExtendClientAreaToDecorationsHint="True"
         CornerRadius="10"
         TransparencyLevelHint="Blur"
