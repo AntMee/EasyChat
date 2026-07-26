@@ -20,13 +20,7 @@
                 <Grid>
                     <TextBox x:Name="SourceTextBox" Text="{Binding InputText, Mode=TwoWay}" AcceptsReturn="True"
                              TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0"
-                             Background="Transparent" Watermark="{x:Static lang:Resources.TextAssistInputWatermark}"
-                             DoubleTapped="OnSourceDoubleTapped" PointerReleased="OnSourcePointerReleased" />
-                    <Button x:Name="SourceSelectionButton" Classes="Basic" IsVisible="False"
-                            HorizontalAlignment="Right" VerticalAlignment="Top" Click="OnSourceSelectionClick"
-                            ToolTip.Tip="{x:Static lang:Resources.ResultWindowMode_Dictionary}">
-                        <avalonia:MaterialIcon Kind="Translate" />
-                    </Button>
+                             Background="Transparent" Watermark="{x:Static lang:Resources.TextAssistInputWatermark}" />
                 </Grid>
                 </suki:GlassCard>
             <Button Grid.Column="1" VerticalAlignment="Center" Classes="Basic" Command="{Binding SwapContentCommand}"
@@ -37,13 +31,7 @@
                 <Grid>
                     <TextBox x:Name="ResultTextBox" Text="{Binding TranslationResult}" IsReadOnly="True" AcceptsReturn="True"
                              TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0"
-                             Background="Transparent" Watermark="{x:Static lang:Resources.Loading}"
-                             DoubleTapped="OnResultDoubleTapped" PointerReleased="OnResultPointerReleased" />
-                    <Button x:Name="ResultSelectionButton" Classes="Basic" IsVisible="False"
-                            HorizontalAlignment="Right" VerticalAlignment="Top" Click="OnResultSelectionClick"
-                            ToolTip.Tip="{x:Static lang:Resources.ResultWindowMode_Dictionary}">
-                        <avalonia:MaterialIcon Kind="Translate" />
-                    </Button>
+                             Background="Transparent" Watermark="{x:Static lang:Resources.Loading}" />
                 </Grid>
                 </suki:GlassCard>
         </Grid>

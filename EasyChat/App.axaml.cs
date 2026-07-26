@@ -150,7 +150,8 @@ public class App : Application
             services.AddTransient<Page, AboutViewModel>();
             services.AddTransient<Page, PromptViewModel>();
             services.AddTransient<Page, SpeechRecognitionViewModel>();
-            services.AddTransient<Page, TextAssistViewModel>();
+            services.AddTransient<Page, TextAssistTranslationPageViewModel>();
+            services.AddTransient<Page, TextAssistCorrectionPageViewModel>();
             services.AddTransient<TextAssistViewModel>();
 
             // ViewModels

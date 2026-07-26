@@ -74,7 +74,10 @@ public class ShortcutViewModel : Page
     public ReactiveCommand<ShortcutEntry, Unit> EditEntryCommand { get; }
     public ReactiveCommand<ShortcutEntry, Unit> RemoveEntryCommand { get; }
 
-    private readonly string[] _basicTypes = { "Screenshot", "InputTranslate", "QuickTranslate", "QuickCorrect" };
+    // Keep all global text actions in the basic shortcut list. Text assist
+    // navigation pages are separate from shortcut configuration categories.
+    private readonly string[] _basicTypes =
+        { "Screenshot", "InputTranslate", "SelectionTranslate", "QuickTranslate", "QuickCorrect" };
     private readonly string[] _textAssistTypes = { "QuickTranslate", "QuickCorrect" };
     private readonly string[] _languageTypes = { "SwitchEngineSourceTarget" };
 
@@ -88,7 +91,8 @@ public class ShortcutViewModel : Page
 
         LanguageShortcuts = new ObservableCollection<ShortcutEntry>(
             entries.Where(e => _languageTypes.Contains(e.ActionType)));
-        // Text assist shortcuts are configured with the basic hotkeys.
+        // Kept for compatibility with older bindings; the shortcut view shows
+        // text actions in the basic list.
         TextAssistShortcuts = [];
     }
 

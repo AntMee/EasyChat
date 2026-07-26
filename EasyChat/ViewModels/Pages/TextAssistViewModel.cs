@@ -30,11 +30,10 @@ public sealed class TextAssistViewModel : Page
         ITextAssistService textAssistService,
         ITtsService ttsService,
         IAudioPlayer audioPlayer,
-        ITextAssistDictionaryService dictionaryService,
         ILogger<TextAssistViewModel>? logger = null) : base(Resources.TextAssist, MaterialIconKind.Translate, 5)
     {
         Translation = new TextAssistTranslationViewModel(configurationService, profileResolver, textAssistService,
-            ttsService, audioPlayer, dictionaryService, logger);
+            ttsService, audioPlayer, logger);
         Correction = new TextAssistCorrectionViewModel(configurationService, profileResolver, textAssistService, logger);
         SelectTranslationCommand = ReactiveCommand.Create(() => { SelectedTabIndex = 0; });
         SelectCorrectionCommand = ReactiveCommand.Create(() => { SelectedTabIndex = 1; });
@@ -76,6 +75,37 @@ public sealed class TextAssistViewModel : Page
             await Translation.RunNowAsync();
         }
     }
+}
+
+public sealed class TextAssistTranslationPageViewModel : Page
+{
+    public TextAssistTranslationPageViewModel(
+        IConfigurationService configurationService,
+        TextAssistProfileResolver profileResolver,
+        ITextAssistService textAssistService,
+        ITtsService ttsService,
+        IAudioPlayer audioPlayer,
+        ILogger<TextAssistTranslationPageViewModel>? logger = null) : base(Resources.TextAssistTranslate, MaterialIconKind.Translate, 5)
+    {
+        Translation = new TextAssistTranslationViewModel(configurationService, profileResolver, textAssistService,
+            ttsService, audioPlayer, logger);
+    }
+
+    public TextAssistTranslationViewModel Translation { get; }
+}
+
+public sealed class TextAssistCorrectionPageViewModel : Page
+{
+    public TextAssistCorrectionPageViewModel(
+        IConfigurationService configurationService,
+        TextAssistProfileResolver profileResolver,
+        ITextAssistService textAssistService,
+        ILogger<TextAssistCorrectionPageViewModel>? logger = null) : base(Resources.TextAssistCorrect, MaterialIconKind.Spellcheck, 6)
+    {
+        Correction = new TextAssistCorrectionViewModel(configurationService, profileResolver, textAssistService, logger);
+    }
+
+    public TextAssistCorrectionViewModel Correction { get; }
 }
 
 public abstract class TextAssistEditorViewModel : ViewModelBase
@@ -294,7 +324,6 @@ public sealed class TextAssistTranslationViewModel : TextAssistEditorViewModel
 {
     private readonly ITtsService _ttsService;
     private readonly IAudioPlayer _audioPlayer;
-    private readonly ITextAssistDictionaryService _dictionaryService;
     private string _inputText = string.Empty;
     private string _translationResult = string.Empty;
     private bool _isSourceSpeaking;
@@ -306,15 +335,12 @@ public sealed class TextAssistTranslationViewModel : TextAssistEditorViewModel
         ITextAssistService textAssistService,
         ITtsService ttsService,
         IAudioPlayer audioPlayer,
-        ITextAssistDictionaryService dictionaryService,
         ILogger? logger) : base(configurationService, profileResolver, textAssistService, false, logger)
     {
         _ttsService = ttsService;
         _audioPlayer = audioPlayer;
-        _dictionaryService = dictionaryService;
         SpeakSourceCommand = ReactiveCommand.CreateFromTask(() => SpeakAsync(InputText, SelectedSourceLanguage.Id, true));
         SpeakResultCommand = ReactiveCommand.CreateFromTask(() => SpeakAsync(TranslationResult, SelectedTargetLanguage.Id, false));
-        OpenDictionaryCommand = ReactiveCommand.CreateFromTask<string>(text => _dictionaryService.OpenAsync(text, SelectedSourceLanguage.Id, SelectedTargetLanguage.Id));
         SwapContentCommand = ReactiveCommand.Create(SwapContent);
     }
 
@@ -344,11 +370,7 @@ public sealed class TextAssistTranslationViewModel : TextAssistEditorViewModel
 
     public ReactiveCommand<Unit, Unit> SpeakSourceCommand { get; }
     public ReactiveCommand<Unit, Unit> SpeakResultCommand { get; }
-    public ReactiveCommand<string, Unit> OpenDictionaryCommand { get; }
     public ReactiveCommand<Unit, Unit> SwapContentCommand { get; }
-
-    public Task OpenDictionaryAsync(string text) => _dictionaryService.OpenAsync(text, SelectedSourceLanguage.Id, SelectedTargetLanguage.Id);
-    public Task OpenResultDictionaryAsync(string text) => _dictionaryService.OpenAsync(text, SelectedTargetLanguage.Id, SelectedSourceLanguage.Id);
 
     private void SwapContent()
     {

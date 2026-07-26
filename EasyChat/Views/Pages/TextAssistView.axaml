@@ -7,37 +7,11 @@
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="EasyChat.Views.Pages.TextAssistView"
              x:DataType="vm:TextAssistViewModel">
-    <UserControl.Styles>
-        <Style Selector="Button.assist-tab">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="16,10" />
-        </Style>
-        <Style Selector="Button.assist-tab.selected">
-            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-    </UserControl.Styles>
-    <Grid Margin="25" RowDefinitions="Auto,Auto,*" RowSpacing="16">
-            <StackPanel Spacing="3">
-                <TextBlock Text="{x:Static lang:Resources.TextAssist}" FontSize="28" FontWeight="Bold" />
-                <TextBlock Text="{x:Static lang:Resources.TextAssistSubtitle}" Opacity="0.65" />
-            </StackPanel>
-            <suki:GlassCard Grid.Row="1" CornerRadius="10" Padding="4">
-                <Grid ColumnDefinitions="*,*">
-                    <Button Grid.Column="0" MinHeight="42" Classes="assist-tab" Classes.selected="{Binding IsTranslationMode}" Command="{Binding SelectTranslationCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="7"><avalonia:MaterialIcon Kind="Translate" /><TextBlock Text="{x:Static lang:Resources.TextAssistTranslate}" /></StackPanel>
-                    </Button>
-                    <Button Grid.Column="1" MinHeight="42" Classes="assist-tab" Classes.selected="{Binding IsCorrectionMode}" Command="{Binding SelectCorrectionCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="7"><avalonia:MaterialIcon Kind="Spellcheck" /><TextBlock Text="{x:Static lang:Resources.TextAssistCorrect}" /></StackPanel>
-                    </Button>
-                </Grid>
-            </suki:GlassCard>
-            <Grid Grid.Row="2" MinHeight="0">
-                <views:TextAssistTranslationView DataContext="{Binding Translation}" IsVisible="{Binding IsActive}" />
-                <views:TextAssistCorrectionView DataContext="{Binding Correction}" IsVisible="{Binding IsActive}" />
-            </Grid>
+    <Grid Margin="25" RowDefinitions="Auto,*" RowSpacing="16">
+        <StackPanel Spacing="3">
+            <TextBlock Text="{x:Static lang:Resources.TextAssistTranslate}" FontSize="28" FontWeight="Bold" />
+            <TextBlock Text="{x:Static lang:Resources.TextAssistSubtitle}" Opacity="0.65" />
+        </StackPanel>
+        <views:TextAssistTranslationView Grid.Row="1" DataContext="{Binding Translation}" />
     </Grid>
 </UserControl>
