@@ -1,6 +1,9 @@
 using System.Reactive;
 using Avalonia.Media;
 using EasyChat.ViewModels;
+using EasyChat.Common;
+using EasyChat.Services.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using SukiUI;
 using SukiUI.Dialogs;
@@ -55,6 +58,15 @@ public class CustomThemeDialogViewModel : ViewModelBase
         var theme1 = new SukiColorTheme(DisplayName, PrimaryColor, AccentColor);
         _theme.AddColorTheme(theme1);
         _theme.ChangeColorTheme(theme1);
+
+        var general = Global.Services?.GetService<IConfigurationService>()?.General;
+        if (general != null)
+        {
+            general.ColorTheme = DisplayName;
+            general.CustomThemePrimaryColor = PrimaryColor.ToString();
+            general.CustomThemeAccentColor = AccentColor.ToString();
+        }
+
         _dialog.Dismiss();
     }
 

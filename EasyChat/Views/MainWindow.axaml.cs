@@ -1,7 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using EasyChat.Common;
 using EasyChat.ViewModels;
 using SukiUI.Controls;
@@ -19,25 +17,6 @@ public partial class MainWindow : SukiWindow
     {
         InitializeComponent();
         Global.Screens = Screens;
-    }
-
-    private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        IsMenuVisible = !IsMenuVisible;
-    }
-
-    private void ThemeMenuItem_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel vm) return;
-        if (e.Source is not MenuItem mItem) return;
-        if (mItem.DataContext is not SukiColorTheme cTheme) return;
-        vm.ChangeTheme(cTheme);
-    }
-
-    private void MakeFullScreenPressed(object? sender, PointerPressedEventArgs e)
-    {
-        WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
-        IsTitleBarVisible = WindowState != WindowState.FullScreen;
     }
 
     public bool IsExiting { get; set; }

@@ -75,4 +75,46 @@ public class General : ReactiveObject
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
+
+    [JsonProperty]
+    public string BaseTheme
+    {
+        get => field ?? "Light";
+        set => this.RaiseAndSetIfChanged(ref field, value ?? "Light");
+    } = "Light";
+
+    [JsonProperty]
+    public string? ColorTheme
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    [JsonProperty]
+    public string? CustomThemePrimaryColor
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    [JsonProperty]
+    public string? CustomThemeAccentColor
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    [JsonProperty]
+    public bool TitleBarVisible
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = true;
+
+    [JsonProperty]
+    public bool FullScreen
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
 }

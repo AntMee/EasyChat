@@ -233,6 +233,11 @@ public class App : Application
                 DataContext = mainViewModel
             };
 
+            if (mainViewModel.IsFullScreen)
+            {
+                desktop.MainWindow.WindowState = WindowState.FullScreen;
+            }
+
             desktop.Exit += (_, _) =>
             {
                 _trayIcon?.Dispose();
