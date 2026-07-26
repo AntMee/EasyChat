@@ -12,7 +12,7 @@
         x:Class="EasyChat.Views.Windows.TranslationDictionaryWindowView"
         x:DataType="vm:TranslationDictionaryWindowViewModel"
         x:Name="TranslationWindow"
-        Width="450" MinHeight="250" MaxHeight="600"
+        Width="450" MinHeight="250" MaxHeight="900" MinWidth="150"
         WindowDecorations="None"
         Background="Transparent"
         Topmost="True"
@@ -138,6 +138,7 @@
                 <!-- Header -->
                 <Border Grid.Row="0" Background="{DynamicResource SukiCardBackground}" 
                         CornerRadius="12,12,0,0" Padding="16,12"
+                        IsVisible="{Binding IsWordMode}"
                         PointerPressed="OnHeaderPointerPressed">
                     <Grid ColumnDefinitions="*,Auto">
                         <!-- Dynamic Title -->
@@ -188,7 +189,7 @@
                 <!-- Main Content -->
                 <Panel Grid.Row="1">
                     <Border Background="{DynamicResource SukiCardBackground}">
-                        <ScrollViewer MaxHeight="400">
+                        <ScrollViewer x:Name="ContentScrollViewer" MaxHeight="400">
                     <Panel>
                         <!-- Loading State Removed from inside Panel -->
 
@@ -198,6 +199,7 @@
                               <!-- Keeps the dictionary window stable while the first definition streams in. -->
                               <StackPanel Classes="StreamingSkeleton"
                                           Classes.loading="{Binding ShowDictionarySkeleton}"
+                                          IsVisible="{Binding ShowDictionarySkeleton}"
                                           Spacing="10">
                                   <Border Height="18" Width="150" HorizontalAlignment="Left"
                                           Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
@@ -324,14 +326,26 @@
                         </StackPanel>
 
                         <!-- Sentence View (Transition Mode) -->
-                        <Border IsVisible="{Binding !IsWordMode}" Padding="16, 0, 12,12">
+                        <Border IsVisible="{Binding !IsWordMode}" Padding="16,12,12,12">
                             <StackPanel Spacing="16">
                                 <!-- Translation Result -->
                                 <Grid RowDefinitions="Auto,*">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,8" VerticalAlignment="Center">
-                                        <icons:MaterialIcon Kind="Translate" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"/>
-                                        <TextBlock Text="{x:Static lang:Resources.SelectionTranslate_ResultLabel}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource SukiText}"/>
-                                        <Button Classes="TtsButton" VerticalAlignment="Center"
+                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,0,0,8">
+                                        <Border Background="Transparent"
+                                                VerticalAlignment="Stretch"
+                                                PointerPressed="OnHeaderPointerPressed">
+                                            <StackPanel Orientation="Horizontal"
+                                                        Spacing="6"
+                                                        VerticalAlignment="Center"
+                                                        IsHitTestVisible="False">
+                                            <icons:MaterialIcon Kind="Translate" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                            <TextBlock Text="{x:Static lang:Resources.SelectionTranslate_ResultLabel}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource SukiText}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Button Grid.Column="1"
+                                                Classes="TtsButton"
+                                                VerticalAlignment="Center"
                                                 Command="{Binding PlayTargetAudioCommand}"
                                                 CommandParameter="{Binding TranslationResult}"
                                                 Tag="{Binding IsResultTtsLoading}">
@@ -342,7 +356,21 @@
                                                               Foreground="{DynamicResource SukiPrimaryColor}"/>
                                             </Panel>
                                         </Button>
-                                    </StackPanel>
+
+                                        <Border Grid.Column="2"
+                                                Background="Transparent"
+                                                PointerPressed="OnHeaderPointerPressed"/>
+
+                                        <!-- Keep streaming status in the existing result header row. -->
+                                        <suki:Loading Grid.Column="3"
+                                                      Width="16"
+                                                      Height="16"
+                                                      VerticalAlignment="Center"
+                                                      IsVisible="{Binding IsLoading}"
+                                                      IsHitTestVisible="False"
+                                                      Foreground="{DynamicResource SukiPrimaryColor}"
+                                                      ToolTip.Tip="{x:Static lang:Resources.Speech_Translating}"/>
+                                    </Grid>
                                     <Panel Grid.Row="1">
                                         <!-- Appears only before the first streamed translation fragment. -->
                                         <StackPanel Classes="StreamingSkeleton TranslationSkeleton"

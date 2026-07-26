@@ -17,10 +17,12 @@ public partial class TranslationDictionaryWindowView : Window
 {
     private readonly TranslationDictionaryWindowViewModel _viewModel;
     private readonly ILogger<TranslationDictionaryWindowView>? _logger;
+    private readonly ScrollViewer? _contentScrollViewer;
     
     public TranslationDictionaryWindowView()
     {
         InitializeComponent();
+        _contentScrollViewer = this.FindControl<ScrollViewer>("ContentScrollViewer");
         
         _viewModel = Global.Services?.GetService<TranslationDictionaryWindowViewModel>() 
                      ?? throw new InvalidOperationException("Failed to resolve ViewModel");
@@ -173,6 +175,13 @@ public partial class TranslationDictionaryWindowView : Window
     {
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
+            // Preserve the auto-sized initial window, then let the content area
+            // grow with the window once the user starts resizing it.
+            SizeToContent = SizeToContent.Manual;
+            if (_contentScrollViewer != null)
+            {
+                _contentScrollViewer.MaxHeight = double.PositiveInfinity;
+            }
             BeginResizeDrag(WindowEdge.SouthEast, e);
         }
     }
