@@ -172,6 +172,7 @@ public class App : Application
             services.AddSingleton<TextAssistProfileResolver>();
             services.AddSingleton<ISelectedTextCaptureService, SelectedTextCaptureService>();
             services.AddSingleton<ITextAssistService, TextAssistService>();
+            services.AddSingleton<ITextAssistDictionaryService, TextAssistDictionaryService>();
             
             // Speech Recognition Service
             services.AddSingleton<ISpeechRecognitionService, SpeechRecognitionService>();

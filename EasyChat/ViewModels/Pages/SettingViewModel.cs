@@ -151,6 +151,8 @@ public class SettingViewModel : Page
                  SelectionTranslationConf.AiModelId = GeneralConf?.UsingAiModelId ?? AiModelConf.ConfiguredModels.First().Id;
              }
         }
+        if (SelectionTranslationConf != null && string.IsNullOrWhiteSpace(SelectionTranslationConf.PromptId))
+            SelectionTranslationConf.PromptId = _configurationService.Prompts?.SelectedPromptId;
 
         ManageFixedAreasCommand = ReactiveCommand.Create(ManageFixedAreas);
         ConfigureTtsCommand = ReactiveCommand.Create(ConfigureTts);
@@ -385,6 +387,9 @@ public class SettingViewModel : Page
     public ScreenshotConfig? ScreenshotConf => _configurationService.Screenshot;
     
     public SelectionTranslationConfig? SelectionTranslationConf => _configurationService.SelectionTranslation;
+
+    public ObservableCollection<PromptEntry> PromptEntries =>
+        _configurationService.Prompts?.Entries ?? [];
     
     public TtsConfig? TtsConf => _configurationService.Tts;
     

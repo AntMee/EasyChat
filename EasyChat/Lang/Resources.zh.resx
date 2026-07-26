@@ -845,6 +845,8 @@
   <data name="TextAssistSubtitle" xml:space="preserve"><value>流式翻译文本，或实时完善你的表达。</value></data>
   <data name="TextAssistTranslate" xml:space="preserve"><value>翻译</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
+  <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
+  <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
   <data name="TextAssistInputWatermark" xml:space="preserve"><value>输入文本...</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
@@ -857,6 +859,6 @@
   <data name="TextAssistCategorySpelling" xml:space="preserve"><value>拼写</value></data>
   <data name="TextAssistCategoryWordChoice" xml:space="preserve"><value>用词</value></data>
   <data name="TextAssistCategoryStyle" xml:space="preserve"><value>表达风格</value></data>
-  <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译选中文本</value></data>
-  <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正选中文本</value></data>
+    <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译</value></data>
+    <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正</value></data>
 </root>

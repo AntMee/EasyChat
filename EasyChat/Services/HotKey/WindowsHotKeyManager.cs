@@ -21,14 +21,25 @@ public class WindowsHotKeyManager : IHotKeyManager
         _logger.LogDebug("WindowsHotKeyManager initialized");
     }
 
-    public IDisposable Register(KeyModifiers modifiers, Key key, Action callback)
+    public IDisposable? Register(KeyModifiers modifiers, Key key, Action callback)
     {
-        var nativeModifiers = MapModifiers(modifiers);
+        // MOD_NOREPEAT is optional and is rejected by some Windows hotkey
+        // implementations. Registration is more reliable without it.
+        var nativeModifiers = MapModifiers(modifiers & ~KeyModifiers.NoRepeat);
         var nativeKey = MapKey(key);
 
         try
         {
             var registration = _hotKeyManager.Register(nativeKey, nativeModifiers);
+
+            // GlobalHotKeys reports conflicts through IsSuccessful instead of
+            // throwing. Do not subscribe to an id that was never registered.
+            if (!registration.IsSuccessful)
+            {
+                registration.Dispose();
+                _logger.LogWarning("Windows rejected hotkey registration: {Modifiers}+{Key}", modifiers, key);
+                return null;
+            }
 
             var subscription = _hotKeyManager.HotKeyPressed
                 .Where(hk => hk.Id == registration.Id)
@@ -58,12 +69,18 @@ public class WindowsHotKeyManager : IHotKeyManager
 
     public bool TryRegister(KeyModifiers modifiers, Key key)
     {
-        var nativeModifiers = MapModifiers(modifiers);
+        var nativeModifiers = MapModifiers(modifiers & ~KeyModifiers.NoRepeat);
         var nativeKey = MapKey(key);
 
         try
         {
             var registration = _hotKeyManager.Register(nativeKey, nativeModifiers);
+            if (!registration.IsSuccessful)
+            {
+                registration.Dispose();
+                _logger.LogDebug("Hotkey availability check failed: {Modifiers}+{Key}", modifiers, key);
+                return false;
+            }
             registration.Dispose();
             _logger.LogDebug("Hotkey availability check passed: {Modifiers}+{Key}", modifiers, key);
             return true;

@@ -33,6 +33,9 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
         SelectionTranslation = ConfigUtil.LoadConfig<SelectionTranslationConfig>(Constant.SelectionTranslationConf);
         Tts = ConfigUtil.LoadConfig<TtsConfig>(Constant.TtsConf);
         TextAssist = ConfigUtil.LoadConfig<TextAssistConfig>(TextAssistConstants.ConfigName);
+        // Text Assist settings are always independent. Keep the legacy field
+        // disabled when loading older configuration files.
+        TextAssist.FollowGlobal = false;
 
         // Set global access for legacy compatibility (if needed)
         Global.Config.GeneralConf = General;

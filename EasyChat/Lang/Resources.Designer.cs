@@ -2529,6 +2529,8 @@ namespace EasyChat.Lang {
         public static string TextAssistSubtitle => ResourceManager.GetString("TextAssistSubtitle", resourceCulture);
         public static string TextAssistTranslate => ResourceManager.GetString("TextAssistTranslate", resourceCulture);
         public static string TextAssistCorrect => ResourceManager.GetString("TextAssistCorrect", resourceCulture);
+        public static string TextAssistNoAiModel => ResourceManager.GetString("TextAssistNoAiModel", resourceCulture);
+        public static string TextAssistNoVoice => ResourceManager.GetString("TextAssistNoVoice", resourceCulture);
         public static string TextAssistInputWatermark => ResourceManager.GetString("TextAssistInputWatermark", resourceCulture);
         public static string TextAssistFollowGlobal => ResourceManager.GetString("TextAssistFollowGlobal", resourceCulture);
         public static string TextAssistRun => ResourceManager.GetString("TextAssistRun", resourceCulture);

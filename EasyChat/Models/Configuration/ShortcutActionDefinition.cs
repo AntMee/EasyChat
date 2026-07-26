@@ -51,11 +51,6 @@ public abstract class ShortcutActionDefinition : IShortcutActionDefinition
         },
         new SimpleActionDefinition
         {
-            ActionType = "SelectionTranslate",
-            ResourceKey = "Action_SelectionTranslate"
-        },
-        new SimpleActionDefinition
-        {
             ActionType = "QuickTranslate",
             ResourceKey = "Action_QuickTranslate"
         },

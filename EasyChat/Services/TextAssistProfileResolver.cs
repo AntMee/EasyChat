@@ -25,6 +25,7 @@ public sealed class TextAssistProfileResolver
         if (config.FollowGlobal)
         {
             var provider = general.TransEngine ?? TextAssistConstants.AiProvider;
+            var promptId = correction ? config.CorrectionPromptId : config.TranslationPromptId;
             return new TextAssistProfile(
                 general.SourceLanguage?.Id ?? "auto",
                 general.TargetLanguage?.Id ?? "zh-Hans",
@@ -32,16 +33,18 @@ public sealed class TextAssistProfileResolver
                 general.UsingAiModelId,
                 general.UsingMachineTransId ?? general.UsingMachineTrans,
                 true,
-                config.TranslationPromptId);
+                ResolvePromptId(promptId));
         }
 
-        var aiModelId = config.AiModelId;
-        if (string.IsNullOrWhiteSpace(aiModelId))
+        var models = _configurationService.AiModel?.ConfiguredModels;
+        var selectedModel = models == null ? null : models.FirstOrDefault(x => x.Id == config.AiModelId);
+        if (models != null && selectedModel == null)
         {
-            aiModelId = _configurationService.AiModel?.ConfiguredModels.FirstOrDefault()?.Id;
-            if (!string.IsNullOrWhiteSpace(aiModelId))
-                config.AiModelId = aiModelId;
+            selectedModel = models.FirstOrDefault();
+            config.AiModelId = selectedModel?.Id;
         }
+
+        var aiModelId = models == null ? config.AiModelId : selectedModel?.Id;
 
         return new TextAssistProfile(
             config.SourceLanguageId,
@@ -50,6 +53,16 @@ public sealed class TextAssistProfileResolver
             aiModelId,
             config.MachineProvider,
             false,
-            correction ? config.CorrectionPromptId : config.TranslationPromptId);
+            ResolvePromptId(correction ? config.CorrectionPromptId : config.TranslationPromptId));
+    }
+
+    private string? ResolvePromptId(string? promptId)
+    {
+        if (!string.IsNullOrWhiteSpace(promptId) && _configurationService.Prompts?.FindById(promptId) != null)
+            return promptId;
+
+        return string.IsNullOrWhiteSpace(_configurationService.Prompts?.SelectedPromptId)
+            ? null
+            : _configurationService.Prompts.SelectedPromptId;
     }
 }

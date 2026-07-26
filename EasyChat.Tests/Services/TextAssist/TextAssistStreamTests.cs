@@ -44,6 +44,56 @@ public sealed class TextAssistStreamTests
         Assert.AreEqual("en", started.SourceLanguage);
     }
 
+    [TestMethod]
+    public void CorrectionAccumulator_AllowsDeltaOnlyStreamAtEndOfResponse()
+    {
+        var accumulator = new TextAssistCorrectionAccumulator(4);
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent("fixed"));
+        accumulator.CompleteImplicitly();
+
+        accumulator.EnsureComplete();
+
+        Assert.AreEqual("fixed", accumulator.CorrectedText);
+    }
+
+    [TestMethod]
+    public void CorrectionAccumulator_AllowsIssueOnlyResponseWithoutStartEvent()
+    {
+        var accumulator = new TextAssistCorrectionAccumulator(4);
+        accumulator.Apply(new TextAssistIssueEvent(0, 1, "grammar", "Wrong", "Right"));
+        accumulator.Apply(new TextAssistCompletedEvent());
+
+        accumulator.EnsureComplete();
+
+        Assert.HasCount(1, accumulator.Issues);
+    }
+
+    [TestMethod]
+    public void Decoder_PreservesCorrectionVariantWhileStreaming()
+    {
+        var decoder = new JsonLinesDeltaStreamDecoder<TextAssistStreamEvent>(Deserialize, "corrected_delta", "text");
+        var events = decoder.Append("{\"event\":\"corrected_delta\",\"variant\":2,\"text\":\"alternative\"}").ToArray();
+
+        var delta = events.OfType<TextAssistCorrectedDeltaEvent>().Single();
+        Assert.AreEqual(2, delta.Variant);
+        Assert.AreEqual("alternative", delta.Text);
+    }
+
+    [TestMethod]
+    public void CorrectionAccumulator_AssociatesTranslationsByVariant()
+    {
+        var accumulator = new TextAssistCorrectionAccumulator(4);
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent("first", 1));
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent("other", 2));
+        accumulator.Apply(new TextAssistCorrectionTranslationDeltaEvent("第一", 1));
+        accumulator.Apply(new TextAssistCorrectionTranslationDeltaEvent("其他", 2));
+
+        Assert.AreEqual("first", accumulator.CorrectedVariants[1]);
+        Assert.AreEqual("other", accumulator.CorrectedVariants[2]);
+        Assert.AreEqual("第一", accumulator.CorrectedTranslations[1]);
+        Assert.AreEqual("其他", accumulator.CorrectedTranslations[2]);
+    }
+
     private static TextAssistStreamEvent Deserialize(string line)
     {
         return JsonSerializer.Deserialize<TextAssistStreamEvent>(line, new JsonSerializerOptions

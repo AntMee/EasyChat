@@ -6,6 +6,7 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using EasyChat.Lang;
 using EasyChat.Models.Translation.Selection;
 using EasyChat.Services.Abstractions;
 using EasyChat.Services.Speech.Tts;
@@ -205,8 +206,16 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
     /// </summary>
     public async Task InitializeAsync(string text)
     {
+        var source = _configurationService.General?.SourceLanguage.Id ?? LanguageKeys.AutoId;
+        var target = _configurationService.General?.TargetLanguage.Id ?? "zh-Hans";
+        await InitializeAsync(text, source, target);
+    }
+
+    public async Task InitializeAsync(string text, string sourceLanguageId, string targetLanguageId)
+    {
         _initializationTcs = new TaskCompletionSource<bool>();
-        
+        _currentSourceLang = string.IsNullOrWhiteSpace(sourceLanguageId) ? LanguageKeys.AutoId : sourceLanguageId;
+        _currentTargetLang = string.IsNullOrWhiteSpace(targetLanguageId) ? "zh-Hans" : targetLanguageId;
         SourceText = text;
         
         BeginLoading();
@@ -218,7 +227,10 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             // Error handling (maybe show error state)
-            TranslationResult = $"Translation Engine Error: {ex.Message}";
+            TranslationResult = ex.Message.Contains("No active AI model", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("No AI model", StringComparison.OrdinalIgnoreCase)
+                ? Resources.TextAssistNoAiModel
+                : Resources.SelectionTranslate_Failed + ex.Message;
         }
         finally
         {
@@ -232,11 +244,10 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
 
     private async Task PerformTranslationAsync(string text, bool canNavigateBack = false, bool isLookup = false)
     {
-        var sourceLang = _configurationService.General?.SourceLanguage.EnglishName ?? LanguageKeys.Auto.EnglishName;
-        var targetLang = _configurationService.General?.TargetLanguage.EnglishName ?? throw new InvalidOperationException("Target language is not configured.");
-
-        _currentSourceLang = _configurationService.General?.SourceLanguage.Id ?? LanguageKeys.AutoId;
-        _currentTargetLang = _configurationService.General?.TargetLanguage.Id ?? throw new InvalidOperationException("Target language is not configured.");
+        var sourceDefinition = LanguageService.GetLanguage(_currentSourceLang);
+        var targetDefinition = LanguageService.GetLanguage(_currentTargetLang);
+        var sourceLang = sourceDefinition.EnglishName;
+        var targetLang = targetDefinition.EnglishName;
 
         if (sourceLang == LanguageKeys.Auto.EnglishName) _currentSourceLang = "en"; // Default fallback for TTS if auto?
 
@@ -356,9 +367,11 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
         {
             await PerformTranslationAsync(word, canNavigateBack: true, isLookup: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-             // Ignore
+            TranslationResult = ex.Message.Contains("No active AI model", StringComparison.OrdinalIgnoreCase)
+                ? Resources.TextAssistNoAiModel
+                : Resources.SelectionTranslate_Failed + ex.Message;
         }
         finally
         {

@@ -6,14 +6,15 @@ using System.Reactive;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using EasyChat.Lang;
 using EasyChat.Constants;
+using EasyChat.Lang;
 using EasyChat.Models;
 using EasyChat.Models.Configuration;
 using EasyChat.Models.Translation.TextAssist;
 using EasyChat.Services;
 using EasyChat.Services.Abstractions;
 using EasyChat.Services.Languages;
+using EasyChat.Services.Speech.Tts;
 using EasyChat.Services.TextAssist;
 using Material.Icons;
 using Microsoft.Extensions.Logging;
@@ -23,98 +24,28 @@ namespace EasyChat.ViewModels.Pages;
 
 public sealed class TextAssistViewModel : Page
 {
-    private readonly IConfigurationService _configurationService;
-    private readonly TextAssistProfileResolver _profileResolver;
-    private readonly ITextAssistService _textAssistService;
-    private readonly ILogger<TextAssistViewModel>? _logger;
-    private CancellationTokenSource? _requestCts;
-    private string _inputText = string.Empty;
-    private string _translationResult = string.Empty;
-    private string _correctedResult = string.Empty;
-    private string _errorMessage = string.Empty;
-    private int _selectedTabIndex;
-    private bool _isBusy;
-    private bool _followGlobal;
-    private LanguageDefinition _selectedSourceLanguage;
-    private LanguageDefinition _selectedTargetLanguage;
-    private string _selectedProvider;
-    private CustomAiModel? _selectedAiModel;
-    private string _selectedMachineProvider;
-
     public TextAssistViewModel(
         IConfigurationService configurationService,
         TextAssistProfileResolver profileResolver,
         ITextAssistService textAssistService,
+        ITtsService ttsService,
+        IAudioPlayer audioPlayer,
+        ITextAssistDictionaryService dictionaryService,
         ILogger<TextAssistViewModel>? logger = null) : base(Resources.TextAssist, MaterialIconKind.Translate, 5)
     {
-        _configurationService = configurationService;
-        _profileResolver = profileResolver;
-        _textAssistService = textAssistService;
-        _logger = logger;
-        Languages = LanguageService.GetAllLanguages().OrderBy(x => x.EnglishName).ToList();
-        AvailableAiModels = new ObservableCollection<CustomAiModel>(_configurationService.AiModel?.ConfiguredModels ?? []);
-        MachineProviders = [Constant.MachineTranslationProviders.Baidu, Constant.MachineTranslationProviders.Tencent,
-            Constant.MachineTranslationProviders.Google, Constant.MachineTranslationProviders.DeepL];
-
-        var config = _configurationService.TextAssist!;
-        _followGlobal = config.FollowGlobal;
-        _selectedSourceLanguage = Languages.FirstOrDefault(x => x.Id == config.SourceLanguageId) ?? LanguageService.GetLanguage("auto");
-        _selectedTargetLanguage = Languages.FirstOrDefault(x => x.Id == config.TargetLanguageId) ?? LanguageService.GetLanguage("zh-Hans");
-        _selectedProvider = config.Provider;
-        _selectedAiModel = AvailableAiModels.FirstOrDefault(x => x.Id == config.AiModelId)
-                           ?? AvailableAiModels.FirstOrDefault();
-        _selectedMachineProvider = config.MachineProvider;
-
-        if (_followGlobal) LoadGlobalSettings();
-
-        RunCommand = ReactiveCommand.CreateFromTask(RunAsync, this.WhenAnyValue(x => x.IsBusy, busy => !busy));
-        CancelCommand = ReactiveCommand.Create(CancelRequest);
+        Translation = new TextAssistTranslationViewModel(configurationService, profileResolver, textAssistService,
+            ttsService, audioPlayer, dictionaryService, logger);
+        Correction = new TextAssistCorrectionViewModel(configurationService, profileResolver, textAssistService, logger);
         SelectTranslationCommand = ReactiveCommand.Create(() => { SelectedTabIndex = 0; });
         SelectCorrectionCommand = ReactiveCommand.Create(() => { SelectedTabIndex = 1; });
     }
 
-    public IReadOnlyList<LanguageDefinition> Languages { get; }
-    public ObservableCollection<CustomAiModel> AvailableAiModels { get; }
-    public IReadOnlyList<string> MachineProviders { get; }
-    public IReadOnlyList<string> AvailableProviders { get; } = [TextAssistConstants.AiProvider, TextAssistConstants.MachineProvider];
-    public ObservableCollection<TextAssistIssueEvent> Issues { get; } = [];
-    public ObservableCollection<CorrectionTextSegment> CorrectionSegments { get; } = [];
-    public ReactiveCommand<Unit, Unit> RunCommand { get; }
-    public ReactiveCommand<Unit, Unit> CancelCommand { get; }
+    public TextAssistTranslationViewModel Translation { get; }
+    public TextAssistCorrectionViewModel Correction { get; }
     public ReactiveCommand<Unit, Unit> SelectTranslationCommand { get; }
     public ReactiveCommand<Unit, Unit> SelectCorrectionCommand { get; }
 
-    public string InputText
-    {
-        get => _inputText;
-        set
-        {
-            if (string.Equals(_inputText, value, StringComparison.Ordinal)) return;
-            this.RaiseAndSetIfChanged(ref _inputText, value);
-            Issues.Clear();
-            CorrectedResult = string.Empty;
-            RebuildCorrectionSegments();
-        }
-    }
-
-    public string TranslationResult
-    {
-        get => _translationResult;
-        private set => this.RaiseAndSetIfChanged(ref _translationResult, value);
-    }
-
-    public string CorrectedResult
-    {
-        get => _correctedResult;
-        private set => this.RaiseAndSetIfChanged(ref _correctedResult, value);
-    }
-
-    public string ErrorMessage
-    {
-        get => _errorMessage;
-        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
-    }
-
+    private int _selectedTabIndex;
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
@@ -123,62 +54,145 @@ public sealed class TextAssistViewModel : Page
             this.RaiseAndSetIfChanged(ref _selectedTabIndex, value);
             this.RaisePropertyChanged(nameof(IsTranslationMode));
             this.RaisePropertyChanged(nameof(IsCorrectionMode));
+            Translation.IsActive = value == 0;
+            Correction.IsActive = value == 1;
         }
     }
 
     public bool IsTranslationMode => SelectedTabIndex == 0;
     public bool IsCorrectionMode => SelectedTabIndex == 1;
 
+    public async Task InitializeAsync(string text, bool correction)
+    {
+        SelectedTabIndex = correction ? 1 : 0;
+        if (correction)
+        {
+            Correction.InputText = text;
+            await Correction.RunNowAsync();
+        }
+        else
+        {
+            Translation.InputText = text;
+            await Translation.RunNowAsync();
+        }
+    }
+}
+
+public abstract class TextAssistEditorViewModel : ViewModelBase
+{
+    protected readonly IConfigurationService ConfigurationService;
+    protected readonly TextAssistProfileResolver ProfileResolver;
+    protected readonly ITextAssistService TextAssistService;
+    protected readonly ILogger? Logger;
+    private CancellationTokenSource? _requestCts;
+    private readonly bool _correction;
+    private string _sourceLanguageId;
+    private string _targetLanguageId;
+    private string _provider;
+    private CustomAiModel? _selectedAiModel;
+    private string _machineProvider;
+    private string? _selectedPromptId;
+    private bool _isBusy;
+    private bool _isActive;
+    private string _errorMessage = string.Empty;
+
+    protected TextAssistEditorViewModel(
+        IConfigurationService configurationService,
+        TextAssistProfileResolver profileResolver,
+        ITextAssistService textAssistService,
+        bool correction,
+        ILogger? logger)
+    {
+        ConfigurationService = configurationService;
+        ProfileResolver = profileResolver;
+        TextAssistService = textAssistService;
+        _correction = correction;
+        _isActive = !correction;
+        Logger = logger;
+        Languages = LanguageService.GetAllLanguages().OrderBy(x => x.EnglishName).ToList();
+        AvailableAiModels = new ObservableCollection<CustomAiModel>(configurationService.AiModel?.ConfiguredModels ?? []);
+        MachineProviders = [Constant.MachineTranslationProviders.Baidu, Constant.MachineTranslationProviders.Tencent,
+            Constant.MachineTranslationProviders.Google, Constant.MachineTranslationProviders.DeepL];
+        PromptEntries = new ObservableCollection<PromptEntry>(configurationService.Prompts?.Entries ?? []);
+
+        var config = configurationService.TextAssist ?? new TextAssistConfig();
+        // Text Assist always owns its settings. Keep the legacy config field
+        // disabled so older configuration files cannot re-enable global mode.
+        config.FollowGlobal = false;
+        _sourceLanguageId = config.SourceLanguageId;
+        _targetLanguageId = config.TargetLanguageId;
+        _provider = config.Provider;
+        _selectedAiModel = AvailableAiModels.FirstOrDefault(x => x.Id == config.AiModelId) ?? AvailableAiModels.FirstOrDefault();
+        _machineProvider = config.MachineProvider;
+        _selectedPromptId = _correction ? config.CorrectionPromptId : config.TranslationPromptId;
+        _selectedPromptId ??= configurationService.Prompts?.SelectedPromptId;
+        _selectedPromptId ??= PromptEntries.FirstOrDefault(x => x.IsDefault)?.Id;
+
+        RunCommand = ReactiveCommand.CreateFromTask(ExecuteAsync,
+            this.WhenAnyValue(x => x.IsBusy, busy => !busy));
+        CancelCommand = ReactiveCommand.Create(Cancel);
+    }
+
+    public IReadOnlyList<LanguageDefinition> Languages { get; }
+    public ObservableCollection<CustomAiModel> AvailableAiModels { get; }
+    public IReadOnlyList<string> MachineProviders { get; }
+    public IReadOnlyList<string> AvailableProviders { get; } = [TextAssistConstants.AiProvider, TextAssistConstants.MachineProvider];
+    public ObservableCollection<PromptEntry> PromptEntries { get; }
+    public ReactiveCommand<Unit, Unit> RunCommand { get; }
+    public ReactiveCommand<Unit, Unit> CancelCommand { get; }
+    public bool IsCorrection => _correction;
+
+    public bool IsActive
+    {
+        get => _isActive;
+        set => this.RaiseAndSetIfChanged(ref _isActive, value);
+    }
+
     public bool IsBusy
     {
         get => _isBusy;
-        private set
-        {
-            this.RaiseAndSetIfChanged(ref _isBusy, value);
-        }
+        private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
     }
 
-    public bool FollowGlobal
+    public string ErrorMessage
     {
-        get => _followGlobal;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _followGlobal, value);
-            _configurationService.TextAssist!.FollowGlobal = value;
-            if (value) LoadGlobalLanguages();
-            else LoadIndependentSettings();
-        }
+        get => _errorMessage;
+        protected set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
     }
 
     public LanguageDefinition SelectedSourceLanguage
     {
-        get => _selectedSourceLanguage;
+        get => Languages.FirstOrDefault(x => x.Id == _sourceLanguageId) ?? LanguageService.GetLanguage("auto");
         set
         {
-            this.RaiseAndSetIfChanged(ref _selectedSourceLanguage, value);
-            if (!FollowGlobal) _configurationService.TextAssist!.SourceLanguageId = value.Id;
+            _sourceLanguageId = value.Id;
+            this.RaisePropertyChanged();
+            PersistSettings();
         }
     }
 
     public LanguageDefinition SelectedTargetLanguage
     {
-        get => _selectedTargetLanguage;
+        get => Languages.FirstOrDefault(x => x.Id == _targetLanguageId) ?? LanguageService.GetLanguage("zh-Hans");
         set
         {
-            this.RaiseAndSetIfChanged(ref _selectedTargetLanguage, value);
-            if (!FollowGlobal) _configurationService.TextAssist!.TargetLanguageId = value.Id;
+            _targetLanguageId = value.Id;
+            this.RaisePropertyChanged();
+            PersistSettings();
         }
     }
 
     public string SelectedProvider
     {
-        get => _selectedProvider;
+        get => _provider;
         set
         {
-            this.RaiseAndSetIfChanged(ref _selectedProvider, value);
+            if (string.Equals(_provider, value, StringComparison.Ordinal)) return;
+            _provider = value;
+            this.RaisePropertyChanged();
             this.RaisePropertyChanged(nameof(IsAiProvider));
             this.RaisePropertyChanged(nameof(IsMachineProvider));
-            if (!FollowGlobal) _configurationService.TextAssist!.Provider = value;
+            PersistSettings();
         }
     }
 
@@ -190,77 +204,189 @@ public sealed class TextAssistViewModel : Page
         get => _selectedAiModel;
         set
         {
-            this.RaiseAndSetIfChanged(ref _selectedAiModel, value);
-            if (!FollowGlobal) _configurationService.TextAssist!.AiModelId = value?.Id;
+            if (ReferenceEquals(_selectedAiModel, value)) return;
+            _selectedAiModel = value;
+            this.RaisePropertyChanged();
+            PersistSettings();
         }
     }
 
     public string SelectedMachineProvider
     {
-        get => _selectedMachineProvider;
+        get => _machineProvider;
         set
         {
-            this.RaiseAndSetIfChanged(ref _selectedMachineProvider, value);
-            if (!FollowGlobal) _configurationService.TextAssist!.MachineProvider = value;
+            if (string.Equals(_machineProvider, value, StringComparison.Ordinal)) return;
+            _machineProvider = value;
+            this.RaisePropertyChanged();
+            PersistSettings();
         }
     }
 
-    public async Task InitializeAsync(string text, bool correction)
+    public string? SelectedPromptId
     {
-        InputText = text;
-        SelectedTabIndex = correction ? 1 : 0;
-        await RunAsync();
+        get => _selectedPromptId;
+        set
+        {
+            if (string.Equals(_selectedPromptId, value, StringComparison.Ordinal)) return;
+            _selectedPromptId = value;
+            this.RaisePropertyChanged();
+            PersistSettings();
+        }
     }
 
-    private async Task RunAsync()
+    protected TextAssistProfile ResolveProfile()
     {
-        if (string.IsNullOrWhiteSpace(InputText)) return;
+        PersistSettings();
+        return ProfileResolver.Resolve(_correction);
+    }
+
+    private void PersistSettings()
+    {
+        var config = ConfigurationService.TextAssist;
+        if (config == null) return;
+        config.FollowGlobal = false;
+        config.SourceLanguageId = _sourceLanguageId;
+        config.TargetLanguageId = _targetLanguageId;
+        config.Provider = _provider;
+        config.AiModelId = _selectedAiModel?.Id;
+        config.MachineProvider = _machineProvider;
+        if (_correction) config.CorrectionPromptId = _selectedPromptId;
+        else config.TranslationPromptId = _selectedPromptId;
+    }
+
+    private async Task ExecuteAsync()
+    {
+        var cts = new CancellationTokenSource();
         _requestCts?.Cancel();
-        var requestCts = new CancellationTokenSource();
-        _requestCts = requestCts;
-        var token = requestCts.Token;
+        _requestCts = cts;
         IsBusy = true;
         ErrorMessage = string.Empty;
-        TranslationResult = string.Empty;
-        CorrectedResult = string.Empty;
-        Issues.Clear();
-        RebuildCorrectionSegments();
-
         try
         {
-            var profile = _profileResolver.Resolve(IsCorrectionMode);
-            if (IsCorrectionMode)
-            {
-                var accumulator = new TextAssistCorrectionAccumulator(
-                    InputText.Length,
-                    issue => _logger?.LogWarning(
-                        "Ignoring out-of-range correction issue at {Start} with length {Length}",
-                        issue.Start,
-                        issue.Length));
-                await foreach (var item in _textAssistService.StreamCorrectAsync(InputText, profile, token))
-                {
-                    accumulator.Apply(item);
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        CorrectedResult = accumulator.CorrectedText;
-                        Issues.Clear();
-                        foreach (var issue in accumulator.Issues) Issues.Add(issue);
-                        RebuildCorrectionSegments();
-                    });
-                }
-                accumulator.EnsureComplete();
-            }
-            else
-            {
-                await foreach (var item in _textAssistService.StreamTranslateAsync(InputText, profile, token))
-                {
-                    if (item is TextAssistTranslationDeltaEvent delta)
-                        await Dispatcher.UIThread.InvokeAsync(() => TranslationResult += delta.Text);
-                }
-            }
+            await RunCoreAsync(cts.Token);
         }
         catch (OperationCanceledException)
         {
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Text assist request failed");
+            ErrorMessage = ex.Message.Contains("No AI model", StringComparison.OrdinalIgnoreCase)
+                ? Resources.TextAssistNoAiModel
+                : ex.Message;
+        }
+        finally
+        {
+            if (ReferenceEquals(_requestCts, cts)) _requestCts = null;
+            IsBusy = false;
+            cts.Dispose();
+        }
+    }
+
+    public Task RunNowAsync() => ExecuteAsync();
+
+    private void Cancel() => _requestCts?.Cancel();
+    protected abstract Task RunCoreAsync(CancellationToken cancellationToken);
+}
+
+public sealed class TextAssistTranslationViewModel : TextAssistEditorViewModel
+{
+    private readonly ITtsService _ttsService;
+    private readonly IAudioPlayer _audioPlayer;
+    private readonly ITextAssistDictionaryService _dictionaryService;
+    private string _inputText = string.Empty;
+    private string _translationResult = string.Empty;
+    private bool _isSourceSpeaking;
+    private bool _isResultSpeaking;
+
+    public TextAssistTranslationViewModel(
+        IConfigurationService configurationService,
+        TextAssistProfileResolver profileResolver,
+        ITextAssistService textAssistService,
+        ITtsService ttsService,
+        IAudioPlayer audioPlayer,
+        ITextAssistDictionaryService dictionaryService,
+        ILogger? logger) : base(configurationService, profileResolver, textAssistService, false, logger)
+    {
+        _ttsService = ttsService;
+        _audioPlayer = audioPlayer;
+        _dictionaryService = dictionaryService;
+        SpeakSourceCommand = ReactiveCommand.CreateFromTask(() => SpeakAsync(InputText, SelectedSourceLanguage.Id, true));
+        SpeakResultCommand = ReactiveCommand.CreateFromTask(() => SpeakAsync(TranslationResult, SelectedTargetLanguage.Id, false));
+        OpenDictionaryCommand = ReactiveCommand.CreateFromTask<string>(text => _dictionaryService.OpenAsync(text, SelectedSourceLanguage.Id, SelectedTargetLanguage.Id));
+        SwapContentCommand = ReactiveCommand.Create(SwapContent);
+    }
+
+    public string InputText
+    {
+        get => _inputText;
+        set => this.RaiseAndSetIfChanged(ref _inputText, value);
+    }
+
+    public string TranslationResult
+    {
+        get => _translationResult;
+        private set => this.RaiseAndSetIfChanged(ref _translationResult, value);
+    }
+
+    public bool IsSourceSpeaking
+    {
+        get => _isSourceSpeaking;
+        private set => this.RaiseAndSetIfChanged(ref _isSourceSpeaking, value);
+    }
+
+    public bool IsResultSpeaking
+    {
+        get => _isResultSpeaking;
+        private set => this.RaiseAndSetIfChanged(ref _isResultSpeaking, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> SpeakSourceCommand { get; }
+    public ReactiveCommand<Unit, Unit> SpeakResultCommand { get; }
+    public ReactiveCommand<string, Unit> OpenDictionaryCommand { get; }
+    public ReactiveCommand<Unit, Unit> SwapContentCommand { get; }
+
+    public Task OpenDictionaryAsync(string text) => _dictionaryService.OpenAsync(text, SelectedSourceLanguage.Id, SelectedTargetLanguage.Id);
+    public Task OpenResultDictionaryAsync(string text) => _dictionaryService.OpenAsync(text, SelectedTargetLanguage.Id, SelectedSourceLanguage.Id);
+
+    private void SwapContent()
+    {
+        var sourceText = InputText;
+        InputText = TranslationResult;
+        TranslationResult = sourceText;
+        var source = SelectedSourceLanguage;
+        SelectedSourceLanguage = SelectedTargetLanguage;
+        SelectedTargetLanguage = source;
+    }
+
+    protected override async Task RunCoreAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(InputText)) return;
+        TranslationResult = string.Empty;
+        var profile = ResolveProfile();
+        await foreach (var item in TextAssistService.StreamTranslateAsync(InputText, profile, cancellationToken))
+        {
+            if (item is TextAssistTranslationDeltaEvent delta)
+                await Dispatcher.UIThread.InvokeAsync(() => TranslationResult += delta.Text);
+        }
+    }
+
+    private async Task SpeakAsync(string text, string languageId, bool source)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+        try
+        {
+            if (source) IsSourceSpeaking = true; else IsResultSpeaking = true;
+            _audioPlayer.Stop();
+            var voiceId = TtsHelper.GetPreferredVoiceId(_ttsService, ConfigurationService, languageId);
+            if (string.IsNullOrWhiteSpace(voiceId))
+            {
+                ErrorMessage = Resources.TextAssistNoVoice;
+                return;
+            }
+            var stream = await _ttsService.StreamAsync(text, voiceId);
+            if (stream != null) _audioPlayer.Enqueue(stream);
         }
         catch (Exception ex)
         {
@@ -268,102 +394,108 @@ public sealed class TextAssistViewModel : Page
         }
         finally
         {
-            if (ReferenceEquals(_requestCts, requestCts))
-            {
-                _requestCts = null;
-                IsBusy = false;
-            }
-            requestCts.Dispose();
+            if (source) IsSourceSpeaking = false; else IsResultSpeaking = false;
+        }
+    }
+}
+
+public sealed class TextAssistCorrectionViewModel : TextAssistEditorViewModel
+{
+    private string _inputText = string.Empty;
+    private string _correctedResult = string.Empty;
+
+    public TextAssistCorrectionViewModel(
+        IConfigurationService configurationService,
+        TextAssistProfileResolver profileResolver,
+        ITextAssistService textAssistService,
+        ILogger? logger) : base(configurationService, profileResolver, textAssistService, true, logger)
+    {
+    }
+
+    public string InputText
+    {
+        get => _inputText;
+        set
+        {
+            if (string.Equals(_inputText, value, StringComparison.Ordinal)) return;
+            this.RaiseAndSetIfChanged(ref _inputText, value);
+            Issues.Clear();
+            CorrectionSegments.Clear();
+            CorrectionVariants.Clear();
+            CorrectedResult = string.Empty;
+            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
+            this.RaisePropertyChanged(nameof(HasCorrectedResults));
         }
     }
 
-    private void CancelRequest()
+    public string CorrectedResult
     {
-        _requestCts?.Cancel();
+        get => _correctedResult;
+        private set => this.RaiseAndSetIfChanged(ref _correctedResult, value);
     }
 
-    private void LoadGlobalLanguages()
-    {
-        var global = _configurationService.General;
-        if (global == null) return;
-        SelectedSourceLanguage = Languages.FirstOrDefault(x => x.Id == global.SourceLanguage.Id) ?? SelectedSourceLanguage;
-        SelectedTargetLanguage = Languages.FirstOrDefault(x => x.Id == global.TargetLanguage.Id) ?? SelectedTargetLanguage;
-        LoadGlobalSettings();
-    }
+    public ObservableCollection<CorrectionVariant> CorrectionVariants { get; } = [];
+    public bool HasCorrectedResults => CorrectionVariants.Count > 0;
 
-    private void LoadGlobalSettings()
-    {
-        var global = _configurationService.General;
-        if (global == null) return;
-        _selectedProvider = global.TransEngine ?? TextAssistConstants.AiProvider;
-        _selectedAiModel = AvailableAiModels.FirstOrDefault(x => x.Id == global.UsingAiModelId)
-                           ?? AvailableAiModels.FirstOrDefault(x => x.Name == global.UsingAiModel)
-                           ?? _selectedAiModel;
-        _selectedMachineProvider = global.UsingMachineTransId ?? global.UsingMachineTrans ?? _selectedMachineProvider;
-        this.RaisePropertyChanged(nameof(SelectedProvider));
-        this.RaisePropertyChanged(nameof(SelectedAiModel));
-        this.RaisePropertyChanged(nameof(SelectedMachineProvider));
-        this.RaisePropertyChanged(nameof(IsAiProvider));
-        this.RaisePropertyChanged(nameof(IsMachineProvider));
-    }
+    public ObservableCollection<TextAssistIssueEvent> Issues { get; } = [];
+    public ObservableCollection<CorrectionTextSegment> CorrectionSegments { get; } = [];
+    public bool HasCorrectionIssues => Issues.Count > 0;
 
-    private void LoadIndependentSettings()
+    protected override async Task RunCoreAsync(CancellationToken cancellationToken)
     {
-        var config = _configurationService.TextAssist;
-        if (config == null) return;
-        _selectedSourceLanguage = Languages.FirstOrDefault(x => x.Id == config.SourceLanguageId) ?? _selectedSourceLanguage;
-        _selectedTargetLanguage = Languages.FirstOrDefault(x => x.Id == config.TargetLanguageId) ?? _selectedTargetLanguage;
-        _selectedProvider = config.Provider;
-        _selectedAiModel = AvailableAiModels.FirstOrDefault(x => x.Id == config.AiModelId) ?? _selectedAiModel;
-        _selectedMachineProvider = config.MachineProvider;
-        this.RaisePropertyChanged(nameof(SelectedSourceLanguage));
-        this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
-        this.RaisePropertyChanged(nameof(SelectedProvider));
-        this.RaisePropertyChanged(nameof(SelectedAiModel));
-        this.RaisePropertyChanged(nameof(SelectedMachineProvider));
-        this.RaisePropertyChanged(nameof(IsAiProvider));
-        this.RaisePropertyChanged(nameof(IsMachineProvider));
+        if (string.IsNullOrWhiteSpace(InputText)) return;
+        CorrectedResult = string.Empty;
+        Issues.Clear();
+        CorrectionSegments.Clear();
+        CorrectionVariants.Clear();
+        this.RaisePropertyChanged(nameof(HasCorrectedResults));
+        var profile = ResolveProfile();
+        var accumulator = new TextAssistCorrectionAccumulator(InputText.Length);
+        await foreach (var item in TextAssistService.StreamCorrectAsync(InputText, profile, cancellationToken))
+        {
+            accumulator.Apply(item);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                CorrectedResult = accumulator.CorrectedText;
+                CorrectionVariants.Clear();
+                foreach (var pair in accumulator.CorrectedVariants.OrderBy(x => x.Key))
+                {
+                    accumulator.CorrectedTranslations.TryGetValue(pair.Key, out var translation);
+                    CorrectionVariants.Add(new CorrectionVariant(pair.Value, translation ?? string.Empty));
+                }
+                this.RaisePropertyChanged(nameof(HasCorrectedResults));
+                Issues.Clear();
+                foreach (var issue in accumulator.Issues) Issues.Add(issue);
+                RebuildCorrectionSegments();
+            });
+        }
+        accumulator.CompleteImplicitly();
+        accumulator.EnsureComplete();
     }
-
-    public bool HasCorrectionIssues => CorrectionSegments.Any(x => x.IsIssue);
 
     private void RebuildCorrectionSegments()
     {
         CorrectionSegments.Clear();
-        var source = InputText ?? string.Empty;
-        if (source.Length == 0)
-        {
-            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
-            return;
-        }
-
+        var source = InputText;
         var cursor = 0;
         foreach (var issue in Issues.OrderBy(x => x.Start))
         {
-            if (issue.Start < cursor || issue.Start < 0 || issue.Start > source.Length)
-                continue;
-
-            if (issue.Start > cursor)
-                CorrectionSegments.Add(new CorrectionTextSegment(source[cursor..issue.Start], false, null));
-
+            if (issue.Start < cursor || issue.Start < 0 || issue.Start >= source.Length) continue;
+            if (issue.Start > cursor) CorrectionSegments.Add(new CorrectionTextSegment(source[cursor..issue.Start], false, null));
             var end = Math.Min(source.Length, issue.Start + issue.Length);
             if (end > issue.Start)
             {
-                CorrectionSegments.Add(new CorrectionTextSegment(
-                    source[issue.Start..end],
-                    true,
+                CorrectionSegments.Add(new CorrectionTextSegment(source[issue.Start..end], true,
                     $"{issue.Message}\n{issue.Suggestion}"));
                 cursor = end;
             }
         }
-
-        if (cursor < source.Length)
-            CorrectionSegments.Add(new CorrectionTextSegment(source[cursor..], false, null));
-
-        if (CorrectionSegments.Count == 0)
+        if (cursor < source.Length) CorrectionSegments.Add(new CorrectionTextSegment(source[cursor..], false, null));
+        if (CorrectionSegments.Count == 0 && source.Length > 0)
             CorrectionSegments.Add(new CorrectionTextSegment(source, false, null));
         this.RaisePropertyChanged(nameof(HasCorrectionIssues));
     }
 }
 
 public sealed record CorrectionTextSegment(string Text, bool IsIssue, string? Suggestion);
+public sealed record CorrectionVariant(string Text, string Translation);

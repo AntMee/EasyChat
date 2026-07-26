@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
+using EasyChat.Constants;
 using EasyChat.Lang;
 using Material.Icons;
 
@@ -14,8 +15,13 @@ public class TranslationEngineStringToIconKindConverter : IValueConverter
     {
         if (value is string s)
         {
-            if (s == Resources.AIEngine) return MaterialIconKind.Robot;
-            if (s == Resources.MachineTranslation) return MaterialIconKind.Translate;
+            // ComboBox values are persisted provider ids, while the labels are localized.
+            if (s.Equals(TextAssistConstants.AiProvider, StringComparison.OrdinalIgnoreCase)
+                || s.Equals(Resources.AIEngine, StringComparison.OrdinalIgnoreCase))
+                return MaterialIconKind.Robot;
+            if (s.Equals(TextAssistConstants.MachineProvider, StringComparison.OrdinalIgnoreCase)
+                || s.Equals(Resources.MachineTranslation, StringComparison.OrdinalIgnoreCase))
+                return MaterialIconKind.Translate;
         }
         return MaterialIconKind.HelpCircleOutline;
     }

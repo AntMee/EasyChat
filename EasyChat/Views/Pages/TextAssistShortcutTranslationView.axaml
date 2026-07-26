@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EasyChat.ViewModels.Pages"
+             xmlns:lang="clr-namespace:EasyChat.Lang"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="EasyChat.Views.Pages.TextAssistShortcutTranslationView"
+             x:DataType="vm:TextAssistTranslationViewModel">
+    <Grid Margin="18" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="12">
+            <TextBlock Text="{x:Static lang:Resources.SourceLang}" FontWeight="SemiBold" />
+            <Button Grid.Column="1" Classes="Basic" Command="{Binding SwapContentCommand}"
+                    ToolTip.Tip="{x:Static lang:Resources.ReverseTranslateLanguageTip}">
+                <avalonia:MaterialIcon Kind="SwapHorizontal" />
+            </Button>
+            <TextBlock Grid.Column="2" Text="{x:Static lang:Resources.TargetLang}" FontWeight="SemiBold" HorizontalAlignment="Right" />
+        </Grid>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*" ColumnSpacing="4">
+                <suki:GlassCard CornerRadius="10" Padding="12">
+                <Grid>
+                    <TextBox x:Name="SourceTextBox" Text="{Binding InputText, Mode=TwoWay}" AcceptsReturn="True"
+                             TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0"
+                             Background="Transparent" Watermark="{x:Static lang:Resources.TextAssistInputWatermark}"
+                             DoubleTapped="OnSourceDoubleTapped" PointerReleased="OnSourcePointerReleased" />
+                    <Button x:Name="SourceSelectionButton" Classes="Basic" IsVisible="False"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Click="OnSourceSelectionClick"
+                            ToolTip.Tip="{x:Static lang:Resources.ResultWindowMode_Dictionary}">
+                        <avalonia:MaterialIcon Kind="Translate" />
+                    </Button>
+                </Grid>
+                </suki:GlassCard>
+            <Button Grid.Column="1" VerticalAlignment="Center" Classes="Basic" Command="{Binding SwapContentCommand}"
+                    ToolTip.Tip="{x:Static lang:Resources.ReverseTranslateLanguageTip}">
+                <avalonia:MaterialIcon Kind="SwapHorizontal" Width="22" Height="22" />
+            </Button>
+                <suki:GlassCard Grid.Column="2" CornerRadius="10" Padding="12">
+                <Grid>
+                    <TextBox x:Name="ResultTextBox" Text="{Binding TranslationResult}" IsReadOnly="True" AcceptsReturn="True"
+                             TextWrapping="Wrap" VerticalContentAlignment="Top" BorderThickness="0"
+                             Background="Transparent" Watermark="{x:Static lang:Resources.Loading}"
+                             DoubleTapped="OnResultDoubleTapped" PointerReleased="OnResultPointerReleased" />
+                    <Button x:Name="ResultSelectionButton" Classes="Basic" IsVisible="False"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Click="OnResultSelectionClick"
+                            ToolTip.Tip="{x:Static lang:Resources.ResultWindowMode_Dictionary}">
+                        <avalonia:MaterialIcon Kind="Translate" />
+                    </Button>
+                </Grid>
+                </suki:GlassCard>
+        </Grid>
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+            <Button Command="{Binding RunCommand}" Classes="Flat">
+                <StackPanel Orientation="Horizontal" Spacing="6"><avalonia:MaterialIcon Kind="Translate" /><TextBlock Text="{x:Static lang:Resources.TextAssistTranslate}" /></StackPanel>
+            </Button>
+            <Button Grid.Column="1" Command="{Binding CancelCommand}" Classes="Flat" IsVisible="{Binding IsBusy}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><avalonia:MaterialIcon Kind="Stop" /><TextBlock Text="{x:Static lang:Resources.Cancel}" /></StackPanel>
+            </Button>
+            <TextBlock Grid.Column="2" Text="{Binding ErrorMessage}" Foreground="IndianRed" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </Grid>
+    </Grid>
+</UserControl>

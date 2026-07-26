@@ -11,7 +11,7 @@ public sealed class TextAssistConfig : ReactiveObject
     {
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
-    } = true;
+    } = false;
 
     [JsonProperty]
     public string SourceLanguageId

@@ -105,6 +105,10 @@ Emit events in exactly the documented order and always finish with `{"event":"do
             model = aiConf.ConfiguredModels.FirstOrDefault(m => m.Name == generalConf.UsingAiModel);
         }
 
+        model ??= aiConf.ConfiguredModels.FirstOrDefault();
+        if (model != null && selectionConf.AiModelId != model.Id)
+            selectionConf.AiModelId = model.Id;
+
         if (model == null)
         {
            throw new InvalidOperationException("No active AI model configured");
@@ -153,7 +157,17 @@ Emit events in exactly the documented order and always finish with `{"event":"do
         _logger.LogInformation("Streaming selection translation: {Source} -> {Target}, Length={Length}", sourceLang, targetLang, text.Length);
 
         var (client, src, tgt) = CreateClientAndConfig(sourceLang, targetLang);
-        var prompt = SystemPromptTemplate
+        var promptId = _configurationService.SelectionTranslation?.PromptId;
+        promptId = string.IsNullOrWhiteSpace(promptId) ? _configurationService.Prompts?.SelectedPromptId : promptId;
+        var configuredPrompt = _configurationService.Prompts?.FindById(promptId ?? string.Empty)?.Content;
+        var prompt = (configuredPrompt ?? SystemPromptTemplate) + """
+
+# Runtime selection contract
+Source language: [SourceLang]
+Target language: [TargetLang]
+Use the selected languages exactly. Return only the documented JSONL events; never add prose outside JSONL.
+""";
+        prompt = prompt
             .Replace("[SourceLang]", src)
             .Replace("[TargetLang]", tgt);
 

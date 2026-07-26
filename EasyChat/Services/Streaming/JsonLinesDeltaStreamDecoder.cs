@@ -130,9 +130,28 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
 
         if (builder.Length > 0)
         {
-            var item = _deserialize($"{{\"event\":\"{_eventName}\",\"{_propertyName}\":{System.Text.Json.JsonSerializer.Serialize(builder.ToString())}}}");
+            // Preserve the optional variant number used by correction streams.
+            // The decoder emits synthetic delta events while a JSON object is
+            // still incomplete, so metadata must be copied into that event.
+            var variant = ExtractVariant(content);
+            var variantJson = variant.HasValue ? $",\"variant\":{variant.Value}" : string.Empty;
+            var item = _deserialize($"{{\"event\":\"{_eventName}\",\"{_propertyName}\":{System.Text.Json.JsonSerializer.Serialize(builder.ToString())}{variantJson}}}");
             yield return item;
         }
+    }
+
+    private static int? ExtractVariant(string content)
+    {
+        const string key = "\"variant\"";
+        var index = content.IndexOf(key, StringComparison.Ordinal);
+        if (index < 0) return null;
+        var colon = content.IndexOf(':', index + key.Length);
+        if (colon < 0) return null;
+        var start = colon + 1;
+        while (start < content.Length && char.IsWhiteSpace(content[start])) start++;
+        var end = start;
+        while (end < content.Length && char.IsDigit(content[end])) end++;
+        return end > start && int.TryParse(content[start..end], out var value) ? value : null;
     }
 
     private static bool TryReadEscape(string content, int index, out char decoded, out int consumed)

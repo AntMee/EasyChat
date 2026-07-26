@@ -14,6 +14,8 @@ namespace EasyChat.Views.Windows;
 public partial class TextAssistWindowView : Window
 {
     private readonly TextAssistViewModel _viewModel;
+    private ContentControl? _editorHost;
+    private bool _correction;
 
     public TextAssistWindowView()
     {
@@ -21,13 +23,27 @@ public partial class TextAssistWindowView : Window
         _viewModel = Global.Services?.GetRequiredService<TextAssistViewModel>()
                      ?? throw new InvalidOperationException("Text assist view model is unavailable.");
         DataContext = _viewModel;
-        EditorHost.Content = new TextAssistView { DataContext = _viewModel };
+        Loaded += (_, _) =>
+        {
+            _editorHost ??= this.FindControl<ContentControl>("EditorHost");
+            ApplyEditor();
+        };
         KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Escape) Close(); };
     }
 
     public Task InitializeAsync(string text, bool correction)
     {
+        _correction = correction;
+        ApplyEditor();
         return _viewModel.InitializeAsync(text, correction);
+    }
+
+    private void ApplyEditor()
+    {
+        if (_editorHost == null) return;
+        _editorHost.Content = _correction
+            ? new TextAssistCorrectionView { DataContext = _viewModel.Correction }
+            : new TextAssistShortcutTranslationView { DataContext = _viewModel.Translation };
     }
 
     private void OnHeaderPointerPressed(object? sender, PointerPressedEventArgs e)

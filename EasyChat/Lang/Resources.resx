@@ -855,6 +855,8 @@
   <data name="TextAssistSubtitle" xml:space="preserve"><value>Translate naturally or polish your writing with streaming feedback.</value></data>
   <data name="TextAssistTranslate" xml:space="preserve"><value>Translate</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>Correct</value></data>
+  <data name="TextAssistNoAiModel" xml:space="preserve"><value>No AI model is configured. Add an AI model in Settings.</value></data>
+  <data name="TextAssistNoVoice" xml:space="preserve"><value>No voice is available for this language.</value></data>
   <data name="TextAssistInputWatermark" xml:space="preserve"><value>Enter text...</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>Follow global settings</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>Run</value></data>
@@ -867,6 +869,6 @@
   <data name="TextAssistCategorySpelling" xml:space="preserve"><value>Spelling</value></data>
   <data name="TextAssistCategoryWordChoice" xml:space="preserve"><value>Word choice</value></data>
   <data name="TextAssistCategoryStyle" xml:space="preserve"><value>Style</value></data>
-  <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate selection</value></data>
-  <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct selection</value></data>
+  <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate</value></data>
+  <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct</value></data>
 </root>

@@ -47,10 +47,27 @@ public sealed class TextAssistProfileResolverTests
         Assert.AreEqual("local-ai", profile.AiModelId);
     }
 
+    [TestMethod]
+    public void Resolve_Independent_InvalidModelFallsBackAndPersistsFirstModel()
+    {
+        var first = new CustomAiModel { Id = "first", Name = "First" };
+        var config = new FakeConfiguration
+        {
+            General = new General(),
+            AiModel = new AiModel { ConfiguredModels = [first] },
+            TextAssist = new TextAssistConfig { FollowGlobal = false, AiModelId = "missing" }
+        };
+
+        var profile = new TextAssistProfileResolver(config).Resolve();
+
+        Assert.AreEqual("first", profile.AiModelId);
+        Assert.AreEqual("first", config.TextAssist!.AiModelId);
+    }
+
     private sealed class FakeConfiguration : IConfigurationService
     {
         public General? General { get; init; }
-        public AiModel? AiModel => null;
+        public AiModel? AiModel { get; init; }
         public MachineTrans? MachineTrans => null;
         public Proxy? Proxy => null;
         public Shortcut? Shortcut => null;

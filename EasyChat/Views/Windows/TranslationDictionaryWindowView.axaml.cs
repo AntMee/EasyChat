@@ -75,6 +75,11 @@ public partial class TranslationDictionaryWindowView : Window
     {
         return _viewModel.InitializeAsync(text);
     }
+
+    public Task InitializeAsync(string text, string sourceLanguageId, string targetLanguageId)
+    {
+        return _viewModel.InitializeAsync(text, sourceLanguageId, targetLanguageId);
+    }
     
     /// <summary>
     /// Gets the current source text
