@@ -340,15 +340,6 @@ public class SelectionTranslationService : IDisposable
             // Capture current generation
             var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
-            // Give immediate feedback while clipboard/UI Automation capture runs.
-            // The no-activate icon preserves focus in the source application.
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
-                ShowIcon(x2, y2);
-                _iconWindow?.ShowLoading();
-            }, DispatcherPriority.Input);
-
             Task.Run(async () =>
             {
                 try
@@ -373,8 +364,6 @@ public class SelectionTranslationService : IDisposable
                     // Avalonia's Win32 clipboard implementation is UI-thread
                     // affine. The snapshot itself must therefore be created on
                     // the dispatcher.
-                    // Let the pending icon render and input events run before
-                    // enumerating the clipboard formats on the UI thread.
                     var backup = await Dispatcher.UIThread.InvokeAsync(
                         () => ClipboardHelper.BackupClipboardAsync(_logger),
                         DispatcherPriority.Background);
@@ -411,6 +400,7 @@ public class SelectionTranslationService : IDisposable
                         {
                             if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
                             {
+                                ShowIcon(x2, y2);
                                 _iconWindow?.HideLoading();
                             }
                         });
@@ -452,13 +442,6 @@ public class SelectionTranslationService : IDisposable
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
-            ShowIcon(e.X, e.Y);
-            _iconWindow?.ShowLoading();
-        }, DispatcherPriority.Input);
-
         Task.Run(async () =>
         {
             try
@@ -499,6 +482,7 @@ public class SelectionTranslationService : IDisposable
                     {
                         if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
                         {
+                            ShowIcon(e.X, e.Y);
                             _iconWindow?.HideLoading();
                         }
                     });
