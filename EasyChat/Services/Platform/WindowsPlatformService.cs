@@ -196,31 +196,34 @@ public class WindowsPlatformService : IPlatformService
         }
     }
     
-    public async Task<string?> GetSelectedTextAsync(int? x = null, int? y = null)
+    public async Task<string?> GetSelectedTextAsync(int? x = null, int? y = null, bool copyOnly = false)
     {
         return await Task.Run(async () =>
         {
             LastSelectedTextCaptureMethod = null;
 
-            // Traditional edit controls expose their selection through window
-            // messages. This path does not touch the clipboard or inject input.
-            var text = TryGetSelectedTextFromFocusedControl();
-            if (!string.IsNullOrWhiteSpace(text))
+            if (!copyOnly)
             {
-                LastSelectedTextCaptureMethod = "EM_GETSEL/WM_GETTEXT";
-                _logger.LogInformation("Selected text captured using EM_GETSEL/WM_GETTEXT: {Length} chars", text.Length);
-                return text;
-            }
+                // Traditional edit controls expose their selection through window
+                // messages. This path does not touch the clipboard or inject input.
+                var text = TryGetSelectedTextFromFocusedControl();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    LastSelectedTextCaptureMethod = "EM_GETSEL/WM_GETTEXT";
+                    _logger.LogInformation("Selected text captured using EM_GETSEL/WM_GETTEXT: {Length} chars", text.Length);
+                    return text;
+                }
 
-            // Some controls implement the copy command but do not expose their
-            // text through EM_GETSEL. Ask the focused control to copy directly
-            // before falling back to synthesized Ctrl+C.
-            text = await TryCopySelectedTextWithWindowMessageAsync();
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                LastSelectedTextCaptureMethod = "WM_COPY";
-                _logger.LogInformation("Selected text captured using WM_COPY: {Length} chars", text.Length);
-                return text;
+                // Some controls implement the copy command but do not expose their
+                // text through EM_GETSEL. Ask the focused control to copy directly
+                // before falling back to synthesized Ctrl+C.
+                text = await TryCopySelectedTextWithWindowMessageAsync();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    LastSelectedTextCaptureMethod = "WM_COPY";
+                    _logger.LogInformation("Selected text captured using WM_COPY: {Length} chars", text.Length);
+                    return text;
+                }
             }
 
             const ushort vkControl = 0x11;

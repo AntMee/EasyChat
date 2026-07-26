@@ -126,6 +126,10 @@
             </StackPanel>
         </StackPanel>
 
+        <CheckBox Content="{x:Static lang:Resources.ReadSelectedText}"
+                  IsChecked="{Binding ReadSelectedText}"
+                  IsVisible="{Binding IsTextAssistAction}" />
+
         <!-- Hotkey Recording -->
         <StackPanel Spacing="10">
             <TextBlock Text="{x:Static lang:Resources.KeyCombination}" FontWeight="SemiBold" />

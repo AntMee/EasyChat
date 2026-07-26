@@ -53,6 +53,8 @@ public sealed class TextAssistViewModel : Page
             this.RaiseAndSetIfChanged(ref _selectedTabIndex, value);
             this.RaisePropertyChanged(nameof(IsTranslationMode));
             this.RaisePropertyChanged(nameof(IsCorrectionMode));
+            this.RaisePropertyChanged(nameof(WindowTitle));
+            this.RaisePropertyChanged(nameof(WindowIcon));
             Translation.IsActive = value == 0;
             Correction.IsActive = value == 1;
         }
@@ -60,6 +62,8 @@ public sealed class TextAssistViewModel : Page
 
     public bool IsTranslationMode => SelectedTabIndex == 0;
     public bool IsCorrectionMode => SelectedTabIndex == 1;
+    public string WindowTitle => IsCorrectionMode ? Resources.TextAssistCorrect : Resources.TextAssistTranslate;
+    public MaterialIconKind WindowIcon => IsCorrectionMode ? MaterialIconKind.Spellcheck : MaterialIconKind.Translate;
 
     public async Task InitializeAsync(string text, bool correction)
     {

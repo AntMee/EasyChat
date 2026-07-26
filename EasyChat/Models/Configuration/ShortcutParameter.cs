@@ -19,4 +19,7 @@ public class ShortcutParameter
 
     [JsonProperty]
     public string? Value { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? ReadSelectedText { get; set; }
 }

@@ -871,4 +871,5 @@
   <data name="TextAssistCategoryStyle" xml:space="preserve"><value>Style</value></data>
   <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate</value></data>
   <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct</value></data>
+  <data name="ReadSelectedText" xml:space="preserve"><value>Read selected text</value></data>
 </root>

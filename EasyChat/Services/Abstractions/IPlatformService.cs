@@ -14,7 +14,7 @@ public interface IPlatformService
     Task PasteTextAsync(string text);
     Task SendTextMessageAsync(IntPtr hWnd, string text, int delayMs = 10);
     Task<bool> EnsureFocused(IntPtr hWnd);
-    Task<string?> GetSelectedTextAsync(int? x = null, int? y = null);
+    Task<string?> GetSelectedTextAsync(int? x = null, int? y = null, bool copyOnly = false);
     string? LastSelectedTextCaptureMethod { get; }
     (int X, int Y) GetCursorPosition();
 }

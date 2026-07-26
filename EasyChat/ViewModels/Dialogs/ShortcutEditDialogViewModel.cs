@@ -45,6 +45,7 @@ public class ShortcutEditDialogViewModel : ViewModelBase
     }
 
     public bool IsComplexSwitchAction => SelectedAction.ActionType == "SwitchEngineSourceTarget";
+    public bool IsTextAssistAction => SelectedAction.ActionType is "QuickTranslate" or "QuickCorrect";
 
     private EngineOption? _selectedEngineOption;
     private LanguageDefinition? _selectedSourceLang;
@@ -122,6 +123,7 @@ public class ShortcutEditDialogViewModel : ViewModelBase
             var def = ShortcutActionDefinition.GetByType(existingEntry.ActionType);
             if (def != null) SelectedAction = def;
             KeyCombination = existingEntry.KeyCombination;
+            ReadSelectedText = IsTextAssistAction && (existingEntry.Parameter?.ReadSelectedText ?? true);
 
             if (IsComplexSwitchAction && existingEntry.Parameter != null)
             {
@@ -222,11 +224,13 @@ public class ShortcutEditDialogViewModel : ViewModelBase
         {
             this.RaiseAndSetIfChanged(ref field, value);
             this.RaisePropertyChanged(nameof(IsComplexSwitchAction));
+            this.RaisePropertyChanged(nameof(IsTextAssistAction));
             UpdateAvailableParameterOptions();
 
             if (_existingEntry == null || _existingEntry.ActionType != value.ActionType)
             {
                 Parameter = "";
+                ReadSelectedText = false;
             }
         }
     } = ShortcutActionDefinition.AvailableActions.First();
@@ -250,6 +254,12 @@ public class ShortcutEditDialogViewModel : ViewModelBase
     } = "";
 
     public bool IsRecording
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public bool ReadSelectedText
     {
         get;
         set => this.RaiseAndSetIfChanged(ref field, value);
@@ -289,7 +299,8 @@ public class ShortcutEditDialogViewModel : ViewModelBase
 
         return new ShortcutParameter
         {
-            Value = Parameter
+            Value = Parameter,
+            ReadSelectedText = IsTextAssistAction ? ReadSelectedText : null
         };
     }
 

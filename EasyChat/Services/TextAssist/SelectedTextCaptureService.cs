@@ -19,7 +19,17 @@ public sealed class SelectedTextCaptureService : ISelectedTextCaptureService
         _logger = logger;
     }
 
-    public async Task<SelectedTextSnapshot?> CaptureAsync(CancellationToken cancellationToken = default)
+    public Task<SelectedTextSnapshot?> CaptureAsync(CancellationToken cancellationToken = default)
+    {
+        return CaptureAsync(false, cancellationToken);
+    }
+
+    public Task<SelectedTextSnapshot?> CaptureViaCopyAsync(CancellationToken cancellationToken = default)
+    {
+        return CaptureAsync(true, cancellationToken);
+    }
+
+    private async Task<SelectedTextSnapshot?> CaptureAsync(bool copyOnly, CancellationToken cancellationToken)
     {
         await WaitForModifierKeysReleasedAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -29,7 +39,7 @@ public sealed class SelectedTextCaptureService : ISelectedTextCaptureService
             () => ClipboardHelper.BackupClipboardAsync(_logger));
         try
         {
-            var text = await _platformService.GetSelectedTextAsync(x, y);
+            var text = await _platformService.GetSelectedTextAsync(x, y, copyOnly);
             return string.IsNullOrWhiteSpace(text) ? null : new SelectedTextSnapshot(text, x, y);
         }
         finally
@@ -47,7 +57,8 @@ public sealed class SelectedTextCaptureService : ISelectedTextCaptureService
             var control = (GetAsyncKeyState(0x11) & 0x8000) != 0;
             var alt = (GetAsyncKeyState(0x12) & 0x8000) != 0;
             var shift = (GetAsyncKeyState(0x10) & 0x8000) != 0;
-            if (!control && !alt && !shift) return;
+            var c = (GetAsyncKeyState(0x43) & 0x8000) != 0;
+            if (!control && !alt && !shift && !c) return;
             await Task.Delay(10, cancellationToken);
         }
     }

@@ -13,6 +13,7 @@ public sealed class QuickCorrectHandler : IShortcutActionHandler
 {
     private readonly ISelectedTextCaptureService _captureService;
     private readonly ILogger<QuickCorrectHandler> _logger;
+    private TextAssistWindowView? _window;
     public string ActionType => "QuickCorrect";
     public bool PreventConcurrentExecution => true;
     public bool IsExecuting { get; private set; }
@@ -27,33 +28,61 @@ public sealed class QuickCorrectHandler : IShortcutActionHandler
     {
         if (IsExecuting) return;
         IsExecuting = true;
-        _ = ExecuteAsync();
+        _ = ExecuteAsync(parameter?.ReadSelectedText ?? true);
     }
 
-    private async Task ExecuteAsync()
+    private async Task ExecuteAsync(bool readSelectedText)
     {
-        TextAssistWindowView? window = null;
         try
         {
+            if (await CloseWindowIfOpenAsync()) return;
+
+            var text = string.Empty;
+            if (readSelectedText)
+            {
+                try
+                {
+                    var snapshot = await _captureService.CaptureViaCopyAsync();
+                    text = snapshot?.Text ?? string.Empty;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Could not capture selected text for quick correction; leaving editor blank.");
+                }
+            }
+
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                window = new TextAssistWindowView();
+                var window = new TextAssistWindowView();
+                _window = window;
+                window.Closed += (_, _) =>
+                {
+                    if (ReferenceEquals(_window, window)) _window = null;
+                };
+                _ = window.InitializeAsync(text, true);
                 window.Show();
-                _ = window.InitializeAsync(string.Empty, true);
             });
-
-            // Opening the editor must not depend on clipboard/selection capture.
-            var snapshot = await _captureService.CaptureAsync();
-            if (window != null && !string.IsNullOrEmpty(snapshot?.Text))
-                await Dispatcher.UIThread.InvokeAsync(() => window.InitializeAsync(snapshot.Text, true));
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Could not capture selected text for quick correction; leaving editor blank.");
+            _logger.LogError(ex, "Failed to open the quick correction window.");
         }
         finally
         {
             IsExecuting = false;
         }
+    }
+
+    private async Task<bool> CloseWindowIfOpenAsync()
+    {
+        return await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (_window == null) return false;
+
+            var window = _window;
+            _window = null;
+            window.Close();
+            return true;
+        });
     }
 }

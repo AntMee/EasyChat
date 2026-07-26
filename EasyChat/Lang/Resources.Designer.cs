@@ -2545,5 +2545,6 @@ namespace EasyChat.Lang {
         public static string TextAssistCategoryStyle => ResourceManager.GetString("TextAssistCategoryStyle", resourceCulture);
         public static string Action_QuickTranslate => ResourceManager.GetString("Action_QuickTranslate", resourceCulture);
         public static string Action_QuickCorrect => ResourceManager.GetString("Action_QuickCorrect", resourceCulture);
+        public static string ReadSelectedText => ResourceManager.GetString("ReadSelectedText", resourceCulture);
     }
 }
