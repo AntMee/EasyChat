@@ -8,12 +8,12 @@ using EasyChat.Services.Abstractions;
 using EasyChat.Services.Languages;
 using EasyChat.Services.Ocr;
 using EasyChat.Services.Translation;
-using EasyChat.Services.Translation.Ai;
 using EasyChat.Views.Result;
 using Microsoft.Extensions.Logging;
 using EasyChat.Services.Speech.Tts;
 using SukiUI.Toasts;
 using EasyChat.Models;
+using EasyChat.Models.Translation;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
@@ -237,14 +237,7 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
 
             string? finalTranslation;
 
-            if (translator is OpenAiService openAi)
-            {
-                finalTranslation = await TranslateStreamingAsync(openAi, text, sourceLang, targetLang, resultWindow, isClosedCheck, intent);
-            }
-            else
-            {
-                finalTranslation = await TranslateNonStreamingAsync(translator, text, sourceLang, targetLang, resultWindow, isClosedCheck, intent);
-            }
+            finalTranslation = await TranslateStreamingAsync(translator, text, sourceLang, targetLang, resultWindow, isClosedCheck, intent);
 
             // Read Aloud Logic
             var readMode = _configurationService.Result?.ReadAloudMode ?? ResultReadAloudMode.None;
@@ -356,7 +349,7 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
     }
 
     private async Task<string?> TranslateStreamingAsync(
-        OpenAiService openAi,
+        ITranslation translator,
         string text,
         LanguageDefinition? sourceLang,
         LanguageDefinition? targetLang,
@@ -367,8 +360,11 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
         var isFirstChunk = true;
         var fullTranslation = new System.Text.StringBuilder();
         
-        await foreach (var chunk in openAi.StreamTranslateAsync(text, sourceLang, targetLang))
+        await foreach (var item in translator.StreamTranslateEventsAsync(text, sourceLang, targetLang))
         {
+            if (item is not TranslationDeltaEvent delta || string.IsNullOrEmpty(delta.Text))
+                continue;
+            var chunk = delta.Text;
             if (isClosedCheck()) break;
 
             if (isFirstChunk && !string.IsNullOrEmpty(chunk))
@@ -413,39 +409,6 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
 
         return fullTranslation.ToString();
     }
-
-    private async Task<string?> TranslateNonStreamingAsync(
-        ITranslation translator,
-        string text,
-        LanguageDefinition? sourceLang,
-        LanguageDefinition? targetLang,
-        ResultView resultWindow,
-        Func<bool> isClosedCheck,
-        CaptureIntent intent = CaptureIntent.Translation)
-    {
-        var translation = await translator.TranslateAsync(text, sourceLang, targetLang);
-        
-        if (!isClosedCheck() && (intent == CaptureIntent.CopyTranslated || intent == CaptureIntent.CopyBilingual))
-        {
-             var finalText = intent == CaptureIntent.CopyBilingual 
-                 ? $"{text}\n\n{translation}" 
-                 : translation;
-             Dispatcher.UIThread.Post(() => CopyToClipboard(finalText));
-        }
-        
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (!isClosedCheck())
-            {
-                resultWindow.AppendText(translation);
-                resultWindow.IsVisible = true;
-            }
-        });
-
-        return translation;
-    }
-
-    // TranslateAndCopyAsync removed as we integrated it into main flow
 
     private void CopyToClipboard(string text)
     {
@@ -494,7 +457,7 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
              var translationTasks = regions.Select(async r => 
              {
                  try {
-                     var text = await translator.TranslateAsync(r.Text, sourceLang, targetLang);
+                     var text = await TranslateToTextAsync(translator, r.Text, sourceLang, targetLang);
                      return (Region: r, Text: text);
                  } catch {
                      return (Region: r, r.Text);
@@ -611,6 +574,22 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
             _logger.LogError(ex, "Image Translation failed");
             ShowError("Image Translate Error", ex.Message);
         }
+    }
+
+    private static async Task<string> TranslateToTextAsync(
+        ITranslation translator,
+        string text,
+        LanguageDefinition? sourceLang,
+        LanguageDefinition? targetLang)
+    {
+        var result = new System.Text.StringBuilder();
+        await foreach (var item in translator.StreamTranslateEventsAsync(text, sourceLang, targetLang))
+        {
+            if (item is TranslationDeltaEvent delta)
+                result.Append(delta.Text);
+        }
+
+        return result.ToString();
     }
 
     private async void CopyImageToClipboard(Bitmap bitmap)

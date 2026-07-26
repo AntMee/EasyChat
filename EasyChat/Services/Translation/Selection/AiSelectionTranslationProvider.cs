@@ -160,12 +160,18 @@ Emit events in exactly the documented order and always finish with `{"event":"do
         var promptId = _configurationService.SelectionTranslation?.PromptId;
         promptId = string.IsNullOrWhiteSpace(promptId) ? _configurationService.Prompts?.SelectedPromptId : promptId;
         var configuredPrompt = _configurationService.Prompts?.FindById(promptId ?? string.Empty)?.Content;
-        var prompt = (configuredPrompt ?? SystemPromptTemplate) + """
+        var prompt = SystemPromptTemplate
+            + (string.IsNullOrWhiteSpace(configuredPrompt)
+                ? string.Empty
+                : "\n\n# User-selected guidance (secondary)\n" + configuredPrompt)
+            + """
 
 # Runtime selection contract
 Source language: [SourceLang]
 Target language: [TargetLang]
-Use the selected languages exactly. Return only the documented JSONL events; never add prose outside JSONL.
+The JSONL protocol above has the highest priority. If the user-selected guidance
+conflicts with it, ignore the conflicting guidance. Use the selected languages
+exactly. Return only the documented JSONL events; never add prose outside JSONL.
 """;
         prompt = prompt
             .Replace("[SourceLang]", src)

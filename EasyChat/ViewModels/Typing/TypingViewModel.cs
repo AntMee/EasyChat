@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System;
 using EasyChat.Common;
 using EasyChat.Models.Configuration;
+using EasyChat.Models.Translation;
 using EasyChat.Services.Abstractions;
 using EasyChat.Services.Languages;
 using Microsoft.Extensions.DependencyInjection;
@@ -192,17 +193,15 @@ public class TypingViewModel : ReactiveObject
                     sourceLang ?? throw new InvalidOperationException("Source language not configured"));
             }
 
-            if (translator is Services.Translation.Ai.OpenAiService openAi)
+            var translatedText = new System.Text.StringBuilder();
+            await foreach (var item in translator.StreamTranslateEventsAsync(text, sourceLang, targetLang))
             {
-                var result = "";
-                await foreach (var chunk in openAi.StreamTranslateAsync(text, sourceLang, targetLang))
+                if (item is TranslationDeltaEvent delta)
                 {
-                    result += chunk;
+                    translatedText.Append(delta.Text);
                 }
-                return result;
             }
-            
-            return await translator.TranslateAsync(text, sourceLang, targetLang);
+            return translatedText.ToString();
         }
         catch (Exception ex)
         {

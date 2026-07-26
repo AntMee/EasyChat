@@ -7,6 +7,10 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Text.Json;
+using EasyChat.Models.Translation;
+using EasyChat.Services.Streaming;
 using Microsoft.Extensions.Logging;
 using OpenAI;
 using OpenAI.Chat;
@@ -69,6 +73,57 @@ public class OpenAiService : ITranslation
         return client.GetChatClient(_model);
     }
 
+    private string GetStructuredPrompt(LanguageDefinition source, LanguageDefinition destination)
+    {
+        var prompt = GetPrompt(source, destination);
+        var contract = "\n\n# Runtime JSONL translation contract (highest priority)\n"
+            + "The contract below has higher priority than any earlier instruction. "
+            + "If an earlier instruction conflicts with it, ignore the conflicting part.\n"
+            + "Return raw NDJSON only: one complete JSON object per line, with no Markdown fences "
+            + "or explanatory text. Escape JSON strings correctly.\n"
+            + "Emit exactly this order:\n"
+            + "{\"event\":\"start\",\"mode\":\"translation\",\"source_language\":\"[SourceLang]\",\"target_language\":\"[TargetLang]\"}\n"
+            + "Optionally emit one {\"event\":\"source_detected\",\"language\":\"language id\"} event when source was auto-detected.\n"
+            + "Emit one or more {\"event\":\"translation_delta\",\"text\":\"...\"} events. "
+            + "Concatenating all text values must be the complete translation.\n"
+            + "Finish with exactly {\"event\":\"done\"}.\n";
+        return prompt + contract
+            .Replace("[SourceLang]", source.EnglishName, StringComparison.OrdinalIgnoreCase)
+            .Replace("[TargetLang]", destination.EnglishName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ExtractTranslation(string response, ILogger logger)
+    {
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var decoder = new JsonLinesDeltaStreamDecoder<TranslationStreamEvent>(
+            line => JsonSerializer.Deserialize<TranslationStreamEvent>(line, jsonOptions)
+                    ?? throw new JsonException("Empty translation event."),
+            "translation_delta",
+            "text",
+            (exception, line) => logger.LogDebug(exception, "Ignoring invalid translation event: {Line}", line));
+        var result = new System.Text.StringBuilder();
+        foreach (var item in decoder.Append(response))
+        {
+            if (item is TranslationDeltaEvent delta) result.Append(delta.Text);
+        }
+        foreach (var item in decoder.Complete())
+        {
+            if (item is TranslationDeltaEvent delta) result.Append(delta.Text);
+        }
+
+        return result.Length > 0 ? result.ToString() : StripMarkdownFence(response.Trim());
+    }
+
+    private static string StripMarkdownFence(string value)
+    {
+        var fence = new string((char)96, 3);
+        if (!value.StartsWith(fence, StringComparison.Ordinal)) return value;
+        var firstLineEnd = value.IndexOf('\n');
+        if (firstLineEnd >= 0) value = value[(firstLineEnd + 1)..];
+        if (value.EndsWith(fence, StringComparison.Ordinal)) value = value[..^3];
+        return value.Trim();
+    }
+
     public async Task<string> TranslateAsync(string text, LanguageDefinition? source, LanguageDefinition? destination, bool showOriginal = false,
         CancellationToken cancellationToken = default)
     {
@@ -81,7 +136,7 @@ public class OpenAiService : ITranslation
             var client = CreateClient();
             List<ChatMessage> messages =
             [
-                new SystemChatMessage(GetPrompt(source, destination)),
+                new SystemChatMessage(GetStructuredPrompt(source, destination)),
                 new UserChatMessage(text)
             ];
 
@@ -104,7 +159,9 @@ public class OpenAiService : ITranslation
             ChatCompletion completion = await client.CompleteChatAsync(messages, chatOptions, cancellationToken);
             
             // Combine all content parts if multiple
-            string result = completion.Content.Count > 0 ? completion.Content[0].Text : string.Empty;
+            string result = completion.Content.Count > 0
+                ? ExtractTranslation(string.Concat(completion.Content.Select(x => x.Text)), _logger)
+                : string.Empty;
 
             _logger.LogDebug("Translation completed: ResultLength={Length}", result.Length);
             return result;
@@ -119,35 +176,81 @@ public class OpenAiService : ITranslation
     public async IAsyncEnumerable<string> StreamTranslateAsync(string text, LanguageDefinition? source, LanguageDefinition? destination,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        await foreach (var item in StreamTranslateEventsAsync(text, source, destination, cancellationToken))
+        {
+            if (item is TranslationDeltaEvent delta && !string.IsNullOrEmpty(delta.Text))
+                yield return delta.Text;
+        }
+    }
+
+    public async IAsyncEnumerable<TranslationStreamEvent> StreamTranslateEventsAsync(
+        string text,
+        LanguageDefinition? source,
+        LanguageDefinition? destination,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
-        _logger.LogDebug("Stream translation request: {Source} → {Dest}, Length={Length}", source.DisplayName, destination.DisplayName, text.Length);
-        
+        _logger.LogDebug("Structured stream translation request: {Source} → {Dest}, Length={Length}", source.DisplayName, destination.DisplayName, text.Length);
+
         var client = CreateClient();
         List<ChatMessage> messages =
         [
-            new SystemChatMessage(GetPrompt(source, destination)),
+            new SystemChatMessage(GetStructuredPrompt(source, destination)),
             new UserChatMessage(text)
         ];
-
         var chatOptions = new ChatCompletionOptions();
-#pragma warning disable OPENAI001 // Experimental API
-        if (!_enableThinking)
+ #pragma warning disable OPENAI001
+        chatOptions.ReasoningEffortLevel = _enableThinking
+            ? ChatReasoningEffortLevel.High
+            : ChatReasoningEffortLevel.Low;
+ #pragma warning restore OPENAI001
+
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var decoder = new JsonLinesDeltaStreamDecoder<TranslationStreamEvent>(
+            line => JsonSerializer.Deserialize<TranslationStreamEvent>(line, jsonOptions)
+                    ?? throw new JsonException("Empty translation event."),
+            "translation_delta",
+            "text",
+            (exception, line) => _logger.LogDebug(exception, "Ignoring invalid translation event: {Line}", line));
+        var rawResponse = new System.Text.StringBuilder();
+        var emittedEvent = false;
+        var completed = false;
+
+#pragma warning disable OPENAI001
+        await foreach (var update in client.CompleteChatStreamingAsync(messages, chatOptions, cancellationToken))
         {
-            chatOptions.ReasoningEffortLevel = ChatReasoningEffortLevel.Low;
-        }
-        else
-        {
-            chatOptions.ReasoningEffortLevel = ChatReasoningEffortLevel.High;
+            foreach (var content in update.ContentUpdate)
+            {
+                rawResponse.Append(content.Text);
+                foreach (var item in decoder.Append(content.Text))
+                {
+                    emittedEvent = true;
+                    completed |= item is TranslationCompletedEvent;
+                    yield return item;
+                }
+            }
         }
 #pragma warning restore OPENAI001
 
-        await foreach (var update in client.CompleteChatStreamingAsync(messages, chatOptions, cancellationToken))
+        foreach (var item in decoder.Complete())
         {
-            if (update.ContentUpdate.Count > 0)
+            emittedEvent = true;
+            completed |= item is TranslationCompletedEvent;
+            yield return item;
+        }
+
+        if (!emittedEvent)
+        {
+            var fallback = StripMarkdownFence(rawResponse.ToString().Trim());
+            if (!string.IsNullOrWhiteSpace(fallback))
             {
-                yield return update.ContentUpdate[0].Text;
+                yield return new TranslationStartedEvent("translation", source.EnglishName, destination.EnglishName);
+                yield return new TranslationDeltaEvent(fallback);
             }
         }
+
+        if (!completed)
+            yield return new TranslationCompletedEvent();
     }
 }
