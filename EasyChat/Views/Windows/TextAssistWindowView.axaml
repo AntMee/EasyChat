@@ -41,7 +41,7 @@
                     </Button>
                 </Grid>
             </Border>
-            <ContentControl Grid.Row="1" x:Name="EditorHost" />
+            <ContentControl Grid.Row="1" x:Name="EditorHost" Margin="25" />
         </Grid>
     </suki:GlassCard>
 </suki:SukiWindow>

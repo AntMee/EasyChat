@@ -44,7 +44,7 @@ public partial class TextAssistWindowView : SukiWindow
         if (_editorHost == null) return;
         _editorHost.Content = _correction
             ? new TextAssistCorrectionView { DataContext = _viewModel.Correction }
-            : new TextAssistShortcutTranslationView { DataContext = _viewModel.Translation };
+            : new TextAssistTranslationView { DataContext = _viewModel.Translation };
     }
 
     private void OnHeaderPointerPressed(object? sender, PointerPressedEventArgs e)
