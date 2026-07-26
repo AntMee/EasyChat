@@ -39,6 +39,13 @@ public partial class TextAssistWindowView : SukiWindow
         return _viewModel.InitializeAsync(text, correction);
     }
 
+    public void PrepareForInputCapture(bool correction)
+    {
+        _correction = correction;
+        _viewModel.PrepareForInputCapture(correction);
+        ApplyEditor();
+    }
+
     private void ApplyEditor()
     {
         if (_editorHost == null) return;
@@ -51,6 +58,18 @@ public partial class TextAssistWindowView : SukiWindow
     {
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             BeginMoveDrag(e);
+    }
+
+    private void OnResizePointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Control { Tag: string edgeName }
+            || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            || !Enum.TryParse<WindowEdge>(edgeName, out var edge))
+        {
+            return;
+        }
+
+        BeginResizeDrag(edge, e);
     }
 
     private void OnCloseClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

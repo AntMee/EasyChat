@@ -24,15 +24,18 @@ namespace EasyChat.ViewModels.Pages;
 
 public sealed class TextAssistViewModel : Page
 {
+    private bool _isCapturingInput;
+
     public TextAssistViewModel(
         IConfigurationService configurationService,
         TextAssistProfileResolver profileResolver,
         ITextAssistService textAssistService,
+        ITextAssistDictionaryService dictionaryService,
         ITtsService ttsService,
         IAudioPlayer audioPlayer,
         ILogger<TextAssistViewModel>? logger = null) : base(Resources.TextAssist, MaterialIconKind.Translate, 5)
     {
-        Translation = new TextAssistTranslationViewModel(configurationService, profileResolver, textAssistService,
+        Translation = new TextAssistTranslationViewModel(configurationService, profileResolver, textAssistService, dictionaryService,
             ttsService, audioPlayer, logger);
         Correction = new TextAssistCorrectionViewModel(configurationService, profileResolver, textAssistService, logger);
         SelectTranslationCommand = ReactiveCommand.Create(() => { SelectedTabIndex = 0; });
@@ -65,9 +68,22 @@ public sealed class TextAssistViewModel : Page
     public string WindowTitle => IsCorrectionMode ? Resources.TextAssistCorrect : Resources.TextAssistTranslate;
     public MaterialIconKind WindowIcon => IsCorrectionMode ? MaterialIconKind.Spellcheck : MaterialIconKind.Translate;
 
+    public bool IsCapturingInput
+    {
+        get => _isCapturingInput;
+        private set => this.RaiseAndSetIfChanged(ref _isCapturingInput, value);
+    }
+
+    public void PrepareForInputCapture(bool correction)
+    {
+        SelectedTabIndex = correction ? 1 : 0;
+        IsCapturingInput = true;
+    }
+
     public async Task InitializeAsync(string text, bool correction)
     {
         SelectedTabIndex = correction ? 1 : 0;
+        IsCapturingInput = false;
         if (correction)
         {
             Correction.InputText = text;
@@ -87,11 +103,12 @@ public sealed class TextAssistTranslationPageViewModel : Page
         IConfigurationService configurationService,
         TextAssistProfileResolver profileResolver,
         ITextAssistService textAssistService,
+        ITextAssistDictionaryService dictionaryService,
         ITtsService ttsService,
         IAudioPlayer audioPlayer,
         ILogger<TextAssistTranslationPageViewModel>? logger = null) : base(Resources.TextAssistTranslate, MaterialIconKind.Translate, 5)
     {
-        Translation = new TextAssistTranslationViewModel(configurationService, profileResolver, textAssistService,
+        Translation = new TextAssistTranslationViewModel(configurationService, profileResolver, textAssistService, dictionaryService,
             ttsService, audioPlayer, logger);
     }
 
@@ -326,26 +343,33 @@ public abstract class TextAssistEditorViewModel : ViewModelBase
 
 public sealed class TextAssistTranslationViewModel : TextAssistEditorViewModel
 {
+    private readonly ITextAssistDictionaryService _dictionaryService;
     private readonly ITtsService _ttsService;
     private readonly IAudioPlayer _audioPlayer;
     private string _inputText = string.Empty;
     private string _translationResult = string.Empty;
     private bool _isSourceSpeaking;
     private bool _isResultSpeaking;
+    private bool _detailedExplanation;
 
     public TextAssistTranslationViewModel(
         IConfigurationService configurationService,
         TextAssistProfileResolver profileResolver,
         ITextAssistService textAssistService,
+        ITextAssistDictionaryService dictionaryService,
         ITtsService ttsService,
         IAudioPlayer audioPlayer,
         ILogger? logger) : base(configurationService, profileResolver, textAssistService, false, logger)
     {
+        _dictionaryService = dictionaryService;
         _ttsService = ttsService;
         _audioPlayer = audioPlayer;
+        _detailedExplanation = configurationService.TextAssist?.DetailedExplanation ?? false;
+        Annotations = [];
         SpeakSourceCommand = ReactiveCommand.CreateFromTask(() => SpeakAsync(InputText, SelectedSourceLanguage.Id, true));
         SpeakResultCommand = ReactiveCommand.CreateFromTask(() => SpeakAsync(TranslationResult, SelectedTargetLanguage.Id, false));
         SwapContentCommand = ReactiveCommand.Create(SwapContent);
+        LookupAnnotationCommand = ReactiveCommand.CreateFromTask<string>(LookupAnnotationAsync);
     }
 
     public string InputText
@@ -372,15 +396,34 @@ public sealed class TextAssistTranslationViewModel : TextAssistEditorViewModel
         private set => this.RaiseAndSetIfChanged(ref _isResultSpeaking, value);
     }
 
+    public bool DetailedExplanation
+    {
+        get => _detailedExplanation;
+        set
+        {
+            if (_detailedExplanation == value) return;
+            this.RaiseAndSetIfChanged(ref _detailedExplanation, value);
+            this.RaisePropertyChanged(nameof(ShowAnnotations));
+            if (ConfigurationService.TextAssist != null)
+                ConfigurationService.TextAssist.DetailedExplanation = value;
+        }
+    }
+
+    public ObservableCollection<TextAssistTranslationAnnotationEvent> Annotations { get; }
+    public bool ShowAnnotations => DetailedExplanation && Annotations.Count > 0;
+
     public ReactiveCommand<Unit, Unit> SpeakSourceCommand { get; }
     public ReactiveCommand<Unit, Unit> SpeakResultCommand { get; }
     public ReactiveCommand<Unit, Unit> SwapContentCommand { get; }
+    public ReactiveCommand<string, Unit> LookupAnnotationCommand { get; }
 
     private void SwapContent()
     {
         var sourceText = InputText;
         InputText = TranslationResult;
         TranslationResult = sourceText;
+        Annotations.Clear();
+        this.RaisePropertyChanged(nameof(ShowAnnotations));
         var source = SelectedSourceLanguage;
         SelectedSourceLanguage = SelectedTargetLanguage;
         SelectedTargetLanguage = source;
@@ -390,12 +433,32 @@ public sealed class TextAssistTranslationViewModel : TextAssistEditorViewModel
     {
         if (string.IsNullOrWhiteSpace(InputText)) return;
         TranslationResult = string.Empty;
+        Annotations.Clear();
+        this.RaisePropertyChanged(nameof(ShowAnnotations));
         var profile = ResolveProfile();
         await foreach (var item in TextAssistService.StreamTranslateAsync(InputText, profile, cancellationToken))
         {
-            if (item is TextAssistTranslationDeltaEvent delta)
-                await Dispatcher.UIThread.InvokeAsync(() => TranslationResult += delta.Text);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                switch (item)
+                {
+                    case TextAssistTranslationDeltaEvent delta:
+                        TranslationResult += delta.Text;
+                        break;
+                    case TextAssistTranslationAnnotationEvent annotation:
+                        Annotations.Add(annotation);
+                        this.RaisePropertyChanged(nameof(ShowAnnotations));
+                        break;
+                }
+            });
         }
+    }
+
+    private Task LookupAnnotationAsync(string term)
+    {
+        return string.IsNullOrWhiteSpace(term)
+            ? Task.CompletedTask
+            : _dictionaryService.OpenAsync(term, SelectedSourceLanguage.Id, SelectedTargetLanguage.Id);
     }
 
     private async Task SpeakAsync(string text, string languageId, bool source)

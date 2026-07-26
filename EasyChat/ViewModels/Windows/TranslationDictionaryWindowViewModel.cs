@@ -19,6 +19,7 @@ namespace EasyChat.ViewModels.Windows;
 public class TranslationDictionaryWindowViewModel : ViewModelBase
 {
     private readonly ISelectionTranslationProvider _translationProvider;
+    private readonly AiSelectionTranslationProvider _dictionaryProvider;
     private readonly IConfigurationService _configurationService;
     private readonly ITtsService _ttsService;
     private readonly IAudioPlayer _audioPlayer;
@@ -148,12 +149,14 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
 
     public TranslationDictionaryWindowViewModel(
         ISelectionTranslationProvider translationProvider,
+        AiSelectionTranslationProvider dictionaryProvider,
         IConfigurationService configurationService,
         ITtsService ttsService,
         IAudioPlayer audioPlayer,
         ITokenizerFactory tokenizerFactory)
     {
         _translationProvider = translationProvider;
+        _dictionaryProvider = dictionaryProvider;
         _configurationService = configurationService;
         _ttsService = ttsService;
         _audioPlayer = audioPlayer;
@@ -239,10 +242,45 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
         }
     }
 
+    public async Task InitializeDictionaryAsync(string text, string sourceLanguageId, string targetLanguageId)
+    {
+        _initializationTcs = new TaskCompletionSource<bool>();
+        _currentSourceLang = string.IsNullOrWhiteSpace(sourceLanguageId) ? LanguageKeys.AutoId : sourceLanguageId;
+        _currentTargetLang = string.IsNullOrWhiteSpace(targetLanguageId) ? "zh-Hans" : targetLanguageId;
+        SourceText = text;
+        _isShowingLookupResult = true;
+        IsWordMode = true;
+        _canNavigateBack = false;
+        TranslationResult = string.Empty;
+        DictionaryResult = new DictionaryResult { Word = text };
+        BeginLoading();
+
+        try
+        {
+            await PerformTranslationAsync(text, isLookup: true, forceDictionary: true);
+        }
+        catch (Exception ex)
+        {
+            TranslationResult = ex.Message.Contains("No active AI model", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("No AI model", StringComparison.OrdinalIgnoreCase)
+                ? Resources.TextAssistNoAiModel
+                : Resources.SelectionTranslate_Failed + ex.Message;
+        }
+        finally
+        {
+            EndLoading();
+            _initializationTcs.TrySetResult(true);
+        }
+    }
+
     private string _currentSourceLang = "en";
     private string _currentTargetLang = "zh-CN";
 
-    private async Task PerformTranslationAsync(string text, bool canNavigateBack = false, bool isLookup = false)
+    private async Task PerformTranslationAsync(
+        string text,
+        bool canNavigateBack = false,
+        bool isLookup = false,
+        bool forceDictionary = false)
     {
         var sourceDefinition = LanguageService.GetLanguage(_currentSourceLang);
         var targetDefinition = LanguageService.GetLanguage(_currentTargetLang);
@@ -251,7 +289,10 @@ public class TranslationDictionaryWindowViewModel : ViewModelBase
 
         if (sourceLang == LanguageKeys.Auto.EnglishName) _currentSourceLang = "en"; // Default fallback for TTS if auto?
 
-        await foreach (var translationEvent in _translationProvider.StreamTranslateAsync(text, sourceLang, targetLang))
+        var stream = forceDictionary
+            ? _dictionaryProvider.StreamLookupWordAsync(text, sourceLang, targetLang)
+            : _translationProvider.StreamTranslateAsync(text, sourceLang, targetLang);
+        await foreach (var translationEvent in stream)
         {
             await Dispatcher.UIThread.InvokeAsync(() => ApplyStreamingEvent(translationEvent, canNavigateBack, isLookup));
         }

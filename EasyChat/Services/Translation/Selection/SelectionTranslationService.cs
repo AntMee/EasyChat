@@ -340,7 +340,15 @@ public class SelectionTranslationService : IDisposable
             // Capture current generation
             var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
-            // Do not show an icon until a non-empty text selection is confirmed.
+            // Give immediate feedback while clipboard/UI Automation capture runs.
+            // The no-activate icon preserves focus in the source application.
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+                ShowIcon(x2, y2);
+                _iconWindow?.ShowLoading();
+            }, DispatcherPriority.Input);
+
             Task.Run(async () =>
             {
                 try
@@ -354,7 +362,13 @@ public class SelectionTranslationService : IDisposable
                     // The translation window may have opened while this capture was
                     // waiting; do not continue after the user interacted with it.
                     if (await Dispatcher.UIThread.InvokeAsync(() => _currentTranslateWindow?.IsVisible == true))
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration)) HideIcon();
+                        }, DispatcherPriority.Input);
                         return;
+                    }
                     
                     // Avalonia's Win32 clipboard implementation is UI-thread
                     // affine. The snapshot itself must therefore be created on
@@ -380,6 +394,10 @@ public class SelectionTranslationService : IDisposable
                     if (await Dispatcher.UIThread.InvokeAsync(() => _currentTranslateWindow?.IsVisible == true))
                     {
                         await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration)) HideIcon();
+                        }, DispatcherPriority.Input);
                         return;
                     }
 
@@ -389,12 +407,10 @@ public class SelectionTranslationService : IDisposable
                             "Selected text captured using {Method}: {Length} chars",
                             _platformService.LastSelectedTextCaptureMethod ?? "Unknown",
                             text.Length);
-                        // Show icon only if text is found
                         await Dispatcher.UIThread.InvokeAsync(() => 
                         {
                             if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
                             {
-                                ShowIcon(x2, y2);
                                 _iconWindow?.HideLoading();
                             }
                         });
@@ -436,7 +452,13 @@ public class SelectionTranslationService : IDisposable
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
-        // Do not show an icon until a non-empty text selection is confirmed.
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+            ShowIcon(e.X, e.Y);
+            _iconWindow?.ShowLoading();
+        }, DispatcherPriority.Input);
+
         Task.Run(async () =>
         {
             try
@@ -473,12 +495,10 @@ public class SelectionTranslationService : IDisposable
                         "Selected text captured using {Method}: {Length} chars",
                         _platformService.LastSelectedTextCaptureMethod ?? "Unknown",
                         text.Length);
-                    // Show icon only if text is found
                     await Dispatcher.UIThread.InvokeAsync(() => 
                     {
                         if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration))
                         {
-                            ShowIcon(e.X, e.Y);
                             _iconWindow?.HideLoading();
                         }
                     });
@@ -718,13 +738,50 @@ public class SelectionTranslationService : IDisposable
 
     public async Task TranslateCurrentSelectionAsync()
     {
+        TranslationDictionaryWindowView? dialog = null;
         try
         {
+            var (x, y) = _platformService.GetCursorPosition();
+
+            // The dictionary window is no-activate, so it can render a loading
+            // shell now without redirecting the synthetic Ctrl+C from the app
+            // that owns the selection.
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                try { _currentTranslateWindow?.Close(); } catch { /* Ignore */ }
+
+                dialog = _prewarmedTranslateWindow ?? new TranslationDictionaryWindowView();
+                _prewarmedTranslateWindow = null;
+                if (dialog.DataContext is TranslationDictionaryWindowViewModel vm)
+                {
+                    vm.ShowCloseButton = true;
+                }
+
+                _currentTranslateWindow = dialog;
+                dialog.Closed += (_, _) =>
+                {
+                    if (_currentTranslateWindow == dialog) _currentTranslateWindow = null;
+                    Dispatcher.UIThread.Post(PrewarmSelectionWindows, DispatcherPriority.Background);
+                };
+                dialog.ShowInputCaptureLoading();
+                ShowDialogAtPosition(dialog, x, y);
+            });
+
+            var openedDialog = dialog
+                               ?? throw new InvalidOperationException("Translation window was not created.");
+
             var snapshot = await _selectedTextCaptureService.CaptureAsync();
-            if (snapshot == null) return;
+            if (snapshot == null)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (_currentTranslateWindow != openedDialog) return;
+                    openedDialog.HideInputCaptureLoading();
+                    openedDialog.Close();
+                });
+                return;
+            }
             var text = snapshot.Text;
-            var x = snapshot.X;
-            var y = snapshot.Y;
 
             _logger.LogInformation(
                 "Selected text captured using {Method}: {Length} chars",
@@ -733,34 +790,20 @@ public class SelectionTranslationService : IDisposable
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-             // Close existing (Singleton)
-            try { _currentTranslateWindow?.Close(); } catch { /* Ignore */ }
-
-            var dialog = new TranslationDictionaryWindowView();
-            // Enable close button for shortcut-triggered window
-            if (dialog.DataContext is TranslationDictionaryWindowViewModel vm)
-            {
-                vm.ShowCloseButton = true;
-            }
-            _currentTranslateWindow = dialog;
-            
-            dialog.Closed += (_, _) => 
-            {
-                if (_currentTranslateWindow == dialog) _currentTranslateWindow = null;
-            };
-
-            // Start initialization (loading state)
-            // We just fire off the task, the VM handles the async translation and updates UI
-            _ = dialog.InitializeAsync(text);
-            
-            ShowDialogAtPosition(dialog, x, y);
-            
-            _logger.LogInformation("Opened translation window via shortcut");
+                if (_currentTranslateWindow != openedDialog || !openedDialog.IsVisible) return;
+                openedDialog.SetSourceText(text);
+                _ = openedDialog.InitializeAsync(text);
+                _logger.LogInformation("Opened translation window via shortcut");
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to translate current selection from shortcut");
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (dialog == null || _currentTranslateWindow != dialog) return;
+                dialog.HideInputCaptureLoading();
+            });
         }
     }
 

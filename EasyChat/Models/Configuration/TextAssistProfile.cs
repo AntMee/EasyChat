@@ -7,4 +7,5 @@ public sealed record TextAssistProfile(
     string? AiModelId,
     string? MachineProvider,
     bool UsesGlobalConfiguration = false,
-    string? PromptId = null);
+    string? PromptId = null,
+    bool DetailedExplanation = false);

@@ -13,6 +13,12 @@ public class BoolToGridLengthConverter : IValueConverter
     {
         if (value is bool b && b)
         {
+            if (double.TryParse(parameter?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out var pixelSize) && pixelSize > 0)
+            {
+                return new GridLength(pixelSize);
+            }
+
             return new GridLength(1, GridUnitType.Star);
         }
         return new GridLength(0);

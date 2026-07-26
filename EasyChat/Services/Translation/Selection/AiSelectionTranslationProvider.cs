@@ -148,13 +148,33 @@ Emit events in exactly the documented order and always finish with `{"event":"do
         return accumulator.Build();
     }
 
-    public async IAsyncEnumerable<SelectionTranslationStreamEvent> StreamTranslateAsync(
+    public IAsyncEnumerable<SelectionTranslationStreamEvent> StreamTranslateAsync(
         string text,
         string sourceLang,
         string targetLang,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Streaming selection translation: {Source} -> {Target}, Length={Length}", sourceLang, targetLang, text.Length);
+        return StreamTranslateCoreAsync(text, sourceLang, targetLang, false, cancellationToken);
+    }
+
+    public IAsyncEnumerable<SelectionTranslationStreamEvent> StreamLookupWordAsync(
+        string text,
+        string sourceLang,
+        string targetLang,
+        CancellationToken cancellationToken = default)
+    {
+        return StreamTranslateCoreAsync(text, sourceLang, targetLang, true, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<SelectionTranslationStreamEvent> StreamTranslateCoreAsync(
+        string text,
+        string sourceLang,
+        string targetLang,
+        bool forceWordMode,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Streaming selection translation: {Source} -> {Target}, Length={Length}, ForceWordMode={ForceWordMode}",
+            sourceLang, targetLang, text.Length, forceWordMode);
 
         var (client, src, tgt) = CreateClientAndConfig(sourceLang, targetLang);
         var promptId = _configurationService.SelectionTranslation?.PromptId;
@@ -173,6 +193,16 @@ The JSONL protocol above has the highest priority. If the user-selected guidance
 conflicts with it, ignore the conflicting guidance. Use the selected languages
 exactly. Return only the documented JSONL events; never add prose outside JSONL.
 """;
+        if (forceWordMode)
+        {
+            prompt += """
+
+# Forced dictionary lookup
+Ignore the automatic mode-selection rules for this request and use word mode.
+Treat the complete input as one dictionary term or collocation, even when it contains spaces.
+Emit the documented word-mode events only; never emit sentence-mode translation_delta or keyword events.
+""";
+        }
         prompt = prompt
             .Replace("[SourceLang]", src)
             .Replace("[TargetLang]", tgt);

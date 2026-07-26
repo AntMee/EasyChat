@@ -80,6 +80,19 @@ public sealed class TextAssistStreamTests
     }
 
     [TestMethod]
+    public void Decoder_ParsesDetailedTranslationAnnotation()
+    {
+        var decoder = new JsonLinesDeltaStreamDecoder<TextAssistStreamEvent>(Deserialize, "translation_delta", "text");
+        var events = decoder.Append("{\"event\":\"annotation\",\"term\":\"break the ice\",\"category\":\"collocation\",\"meaning\":\"打破僵局\",\"note\":\"固定搭配\",\"relatedTerms\":[\"icebreaker\"]}\n").ToArray();
+
+        var annotation = events.OfType<TextAssistTranslationAnnotationEvent>().Single();
+        Assert.AreEqual("break the ice", annotation.Term);
+        Assert.AreEqual("打破僵局", annotation.Meaning);
+        Assert.AreEqual("icebreaker", annotation.RelatedTerms!.Single());
+        Assert.IsTrue(annotation.HasRelatedTerms);
+    }
+
+    [TestMethod]
     public void CorrectionAccumulator_AssociatesTranslationsByVariant()
     {
         var accumulator = new TextAssistCorrectionAccumulator(4);

@@ -33,7 +33,9 @@ public sealed class TextAssistProfileResolver
                 general.UsingAiModelId,
                 general.UsingMachineTransId ?? general.UsingMachineTrans,
                 true,
-                ResolvePromptId(promptId));
+                ResolvePromptId(promptId),
+                !correction && config.DetailedExplanation &&
+                provider.Equals(TextAssistConstants.AiProvider, StringComparison.OrdinalIgnoreCase));
         }
 
         var models = _configurationService.AiModel?.ConfiguredModels;
@@ -53,7 +55,9 @@ public sealed class TextAssistProfileResolver
             aiModelId,
             config.MachineProvider,
             false,
-            ResolvePromptId(correction ? config.CorrectionPromptId : config.TranslationPromptId));
+            ResolvePromptId(correction ? config.CorrectionPromptId : config.TranslationPromptId),
+            !correction && config.DetailedExplanation &&
+            config.Provider.Equals(TextAssistConstants.AiProvider, StringComparison.OrdinalIgnoreCase));
     }
 
     private string? ResolvePromptId(string? promptId)

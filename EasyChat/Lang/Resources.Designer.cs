@@ -2543,6 +2543,14 @@ namespace EasyChat.Lang {
         public static string TextAssistCategorySpelling => ResourceManager.GetString("TextAssistCategorySpelling", resourceCulture);
         public static string TextAssistCategoryWordChoice => ResourceManager.GetString("TextAssistCategoryWordChoice", resourceCulture);
         public static string TextAssistCategoryStyle => ResourceManager.GetString("TextAssistCategoryStyle", resourceCulture);
+        public static string TextAssistDetailedExplanation => ResourceManager.GetString("TextAssistDetailedExplanation", resourceCulture);
+        public static string TextAssistDetailedExplanationTip => ResourceManager.GetString("TextAssistDetailedExplanationTip", resourceCulture);
+        public static string TextAssistAnnotations => ResourceManager.GetString("TextAssistAnnotations", resourceCulture);
+        public static string TextAssistAnnotationImportantWord => ResourceManager.GetString("TextAssistAnnotationImportantWord", resourceCulture);
+        public static string TextAssistAnnotationUncommonWord => ResourceManager.GetString("TextAssistAnnotationUncommonWord", resourceCulture);
+        public static string TextAssistAnnotationCollocation => ResourceManager.GetString("TextAssistAnnotationCollocation", resourceCulture);
+        public static string TextAssistAnnotationUsageTip => ResourceManager.GetString("TextAssistAnnotationUsageTip", resourceCulture);
+        public static string TextAssistRelatedTerms => ResourceManager.GetString("TextAssistRelatedTerms", resourceCulture);
         public static string Action_QuickTranslate => ResourceManager.GetString("Action_QuickTranslate", resourceCulture);
         public static string Action_QuickCorrect => ResourceManager.GetString("Action_QuickCorrect", resourceCulture);
         public static string ReadSelectedText => ResourceManager.GetString("ReadSelectedText", resourceCulture);

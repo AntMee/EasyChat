@@ -56,6 +56,13 @@ public sealed class TextAssistConfig : ReactiveObject
     }
 
     [JsonProperty]
+    public bool DetailedExplanation
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    [JsonProperty]
     public string MachineProvider
     {
         get;

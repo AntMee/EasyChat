@@ -37,30 +37,43 @@ public sealed class QuickTranslateHandler : IShortcutActionHandler
         {
             if (await CloseWindowIfOpenAsync()) return;
 
-            var text = string.Empty;
-            if (readSelectedText)
+            var window = await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                try
+                var createdWindow = new TextAssistWindowView
                 {
-                    var snapshot = await _captureService.CaptureViaCopyAsync();
-                    text = snapshot?.Text ?? string.Empty;
-                }
-                catch (Exception ex)
+                    // Keep the source application focused until its selection has
+                    // been copied, while still painting this shell immediately.
+                    ShowActivated = !readSelectedText
+                };
+                _window = createdWindow;
+                createdWindow.Closed += (_, _) =>
                 {
-                    _logger.LogDebug(ex, "Could not capture selected text for quick translation; leaving editor blank.");
-                }
+                    if (ReferenceEquals(_window, createdWindow)) _window = null;
+                };
+                if (readSelectedText) createdWindow.PrepareForInputCapture(false);
+                else _ = createdWindow.InitializeAsync(string.Empty, false);
+                createdWindow.Show();
+                return createdWindow;
+            });
+
+            if (!readSelectedText) return;
+
+            var text = string.Empty;
+            try
+            {
+                var snapshot = await _captureService.CaptureViaCopyAsync();
+                text = snapshot?.Text ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not capture selected text for quick translation; leaving editor blank.");
             }
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                var window = new TextAssistWindowView();
-                _window = window;
-                window.Closed += (_, _) =>
-                {
-                    if (ReferenceEquals(_window, window)) _window = null;
-                };
+                if (!ReferenceEquals(_window, window) || !window.IsVisible) return;
                 _ = window.InitializeAsync(text, false);
-                window.Show();
+                window.Activate();
             });
         }
         catch (Exception ex)

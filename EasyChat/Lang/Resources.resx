@@ -869,6 +869,14 @@
   <data name="TextAssistCategorySpelling" xml:space="preserve"><value>Spelling</value></data>
   <data name="TextAssistCategoryWordChoice" xml:space="preserve"><value>Word choice</value></data>
   <data name="TextAssistCategoryStyle" xml:space="preserve"><value>Style</value></data>
+  <data name="TextAssistDetailedExplanation" xml:space="preserve"><value>Detailed notes</value></data>
+  <data name="TextAssistDetailedExplanationTip" xml:space="preserve"><value>Show meanings, collocations, key words, uncommon words, and usage tips. Available with AI translation.</value></data>
+  <data name="TextAssistAnnotations" xml:space="preserve"><value>Detailed notes</value></data>
+  <data name="TextAssistAnnotationImportantWord" xml:space="preserve"><value>Key word</value></data>
+  <data name="TextAssistAnnotationUncommonWord" xml:space="preserve"><value>Uncommon word</value></data>
+  <data name="TextAssistAnnotationCollocation" xml:space="preserve"><value>Collocation</value></data>
+  <data name="TextAssistAnnotationUsageTip" xml:space="preserve"><value>Usage tip</value></data>
+  <data name="TextAssistRelatedTerms" xml:space="preserve"><value>Related</value></data>
   <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate</value></data>
   <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct</value></data>
   <data name="ReadSelectedText" xml:space="preserve"><value>Read selected text</value></data>

@@ -64,6 +64,27 @@ public sealed class TextAssistProfileResolverTests
         Assert.AreEqual("first", config.TextAssist!.AiModelId);
     }
 
+    [TestMethod]
+    public void Resolve_DetailedExplanation_IsEnabledOnlyForAiTranslation()
+    {
+        var config = new FakeConfiguration
+        {
+            General = new General(),
+            TextAssist = new TextAssistConfig
+            {
+                Provider = "AiModel",
+                DetailedExplanation = true
+            }
+        };
+        var resolver = new TextAssistProfileResolver(config);
+
+        Assert.IsTrue(resolver.Resolve().DetailedExplanation);
+
+        config.TextAssist.Provider = "MachineTrans";
+        Assert.IsFalse(resolver.Resolve().DetailedExplanation);
+        Assert.IsFalse(resolver.Resolve(correction: true).DetailedExplanation);
+    }
+
     private sealed class FakeConfiguration : IConfigurationService
     {
         public General? General { get; init; }

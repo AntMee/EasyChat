@@ -69,6 +69,21 @@ public partial class TranslationDictionaryWindowView : Window
     {
         _viewModel.SourceText = text;
     }
+
+    public void ShowInputCaptureLoading()
+    {
+        _viewModel.IsLoading = true;
+    }
+
+    public void HideInputCaptureLoading()
+    {
+        _viewModel.IsLoading = false;
+    }
+
+    public void SetCloseButtonVisible(bool visible)
+    {
+        _viewModel.ShowCloseButton = visible;
+    }
     
     /// <summary>
     /// Initializes the window with source text and waits for data processing to complete.
@@ -81,6 +96,11 @@ public partial class TranslationDictionaryWindowView : Window
     public Task InitializeAsync(string text, string sourceLanguageId, string targetLanguageId)
     {
         return _viewModel.InitializeAsync(text, sourceLanguageId, targetLanguageId);
+    }
+
+    public Task InitializeDictionaryAsync(string text, string sourceLanguageId, string targetLanguageId)
+    {
+        return _viewModel.InitializeDictionaryAsync(text, sourceLanguageId, targetLanguageId);
     }
     
     /// <summary>

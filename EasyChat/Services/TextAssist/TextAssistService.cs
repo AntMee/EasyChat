@@ -51,6 +51,13 @@ public sealed class TextAssistService : ITextAssistService
             source.Id, source.EnglishName, target.Id, target.EnglishName, profile.Provider);
         yield return new TextAssistStartedEvent("translation", source.EnglishName, target.EnglishName);
 
+        if (profile.DetailedExplanation)
+        {
+            await foreach (var item in StreamDetailedTranslationAsync(text, profile, source, target, cancellationToken))
+                yield return item;
+            yield break;
+        }
+
         var service = CreateTranslationService(profile);
         await foreach (var chunk in service.StreamTranslateAsync(text, source, target, cancellationToken))
         {
@@ -59,6 +66,70 @@ public sealed class TextAssistService : ITextAssistService
         }
 
         yield return new TextAssistCompletedEvent();
+    }
+
+    private async IAsyncEnumerable<TextAssistStreamEvent> StreamDetailedTranslationAsync(
+        string text,
+        TextAssistProfile profile,
+        LanguageDefinition source,
+        LanguageDefinition target,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var client = CreateTranslationClient(profile);
+        var prompt = BuildDetailedTranslationPrompt(profile)
+            .Replace("[SourceLang]", source.EnglishName)
+            .Replace("[TargetLang]", target.EnglishName);
+        List<ChatMessage> messages =
+        [
+            new SystemChatMessage(prompt),
+            new UserChatMessage(text)
+        ];
+        var options = new ChatCompletionOptions
+        {
+            Temperature = 0.2f,
+            MaxOutputTokenCount = 5000,
+#pragma warning disable OPENAI001
+            ReasoningEffortLevel = ChatReasoningEffortLevel.Low
+#pragma warning restore OPENAI001
+        };
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var decoder = new JsonLinesDeltaStreamDecoder<TextAssistStreamEvent>(
+            line => JsonSerializer.Deserialize<TextAssistStreamEvent>(line, jsonOptions)
+                    ?? throw new JsonException("Empty detailed translation event."),
+            "translation_delta",
+            "text",
+            (exception, line) => _logger.LogDebug(exception, "Ignoring invalid detailed translation event: {Line}", line));
+        var rawResponse = new StringBuilder();
+        var emittedEvent = false;
+
+#pragma warning disable OPENAI001
+        await foreach (var update in client.CompleteChatStreamingAsync(messages, options, cancellationToken))
+        {
+            foreach (var content in update.ContentUpdate)
+            {
+                rawResponse.Append(content.Text);
+                foreach (var item in decoder.Append(content.Text))
+                {
+                    emittedEvent = true;
+                    yield return item;
+                }
+            }
+        }
+#pragma warning restore OPENAI001
+
+        foreach (var item in decoder.Complete())
+        {
+            emittedEvent = true;
+            yield return item;
+        }
+
+        if (!emittedEvent)
+        {
+            var fallback = StripMarkdownFence(rawResponse.ToString().Trim());
+            if (!string.IsNullOrWhiteSpace(fallback))
+                yield return new TextAssistTranslationDeltaEvent(fallback);
+            yield return new TextAssistCompletedEvent();
+        }
     }
 
     public async IAsyncEnumerable<TextAssistStreamEvent> StreamCorrectAsync(
@@ -210,6 +281,32 @@ After each corrected version, emit one or more {"event":"correction_translation_
         return (client, LanguageService.GetLanguage(profile.SourceLanguageId));
     }
 
+    private ChatClient CreateTranslationClient(TextAssistProfile profile)
+    {
+        var model = !string.IsNullOrWhiteSpace(profile.AiModelId)
+            ? _configurationService.AiModel?.ConfiguredModels.FirstOrDefault(x => x.Id == profile.AiModelId)
+            : null;
+        if (profile.UsesGlobalConfiguration)
+        {
+            model ??= _configurationService.AiModel?.ConfiguredModels.FirstOrDefault(x =>
+                x.Id == _configurationService.General?.UsingAiModelId ||
+                x.Name == _configurationService.General?.UsingAiModel);
+        }
+        if (model == null) throw new InvalidOperationException("No AI model is configured for translation.");
+
+        var options = new OpenAIClientOptions { Endpoint = new Uri(model.ApiUrl) };
+        if (model.UseProxy && !string.IsNullOrWhiteSpace(_configurationService.Proxy?.ProxyUrl))
+        {
+            options.Transport = new HttpClientPipelineTransport(new HttpClient(new HttpClientHandler
+            {
+                Proxy = new WebProxy(_configurationService.Proxy.ProxyUrl),
+                UseProxy = true
+            }));
+        }
+
+        return new OpenAIClient(new ApiKeyCredential(model.ApiKey), options).GetChatClient(model.Model);
+    }
+
     private string ResolveUiLanguage()
     {
         var configured = _configurationService.General?.Language;
@@ -255,6 +352,43 @@ Source language: [SourceLang]
 Target language: [TargetLang]
 Translate from the source language to the target language exactly.
 Only output the target-language translation. Do not output explanations, labels, analysis, or the source text.
+""";
+    }
+
+    private string BuildDetailedTranslationPrompt(TextAssistProfile profile)
+    {
+        var configured = profile.PromptId is { Length: > 0 }
+            ? _configurationService.Prompts?.FindById(profile.PromptId)?.Content
+            : null;
+        var guidance = configured ?? _configurationService.Prompts?.ActivePromptContent ?? Prompts.DefaultPromptContent;
+        return """
+# Role
+You are a professional translator and language-learning annotator.
+
+# User-selected translation guidance (secondary)
+""" + guidance + """
+
+# Runtime detailed translation contract
+Source language: [SourceLang]
+Target language: [TargetLang]
+Translate the input naturally, then explain the source-language vocabulary and expressions that materially help a reader understand or learn it.
+All meanings, notes, labels, and explanations MUST be in [TargetLang].
+
+Return raw NDJSON only, one complete JSON object per line, with no Markdown fences or prose.
+Emit exactly this order:
+1. `{"event":"source_detected","language":"en"}` when the source language is auto-detected.
+2. One or more `{"event":"translation_delta","text":"..."}` objects. Concatenating their text MUST produce only the complete translation.
+3. Zero to twelve annotation objects:
+   `{"event":"annotation","term":"source word or phrase","category":"important_word|uncommon_word|collocation|usage_tip","meaning":"concise meaning in [TargetLang]","note":"context, grammar, nuance, or collocation guidance in [TargetLang]","relatedTerms":["source-language related word or phrase"]}`
+4. `{"event":"done"}`
+
+Annotation rules:
+- Cover important words, uncommon words, fixed collocations, contextual meanings, register, and easy-to-miss usage when relevant.
+- Use `term` for the exact source-language word or phrase being explained. Use its dictionary lemma only when that makes lookup clearer.
+- Every value in `relatedTerms` MUST also be a source-language word or phrase suitable for dictionary lookup.
+- Do not repeat annotations or annotate trivial function words.
+- `meaning` is required. Omit `note` or use an empty string only when no extra explanation is useful. Use an empty array when there are no related terms.
+- The protocol above has priority over the user-selected guidance. Never emit text outside the documented NDJSON events.
 """;
     }
 

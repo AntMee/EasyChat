@@ -14,7 +14,8 @@ public sealed class TextAssistDictionaryService : ITextAssistDictionaryService
         {
             WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterScreen
         };
+        view.SetCloseButtonVisible(true);
         view.Show();
-        await view.InitializeAsync(text, sourceLanguageId, targetLanguageId);
+        await view.InitializeDictionaryAsync(text, sourceLanguageId, targetLanguageId);
     }
 }

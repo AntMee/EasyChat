@@ -11,6 +11,7 @@ namespace EasyChat.Models.Translation.TextAssist;
 [JsonDerivedType(typeof(TextAssistStartedEvent), "start")]
 [JsonDerivedType(typeof(TextAssistSourceDetectedEvent), "source_detected")]
 [JsonDerivedType(typeof(TextAssistTranslationDeltaEvent), "translation_delta")]
+[JsonDerivedType(typeof(TextAssistTranslationAnnotationEvent), "annotation")]
 [JsonDerivedType(typeof(TextAssistIssueEvent), "issue")]
 [JsonDerivedType(typeof(TextAssistCorrectedDeltaEvent), "corrected_delta")]
 [JsonDerivedType(typeof(TextAssistCorrectionTranslationDeltaEvent), "correction_translation_delta")]
@@ -45,6 +46,26 @@ public sealed record TextAssistStartedEvent : TextAssistStreamEvent
 public sealed record TextAssistSourceDetectedEvent(string Language) : TextAssistStreamEvent;
 
 public sealed record TextAssistTranslationDeltaEvent(string Text) : TextAssistStreamEvent;
+
+public sealed record TextAssistTranslationAnnotationEvent(
+    string Term,
+    string Category,
+    string Meaning,
+    string? Note = null,
+    string[]? RelatedTerms = null) : TextAssistStreamEvent
+{
+    public string DisplayCategory => (Category ?? string.Empty).ToLowerInvariant() switch
+    {
+        "important_word" => Resources.TextAssistAnnotationImportantWord,
+        "uncommon_word" => Resources.TextAssistAnnotationUncommonWord,
+        "collocation" => Resources.TextAssistAnnotationCollocation,
+        "usage_tip" => Resources.TextAssistAnnotationUsageTip,
+        _ => Category ?? string.Empty
+    };
+
+    public bool HasNote => !string.IsNullOrWhiteSpace(Note);
+    public bool HasRelatedTerms => RelatedTerms is { Length: > 0 };
+}
 
 public sealed record TextAssistIssueEvent(
     int Start,
