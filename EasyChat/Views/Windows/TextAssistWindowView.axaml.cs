@@ -8,10 +8,11 @@ using EasyChat.Services.TextAssist;
 using EasyChat.ViewModels.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using EasyChat.Views.Pages;
+using SukiUI.Controls;
 
 namespace EasyChat.Views.Windows;
 
-public partial class TextAssistWindowView : Window
+public partial class TextAssistWindowView : SukiWindow
 {
     private readonly TextAssistViewModel _viewModel;
     private ContentControl? _editorHost;
