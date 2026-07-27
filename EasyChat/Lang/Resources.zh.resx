@@ -870,4 +870,12 @@
     <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译</value></data>
     <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正</value></data>
     <data name="ReadSelectedText" xml:space="preserve"><value>读取选中文本</value></data>
+    <data name="OcrModels" xml:space="preserve"><value>OCR 模型</value></data>
+    <data name="OcrUseProxy" xml:space="preserve"><value>下载模型时使用代理</value></data>
+    <data name="DownloadOcrModels" xml:space="preserve"><value>下载 OCR 模型</value></data>
+    <data name="OcrModelRequiredTitle" xml:space="preserve"><value>需要 OCR 模型</value></data>
+    <data name="OcrModelRequiredMessage" xml:space="preserve"><value>请先在设置中下载 OCR 模型包，再使用截图 OCR。</value></data>
+    <data name="OcrModelDownloadTitle" xml:space="preserve"><value>OCR 模型</value></data>
+    <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR 模型下载完成。</value></data>
+    <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR 模型下载失败</value></data>
 </root>

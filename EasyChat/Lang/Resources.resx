@@ -880,4 +880,12 @@
   <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate</value></data>
   <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct</value></data>
   <data name="ReadSelectedText" xml:space="preserve"><value>Read selected text</value></data>
+  <data name="OcrModels" xml:space="preserve"><value>OCR models</value></data>
+  <data name="OcrUseProxy" xml:space="preserve"><value>Use proxy for model download</value></data>
+  <data name="DownloadOcrModels" xml:space="preserve"><value>Download OCR models</value></data>
+  <data name="OcrModelRequiredTitle" xml:space="preserve"><value>OCR model required</value></data>
+  <data name="OcrModelRequiredMessage" xml:space="preserve"><value>Please download the OCR model package in Settings before using screenshot OCR.</value></data>
+  <data name="OcrModelDownloadTitle" xml:space="preserve"><value>OCR models</value></data>
+  <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR models downloaded successfully.</value></data>
+  <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR model download failed</value></data>
 </root>

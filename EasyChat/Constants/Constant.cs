@@ -18,6 +18,7 @@ public static class Constant
     public const string SpeechRecognitionConf = "SpeechRecognition";
     public const string SelectionTranslationConf = "SelectionTranslation";
     public const string TtsConf = "Tts";
+    public const string OcrConf = "Ocr";
     
 #if DEBUG
     public static readonly string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Configuration");

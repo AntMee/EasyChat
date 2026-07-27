@@ -2554,5 +2554,13 @@ namespace EasyChat.Lang {
         public static string Action_QuickTranslate => ResourceManager.GetString("Action_QuickTranslate", resourceCulture);
         public static string Action_QuickCorrect => ResourceManager.GetString("Action_QuickCorrect", resourceCulture);
         public static string ReadSelectedText => ResourceManager.GetString("ReadSelectedText", resourceCulture);
+        public static string OcrModels => ResourceManager.GetString("OcrModels", resourceCulture);
+        public static string OcrUseProxy => ResourceManager.GetString("OcrUseProxy", resourceCulture);
+        public static string DownloadOcrModels => ResourceManager.GetString("DownloadOcrModels", resourceCulture);
+        public static string OcrModelRequiredTitle => ResourceManager.GetString("OcrModelRequiredTitle", resourceCulture);
+        public static string OcrModelRequiredMessage => ResourceManager.GetString("OcrModelRequiredMessage", resourceCulture);
+        public static string OcrModelDownloadTitle => ResourceManager.GetString("OcrModelDownloadTitle", resourceCulture);
+        public static string OcrModelDownloadCompleted => ResourceManager.GetString("OcrModelDownloadCompleted", resourceCulture);
+        public static string OcrModelDownloadFailed => ResourceManager.GetString("OcrModelDownloadFailed", resourceCulture);
     }
 }

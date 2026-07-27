@@ -54,6 +54,17 @@
                          Text="{Binding ProxyConf.ProxyUrl}"
                          Watermark="{x:Static lang:Resources.ProxyAddrQuestion}" />
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="16" Margin="0 5 0 5">
+                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
+                           Text="{x:Static lang:Resources.OcrModels}" />
+                <CheckBox Content="{x:Static lang:Resources.OcrUseProxy}"
+                          IsChecked="{Binding OcrConf.UseProxy}" />
+                <Button Content="{x:Static lang:Resources.DownloadOcrModels}"
+                        Command="{Binding DownloadOcrModelsCommand}" />
+                <ProgressBar Width="90" Height="4" IsIndeterminate="True"
+                             IsVisible="{Binding IsDownloadingOcrModels}"
+                             VerticalAlignment="Center" />
+            </StackPanel>
         </StackPanel>
     </suki:GlassCard>
 </UserControl>

@@ -14,6 +14,7 @@ using EasyChat.Services.Speech.Tts;
 using SukiUI.Toasts;
 using EasyChat.Models;
 using EasyChat.Models.Translation;
+using EasyChat.Lang;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
@@ -132,7 +133,16 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
             catch (Exception ex)
             {
                 _logger.LogError(ex, "OCR processing failed.");
-                Dispatcher.UIThread.Post(() => ShowError("OCR Error", ex.Message));
+                if (ex is OcrModelNotDownloadedException)
+                {
+                    Dispatcher.UIThread.Post(() => ShowError(
+                        Resources.OcrModelRequiredTitle,
+                        Resources.OcrModelRequiredMessage));
+                }
+                else
+                {
+                    Dispatcher.UIThread.Post(() => ShowError("OCR Error", ex.Message));
+                }
             }
         });
     }

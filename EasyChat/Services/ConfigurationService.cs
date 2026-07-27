@@ -33,6 +33,7 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
         SelectionTranslation = ConfigUtil.LoadConfig<SelectionTranslationConfig>(Constant.SelectionTranslationConf);
         Tts = ConfigUtil.LoadConfig<TtsConfig>(Constant.TtsConf);
         TextAssist = ConfigUtil.LoadConfig<TextAssistConfig>(TextAssistConstants.ConfigName);
+        Ocr = ConfigUtil.LoadConfig<OcrConfig>(Constant.OcrConf);
         // Text Assist settings are always independent. Keep the legacy field
         // disabled when loading older configuration files.
         TextAssist.FollowGlobal = false;
@@ -46,6 +47,7 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
         Global.Config.SelectionTranslationConf = SelectionTranslation;
         Global.Config.TtsConf = Tts;
         Global.Config.TextAssistConf = TextAssist;
+        Global.Config.OcrConf = Ocr;
         
         // Ensure initial IDs are persisted (especially just after migration)
         ConfigUtil.SaveConfig(Constant.MachineTransConf, MachineTrans);
@@ -69,6 +71,7 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
     public SpeechRecognitionConfig SpeechRecognition { get; }
     public TtsConfig Tts { get; }
     public TextAssistConfig TextAssist { get; }
+    public OcrConfig Ocr { get; }
 
     private void SetupAutoSave()
     {
@@ -341,6 +344,14 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
             {
                 _logger.LogDebug("Auto-saving TextAssist configuration");
                 ConfigUtil.SaveConfig(TextAssistConstants.ConfigName, TextAssist);
+            });
+
+        Ocr.Changed
+            .Throttle(TimeSpan.FromMilliseconds(500))
+            .Subscribe(_ =>
+            {
+                _logger.LogDebug("Auto-saving OCR configuration");
+                ConfigUtil.SaveConfig(Constant.OcrConf, Ocr);
             });
     }
 }

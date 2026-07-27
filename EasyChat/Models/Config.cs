@@ -15,4 +15,5 @@ public class Config
     public SelectionTranslationConfig SelectionTranslationConf { get; set; } = new();
     public TtsConfig TtsConf { get; set; } = new();
     public TextAssistConfig TextAssistConf { get; set; } = new();
+    public OcrConfig OcrConf { get; set; } = new();
 }

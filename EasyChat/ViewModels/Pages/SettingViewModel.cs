@@ -21,6 +21,7 @@ using EasyChat.Services.Abstractions;
 using EasyChat.Services.Speech.Tts;
 using EasyChat.Services.Translation.Ai;
 using EasyChat.Services.Translation.Machine;
+using EasyChat.Services.Ocr;
 using EasyChat.ViewModels.AiModels;
 using EasyChat.ViewModels.Dialogs;
 using Material.Icons;
@@ -43,8 +44,9 @@ public class SettingViewModel : Page
     private readonly ISukiToastManager _toastManager;
     private readonly ITtsService _ttsService;
     private readonly IAudioPlayer _audioPlayer;
+    private readonly IOcrService _ocrService;
 
-    public SettingViewModel(ISukiDialogManager dialogManager, ISukiToastManager toastManager, IConfigurationService configurationService, ITtsService ttsService, IAudioPlayer audioPlayer) : base(
+    public SettingViewModel(ISukiDialogManager dialogManager, ISukiToastManager toastManager, IConfigurationService configurationService, ITtsService ttsService, IAudioPlayer audioPlayer, IOcrService ocrService) : base(
         Resources.Settings, MaterialIconKind.Settings, 1)
     {
         _dialogManager = dialogManager;
@@ -52,6 +54,7 @@ public class SettingViewModel : Page
         _configurationService = configurationService;
         _ttsService = ttsService;
         _audioPlayer = audioPlayer;
+        _ocrService = ocrService;
         // Initialize ConfiguredModels wrapper
         RefreshConfiguredModels();
 
@@ -156,6 +159,7 @@ public class SettingViewModel : Page
 
         ManageFixedAreasCommand = ReactiveCommand.Create(ManageFixedAreas);
         ConfigureTtsCommand = ReactiveCommand.Create(ConfigureTts);
+        DownloadOcrModelsCommand = ReactiveCommand.CreateFromTask(DownloadOcrModels);
         
         // Initialize TTS Provider list
         if (_ttsService is TtsManager manager)
@@ -380,6 +384,8 @@ public class SettingViewModel : Page
 
     public Proxy? ProxyConf => _configurationService.Proxy;
 
+    public OcrConfig? OcrConf => _configurationService.Ocr;
+
     public ResultConfig? ResultConf => _configurationService.Result;
     
     public InputConfig? InputConf => _configurationService.Input;
@@ -409,6 +415,14 @@ public class SettingViewModel : Page
 
     public ReactiveCommand<Unit, Unit> ManageFixedAreasCommand { get; }
     public ReactiveCommand<Unit, Unit> ConfigureTtsCommand { get; }
+    public ReactiveCommand<Unit, Unit> DownloadOcrModelsCommand { get; }
+
+    private bool _isDownloadingOcrModels;
+    public bool IsDownloadingOcrModels
+    {
+        get => _isDownloadingOcrModels;
+        private set => this.RaiseAndSetIfChanged(ref _isDownloadingOcrModels, value);
+    }
 
     private void ConfigureTts()
     {
@@ -424,6 +438,38 @@ public class SettingViewModel : Page
                 TtsConf,
                 _audioPlayer))
             .TryShow();
+    }
+
+    private async Task DownloadOcrModels()
+    {
+        if (IsDownloadingOcrModels || _ocrService is not PaddleOcrService paddleOcrService || OcrConf == null)
+            return;
+
+        IsDownloadingOcrModels = true;
+        try
+        {
+            await paddleOcrService.DownloadModelsAsync(
+                ProxyConf?.ProxyUrl,
+                OcrConf.UseProxy);
+
+            _toastManager.CreateSimpleInfoToast()
+                .OfType(NotificationType.Success)
+                .WithTitle(Resources.OcrModelDownloadTitle)
+                .WithContent(Resources.OcrModelDownloadCompleted)
+                .Queue();
+        }
+        catch (Exception ex)
+        {
+            _toastManager.CreateSimpleInfoToast()
+                .OfType(NotificationType.Error)
+                .WithTitle(Resources.OcrModelDownloadFailed)
+                .WithContent(ex.Message)
+                .Queue();
+        }
+        finally
+        {
+            IsDownloadingOcrModels = false;
+        }
     }
 
     private void ManageFixedAreas()

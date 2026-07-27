@@ -2,13 +2,23 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+#if !BUNDLED_OCR_MODELS
+using System.Net;
+using System.Net.Http;
+#endif
 using EasyChat.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Sdcb.PaddleInference;
 using Sdcb.PaddleOCR;
 using Sdcb.PaddleOCR.Models;
+#if BUNDLED_OCR_MODELS
 using Sdcb.PaddleOCR.Models.Local;
+#else
+using Sdcb.PaddleOCR.Models.Online;
+#endif
 using Bitmap = Avalonia.Media.Imaging.Bitmap;
 
 namespace EasyChat.Services.Ocr;
@@ -34,6 +44,7 @@ public class PaddleOcrService : IOcrService, IDisposable
         OcrLanguage.Kannada
     ];
 
+#if BUNDLED_OCR_MODELS
     private static readonly Dictionary<OcrLanguage, Func<FullOcrModel>> ModelFactories = new()
     {
         [OcrLanguage.ChineseSimplified] = () => LocalFullModels.ChineseV5,
@@ -47,11 +58,68 @@ public class PaddleOcrService : IOcrService, IDisposable
         [OcrLanguage.Telugu] = () => LocalFullModels.TeluguV4,
         [OcrLanguage.Kannada] = () => LocalFullModels.KannadaV4
     };
+#else
+    private static readonly Dictionary<OcrLanguage, Func<OnlineFullModels>> ModelFactories = new()
+    {
+        [OcrLanguage.ChineseSimplified] = () => OnlineFullModels.ChineseV5,
+        [OcrLanguage.ChineseTraditional] = () => OnlineFullModels.TraditionalChineseV3,
+        [OcrLanguage.English] = () => OnlineFullModels.EnglishV4,
+        [OcrLanguage.Japanese] = () => OnlineFullModels.JapanV4,
+        [OcrLanguage.Korean] = () => OnlineFullModels.KoreanV4,
+        [OcrLanguage.Arabic] = () => OnlineFullModels.ArabicV4,
+        [OcrLanguage.Devanagari] = () => OnlineFullModels.DevanagariV4,
+        [OcrLanguage.Tamil] = () => OnlineFullModels.TamilV4,
+        [OcrLanguage.Telugu] = () => OnlineFullModels.TeluguV4,
+        [OcrLanguage.Kannada] = () => OnlineFullModels.KannadaV4
+    };
+#endif
 
     public PaddleOcrService(ILogger<PaddleOcrService> logger)
     {
         _logger = logger;
+#if !BUNDLED_OCR_MODELS
+        Settings.GlobalModelDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EasyChat",
+            "PaddleOcrModels");
+#endif
     }
+
+#if !BUNDLED_OCR_MODELS
+    public async Task DownloadModelsAsync(string? proxyUrl, bool useProxy, CancellationToken cancellationToken = default)
+    {
+        IWebProxy? previousProxy = HttpClient.DefaultProxy;
+        // The downloader uses HttpClient.DefaultProxy internally. Use an empty
+        // WebProxy when the setting is disabled so the download is direct,
+        // rather than silently falling back to the machine's system proxy.
+        HttpClient.DefaultProxy = useProxy && !string.IsNullOrWhiteSpace(proxyUrl)
+            ? new WebProxy(proxyUrl)
+            : new WebProxy();
+
+        try
+        {
+            foreach (var language in SupportedLanguages)
+            {
+                _logger.LogInformation("Downloading OCR model for {Language}...", language.DisplayName);
+                await GetModel(language).DownloadAsync(cancellationToken);
+            }
+        }
+        finally
+        {
+            HttpClient.DefaultProxy = previousProxy;
+        }
+    }
+
+    public bool IsModelDownloaded(OcrLanguage language)
+    {
+        var model = GetModel(language);
+        return File.Exists(Path.Combine(model.DetModel.RootDirectory, "inference.pdiparams"))
+            && File.Exists(Path.Combine(model.RecModel.RootDirectory, "inference.pdiparams"));
+    }
+#else
+    public Task DownloadModelsAsync(string? proxyUrl, bool useProxy, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+#endif
 
     public void Dispose()
     {
@@ -135,10 +203,17 @@ public class PaddleOcrService : IOcrService, IDisposable
 
     private PaddleOcrAll GetOrCreateEngine(OcrLanguage language)
     {
-        return _engines.GetOrAdd(language, lang => new Lazy<PaddleOcrAll>(() =>
+        var lazyEngine = _engines.GetOrAdd(language, lang => new Lazy<PaddleOcrAll>(() =>
         {
             _logger.LogInformation("Initializing PaddleOCR engine for {Language}...", lang.DisplayName);
+#if BUNDLED_OCR_MODELS
             var model = GetModel(lang);
+#else
+            if (!IsModelDownloaded(lang))
+                throw new OcrModelNotDownloadedException(lang);
+
+            var model = GetModel(lang).DownloadAsync().GetAwaiter().GetResult();
+#endif
             var engine = new PaddleOcrAll(model, PaddleDevice.Onnx())
             {
                 AllowRotateDetection = false,
@@ -146,11 +221,28 @@ public class PaddleOcrService : IOcrService, IDisposable
             };
             _logger.LogInformation("PaddleOCR engine for {Language} initialized successfully", lang.DisplayName);
             return engine;
-        })).Value;
+        }));
+
+        try
+        {
+            return lazyEngine.Value;
+        }
+        catch
+        {
+            // A missing model can be downloaded from Settings later. Do not
+            // keep a faulted Lazy instance that would make the error permanent.
+            _engines.TryRemove(language, out _);
+            throw;
+        }
     }
 
+#if BUNDLED_OCR_MODELS
     private static FullOcrModel GetModel(OcrLanguage language)
         => ModelFactories.TryGetValue(language, out var factory) ? factory() : LocalFullModels.ChineseV4;
+#else
+    private static OnlineFullModels GetModel(OcrLanguage language)
+        => ModelFactories.TryGetValue(language, out var factory) ? factory() : OnlineFullModels.ChineseV4;
+#endif
 
     private static Mat BitmapToMat(Bitmap bitmap)
     {
