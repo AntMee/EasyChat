@@ -121,3 +121,7 @@ https://github.com/user-attachments/assets/6ab9b6a3-446d-403a-b37a-d49b39c0f9d3
 ## ⭐ 支持项目
 
 如果 `EasyChat` 觉得对你有帮助，欢迎点击项目右上角的 **Star** ⭐ 支持作者！您的支持是我持续开发和维护的最大动力。
+
+
+## 🔗 相关链接
+- [Linux.do](https://linux.do)

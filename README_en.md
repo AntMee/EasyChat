@@ -121,3 +121,6 @@ If you are interested in this project, welcome to submit PRs (Pull Requests) to 
 ## ⭐ Support Project
 
 If `EasyChat` is helpful to you, welcome to click the **Star** ⭐ in the upper right corner of the project to support the author! Your support is my biggest motivation for continuous development and maintenance.
+
+## 🔗 Related Link
+- [Linux.do](https://linux.do)
