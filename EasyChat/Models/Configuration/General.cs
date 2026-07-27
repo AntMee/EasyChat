@@ -1,5 +1,7 @@
+using System;
 using EasyChat.Constants;
 using EasyChat.Services.Languages;
+using System.Globalization;
 using Newtonsoft.Json;
 using ReactiveUI;
 
@@ -28,8 +30,23 @@ public class General : ReactiveObject
     [JsonProperty]
     public string? DisplayLanguage
     {
-        get => _displayLanguage ?? "English";
-        set => this.RaiseAndSetIfChanged(ref _displayLanguage, value ?? "English");
+        get => _displayLanguage ?? GetSystemDisplayLanguage();
+        set => this.RaiseAndSetIfChanged(
+            ref _displayLanguage,
+            string.IsNullOrWhiteSpace(value) ? null : value);
+    }
+
+    // Keep an unset preference dynamic so a new installation follows the OS language.
+    public bool ShouldSerializeDisplayLanguage() => _displayLanguage != null;
+
+    private static string GetSystemDisplayLanguage()
+    {
+        return string.Equals(
+            CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+            "zh",
+            StringComparison.OrdinalIgnoreCase)
+            ? "Simplified Chinese"
+            : "English";
     }
 
     // Retain the old serialized field so existing installations keep their UI language.
