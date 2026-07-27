@@ -73,6 +73,22 @@ public class OpenAiService : ITranslation
         return client.GetChatClient(_model);
     }
 
+    private ChatCompletionOptions CreateChatOptions()
+    {
+        var chatOptions = new ChatCompletionOptions();
+#pragma warning disable OPENAI001, SCME0001
+        chatOptions.Patch.Set(
+            "$.thinking"u8,
+            BinaryData.FromString(_enableThinking ? "{\"type\":\"enabled\"}" : "{\"type\":\"disabled\"}"));
+
+        if (_enableThinking)
+        {
+            chatOptions.ReasoningEffortLevel = ChatReasoningEffortLevel.High;
+        }
+#pragma warning restore OPENAI001, SCME0001
+        return chatOptions;
+    }
+
     private string GetStructuredPrompt(LanguageDefinition source, LanguageDefinition destination)
     {
         var prompt = GetPrompt(source, destination);
@@ -140,21 +156,7 @@ public class OpenAiService : ITranslation
                 new UserChatMessage(text)
             ];
 
-            var chatOptions = new ChatCompletionOptions();
-            
-            // Set reasoning effort based on configuration
-            // Low = Disable/Minimize thinking (as close as possible via API)
-            // High = Enable full thinking (as per user snippet)
-#pragma warning disable OPENAI001 // Experimental API
-            if (!_enableThinking)
-            {
-                 chatOptions.ReasoningEffortLevel = ChatReasoningEffortLevel.Low;
-            }
-            else
-            {
-                 chatOptions.ReasoningEffortLevel = ChatReasoningEffortLevel.High;
-            }
-#pragma warning restore OPENAI001
+            var chatOptions = CreateChatOptions();
 
             ChatCompletion completion = await client.CompleteChatAsync(messages, chatOptions, cancellationToken);
             
@@ -199,12 +201,7 @@ public class OpenAiService : ITranslation
             new SystemChatMessage(GetStructuredPrompt(source, destination)),
             new UserChatMessage(text)
         ];
-        var chatOptions = new ChatCompletionOptions();
- #pragma warning disable OPENAI001
-        chatOptions.ReasoningEffortLevel = _enableThinking
-            ? ChatReasoningEffortLevel.High
-            : ChatReasoningEffortLevel.Low;
- #pragma warning restore OPENAI001
+        var chatOptions = CreateChatOptions();
 
         var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var decoder = new JsonLinesDeltaStreamDecoder<TranslationStreamEvent>(
@@ -213,20 +210,15 @@ public class OpenAiService : ITranslation
             "translation_delta",
             "text",
             (exception, line) => _logger.LogDebug(exception, "Ignoring invalid translation event: {Line}", line));
-        var rawResponse = new System.Text.StringBuilder();
-        var emittedEvent = false;
-        var completed = false;
-
 #pragma warning disable OPENAI001
         await foreach (var update in client.CompleteChatStreamingAsync(messages, chatOptions, cancellationToken))
         {
             foreach (var content in update.ContentUpdate)
             {
-                rawResponse.Append(content.Text);
                 foreach (var item in decoder.Append(content.Text))
                 {
-                    emittedEvent = true;
-                    completed |= item is TranslationCompletedEvent;
+                    if (item is TranslationCompletedEvent)
+                        continue;
                     yield return item;
                 }
             }
@@ -235,22 +227,11 @@ public class OpenAiService : ITranslation
 
         foreach (var item in decoder.Complete())
         {
-            emittedEvent = true;
-            completed |= item is TranslationCompletedEvent;
+            if (item is TranslationCompletedEvent)
+                continue;
             yield return item;
         }
 
-        if (!emittedEvent)
-        {
-            var fallback = StripMarkdownFence(rawResponse.ToString().Trim());
-            if (!string.IsNullOrWhiteSpace(fallback))
-            {
-                yield return new TranslationStartedEvent("translation", source.EnglishName, destination.EnglishName);
-                yield return new TranslationDeltaEvent(fallback);
-            }
-        }
-
-        if (!completed)
-            yield return new TranslationCompletedEvent();
+        yield return new TranslationCompletedEvent();
     }
 }

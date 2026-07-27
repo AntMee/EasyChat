@@ -11,6 +11,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using EasyChat.Models.Configuration;
+using EasyChat.Models.Translation;
 using EasyChat.Services.Translation;
 using Material.Icons;
 using ReactiveUI;
@@ -37,7 +38,12 @@ public class SpeechRecognitionViewModel : Page
     private readonly Dictionary<SubtitleItem, string> _latestTextForItem = new();
     private readonly Dictionary<SubtitleItem, Task> _activeItemLoops = new();
     private readonly Dictionary<SubtitleItem, CancellationTokenSource> _activeItemCts = new();
-    private readonly HashSet<SubtitleItem> _isProcessingStableForItem = new();
+    private readonly Dictionary<SubtitleItem, DateTime> _lastTextUpdateTimes = new();
+    private readonly HashSet<SubtitleItem> _finalTranslationRequests = new();
+    private static readonly char[] SentenceTerminators = ['.', '?', '!', ';', '。', '？', '！', '；'];
+    private static readonly TimeSpan PartialResultQuietPeriod = TimeSpan.FromMilliseconds(700);
+    private const string RealtimeTranslationPrompt =
+        "Translate [SourceLang] to [TargetLang]. Return only the natural translation. Do not explain, analyze, or reason.";
     
     // Debounce tracking for smooth streaming display updates
     private readonly Dictionary<SubtitleItem, DateTime> _lastDisplayUpdateTime = new();
@@ -158,7 +164,8 @@ public class SpeechRecognitionViewModel : Page
             _currentSubtitleItem = null;
             _sentencesInCurrentItem = 0;
             _committedTextForCurrentItem.Clear();
-            _isProcessingStableForItem.Clear();
+            _finalTranslationRequests.Clear();
+            _lastTextUpdateTimes.Clear();
             _activeItemLoops.Clear(); 
             _temporarySubtitleItems.Clear();
         });
@@ -812,7 +819,8 @@ public class SpeechRecognitionViewModel : Page
                 }
                 _activeItemCts.Clear();
                 _activeItemLoops.Clear();
-                _isProcessingStableForItem.Clear();
+                _finalTranslationRequests.Clear();
+                _lastTextUpdateTimes.Clear();
                 
                 _latestTextForItem.Clear();
             }
@@ -885,7 +893,7 @@ public class SpeechRecognitionViewModel : Page
                      // Trigger Translation
                      if (IsTranslationEnabled)
                      {
-                         EnqueueTranslation(_currentSubtitleItem, _currentSubtitleItem.OriginalText);
+                          EnqueueTranslation(_currentSubtitleItem, _currentSubtitleItem.OriginalText, isFinal: true);
                      }
 
                      // Check Limit
@@ -931,7 +939,7 @@ public class SpeechRecognitionViewModel : Page
                      
                      if (IsTranslationEnabled)
                      {
-                         EnqueueTranslation(_currentSubtitleItem, _currentSubtitleItem.OriginalText);
+                          EnqueueTranslation(_currentSubtitleItem, _currentSubtitleItem.OriginalText);
                      }
                      
                      // Ensure current item is in floating subtitles
@@ -949,11 +957,13 @@ public class SpeechRecognitionViewModel : Page
                          
                          // Handle extra paragraphs (if any) as temporary items
                          // First, remove previous temporary items from FloatingSubtitles
-                         foreach (var temp in _temporarySubtitleItems)
+                         foreach (var temp in _temporarySubtitleItems.Where(temp => !temp.IsTranslating))
                          {
                              FloatingSubtitles.Remove(temp);
                          }
-                         _temporarySubtitleItems.Clear();
+                         _temporarySubtitleItems = _temporarySubtitleItems
+                             .Where(temp => temp.IsTranslating)
+                             .ToList();
     
                          // Create new temporary items for subsequent paragraphs
                          for (int i = 1; i < paragraphs.Count; i++)
@@ -968,7 +978,7 @@ public class SpeechRecognitionViewModel : Page
                              
                              if (IsTranslationEnabled)
                              {
-                                 EnqueueTranslation(tempItem, tempItem.OriginalText);
+                                  EnqueueTranslation(tempItem, tempItem.OriginalText);
                              }
     
                              _temporarySubtitleItems.Add(tempItem);
@@ -982,7 +992,7 @@ public class SpeechRecognitionViewModel : Page
     
                      if (IsTranslationEnabled)
                      {
-                         EnqueueTranslation(_currentSubtitleItem, _currentSubtitleItem.OriginalText);
+                          EnqueueTranslation(_currentSubtitleItem, _currentSubtitleItem.OriginalText);
                      }
                      
                      // Update Floating Subtitles (Ensure current exists)
@@ -993,14 +1003,16 @@ public class SpeechRecognitionViewModel : Page
              case 2: // Error
                  break;
                 
-             case 3: // Stopped
-                 IsRecording = false;
-                 // Force finish current item if exists
-                 if (_currentSubtitleItem != null)
-                 {
-                     UpdateFloatingSubtitles(_currentSubtitleItem);
-                     _currentSubtitleItem = null;
-                 }
+              case 3: // Stopped
+                  // Force finish current item if exists
+                  if (_currentSubtitleItem != null)
+                  {
+                      if (IsTranslationEnabled)
+                          EnqueueTranslation(_currentSubtitleItem, _currentSubtitleItem.OriginalText, isFinal: true);
+                      UpdateFloatingSubtitles(_currentSubtitleItem);
+                      _currentSubtitleItem = null;
+                  }
+                  IsRecording = false;
                  _sentencesInCurrentItem = 0;
                  _committedTextForCurrentItem.Clear();
                  break;
@@ -1031,27 +1043,13 @@ public class SpeechRecognitionViewModel : Page
             return;
         }
 
-        // Logic split based on DisplayMode
         if (FloatingDisplayMode == FloatingDisplayMode.Segmented) // Segmented
         {
-            // Maintain strict history limit (rolling) but buffer translating items
-            // Loop until we satisfy the condition or run out of items
             while (FloatingSubtitles.Count > MaxFloatingHistory)
             {
-                var oldestItem = FloatingSubtitles[0];
-
-                // If oldest item is still translating, do not remove it yet (Buffer)
-                // UNLESS we are way over limit (Safe Buffer = MaxFloatingHistory + 1 or 2)
-                int safeBufferLimit = MaxFloatingHistory + 1;
-                
-                if (oldestItem.IsTranslating && FloatingSubtitles.Count <= safeBufferLimit)
-                {
-                    // Allow buffering, stop removing for now
-                    break;
-                }
-                
-                // Otherwise (finished translating OR way over limit), remove it
-                FloatingSubtitles.RemoveAt(0);
+                var completedItem = FloatingSubtitles.FirstOrDefault(CanRemoveFromHistory);
+                if (completedItem is null) break;
+                FloatingSubtitles.Remove(completedItem);
             }
         }
         else // Auto Scroll
@@ -1059,35 +1057,28 @@ public class SpeechRecognitionViewModel : Page
             // Don't remove for History Limit (or set very high limit to avoid memory leak)
             // User wants "Auto scroll to bottom", implying history retention.
             // Safety limit: 100
-             while (FloatingSubtitles.Count > 100)
-             {
-                 FloatingSubtitles.RemoveAt(0);
-             }
+              while (FloatingSubtitles.Count > 100)
+              {
+                  var completedItem = FloatingSubtitles.FirstOrDefault(CanRemoveFromHistory);
+                  if (completedItem is null) break;
+                  FloatingSubtitles.Remove(completedItem);
+              }
         }
     }
 
-    private void EnqueueTranslation(SubtitleItem item, string text)
+    private void EnqueueTranslation(SubtitleItem item, string text, bool isFinal = false)
     {
-        // 1. Set Translating = True IMMEDIATELY to show placeholder
         Dispatcher.UIThread.Post(() => item.IsTranslating = true);
 
         lock (_translationLock)
         {
             _latestTextForItem[item] = text;
+            _lastTextUpdateTimes[item] = DateTime.UtcNow;
+            if (isFinal) _finalTranslationRequests.Add(item);
             
-            // If loop is running, notify it (cancel current wait/streaming if not stable)
+            // Let an in-flight sentence finish. The next pass will use the newest ASR text.
             if (_activeItemLoops.ContainsKey(item))
-            {
-                 if (!_isProcessingStableForItem.Contains(item))
-                 {
-                     try 
-                     { 
-                        _activeItemCts.GetValueOrDefault(item)?.Cancel(); 
-                     }
-                     catch { /* ignored */ }
-                 }
-                 return;
-            }
+                return;
 
             // Start new loop
             var task = Task.Run(() => ProcessItemLoopAsync(item));
@@ -1097,9 +1088,11 @@ public class SpeechRecognitionViewModel : Page
 
     private async Task ProcessItemLoopAsync(SubtitleItem item)
     {
-        while (IsRecording)
+        while (true)
         {
             string text;
+            bool isFinal;
+            DateTime textUpdatedAt;
             CancellationTokenSource? cts;
 
             lock (_translationLock)
@@ -1114,6 +1107,8 @@ public class SpeechRecognitionViewModel : Page
                     break;
                 }
 
+                isFinal = _finalTranslationRequests.Remove(item);
+                textUpdatedAt = _lastTextUpdateTimes.GetValueOrDefault(item);
                 _activeItemCts.TryGetValue(item, out var oldCts);
                 oldCts?.Dispose();
                 
@@ -1121,8 +1116,37 @@ public class SpeechRecognitionViewModel : Page
                 _activeItemCts[item] = cts;
             }
 
-            // Translate
-            await TranslateSingleItemAsync(item, text, cts.Token);
+            if (!isFinal && !HasUntranslatedSentenceTerminator(item, text))
+            {
+                var remainingQuietTime = PartialResultQuietPeriod - (DateTime.UtcNow - textUpdatedAt);
+                if (remainingQuietTime > TimeSpan.Zero)
+                {
+                    try
+                    {
+                        await Task.Delay(remainingQuietTime, cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                }
+
+                lock (_translationLock)
+                {
+                    if (!_latestTextForItem.TryGetValue(item, out var latestText)
+                        || latestText != text
+                        || _lastTextUpdateTimes.GetValueOrDefault(item) != textUpdatedAt)
+                    {
+                        continue;
+                    }
+                }
+
+                // The ASR has paused without producing punctuation. Flush the tail
+                // as a preview instead of waiting indefinitely for a final result.
+                isFinal = true;
+            }
+
+            await TranslateSingleItemAsync(item, text, isFinal, cts.Token);
 
             lock (_translationLock)
             {
@@ -1133,6 +1157,7 @@ public class SpeechRecognitionViewModel : Page
                     _activeItemLoops.Remove(item);
                     _activeItemCts.Remove(item);
                     _latestTextForItem.Remove(item);
+                    _lastTextUpdateTimes.Remove(item);
                     cts.Dispose();
                     return; 
                 }
@@ -1146,10 +1171,11 @@ public class SpeechRecognitionViewModel : Page
         {
             _activeItemLoops.Remove(item);
             _activeItemCts.Remove(item);
+            _lastTextUpdateTimes.Remove(item);
         }
     }
 
-    private async Task TranslateSingleItemAsync(SubtitleItem item, string text, CancellationToken token)
+    private async Task TranslateSingleItemAsync(SubtitleItem item, string text, bool isFinal, CancellationToken token)
     {
         if (SelectedEngineOption == null || SelectedTargetLanguage == null || string.IsNullOrWhiteSpace(text)) return;
 
@@ -1158,8 +1184,6 @@ public class SpeechRecognitionViewModel : Page
             // Access properties on UI thread
             var confirmedOrig = "";
             Dispatcher.UIThread.Invoke(() => confirmedOrig = item.ConfirmedOriginalText);
-
-            char[] punctuation = ['.', ',', '?', '!', ';', '。', '，', '？', '！', '；'];
 
             // Check consistency with confirmed text
             if (!text.StartsWith(confirmedOrig))
@@ -1215,7 +1239,7 @@ public class SpeechRecognitionViewModel : Page
 
 
             // Punctuation logic is already defined above
-            int lastPunctIdx = delta.LastIndexOfAny(punctuation);
+            int lastPunctIdx = delta.LastIndexOfAny(SentenceTerminators);
             string stablePart = "";
             string unstablePart = delta;
 
@@ -1236,7 +1260,9 @@ public class SpeechRecognitionViewModel : Page
             }
             else
             {
-                 service = _translationServiceFactory.CreateAiServiceById(SelectedEngineOption.Id);
+                 service = _translationServiceFactory.CreateAiServiceById(
+                     SelectedEngineOption.Id,
+                     RealtimeTranslationPrompt);
             }
 
             var sourceLang = MapModelToLanguage(SelectedRecognitionLanguage);
@@ -1249,49 +1275,48 @@ public class SpeechRecognitionViewModel : Page
             // 1. Handle Stable Part (if any)
             if (!string.IsNullOrEmpty(stablePart))
             {
-                 lock(_translationLock) _isProcessingStableForItem.Add(item);
-                 try
-                 {
-                     var sbStable = new StringBuilder();
-                     var baseText = "";
-                     Dispatcher.UIThread.Invoke(() => baseText = item.ConfirmedTranslatedText);
+                 var sbStable = new StringBuilder();
+                 var baseText = "";
+                 Dispatcher.UIThread.Invoke(() => baseText = item.ConfirmedTranslatedText);
     
-                     await foreach (var chunk in service.StreamTranslateAsync(stablePart, sourceLang, targetLang, linkedCts.Token))
-                     {
-                         if (linkedCts.Token.IsCancellationRequested) break;
-                         sbStable.Append(chunk);
-                         var currentStable = sbStable.ToString();
+                 await foreach (var translationEvent in service.StreamTranslateEventsAsync(stablePart, sourceLang, targetLang, linkedCts.Token))
+                 {
+                     if (linkedCts.Token.IsCancellationRequested) break;
+                     if (translationEvent is not TranslationDeltaEvent deltaEvent || string.IsNullOrEmpty(deltaEvent.Text)) continue;
+
+                     var chunk = deltaEvent.Text;
+                     sbStable.Append(chunk);
+                     var currentStable = sbStable.ToString();
                          
-                         // Use debounced display updates
-                         var newText = baseText + currentStable;
-                         Dispatcher.UIThread.Post(() => item.TranslatedText = newText);
-                         UpdateDisplayWithDebounce(item, newText);
-                     }
-                     
-                     if (token.IsCancellationRequested) return; // User cancelled/New text
-                     if (timeoutCts.Token.IsCancellationRequested) 
-                     {
-                         _logger.LogWarning("Translation timed out for stable part.");
-                         // Don't return, maybe try unstable or just finish to cleanup
-                     }
-    
-                     var finalStable = sbStable.ToString();
-                     if (!string.IsNullOrEmpty(finalStable)) // Only commit if we got something
-                     {
-                         Dispatcher.UIThread.Invoke(() => {
-                             item.ConfirmedOriginalText += stablePart;
-                             item.ConfirmedTranslatedText += finalStable;
-                             item.TranslatedText = item.ConfirmedTranslatedText;
-                             // Always update DisplayTranslatedText for stable content
-                             item.DisplayTranslatedText = item.ConfirmedTranslatedText;
-                         });
-                     }
+                     // Use debounced display updates
+                     var newText = baseText + currentStable;
+                     Dispatcher.UIThread.Post(() => item.TranslatedText = newText);
+                     UpdateDisplayWithDebounce(item, newText);
                  }
-                 finally
+                     
+                 if (token.IsCancellationRequested) return; // User cancelled/New text
+                 if (timeoutCts.Token.IsCancellationRequested)
                  {
-                     lock(_translationLock) _isProcessingStableForItem.Remove(item);
+                     _logger.LogWarning("Translation timed out for stable part.");
+                     // Don't return, maybe try unstable or just finish to cleanup
+                 }
+
+                 var finalStable = sbStable.ToString();
+                 if (!string.IsNullOrEmpty(finalStable)) // Only commit if we got something
+                 {
+                     Dispatcher.UIThread.Invoke(() => {
+                         item.ConfirmedOriginalText += stablePart;
+                         item.ConfirmedTranslatedText += finalStable;
+                         item.TranslatedText = item.ConfirmedTranslatedText;
+                         // Always update DisplayTranslatedText for stable content
+                         item.DisplayTranslatedText = item.ConfirmedTranslatedText;
+                     });
                  }
             }
+
+            // Partial ASR updates only submit complete sentences. The final ASR result
+            // flushes the remaining fragment so LLM requests are not constantly canceled.
+            if (!isFinal) return;
 
             // 2. Handle Unstable Part (if any)
             // Even if Preview is disabled, we must translate this if it's the only content we have (e.g. unpunctuated final result)
@@ -1302,10 +1327,12 @@ public class SpeechRecognitionViewModel : Page
                 string currentBase = "";
                 Dispatcher.UIThread.Invoke(() => currentBase = item.ConfirmedTranslatedText);
                 
-                await foreach (var chunk in service.StreamTranslateAsync(unstablePart, sourceLang, targetLang, linkedCts.Token))
+                await foreach (var translationEvent in service.StreamTranslateEventsAsync(unstablePart, sourceLang, targetLang, linkedCts.Token))
                 {
                     if (linkedCts.Token.IsCancellationRequested) break;
+                    if (translationEvent is not TranslationDeltaEvent deltaEvent || string.IsNullOrEmpty(deltaEvent.Text)) continue;
                     
+                    var chunk = deltaEvent.Text;
                     sb.Append(chunk);
                     
                     if (IsRealTimePreviewEnabled)
@@ -1400,6 +1427,26 @@ public class SpeechRecognitionViewModel : Page
                 CheckFloatingHistory();
             });
         }
+    }
+
+    private bool HasUntranslatedSentenceTerminator(SubtitleItem item, string text)
+    {
+        var confirmedText = string.Empty;
+        if (Dispatcher.UIThread.CheckAccess())
+            confirmedText = item.ConfirmedOriginalText;
+        else
+            Dispatcher.UIThread.Invoke(() => confirmedText = item.ConfirmedOriginalText);
+
+        var startIndex = text.StartsWith(confirmedText, StringComparison.Ordinal)
+            ? confirmedText.Length
+            : 0;
+        return text.IndexOfAny(SentenceTerminators, startIndex) >= 0;
+    }
+
+    private bool CanRemoveFromHistory(SubtitleItem item)
+    {
+        return !item.IsTranslating
+               && (!IsTranslationEnabled || !string.IsNullOrWhiteSpace(item.TranslatedText));
     }
     
     /// <summary>
