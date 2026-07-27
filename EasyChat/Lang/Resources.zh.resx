@@ -156,6 +156,12 @@
     <data name="Language" xml:space="preserve">
         <value>语言</value>
     </data>
+    <data name="DisplayLanguage" xml:space="preserve">
+        <value>显示语言</value>
+    </data>
+    <data name="NativeLanguage" xml:space="preserve">
+        <value>母语</value>
+    </data>
     <data name="Save" xml:space="preserve">
         <value>保存</value>
     </data>

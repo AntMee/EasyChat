@@ -204,21 +204,26 @@ public class SettingViewModel : Page
         set => this.RaiseAndSetIfChanged(ref _deepLModelTypes, value);
     }
 
-    private List<LanguageDefinition> _languages = [LanguageKeys.English, LanguageKeys.ChineseSimplified];
-    public List<LanguageDefinition> Languages
+    private List<LanguageDefinition> _displayLanguages = [LanguageKeys.English, LanguageKeys.ChineseSimplified];
+    public List<LanguageDefinition> DisplayLanguages
     {
-        get => _languages;
-        set => this.RaiseAndSetIfChanged(ref _languages, value);
+        get => _displayLanguages;
+        set => this.RaiseAndSetIfChanged(ref _displayLanguages, value);
     }
 
-    public LanguageDefinition? SelectedLanguage
+    public List<LanguageDefinition> NativeLanguages { get; } = LanguageService.GetAllLanguages()
+        .Where(language => language.Id != LanguageKeys.AutoId)
+        .OrderBy(language => language.DisplayName)
+        .ToList();
+
+    public LanguageDefinition? SelectedDisplayLanguage
     {
-        get => Languages.FirstOrDefault(l => l.EnglishName == GeneralConf?.Language) ?? LanguageKeys.English;
+        get => DisplayLanguages.FirstOrDefault(l => l.EnglishName == GeneralConf?.DisplayLanguage) ?? LanguageKeys.English;
         set
         {
-            if (value != null && GeneralConf?.Language != value.EnglishName)
+            if (value != null && GeneralConf?.DisplayLanguage != value.EnglishName)
             {
-                GeneralConf?.Language = value.EnglishName;
+                GeneralConf?.DisplayLanguage = value.EnglishName;
                 this.RaisePropertyChanged();
 
                 // Update Culture
@@ -412,6 +417,19 @@ public class SettingViewModel : Page
             this.RaisePropertyChanged(nameof(VisibleOcrModelItems));
             this.RaisePropertyChanged(nameof(OcrModelListToggleIcon));
             this.RaisePropertyChanged(nameof(OcrModelListToggleText));
+        }
+    }
+
+    public LanguageDefinition SelectedNativeLanguage
+    {
+        get => NativeLanguages.FirstOrDefault(language => language.Id == GeneralConf?.NativeLanguage?.Id)
+               ?? LanguageKeys.ChineseSimplified;
+        set
+        {
+            var general = GeneralConf;
+            if (value == null || general == null || general.NativeLanguage?.Id == value.Id) return;
+            general.NativeLanguage = value;
+            this.RaisePropertyChanged();
         }
     }
 

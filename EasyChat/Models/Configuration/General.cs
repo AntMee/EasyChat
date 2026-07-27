@@ -8,6 +8,8 @@ namespace EasyChat.Models.Configuration;
 [JsonObject(MemberSerialization.OptIn)]
 public class General : ReactiveObject
 {
+    private string? _displayLanguage;
+
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
     public LanguageDefinition SourceLanguage
     {
@@ -24,11 +26,29 @@ public class General : ReactiveObject
 
 
     [JsonProperty]
-    public string? Language
+    public string? DisplayLanguage
     {
-        get => field ?? "English";
-        set => this.RaiseAndSetIfChanged(ref field, value ?? "English");
-    } = "English";
+        get => _displayLanguage ?? "English";
+        set => this.RaiseAndSetIfChanged(ref _displayLanguage, value ?? "English");
+    }
+
+    // Retain the old serialized field so existing installations keep their UI language.
+    [JsonProperty("Language")]
+    private string? LegacyLanguage
+    {
+        set
+        {
+            if (string.IsNullOrWhiteSpace(_displayLanguage) && !string.IsNullOrWhiteSpace(value))
+                DisplayLanguage = value;
+        }
+    }
+
+    [JsonProperty]
+    public LanguageDefinition? NativeLanguage
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
 
     [JsonProperty]
     public WindowClosingBehavior ClosingBehavior

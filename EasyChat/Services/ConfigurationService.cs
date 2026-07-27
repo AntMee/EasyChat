@@ -5,6 +5,7 @@ using EasyChat.Common;
 using EasyChat.Constants;
 using EasyChat.Models.Configuration;
 using EasyChat.Services.Abstractions;
+using EasyChat.Services.Languages;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 
@@ -21,6 +22,9 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
         
         // Load configurations
         General = ConfigUtil.LoadConfig<General>(Constant.General);
+        var migratedNativeLanguage = General.NativeLanguage == null;
+        if (migratedNativeLanguage)
+            General.NativeLanguage = General.TargetLanguage ?? LanguageService.GetLanguage("zh-Hans");
         AiModel = ConfigUtil.LoadConfig<AiModel>(Constant.AiModelConf);
         MachineTrans = ConfigUtil.LoadConfig<MachineTrans>(Constant.MachineTransConf);
         Proxy = ConfigUtil.LoadConfig<Proxy>(Constant.ProxyConf);
@@ -54,6 +58,9 @@ public class ConfigurationService : ReactiveObject, IConfigurationService
 
         // Setup Auto-Save Subscriptions
         SetupAutoSave();
+
+        if (migratedNativeLanguage)
+            ConfigUtil.SaveConfig(Constant.General, General);
         
         _logger.LogInformation("Configurations loaded successfully");
     }

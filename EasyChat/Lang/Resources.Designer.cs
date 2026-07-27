@@ -1057,6 +1057,24 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("Language", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Display Language.
+        /// </summary>
+        public static string DisplayLanguage {
+            get {
+                return ResourceManager.GetString("DisplayLanguage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Native Language.
+        /// </summary>
+        public static string NativeLanguage {
+            get {
+                return ResourceManager.GetString("NativeLanguage", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Language Changed.

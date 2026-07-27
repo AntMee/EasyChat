@@ -8,10 +8,8 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Globalization;
 using System.Threading;
 using EasyChat.Constants;
-using EasyChat.Lang;
 using EasyChat.Models.Configuration;
 using EasyChat.Models.Translation.TextAssist;
 using EasyChat.Services.Abstractions;
@@ -137,11 +135,10 @@ public sealed class TextAssistService : ITextAssistService
         TextAssistProfile profile,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var source = LanguageService.GetLanguage(profile.SourceLanguageId);
         var (client, language) = CreateCorrectionClient(profile);
-        var uiLanguage = ResolveUiLanguage();
-        _logger.LogInformation("Correction UI language resolved to {UiLanguage}; configured language is {ConfiguredLanguage}.",
-            uiLanguage, _configurationService.General?.Language);
+        var outputLanguage = ResolveOutputLanguage();
+        _logger.LogInformation("Correction output language resolved to {OutputLanguage}; configured native language is {NativeLanguage}.",
+            outputLanguage, _configurationService.General?.NativeLanguage?.Id);
         var prompt = BuildCorrectionPrompt(profile, """
 # Role
 You are a meticulous grammar, spelling, word-choice, and style editor.
@@ -150,9 +147,9 @@ You are a meticulous grammar, spelling, word-choice, and style editor.
 Review the user's text in [Language].
 The corrected text and all alternative expressions must remain in [Language].
 Issue messages, suggestions, and the translations shown below each corrected
-version must be written in [UiLanguage], matching the application's UI language.
+version must be written in [OutputLanguage], matching the user's native language.
 Report every meaningful issue with UTF-16 `start` and `length` offsets into the original text.
-Then provide a complete corrected version in [Language], followed by its translation in [UiLanguage].
+Then provide a complete corrected version in [Language], followed by its translation in [OutputLanguage].
 When a meaningful alternative expression exists, provide up to two additional
 complete corrected versions in [Language]. The first version must be
 the direct correction; alternatives should preserve the meaning while using
@@ -165,13 +162,13 @@ Emit exactly this order:
 Zero or more {"event":"issue","start":0,"length":1,"category":"grammar|spelling|word_choice|style","message":"...","suggestion":"..."}
 One or more {"event":"corrected_delta","variant":1,"text":"..."} objects whose concatenated text is the complete corrected version in [Language].
 Optional variants 2 and 3 use their own concatenated corrected_delta sequence.
-After each corrected version, emit one or more {"event":"correction_translation_delta","variant":1,"text":"..."} objects containing its translation in [UiLanguage].
+After each corrected version, emit one or more {"event":"correction_translation_delta","variant":1,"text":"..."} objects containing its translation in [OutputLanguage].
 {"event":"done"}
 """);
         prompt = prompt.Replace("[Language]", language.EnglishName)
             .Replace("[LanguageId]", language.Id)
-            .Replace("[UiLanguage]", uiLanguage);
-        prompt += BuildUiLanguageDirective(uiLanguage);
+            .Replace("[OutputLanguage]", outputLanguage);
+        prompt += BuildOutputLanguageDirective(outputLanguage);
 
         var messages = new List<ChatMessage>
         {
@@ -307,37 +304,20 @@ After each corrected version, emit one or more {"event":"correction_translation_
         return new OpenAIClient(new ApiKeyCredential(model.ApiKey), options).GetChatClient(model.Model);
     }
 
-    private string ResolveUiLanguage()
+    private string ResolveOutputLanguage()
     {
-        var configured = _configurationService.General?.Language;
-        if (string.Equals(configured, "Simplified Chinese", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(configured, "Chinese", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(configured, "简体中文", StringComparison.OrdinalIgnoreCase))
-            return "Simplified Chinese";
-
-        var culture = Resources.Culture ?? CultureInfo.CurrentUICulture;
-        return culture.TwoLetterISOLanguageName.Equals("zh", StringComparison.OrdinalIgnoreCase)
-            ? "Simplified Chinese"
-            : "English";
+        return _configurationService.General?.NativeLanguage?.EnglishName
+               ?? _configurationService.General?.TargetLanguage?.EnglishName
+               ?? LanguageService.GetLanguage("zh-Hans").EnglishName;
     }
 
-    private static string BuildUiLanguageDirective(string uiLanguage) =>
-        uiLanguage.Equals("Simplified Chinese", StringComparison.OrdinalIgnoreCase)
-            ? """
+    private static string BuildOutputLanguageDirective(string outputLanguage) => """
 
 # Final mandatory language rule
 The corrected text MUST remain in the original source language.
-Only issue messages, suggestions, and correction translations MUST be written in Simplified Chinese.
-The correction translations must be Simplified Chinese even when the source is English.
+Only issue messages, suggestions, and correction translations MUST be written in [OutputLanguage].
 Every emitted corrected variant must be followed by its correction_translation_delta.
-"""
-            : """
-
-# Final mandatory language rule
-The corrected text MUST remain in the original source language.
-Only issue messages, suggestions, and correction translations MUST be written in English.
-Every emitted corrected variant must be followed by its correction_translation_delta.
-""";
+""".Replace("[OutputLanguage]", outputLanguage);
 
     private string BuildTranslationPrompt(TextAssistProfile profile)
     {

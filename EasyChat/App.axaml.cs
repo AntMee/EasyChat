@@ -56,9 +56,9 @@ public class App : Application
         try
         {
             var generalConf = ConfigUtil.LoadConfig<General>("General");
-            if (!string.IsNullOrEmpty(generalConf.Language))
+            if (!string.IsNullOrEmpty(generalConf.DisplayLanguage))
             {
-                var culture = generalConf.Language switch
+                var culture = generalConf.DisplayLanguage switch
                 {
                     "Simplified Chinese" => new CultureInfo("zh-CN"),
                     _ => new CultureInfo("en-US")

@@ -16,9 +16,30 @@
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
                     <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                               Text="{x:Static lang:Resources.Language}" />
-                    <ComboBox ItemsSource="{Binding Languages}"
-                              SelectedItem="{Binding SelectedLanguage}"
+                               Text="{x:Static lang:Resources.DisplayLanguage}" />
+                    <ComboBox ItemsSource="{Binding DisplayLanguages}"
+                              SelectedItem="{Binding SelectedDisplayLanguage}"
+                              MinWidth="150">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14"
+                                            IsVisible="{Binding Icon, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}">
+                                        <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
+                                               Stretch="UniformToFill" />
+                                    </Border>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource SukiText}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
+                    <TextBlock FontWeight="Bold" VerticalAlignment="Center"
+                               Text="{x:Static lang:Resources.NativeLanguage}" />
+                    <ComboBox ItemsSource="{Binding NativeLanguages}"
+                              SelectedItem="{Binding SelectedNativeLanguage}"
                               MinWidth="150">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
