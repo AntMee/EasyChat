@@ -336,6 +336,12 @@ public class SelectionTranslationService : IDisposable
             _lastIconX = x2;
             _lastIconY = y2;
             _lastSelectedText = null;
+
+            // A screenshot overlay also looks like a drag selection to the global
+            // mouse hook. Snapshot the external state before the overlay handles
+            // mouse-up so we can avoid racing its clipboard/focus cleanup below.
+            var foregroundWindowAtMouseUp = _platformService.GetForegroundWindowHandle();
+            var clipboardSequenceAtMouseUp = ClipboardHelper.GetClipboardSequenceNumber();
             
             // Capture current generation
             var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
@@ -349,6 +355,16 @@ public class SelectionTranslationService : IDisposable
                     
                     // Check if canceled
                     if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+
+                    if (HasSelectionContextChanged(foregroundWindowAtMouseUp, clipboardSequenceAtMouseUp))
+                    {
+                        _logger.LogDebug("Skipping drag selection capture because another application changed focus or clipboard state");
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration)) HideIcon();
+                        }, DispatcherPriority.Input);
+                        return;
+                    }
 
                     // The translation window may have opened while this capture was
                     // waiting; do not continue after the user interacted with it.
@@ -439,6 +455,11 @@ public class SelectionTranslationService : IDisposable
         _lastIconX = e.X;
         _lastIconY = e.Y;
         _lastSelectedText = null;
+
+        // Screenshot tools may use a double-click to accept a window/region and
+        // then update the clipboard or close their overlay asynchronously.
+        var foregroundWindowAtDoubleClick = _platformService.GetForegroundWindowHandle();
+        var clipboardSequenceAtDoubleClick = ClipboardHelper.GetClipboardSequenceNumber();
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
@@ -454,6 +475,16 @@ public class SelectionTranslationService : IDisposable
                 if (gen != currentGen) 
                 {
                     _logger.LogDebug("Double Click cancelled. Gen mismatch: {Captured} != {Current}", gen, currentGen);
+                    return;
+                }
+
+                if (HasSelectionContextChanged(foregroundWindowAtDoubleClick, clipboardSequenceAtDoubleClick))
+                {
+                    _logger.LogDebug("Skipping double-click selection capture because another application changed focus or clipboard state");
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration)) HideIcon();
+                    }, DispatcherPriority.Input);
                     return;
                 }
                     
@@ -506,6 +537,17 @@ public class SelectionTranslationService : IDisposable
                 }, DispatcherPriority.Input);
             }
         });
+    }
+
+    private bool HasSelectionContextChanged(IntPtr foregroundWindowAtTrigger, uint clipboardSequenceAtTrigger)
+    {
+        var currentForegroundWindow = _platformService.GetForegroundWindowHandle();
+        var foregroundWindowChanged = foregroundWindowAtTrigger != IntPtr.Zero &&
+                                      currentForegroundWindow != IntPtr.Zero &&
+                                      foregroundWindowAtTrigger != currentForegroundWindow;
+
+        return foregroundWindowChanged ||
+               clipboardSequenceAtTrigger != ClipboardHelper.GetClipboardSequenceNumber();
     }
 
     private void ShowIcon(int x, int y)
