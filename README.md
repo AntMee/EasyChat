@@ -94,7 +94,7 @@ EasyChat 是一款基于 Avalonia 开发的跨平台即时翻译工具，是继 
 
 #### 实时语音识别  
 
-https://github.com/user-attachments/assets/f189cb57-383f-47d8-9b15-dafe667eff75 
+https://github.com/user-attachments/assets/c7842cb9-7454-439f-8932-c15373ce8759
 
 https://github.com/user-attachments/assets/6ab9b6a3-446d-403a-b37a-d49b39c0f9d3
 
