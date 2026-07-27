@@ -8,6 +8,7 @@
              xmlns:lang="clr-namespace:EasyChat.Lang;assembly=EasyChat"
              xmlns:config="clr-namespace:EasyChat.Models.Configuration;assembly=EasyChat"
              xmlns:converts="clr-namespace:EasyChat.Converters;assembly=EasyChat"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:DataType="viewModels:AiModelEditDialogViewModel"
              Width="400">
@@ -71,8 +72,11 @@
                           Text="{Binding Model, Mode=TwoWay}"
                           HorizontalAlignment="Stretch" />
                 <Button Grid.Column="1"
-                        Content="{x:Static lang:Resources.FetchModels}"
-                        Command="{Binding FetchModelsCommand}" />
+                        Width="32" Height="32" Padding="6"
+                        Command="{Binding FetchModelsCommand}"
+                        ToolTip.Tip="{x:Static lang:Resources.FetchModels}">
+                    <avalonia:MaterialIcon Kind="Download" />
+                </Button>
             </Grid>
             <TextBlock Text="{Binding FetchModelsError}"
                        IsVisible="{Binding FetchModelsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
