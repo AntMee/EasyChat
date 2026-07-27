@@ -69,6 +69,7 @@
                 <ComboBox Grid.Column="0"
                           ItemsSource="{Binding AvailableModels}"
                           IsEditable="True"
+                          SelectedItem="{Binding Model, Mode=TwoWay}"
                           Text="{Binding Model, Mode=TwoWay}"
                           HorizontalAlignment="Stretch" />
                 <Button Grid.Column="1"

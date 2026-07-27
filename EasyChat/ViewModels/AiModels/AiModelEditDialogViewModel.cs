@@ -34,6 +34,7 @@ public class AiModelEditDialogViewModel : ViewModelBase
             ApiUrl = existingModel.ApiUrl;
             ApiKey = existingModel.ApiKey;
             Model = existingModel.Model;
+            if (!string.IsNullOrWhiteSpace(Model)) AvailableModels.Add(Model);
             UseProxy = existingModel.UseProxy;
             EnableThinking = existingModel.EnableThinking;
         }
@@ -258,7 +259,15 @@ public class AiModelEditDialogViewModel : ViewModelBase
 
             AvailableModels.Clear();
             foreach (var id in ids) AvailableModels.Add(id);
-            if (ids.Count == 0) FetchModelsError = Resources.NoModelsFound;
+            if (ids.Count == 0)
+            {
+                FetchModelsError = Resources.NoModelsFound;
+            }
+            else if (string.IsNullOrWhiteSpace(Model) ||
+                     !ids.Contains(Model, StringComparer.OrdinalIgnoreCase))
+            {
+                Model = ids[0];
+            }
         }
         catch (Exception ex)
         {
