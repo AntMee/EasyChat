@@ -100,5 +100,6 @@ public sealed class TextAssistProfileResolverTests
         public SpeechRecognitionConfig? SpeechRecognition => null;
         public TtsConfig? Tts => null;
         public TextAssistConfig? TextAssist { get; init; }
+        public OcrConfig? Ocr { get; }
     }
 }
