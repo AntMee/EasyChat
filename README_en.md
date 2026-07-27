@@ -37,6 +37,8 @@ Supports custom Prompts, perfectly solving the problem of inaccurate translation
     *   *Advantages*: Provides various large-parameter models, such as Qwen3-Max, suitable for users with higher requirements for translation quality. API limit is 1 QPS, but you can register multiple accounts for polling.
 *   **ModelScope**: [Application Address](https://www.modelscope.cn/)
     *   *Advantages*: Provides various large models, with 2000 free calls per day.
+*   **DeepSeek**: [Application Address](https://deepseek.com/)
+    *   *Advantages*: Affordable and fast. The Flash model is sufficient for translation needs.
 
 ### Machine Translation
 *   **Baidu Translate**: [Application Address](https://fanyi-api.baidu.com/product/11)
@@ -76,6 +78,19 @@ This project is built using the modern .NET technology stack, dedicated to futur
     *   **Input Translation**: Press the input translation hotkey in the chat window, input native language text, and wait for the translation to automatically send.
     *   **Switch Language**: When you need to switch the translation language, press the set language switch hotkey.
 
+### Real-time Voice Recognition
+
+First, download the speech recognition model package yourself:
+
+- Google Drive: [https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link](https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link)
+- Quark Drive: [https://pan.quark.cn/s/e0cb39b4a842](https://pan.quark.cn/s/e0cb39b4a842)
+
+After downloading the model package you need, extract it, locate the `Lib` folder in the software installation (or runtime) directory, place the files there, and restart the software.
+![Model placement](./docs/screenshot/HowToUse/asr1.png)
+![Model placement](./docs/screenshot/HowToUse/asr2.png)
+
+Click `Speech Recognition` on the left side of the main window, select the model to use, configure the translation settings, and click Start. Enable the subtitle overlay in `Speech Recognition` -> `Subtitle Overlay Settings`.
+
 
 ### 📹 Demo Videos
 
@@ -93,9 +108,6 @@ Currently, the software supports Large Model Prompt configuration. You can optim
 
 The project currently has basic functions perfected, and will purely continue iterative development, planning to add the following functions:
 
-- [x] **Selection Translation**: Select text to translate directly.
-- [x] **Dictionary Function**: After screenshot, click on words to view detailed explanations, example sentences, pronunciation, and phonetic symbols.
-- [x] **Real-time Voice Translation**: Currently, this function is still under development, requires downloading model files. Those who want to try it first can join the QQ group below and ask in the group.
 - [ ] **Fixed Area Translation**: Set specific screen areas, one-key translation (suitable for specific scenarios like Galgames).
 - [ ] **Same Color Mask**: After screenshot translation, cover the original text with a background-colored mask and display the translation, providing a more immersive reading experience.
 

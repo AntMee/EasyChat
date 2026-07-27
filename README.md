@@ -38,6 +38,8 @@ EasyChat 是一款基于 Avalonia 开发的跨平台即时翻译工具，是继 
     *   *优势*: 提供多种大参数量模型，如 Qwen3-Max，适合对翻译质量有更高要求的用户，API 限制 1 QPS，但可以多注册几个账号轮询。
 *   **魔塔 ModelScope**: [申请地址](https://www.modelscope.cn/)
     *   *优势*: 提供多种大模型，日免费 2000 次调用。
+*   **DeepSeek**: [申请地址](https://deepseek.com/)
+    *   *优势*: 价格便宜，反应快，使用 Flash 模型足够满足翻译要求。
 
 ### 机器翻译
 *   **百度翻译**: [申请地址](https://fanyi-api.baidu.com/product/11)
@@ -77,6 +79,16 @@ EasyChat 是一款基于 Avalonia 开发的跨平台即时翻译工具，是继 
     *   **输入翻译**: 在聊天窗口按下输入翻译热键，输入母语文本，等待译文自动发送。
     *   **切换语种**: 在需要切换翻译语种时，按下设定的语种切换热键。
 
+### 实时语音识别使用
+首先需要自行下载识别模型包
+- Google Drive: [https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link](https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link)
+- 夸克网盘: [https://pan.quark.cn/s/e0cb39b4a842](https://pan.quark.cn/s/e0cb39b4a842)
+
+按需下载模型包后解压在软件安装(运行)目录下找到 `Lib` 文件夹，将文件放入重启软件。
+![放置截图](./docs/screenshot/HowToUse/asr1.png)
+![放置截图](./docs/screenshot/HowToUse/asr2.png)
+
+点击软件主界面左侧的 `语言识别`，选择使用的模型并配置好翻译点击启动开始即可，字幕悬浮窗在 `语音识别`->`字母悬浮窗设置` 中开启。
 
 ### 📹 使用视频  
 
@@ -94,9 +106,6 @@ https://github.com/user-attachments/assets/6ab9b6a3-446d-403a-b37a-d49b39c0f9d3
 
 项目目前已完善基础功能，后续将持续迭代开发，计划加入以下功能：
 
-- [x] **划词翻译**: 选中文本直接进行翻译。
-- [x] **词典功能**: 截图后可点击单词查看详细解释、例句、发音及音标。
-- [x] **实时语音翻译**: 目前该功能还在开发，需要下载模型文件，需要尝鲜的可以在下方加入QQ群，在群内询问。
 - [ ] **固定区域翻译**: 设定特定屏幕区域，快捷键一键翻译（适用于 Galgame 等场景）。
 - [ ] **同色系遮罩**: 截图翻译后，使用背景同色遮罩覆盖原文并显示译文，提供更沉浸的阅读体验。
 
