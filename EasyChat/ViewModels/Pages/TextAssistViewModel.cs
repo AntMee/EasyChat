@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -162,6 +164,10 @@ public abstract class TextAssistEditorViewModel : ViewModelBase
         Logger = logger;
         Languages = LanguageService.GetAllLanguages().OrderBy(x => x.EnglishName).ToList();
         AvailableAiModels = new ObservableCollection<CustomAiModel>(configurationService.AiModel?.ConfiguredModels ?? []);
+        Observable.FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(
+                h => configurationService.AiModel?.ConfiguredModels.CollectionChanged += h,
+                h => configurationService.AiModel?.ConfiguredModels.CollectionChanged -= h)
+            .Subscribe(_ => RefreshAvailableAiModels());
         MachineProviders = [Constant.MachineTranslationProviders.Baidu, Constant.MachineTranslationProviders.Tencent,
             Constant.MachineTranslationProviders.Google, Constant.MachineTranslationProviders.DeepL];
         PromptEntries = new ObservableCollection<PromptEntry>(configurationService.Prompts?.Entries ?? []);
@@ -290,6 +296,18 @@ public abstract class TextAssistEditorViewModel : ViewModelBase
     {
         PersistSettings();
         return ProfileResolver.Resolve(_correction);
+    }
+
+    private void RefreshAvailableAiModels()
+    {
+        var selectedModelId = _selectedAiModel?.Id ?? ConfigurationService.TextAssist?.AiModelId;
+        AvailableAiModels.Clear();
+        foreach (var model in ConfigurationService.AiModel?.ConfiguredModels ?? [])
+            AvailableAiModels.Add(model);
+
+        _selectedAiModel = AvailableAiModels.FirstOrDefault(x => x.Id == selectedModelId)
+                           ?? AvailableAiModels.FirstOrDefault();
+        this.RaisePropertyChanged(nameof(SelectedAiModel));
     }
 
     private void PersistSettings()
