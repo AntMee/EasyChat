@@ -47,7 +47,7 @@
                           HorizontalAlignment="Stretch" />
 
                 <TextBox Text="{Binding Parameter}"
-                         Watermark="{Binding SelectedAction.ParameterHint}"
+                         PlaceholderText="{Binding SelectedAction.ParameterHint}"
                          IsVisible="{Binding AvailableParameterOptions, Converter={x:Static ObjectConverters.IsNull}}" />
             </StackPanel>
 

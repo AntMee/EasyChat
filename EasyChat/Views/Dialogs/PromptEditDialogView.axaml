@@ -21,7 +21,7 @@
             <TextBlock Text="{x:Static lang:Resources.PromptName}"
                        FontWeight="SemiBold" />
             <TextBox Text="{Binding Name, Mode=TwoWay}"
-                     Watermark="{x:Static lang:Resources.PromptName}" />
+                     PlaceholderText="{x:Static lang:Resources.PromptName}" />
         </StackPanel>
 
         <!-- Content Input -->
@@ -34,7 +34,7 @@
                      AcceptsReturn="True"
                      MinHeight="200"
                      MaxHeight="300"
-                     Watermark="{x:Static lang:Resources.PromptContent}" />
+                     PlaceholderText="{x:Static lang:Resources.PromptContent}" />
         
         <TextBlock Text="{x:Static lang:Resources.PromptParametersHint}" 
                    Classes="Caption" 

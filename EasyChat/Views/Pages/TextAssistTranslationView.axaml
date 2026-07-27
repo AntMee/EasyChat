@@ -42,7 +42,7 @@
                         <Grid Grid.Row="2">
                             <TextBox x:Name="SourceTextBox" Text="{Binding InputText, Mode=TwoWay}"
                                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100"
-                                     Watermark="{x:Static lang:Resources.TextAssistInputWatermark}"
+                                     PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
                                      VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent"
                                      />
                         </Grid>
@@ -75,7 +75,7 @@
                             <TextBox x:Name="ResultTextBox" Text="{Binding TranslationResult}" IsReadOnly="True"
                                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" FontSize="18"
                                      VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent"
-                                     Watermark="{x:Static lang:Resources.Loading}" />
+                                     PlaceholderText="{x:Static lang:Resources.Loading}" />
                         </Grid>
                     </Grid>
                 </suki:GlassCard>

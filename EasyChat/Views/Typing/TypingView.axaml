@@ -26,7 +26,7 @@
             <Grid RowDefinitions="*,Auto" Margin="10">
                 <TextBox Name="InputBox"
                          Grid.Row="0"
-                         Watermark="{x:Static lang:Resources.InputToTranslate}"
+                         PlaceholderText="{x:Static lang:Resources.InputToTranslate}"
                          VerticalAlignment="Center"
                          HorizontalAlignment="Stretch"
                          BorderThickness="0"

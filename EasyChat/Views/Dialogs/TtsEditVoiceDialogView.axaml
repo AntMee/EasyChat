@@ -44,7 +44,7 @@
                 <!-- Voice Selection -->
                 <StackPanel Spacing="5">
                     <TextBlock Text="{x:Static lang:Resources.Tts_Voice}" FontWeight="SemiBold"/>
-                    <TextBox Text="{Binding SearchText}" Watermark="{x:Static lang:Resources.Tts_SearchVoices}" Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding SearchText}" PlaceholderText="{x:Static lang:Resources.Tts_SearchVoices}" Margin="0,0,0,5"/>
                     <ListBox ItemsSource="{Binding FilteredVoices}"
                              SelectedItem="{Binding SelectedVoice}"
                              Height="300"

@@ -24,15 +24,15 @@
                                     <ContentControl.DataTemplates>
                                         <!-- String Key Template -->
                                         <DataTemplate DataType="vm:StringKeyItemViewModel">
-                                            <TextBox Text="{Binding Value}" Watermark="API Key" />
+                                            <TextBox Text="{Binding Value}" PlaceholderText="API Key" />
                                         </DataTemplate>
 
                                         <!-- Baidu Key Template -->
                                         <DataTemplate DataType="vm:BaiduKeyItemViewModel">
                                             <StackPanel Spacing="5">
-                                                <TextBox Text="{Binding AppId}" Watermark="App ID"
+                                                <TextBox Text="{Binding AppId}" PlaceholderText="App ID"
                                                          theme:TextBoxExtensions.AddDeleteButton="True" />
-                                                <TextBox Text="{Binding AppKey}" Watermark="App Key"
+                                                <TextBox Text="{Binding AppKey}" PlaceholderText="App Key"
                                                          theme:TextBoxExtensions.AddDeleteButton="True"
                                                          PasswordChar="*" />
                                             </StackPanel>
@@ -41,9 +41,9 @@
                                         <!-- Tencent Key Template -->
                                         <DataTemplate DataType="vm:TencentKeyItemViewModel">
                                             <StackPanel Spacing="5">
-                                                <TextBox Text="{Binding SecretId}" Watermark="Secret ID"
+                                                <TextBox Text="{Binding SecretId}" PlaceholderText="Secret ID"
                                                          theme:TextBoxExtensions.AddDeleteButton="True" />
-                                                <TextBox Text="{Binding SecretKey}" Watermark="Secret Key"
+                                                <TextBox Text="{Binding SecretKey}" PlaceholderText="Secret Key"
                                                          theme:TextBoxExtensions.AddDeleteButton="True"
                                                          PasswordChar="*" />
                                             </StackPanel>

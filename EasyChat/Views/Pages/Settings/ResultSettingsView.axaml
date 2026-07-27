@@ -86,7 +86,7 @@
                                VerticalAlignment="Center" FontWeight="Bold" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                         <TextBox Text="{Binding ResultConf.FontColor}"
-                                 Watermark="#FFFFFFFF"
+                                 PlaceholderText="#FFFFFFFF"
                                  Width="120" VerticalAlignment="Center"/>
                         <Button Width="35" Height="35" CornerRadius="20" BorderThickness="1" BorderBrush="#33000000">
                             <Button.Background>
@@ -123,7 +123,7 @@
                                VerticalAlignment="Center" FontWeight="Bold" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                         <TextBox Text="{Binding ResultConf.BackgroundColor}"
-                                 Watermark="#CC000000"
+                                 PlaceholderText="#CC000000"
                                  Width="120" VerticalAlignment="Center"/>
                         <Button Width="35" Height="35" CornerRadius="20" BorderThickness="1" BorderBrush="#33000000">
                             <Button.Background>
@@ -149,7 +149,7 @@
                                VerticalAlignment="Center" FontWeight="Bold" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                         <TextBox Text="{Binding ResultConf.WindowBackgroundColor}"
-                                 Watermark="#00000000"
+                                 PlaceholderText="#00000000"
                                  Width="120" VerticalAlignment="Center"/>
                         <Button Width="35" Height="35" CornerRadius="20" BorderThickness="1" BorderBrush="#33000000">
                             <Button.Background>

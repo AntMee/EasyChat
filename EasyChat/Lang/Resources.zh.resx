@@ -714,7 +714,7 @@
     <data name="SelectionTranslate_SourceLabel" xml:space="preserve">
         <value>原文</value>
     </data>
-    <data name="SelectionTranslate_SourceWatermark" xml:space="preserve">
+    <data name="SelectionTranslate_SourcePlaceholderText" xml:space="preserve">
         <value>选中的文字将显示在这里...</value>
     </data>
     <data name="SelectionTranslate_ResultLabel" xml:space="preserve">
@@ -847,7 +847,7 @@
   <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
-  <data name="TextAssistInputWatermark" xml:space="preserve"><value>输入文本...</value></data>
+  <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
   <data name="TextAssistIssues" xml:space="preserve"><value>错误与修改建议</value></data>
@@ -873,6 +873,13 @@
     <data name="OcrModels" xml:space="preserve"><value>OCR 模型</value></data>
     <data name="OcrUseProxy" xml:space="preserve"><value>下载模型时使用代理</value></data>
     <data name="DownloadOcrModels" xml:space="preserve"><value>下载 OCR 模型</value></data>
+    <data name="DownloadOcrModel" xml:space="preserve"><value>下载</value></data>
+    <data name="RetryOcrModel" xml:space="preserve"><value>重试</value></data>
+    <data name="OcrModelDownloaded" xml:space="preserve"><value>已下载</value></data>
+    <data name="OcrModelDownloading" xml:space="preserve"><value>下载中</value></data>
+    <data name="OcrModelNotDownloaded" xml:space="preserve"><value>未下载</value></data>
+    <data name="ShowMoreOcrModels" xml:space="preserve"><value>显示更多 OCR 模型</value></data>
+    <data name="ShowLessOcrModels" xml:space="preserve"><value>收起 OCR 模型</value></data>
     <data name="OcrModelRequiredTitle" xml:space="preserve"><value>需要 OCR 模型</value></data>
     <data name="OcrModelRequiredMessage" xml:space="preserve"><value>请先在设置中下载 OCR 模型包，再使用截图 OCR。</value></data>
     <data name="OcrModelDownloadTitle" xml:space="preserve"><value>OCR 模型</value></data>

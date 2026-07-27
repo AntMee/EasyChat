@@ -11,60 +11,127 @@
              xmlns:dataConverters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
-    <suki:GlassCard>
-        <StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                           Text="{x:Static lang:Resources.Language}" />
-                <ComboBox ItemsSource="{Binding Languages}"
-                          SelectedItem="{Binding SelectedLanguage}"
-                          MinWidth="150">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14"
-                                        IsVisible="{Binding Icon, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}">
-                                    <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
-                                           Stretch="UniformToFill" />
-                                </Border>
-                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource SukiText}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
+    <StackPanel Spacing="12">
+        <suki:GlassCard>
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
+                    <TextBlock FontWeight="Bold" VerticalAlignment="Center"
+                               Text="{x:Static lang:Resources.Language}" />
+                    <ComboBox ItemsSource="{Binding Languages}"
+                              SelectedItem="{Binding SelectedLanguage}"
+                              MinWidth="150">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14"
+                                            IsVisible="{Binding Icon, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}">
+                                        <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
+                                               Stretch="UniformToFill" />
+                                    </Border>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource SukiText}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
+                    <TextBlock FontWeight="Bold" VerticalAlignment="Center"
+                               Text="{x:Static lang:Resources.ClosingBehavior}" />
+                    <ComboBox ItemsSource="{Binding ClosingBehaviors}"
+                              SelectedItem="{Binding SelectedClosingBehavior}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={x:Static converts:EnumToDescriptionConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                           Text="{x:Static lang:Resources.ClosingBehavior}" />
-                <ComboBox ItemsSource="{Binding ClosingBehaviors}"
-                          SelectedItem="{Binding SelectedClosingBehavior}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Converter={x:Static converts:EnumToDescriptionConverter.Instance}}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
-            <!-- Translation settings moved to HomeView -->
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                           Text="{x:Static lang:Resources.ProxyUrl}" />
-                <TextBox MinWidth="300"
-                         Text="{Binding ProxyConf.ProxyUrl}"
-                         Watermark="{x:Static lang:Resources.ProxyAddrQuestion}" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="16" Margin="0 5 0 5">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
+        </suki:GlassCard>
+
+        <suki:GlassCard>
+            <StackPanel Spacing="10">
+                <TextBlock FontSize="16" FontWeight="Bold"
                            Text="{x:Static lang:Resources.OcrModels}" />
-                <CheckBox Content="{x:Static lang:Resources.OcrUseProxy}"
-                          IsChecked="{Binding OcrConf.UseProxy}" />
-                <Button Content="{x:Static lang:Resources.DownloadOcrModels}"
-                        Command="{Binding DownloadOcrModelsCommand}" />
-                <ProgressBar Width="90" Height="4" IsIndeterminate="True"
-                             IsVisible="{Binding IsDownloadingOcrModels}"
-                             VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                    <TextBlock VerticalAlignment="Center" Text="{x:Static lang:Resources.ProxyUrl}" />
+                    <TextBox MinWidth="300"
+                             Text="{Binding ProxyConf.ProxyUrl}"
+                             PlaceholderText="{x:Static lang:Resources.ProxyAddrQuestion}" />
+                    <CheckBox Content="{x:Static lang:Resources.OcrUseProxy}"
+                              IsChecked="{Binding OcrConf.UseProxy}"
+                              VerticalAlignment="Center" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding VisibleOcrModelItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="viewModels:OcrModelDownloadItemViewModel">
+                            <Border Background="{DynamicResource SukiCardBackground}"
+                                    BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    Margin="0 3">
+                                <Grid ColumnDefinitions="2*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                    <StackPanel Grid.Column="0" Spacing="4">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Foreground="{DynamicResource SukiLowText}"
+                                                       Text="{Binding StatusText}" />
+                                            <TextBlock Foreground="{DynamicResource SukiLowText}"
+                                                       Text="{Binding ProgressText}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                        <Button Width="32" Height="32" Padding="6"
+                                                Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DownloadOcrModelCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="{Binding ActionText}"
+                                                IsVisible="{Binding IsActionVisible}">
+                                            <avalonia:MaterialIcon Kind="Download" />
+                                        </Button>
+                                        <Button Width="32" Height="32" Padding="6"
+                                                Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).CancelOcrModelCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="{x:Static lang:Resources.Cancel}"
+                                                IsVisible="{Binding IsCancelVisible}">
+                                            <avalonia:MaterialIcon Kind="Cancel" />
+                                        </Button>
+                                        <Button Width="32" Height="32" Padding="6"
+                                                Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DeleteOcrModelCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="{x:Static lang:Resources.Delete}"
+                                                IsVisible="{Binding IsDeleteVisible}">
+                                            <avalonia:MaterialIcon Kind="Delete" />
+                                        </Button>
+                                    </StackPanel>
+                                    <ProgressBar Grid.Row="1" Grid.ColumnSpan="2"
+                                                 Minimum="0" Maximum="1"
+                                                 Value="{Binding Progress}"
+                                                 Height="6"
+                                                 IsVisible="{Binding IsProgressVisible}"
+                                                 IsIndeterminate="{Binding IsProgressIndeterminate}"
+                                                 Margin="0 8 0 0" />
+                                    <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
+                                               Foreground="{DynamicResource SukiLowText}"
+                                               Text="{Binding ErrorMessage}"
+                                               IsVisible="{Binding IsFailed}"
+                                               TextWrapping="Wrap"
+                                               Margin="0 6 0 0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button HorizontalAlignment="Center"
+                        Width="32" Height="32" Padding="6"
+                        Command="{Binding ToggleOcrModelListCommand}"
+                        ToolTip.Tip="{Binding OcrModelListToggleText}"
+                        IsVisible="{Binding IsOcrModelListToggleVisible}">
+                    <avalonia:MaterialIcon Kind="{Binding OcrModelListToggleIcon}" />
+                </Button>
             </StackPanel>
-        </StackPanel>
-    </suki:GlassCard>
+        </suki:GlassCard>
+    </StackPanel>
 </UserControl>

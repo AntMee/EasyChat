@@ -45,6 +45,8 @@ public class SettingViewModel : Page
     private readonly ITtsService _ttsService;
     private readonly IAudioPlayer _audioPlayer;
     private readonly IOcrService _ocrService;
+    private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _ocrDownloadCancellation = new();
+    private bool _isOcrModelListExpanded;
 
     public SettingViewModel(ISukiDialogManager dialogManager, ISukiToastManager toastManager, IConfigurationService configurationService, ITtsService ttsService, IAudioPlayer audioPlayer, IOcrService ocrService) : base(
         Resources.Settings, MaterialIconKind.Settings, 1)
@@ -55,6 +57,13 @@ public class SettingViewModel : Page
         _ttsService = ttsService;
         _audioPlayer = audioPlayer;
         _ocrService = ocrService;
+        var paddleOcrService = _ocrService as PaddleOcrService;
+        OcrModelItems = new ObservableCollection<OcrModelDownloadItemViewModel>(
+            _ocrService.SupportedLanguages.Select(language =>
+                new OcrModelDownloadItemViewModel(
+                    language,
+                    paddleOcrService is null || paddleOcrService.IsModelDownloaded(language),
+                    paddleOcrService?.CanDeleteModels == true)));
         // Initialize ConfiguredModels wrapper
         RefreshConfiguredModels();
 
@@ -159,7 +168,10 @@ public class SettingViewModel : Page
 
         ManageFixedAreasCommand = ReactiveCommand.Create(ManageFixedAreas);
         ConfigureTtsCommand = ReactiveCommand.Create(ConfigureTts);
-        DownloadOcrModelsCommand = ReactiveCommand.CreateFromTask(DownloadOcrModels);
+        DownloadOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(StartDownloadOcrModel);
+        CancelOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(CancelOcrModel);
+        DeleteOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(DeleteOcrModel);
+        ToggleOcrModelListCommand = ReactiveCommand.Create(ToggleOcrModelList);
         
         // Initialize TTS Provider list
         if (_ttsService is TtsManager manager)
@@ -386,6 +398,31 @@ public class SettingViewModel : Page
 
     public OcrConfig? OcrConf => _configurationService.Ocr;
 
+    public ObservableCollection<OcrModelDownloadItemViewModel> OcrModelItems { get; }
+
+    public IEnumerable<OcrModelDownloadItemViewModel> VisibleOcrModelItems =>
+        IsOcrModelListExpanded ? OcrModelItems : OcrModelItems.Take(3);
+
+    public bool IsOcrModelListExpanded
+    {
+        get => _isOcrModelListExpanded;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isOcrModelListExpanded, value);
+            this.RaisePropertyChanged(nameof(VisibleOcrModelItems));
+            this.RaisePropertyChanged(nameof(OcrModelListToggleIcon));
+            this.RaisePropertyChanged(nameof(OcrModelListToggleText));
+        }
+    }
+
+    public MaterialIconKind OcrModelListToggleIcon =>
+        IsOcrModelListExpanded ? MaterialIconKind.ExpandLess : MaterialIconKind.ExpandMore;
+
+    public bool IsOcrModelListToggleVisible => OcrModelItems.Count > 3;
+
+    public string OcrModelListToggleText =>
+        IsOcrModelListExpanded ? Resources.ShowLessOcrModels : Resources.ShowMoreOcrModels;
+
     public ResultConfig? ResultConf => _configurationService.Result;
     
     public InputConfig? InputConf => _configurationService.Input;
@@ -415,14 +452,10 @@ public class SettingViewModel : Page
 
     public ReactiveCommand<Unit, Unit> ManageFixedAreasCommand { get; }
     public ReactiveCommand<Unit, Unit> ConfigureTtsCommand { get; }
-    public ReactiveCommand<Unit, Unit> DownloadOcrModelsCommand { get; }
-
-    private bool _isDownloadingOcrModels;
-    public bool IsDownloadingOcrModels
-    {
-        get => _isDownloadingOcrModels;
-        private set => this.RaiseAndSetIfChanged(ref _isDownloadingOcrModels, value);
-    }
+    public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DownloadOcrModelCommand { get; }
+    public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> CancelOcrModelCommand { get; }
+    public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DeleteOcrModelCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleOcrModelListCommand { get; }
 
     private void ConfigureTts()
     {
@@ -440,37 +473,79 @@ public class SettingViewModel : Page
             .TryShow();
     }
 
-    private async Task DownloadOcrModels()
+    private void StartDownloadOcrModel(OcrModelDownloadItemViewModel item)
     {
-        if (IsDownloadingOcrModels || _ocrService is not PaddleOcrService paddleOcrService || OcrConf == null)
+        _ = DownloadOcrModel(item);
+    }
+
+    private async Task DownloadOcrModel(OcrModelDownloadItemViewModel item)
+    {
+        if (item.IsDownloading || item.IsDownloaded || _ocrService is not PaddleOcrService paddleOcrService || OcrConf == null)
             return;
 
-        IsDownloadingOcrModels = true;
+        using var cancellation = new CancellationTokenSource();
+        lock (_ocrDownloadCancellation)
+        {
+            if (_ocrDownloadCancellation.ContainsKey(item))
+                return;
+            _ocrDownloadCancellation[item] = cancellation;
+        }
+
+        item.StartDownload();
         try
         {
-            await paddleOcrService.DownloadModelsAsync(
+            var progress = new Progress<double>(item.SetProgress);
+            await paddleOcrService.DownloadModelAsync(
+                item.Language,
                 ProxyConf?.ProxyUrl,
-                OcrConf.UseProxy);
-
-            _toastManager.CreateSimpleInfoToast()
-                .OfType(NotificationType.Success)
-                .WithTitle(Resources.OcrModelDownloadTitle)
-                .WithContent(Resources.OcrModelDownloadCompleted)
-                .Queue();
+                OcrConf.UseProxy,
+                progress,
+                cancellation.Token);
+            item.CompleteDownload();
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            item.CancelDownload();
         }
         catch (Exception ex)
         {
-            _toastManager.CreateSimpleInfoToast()
-                .OfType(NotificationType.Error)
-                .WithTitle(Resources.OcrModelDownloadFailed)
-                .WithContent(ex.Message)
-                .Queue();
+            item.FailDownload(ex.Message);
         }
         finally
         {
-            IsDownloadingOcrModels = false;
+            lock (_ocrDownloadCancellation)
+            {
+                _ocrDownloadCancellation.Remove(item);
+            }
         }
     }
+
+    private void CancelOcrModel(OcrModelDownloadItemViewModel item)
+    {
+        lock (_ocrDownloadCancellation)
+        {
+            if (_ocrDownloadCancellation.TryGetValue(item, out var cancellation))
+                cancellation.Cancel();
+        }
+    }
+
+    private void DeleteOcrModel(OcrModelDownloadItemViewModel item)
+    {
+        if (!item.IsDownloaded || _ocrService is not PaddleOcrService paddleOcrService)
+            return;
+
+        try
+        {
+            paddleOcrService.DeleteModel(item.Language);
+            item.MarkDeleted();
+        }
+        catch (Exception ex)
+        {
+            item.FailDownload(ex.Message);
+        }
+    }
+
+    private void ToggleOcrModelList() => IsOcrModelListExpanded = !IsOcrModelListExpanded;
 
     private void ManageFixedAreas()
     {

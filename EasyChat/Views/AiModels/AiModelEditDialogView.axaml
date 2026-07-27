@@ -39,7 +39,7 @@
         <StackPanel Spacing="8">
             <TextBlock Text="{x:Static lang:Resources.ModelName}" FontWeight="SemiBold" />
             <TextBox Text="{Binding Name}"
-                     Watermark="{x:Static lang:Resources.ModelName}"
+                     PlaceholderText="{x:Static lang:Resources.ModelName}"
                      suki:TextBoxExtensions.AddDeleteButton="True" />
         </StackPanel>
 
@@ -47,7 +47,7 @@
         <StackPanel Spacing="8">
             <TextBlock Text="API URL" FontWeight="SemiBold" />
             <TextBox Text="{Binding ApiUrl}"
-                     Watermark="https://api.example.com"
+                     PlaceholderText="https://api.example.com"
                      suki:TextBoxExtensions.AddDeleteButton="True" />
         </StackPanel>
 
@@ -55,7 +55,7 @@
         <StackPanel Spacing="8">
             <TextBlock Text="API Key" FontWeight="SemiBold" />
             <TextBox Text="{Binding ApiKey}"
-                     Watermark="sk-..."
+                     PlaceholderText="sk-..."
                      PasswordChar="*"
                      suki:TextBoxExtensions.AddDeleteButton="True" />
         </StackPanel>

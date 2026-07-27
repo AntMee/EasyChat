@@ -18,7 +18,7 @@
                     <Grid MinHeight="170">
                         <TextBox x:Name="AnnotatedTextBox" Text="{Binding InputText, Mode=TwoWay}"
                                  AcceptsReturn="True" TextWrapping="Wrap" MinHeight="170" Padding="12"
-                                 Watermark="{x:Static lang:Resources.TextAssistInputWatermark}"
+                                 PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
                                  VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent"
                                  PointerMoved="OnOriginalPointerMoved"
                                  PointerExited="OnOriginalPointerExited" />

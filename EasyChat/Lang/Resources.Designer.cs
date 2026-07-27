@@ -114,6 +114,24 @@ namespace EasyChat.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Quick correct.
+        /// </summary>
+        public static string Action_QuickCorrect {
+            get {
+                return ResourceManager.GetString("Action_QuickCorrect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Quick translate.
+        /// </summary>
+        public static string Action_QuickTranslate {
+            get {
+                return ResourceManager.GetString("Action_QuickTranslate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Screenshot Translate.
         /// </summary>
         public static string Action_ScreenshotTranslate {
@@ -227,6 +245,15 @@ namespace EasyChat.Lang {
         public static string AddPrompt {
             get {
                 return ResourceManager.GetString("AddPrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add text assist shortcut.
+        /// </summary>
+        public static string AddTextAssistShortcut {
+            get {
+                return ResourceManager.GetString("AddTextAssistShortcut", resourceCulture);
             }
         }
         
@@ -634,6 +661,24 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("Dismiss", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Download.
+        /// </summary>
+        public static string DownloadOcrModel {
+            get {
+                return ResourceManager.GetString("DownloadOcrModel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Download OCR models.
+        /// </summary>
+        public static string DownloadOcrModels {
+            get {
+                return ResourceManager.GetString("DownloadOcrModels", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Edit.
@@ -699,6 +744,15 @@ namespace EasyChat.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Enable thinking.
+        /// </summary>
+        public static string EnableThinking {
+            get {
+                return ResourceManager.GetString("EnableThinking", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enable System Tray.
         /// </summary>
         public static string EnableTray {
@@ -722,6 +776,33 @@ namespace EasyChat.Lang {
         public static string ExitApp {
             get {
                 return ResourceManager.GetString("ExitApp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fetching....
+        /// </summary>
+        public static string FetchingModels {
+            get {
+                return ResourceManager.GetString("FetchingModels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fetch models.
+        /// </summary>
+        public static string FetchModels {
+            get {
+                return ResourceManager.GetString("FetchModels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to fetch models: {0}.
+        /// </summary>
+        public static string FetchModelsFailed {
+            get {
+                return ResourceManager.GetString("FetchModelsFailed", resourceCulture);
             }
         }
         
@@ -823,53 +904,6 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("FontColor", resourceCulture);
             }
         }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Read Aloud.
-        /// </summary>
-        public static string ReadAloudMode {
-            get {
-                return ResourceManager.GetString("ReadAloudMode", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Bilingual.
-        /// </summary>
-        public static string ReadAloudMode_Both {
-            get {
-                return ResourceManager.GetString("ReadAloudMode_Both", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to None.
-        /// </summary>
-        public static string ReadAloudMode_None {
-            get {
-                return ResourceManager.GetString("ReadAloudMode_None", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Original Text.
-        /// </summary>
-        public static string ReadAloudMode_Source {
-            get {
-                return ResourceManager.GetString("ReadAloudMode_Source", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Translated Text.
-        /// </summary>
-        public static string ReadAloudMode_Target {
-            get {
-                return ResourceManager.GetString("ReadAloudMode_Target", resourceCulture);
-            }
-        }
-        
-
         
         /// <summary>
         ///   Looks up a localized string similar to Font Family.
@@ -1115,6 +1149,15 @@ namespace EasyChat.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to API URL is required..
+        /// </summary>
+        public static string ModelApiUrlRequired {
+            get {
+                return ResourceManager.GetString("ModelApiUrlRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Model Name.
         /// </summary>
         public static string ModelName {
@@ -1178,6 +1221,15 @@ namespace EasyChat.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No models were returned by this provider..
+        /// </summary>
+        public static string NoModelsFound {
+            get {
+                return ResourceManager.GetString("NoModelsFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not Set.
         /// </summary>
         public static string NotSet {
@@ -1192,6 +1244,123 @@ namespace EasyChat.Lang {
         public static string OcrKey {
             get {
                 return ResourceManager.GetString("OcrKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OCR models downloaded successfully..
+        /// </summary>
+        public static string OcrModelDownloadCompleted {
+            get {
+                return ResourceManager.GetString("OcrModelDownloadCompleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OCR model download failed.
+        /// </summary>
+        public static string OcrModelDownloadFailed {
+            get {
+                return ResourceManager.GetString("OcrModelDownloadFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Downloaded.
+        /// </summary>
+        public static string OcrModelDownloaded {
+            get {
+                return ResourceManager.GetString("OcrModelDownloaded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Downloading.
+        /// </summary>
+        public static string OcrModelDownloading {
+            get {
+                return ResourceManager.GetString("OcrModelDownloading", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Not downloaded.
+        /// </summary>
+        public static string OcrModelNotDownloaded {
+            get {
+                return ResourceManager.GetString("OcrModelNotDownloaded", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show fewer OCR models.
+        /// </summary>
+        public static string ShowLessOcrModels {
+            get {
+                return ResourceManager.GetString("ShowLessOcrModels", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show more OCR models.
+        /// </summary>
+        public static string ShowMoreOcrModels {
+            get {
+                return ResourceManager.GetString("ShowMoreOcrModels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OCR models.
+        /// </summary>
+        public static string OcrModelDownloadTitle {
+            get {
+                return ResourceManager.GetString("OcrModelDownloadTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please download the OCR model package in Settings before using screenshot OCR..
+        /// </summary>
+        public static string OcrModelRequiredMessage {
+            get {
+                return ResourceManager.GetString("OcrModelRequiredMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OCR model required.
+        /// </summary>
+        public static string OcrModelRequiredTitle {
+            get {
+                return ResourceManager.GetString("OcrModelRequiredTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OCR models.
+        /// </summary>
+        public static string OcrModels {
+            get {
+                return ResourceManager.GetString("OcrModels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use proxy for model download.
+        /// </summary>
+        public static string OcrUseProxy {
+            get {
+                return ResourceManager.GetString("OcrUseProxy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Retry.
+        /// </summary>
+        public static string RetryOcrModel {
+            get {
+                return ResourceManager.GetString("RetryOcrModel", resourceCulture);
             }
         }
         
@@ -1376,6 +1545,60 @@ namespace EasyChat.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Read Aloud.
+        /// </summary>
+        public static string ReadAloudMode {
+            get {
+                return ResourceManager.GetString("ReadAloudMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bilingual.
+        /// </summary>
+        public static string ReadAloudMode_Both {
+            get {
+                return ResourceManager.GetString("ReadAloudMode_Both", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to None.
+        /// </summary>
+        public static string ReadAloudMode_None {
+            get {
+                return ResourceManager.GetString("ReadAloudMode_None", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Original Text.
+        /// </summary>
+        public static string ReadAloudMode_Source {
+            get {
+                return ResourceManager.GetString("ReadAloudMode_Source", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Translated Text.
+        /// </summary>
+        public static string ReadAloudMode_Target {
+            get {
+                return ResourceManager.GetString("ReadAloudMode_Target", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read selected text.
+        /// </summary>
+        public static string ReadSelectedText {
+            get {
+                return ResourceManager.GetString("ReadSelectedText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Press a key combination....
         /// </summary>
         public static string RecordingShortcut {
@@ -1471,6 +1694,51 @@ namespace EasyChat.Lang {
         public static string ResultSettings {
             get {
                 return ResourceManager.GetString("ResultSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Result Window Mode.
+        /// </summary>
+        public static string ResultWindowMode {
+            get {
+                return ResourceManager.GetString("ResultWindowMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Classic.
+        /// </summary>
+        public static string ResultWindowMode_Classic {
+            get {
+                return ResourceManager.GetString("ResultWindowMode_Classic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dictionary.
+        /// </summary>
+        public static string ResultWindowMode_Dictionary {
+            get {
+                return ResourceManager.GetString("ResultWindowMode_Dictionary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reverse Language.
+        /// </summary>
+        public static string ReverseTranslateLanguage {
+            get {
+                return ResourceManager.GetString("ReverseTranslateLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Swap source and target languages for input translation..
+        /// </summary>
+        public static string ReverseTranslateLanguageTip {
+            get {
+                return ResourceManager.GetString("ReverseTranslateLanguageTip", resourceCulture);
             }
         }
         
@@ -1612,9 +1880,9 @@ namespace EasyChat.Lang {
         /// <summary>
         ///   Looks up a localized string similar to Selected text will appear here....
         /// </summary>
-        public static string SelectionTranslate_SourceWatermark {
+        public static string SelectionTranslate_SourcePlaceholderText {
             get {
-                return ResourceManager.GetString("SelectionTranslate_SourceWatermark", resourceCulture);
+                return ResourceManager.GetString("SelectionTranslate_SourcePlaceholderText", resourceCulture);
             }
         }
         
@@ -1644,7 +1912,7 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("SelectionTranslation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selection Method.
         /// </summary>
@@ -1653,7 +1921,7 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("SelectionTriggerMode", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All.
         /// </summary>
@@ -1662,7 +1930,7 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("SelectionTriggerModeAll", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Double Click.
         /// </summary>
@@ -1671,67 +1939,13 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("SelectionTriggerModeDoubleClick", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Drag Selection.
         /// </summary>
         public static string SelectionTriggerModeDragSelection {
             get {
                 return ResourceManager.GetString("SelectionTriggerModeDragSelection", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Restore Default.
-        /// </summary>
-        public static string RestoreDefault {
-            get {
-                return ResourceManager.GetString("RestoreDefault", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Reverse Language.
-        /// </summary>
-        public static string ReverseTranslateLanguage {
-            get {
-                return ResourceManager.GetString("ReverseTranslateLanguage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Swap source and target languages for input translation..
-        /// </summary>
-        public static string ReverseTranslateLanguageTip {
-            get {
-                return ResourceManager.GetString("ReverseTranslateLanguageTip", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Result Window Mode.
-        /// </summary>
-        public static string ResultWindowMode {
-            get {
-                return ResourceManager.GetString("ResultWindowMode", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Classic.
-        /// </summary>
-        public static string ResultWindowMode_Classic {
-            get {
-                return ResourceManager.GetString("ResultWindowMode_Classic", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Dictionary.
-        /// </summary>
-        public static string ResultWindowMode_Dictionary {
-            get {
-                return ResourceManager.GetString("ResultWindowMode_Dictionary", resourceCulture);
             }
         }
         
@@ -1786,6 +2000,24 @@ namespace EasyChat.Lang {
         public static string Speech_AudioSource {
             get {
                 return ResourceManager.GetString("Speech_AudioSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Auto Clear (Seconds).
+        /// </summary>
+        public static string Speech_AutoClear {
+            get {
+                return ResourceManager.GetString("Speech_AutoClear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear History.
+        /// </summary>
+        public static string Speech_ClearHistory {
+            get {
+                return ResourceManager.GetString("Speech_ClearHistory", resourceCulture);
             }
         }
         
@@ -1934,6 +2166,15 @@ namespace EasyChat.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Translating....
+        /// </summary>
+        public static string Speech_Translating {
+            get {
+                return ResourceManager.GetString("Speech_Translating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Subtitle BG.
         /// </summary>
         public static string Subtitle_Background {
@@ -2047,6 +2288,231 @@ namespace EasyChat.Lang {
         public static string Testing {
             get {
                 return ResourceManager.GetString("Testing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Translate / Correct.
+        /// </summary>
+        public static string TextAssist {
+            get {
+                return ResourceManager.GetString("TextAssist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Issues in the original text.
+        /// </summary>
+        public static string TextAssistAnnotatedOriginal {
+            get {
+                return ResourceManager.GetString("TextAssistAnnotatedOriginal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Collocation.
+        /// </summary>
+        public static string TextAssistAnnotationCollocation {
+            get {
+                return ResourceManager.GetString("TextAssistAnnotationCollocation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key word.
+        /// </summary>
+        public static string TextAssistAnnotationImportantWord {
+            get {
+                return ResourceManager.GetString("TextAssistAnnotationImportantWord", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detailed notes.
+        /// </summary>
+        public static string TextAssistAnnotations {
+            get {
+                return ResourceManager.GetString("TextAssistAnnotations", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Uncommon word.
+        /// </summary>
+        public static string TextAssistAnnotationUncommonWord {
+            get {
+                return ResourceManager.GetString("TextAssistAnnotationUncommonWord", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Usage tip.
+        /// </summary>
+        public static string TextAssistAnnotationUsageTip {
+            get {
+                return ResourceManager.GetString("TextAssistAnnotationUsageTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Grammar.
+        /// </summary>
+        public static string TextAssistCategoryGrammar {
+            get {
+                return ResourceManager.GetString("TextAssistCategoryGrammar", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Spelling.
+        /// </summary>
+        public static string TextAssistCategorySpelling {
+            get {
+                return ResourceManager.GetString("TextAssistCategorySpelling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Style.
+        /// </summary>
+        public static string TextAssistCategoryStyle {
+            get {
+                return ResourceManager.GetString("TextAssistCategoryStyle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Word choice.
+        /// </summary>
+        public static string TextAssistCategoryWordChoice {
+            get {
+                return ResourceManager.GetString("TextAssistCategoryWordChoice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Correct.
+        /// </summary>
+        public static string TextAssistCorrect {
+            get {
+                return ResourceManager.GetString("TextAssistCorrect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Corrected result.
+        /// </summary>
+        public static string TextAssistCorrectedResult {
+            get {
+                return ResourceManager.GetString("TextAssistCorrectedResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detailed notes.
+        /// </summary>
+        public static string TextAssistDetailedExplanation {
+            get {
+                return ResourceManager.GetString("TextAssistDetailedExplanation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show meanings, collocations, key words, uncommon words, and usage tips. Available with AI translation..
+        /// </summary>
+        public static string TextAssistDetailedExplanationTip {
+            get {
+                return ResourceManager.GetString("TextAssistDetailedExplanationTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Follow global settings.
+        /// </summary>
+        public static string TextAssistFollowGlobal {
+            get {
+                return ResourceManager.GetString("TextAssistFollowGlobal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter text....
+        /// </summary>
+        public static string TextAssistInputPlaceholderText {
+            get {
+                return ResourceManager.GetString("TextAssistInputPlaceholderText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Issues and suggestions.
+        /// </summary>
+        public static string TextAssistIssues {
+            get {
+                return ResourceManager.GetString("TextAssistIssues", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No AI model is configured. Add an AI model in Settings..
+        /// </summary>
+        public static string TextAssistNoAiModel {
+            get {
+                return ResourceManager.GetString("TextAssistNoAiModel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No voice is available for this language..
+        /// </summary>
+        public static string TextAssistNoVoice {
+            get {
+                return ResourceManager.GetString("TextAssistNoVoice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Related.
+        /// </summary>
+        public static string TextAssistRelatedTerms {
+            get {
+                return ResourceManager.GetString("TextAssistRelatedTerms", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run.
+        /// </summary>
+        public static string TextAssistRun {
+            get {
+                return ResourceManager.GetString("TextAssistRun", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Text assist shortcuts.
+        /// </summary>
+        public static string TextAssistShortcuts {
+            get {
+                return ResourceManager.GetString("TextAssistShortcuts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Translate naturally or polish your writing with streaming feedback..
+        /// </summary>
+        public static string TextAssistSubtitle {
+            get {
+                return ResourceManager.GetString("TextAssistSubtitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Translate.
+        /// </summary>
+        public static string TextAssistTranslate {
+            get {
+                return ResourceManager.GetString("TextAssistTranslate", resourceCulture);
             }
         }
         
@@ -2173,6 +2639,15 @@ namespace EasyChat.Lang {
         public static string Translation {
             get {
                 return ResourceManager.GetString("Translation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AI models provide higher quality translations with support for phonetics, examples, and hints, but may be slower. Machine translation is faster but offers lower quality and lacks these features..
+        /// </summary>
+        public static string TranslationEngineInfo {
+            get {
+                return ResourceManager.GetString("TranslationEngineInfo", resourceCulture);
             }
         }
         
@@ -2330,6 +2805,15 @@ namespace EasyChat.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to When enabled, source and target languages will sync with global configuration..
+        /// </summary>
+        public static string TypingFollowConfigTooltip {
+            get {
+                return ResourceManager.GetString("TypingFollowConfigTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Typing to translate.
         /// </summary>
         public static string TypingViewTitle {
@@ -2381,35 +2865,6 @@ namespace EasyChat.Lang {
             get {
                 return ResourceManager.GetString("UseProxy", resourceCulture);
             }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Enable thinking.
-        /// </summary>
-        public static string EnableThinking {
-            get {
-                return ResourceManager.GetString("EnableThinking", resourceCulture);
-            }
-        }
-
-        public static string FetchModels {
-            get { return ResourceManager.GetString("FetchModels", resourceCulture); }
-        }
-
-        public static string FetchingModels {
-            get { return ResourceManager.GetString("FetchingModels", resourceCulture); }
-        }
-
-        public static string ModelApiUrlRequired {
-            get { return ResourceManager.GetString("ModelApiUrlRequired", resourceCulture); }
-        }
-
-        public static string NoModelsFound {
-            get { return ResourceManager.GetString("NoModelsFound", resourceCulture); }
-        }
-
-        public static string FetchModelsFailed {
-            get { return ResourceManager.GetString("FetchModelsFailed", resourceCulture); }
         }
         
         /// <summary>
@@ -2483,84 +2938,5 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("WindowBackgroundColor", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to AI models provide higher quality translations....
-        /// </summary>
-        public static string TranslationEngineInfo {
-            get {
-                return ResourceManager.GetString("TranslationEngineInfo", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Auto Clear (Seconds).
-        /// </summary>
-        public static string Speech_AutoClear {
-            get {
-                return ResourceManager.GetString("Speech_AutoClear", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Clear History.
-        /// </summary>
-        public static string Speech_ClearHistory {
-            get {
-                return ResourceManager.GetString("Speech_ClearHistory", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Translating....
-        /// </summary>
-        public static string Speech_Translating {
-            get {
-                return ResourceManager.GetString("Speech_Translating", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to When enabled, source and target languages will sync with global configuration..
-        /// </summary>
-        public static string TypingFollowConfigTooltip {
-            get {
-                return ResourceManager.GetString("TypingFollowConfigTooltip", resourceCulture);
-            }
-        }
-        public static string TextAssist => ResourceManager.GetString("TextAssist", resourceCulture);
-        public static string TextAssistSubtitle => ResourceManager.GetString("TextAssistSubtitle", resourceCulture);
-        public static string TextAssistTranslate => ResourceManager.GetString("TextAssistTranslate", resourceCulture);
-        public static string TextAssistCorrect => ResourceManager.GetString("TextAssistCorrect", resourceCulture);
-        public static string TextAssistNoAiModel => ResourceManager.GetString("TextAssistNoAiModel", resourceCulture);
-        public static string TextAssistNoVoice => ResourceManager.GetString("TextAssistNoVoice", resourceCulture);
-        public static string TextAssistInputWatermark => ResourceManager.GetString("TextAssistInputWatermark", resourceCulture);
-        public static string TextAssistFollowGlobal => ResourceManager.GetString("TextAssistFollowGlobal", resourceCulture);
-        public static string TextAssistRun => ResourceManager.GetString("TextAssistRun", resourceCulture);
-        public static string TextAssistIssues => ResourceManager.GetString("TextAssistIssues", resourceCulture);
-        public static string TextAssistCorrectedResult => ResourceManager.GetString("TextAssistCorrectedResult", resourceCulture);
-        public static string TextAssistAnnotatedOriginal => ResourceManager.GetString("TextAssistAnnotatedOriginal", resourceCulture);
-        public static string TextAssistShortcuts => ResourceManager.GetString("TextAssistShortcuts", resourceCulture);
-        public static string AddTextAssistShortcut => ResourceManager.GetString("AddTextAssistShortcut", resourceCulture);
-        public static string TextAssistCategoryGrammar => ResourceManager.GetString("TextAssistCategoryGrammar", resourceCulture);
-        public static string TextAssistCategorySpelling => ResourceManager.GetString("TextAssistCategorySpelling", resourceCulture);
-        public static string TextAssistCategoryWordChoice => ResourceManager.GetString("TextAssistCategoryWordChoice", resourceCulture);
-        public static string TextAssistCategoryStyle => ResourceManager.GetString("TextAssistCategoryStyle", resourceCulture);
-        public static string TextAssistDetailedExplanation => ResourceManager.GetString("TextAssistDetailedExplanation", resourceCulture);
-        public static string TextAssistDetailedExplanationTip => ResourceManager.GetString("TextAssistDetailedExplanationTip", resourceCulture);
-        public static string TextAssistAnnotations => ResourceManager.GetString("TextAssistAnnotations", resourceCulture);
-        public static string TextAssistAnnotationImportantWord => ResourceManager.GetString("TextAssistAnnotationImportantWord", resourceCulture);
-        public static string TextAssistAnnotationUncommonWord => ResourceManager.GetString("TextAssistAnnotationUncommonWord", resourceCulture);
-        public static string TextAssistAnnotationCollocation => ResourceManager.GetString("TextAssistAnnotationCollocation", resourceCulture);
-        public static string TextAssistAnnotationUsageTip => ResourceManager.GetString("TextAssistAnnotationUsageTip", resourceCulture);
-        public static string TextAssistRelatedTerms => ResourceManager.GetString("TextAssistRelatedTerms", resourceCulture);
-        public static string Action_QuickTranslate => ResourceManager.GetString("Action_QuickTranslate", resourceCulture);
-        public static string Action_QuickCorrect => ResourceManager.GetString("Action_QuickCorrect", resourceCulture);
-        public static string ReadSelectedText => ResourceManager.GetString("ReadSelectedText", resourceCulture);
-        public static string OcrModels => ResourceManager.GetString("OcrModels", resourceCulture);
-        public static string OcrUseProxy => ResourceManager.GetString("OcrUseProxy", resourceCulture);
-        public static string DownloadOcrModels => ResourceManager.GetString("DownloadOcrModels", resourceCulture);
-        public static string OcrModelRequiredTitle => ResourceManager.GetString("OcrModelRequiredTitle", resourceCulture);
-        public static string OcrModelRequiredMessage => ResourceManager.GetString("OcrModelRequiredMessage", resourceCulture);
-        public static string OcrModelDownloadTitle => ResourceManager.GetString("OcrModelDownloadTitle", resourceCulture);
-        public static string OcrModelDownloadCompleted => ResourceManager.GetString("OcrModelDownloadCompleted", resourceCulture);
-        public static string OcrModelDownloadFailed => ResourceManager.GetString("OcrModelDownloadFailed", resourceCulture);
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 #if !BUNDLED_OCR_MODELS
@@ -27,8 +28,18 @@ public class PaddleOcrService : IOcrService, IDisposable
 {
     private readonly ILogger<PaddleOcrService> _logger;
     private readonly ConcurrentDictionary<OcrLanguage, Lazy<PaddleOcrAll>> _engines = new();
+#if !BUNDLED_OCR_MODELS
+    private static readonly object DownloadProxyLock = new();
+    private static string? _configuredDownloadProxy;
+#endif
 
     public string ServiceName => "PaddleOCR";
+
+#if BUNDLED_OCR_MODELS
+    public bool CanDeleteModels => false;
+#else
+    public bool CanDeleteModels => true;
+#endif
 
     public IReadOnlyList<OcrLanguage> SupportedLanguages { get; } =
     [
@@ -88,37 +99,131 @@ public class PaddleOcrService : IOcrService, IDisposable
 #if !BUNDLED_OCR_MODELS
     public async Task DownloadModelsAsync(string? proxyUrl, bool useProxy, CancellationToken cancellationToken = default)
     {
-        IWebProxy? previousProxy = HttpClient.DefaultProxy;
-        // The downloader uses HttpClient.DefaultProxy internally. Use an empty
-        // WebProxy when the setting is disabled so the download is direct,
-        // rather than silently falling back to the machine's system proxy.
-        HttpClient.DefaultProxy = useProxy && !string.IsNullOrWhiteSpace(proxyUrl)
-            ? new WebProxy(proxyUrl)
-            : new WebProxy();
+        foreach (var language in SupportedLanguages)
+        {
+            await DownloadModelAsync(language, proxyUrl, useProxy, null, cancellationToken);
+        }
+    }
 
-        try
-        {
-            foreach (var language in SupportedLanguages)
-            {
-                _logger.LogInformation("Downloading OCR model for {Language}...", language.DisplayName);
-                await GetModel(language).DownloadAsync(cancellationToken);
-            }
-        }
-        finally
-        {
-            HttpClient.DefaultProxy = previousProxy;
-        }
+    public async Task DownloadModelAsync(
+        OcrLanguage language,
+        string? proxyUrl,
+        bool useProxy,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ConfigureDownloadProxy(proxyUrl, useProxy);
+
+        var model = GetModel(language);
+        _logger.LogInformation("Downloading OCR model for {Language}...", language.DisplayName);
+
+        progress?.Report(0);
+        await model.DetModel.DownloadAsync(cancellationToken);
+        progress?.Report(1d / 3d);
+        if (model.ClsModel is { } clsModel)
+            await clsModel.DownloadAsync(cancellationToken);
+        progress?.Report(2d / 3d);
+        await model.RecModel.DownloadAsync(cancellationToken);
+        progress?.Report(1);
     }
 
     public bool IsModelDownloaded(OcrLanguage language)
     {
         var model = GetModel(language);
         return File.Exists(Path.Combine(model.DetModel.RootDirectory, "inference.pdiparams"))
+            && (model.ClsModel is null
+                || File.Exists(Path.Combine(model.ClsModel.RootDirectory, "inference.pdiparams")))
             && File.Exists(Path.Combine(model.RecModel.RootDirectory, "inference.pdiparams"));
+    }
+
+    public void DeleteModel(OcrLanguage language)
+    {
+        if (_engines.TryRemove(language, out var lazyEngine) && lazyEngine.IsValueCreated)
+            lazyEngine.Value.Dispose();
+
+        var model = GetModel(language);
+        foreach (var root in GetModelRoots(model))
+        {
+            if (!Directory.Exists(root) || IsModelRootShared(root, language))
+                continue;
+
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private bool IsModelRootShared(string root, OcrLanguage excludedLanguage)
+    {
+        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar);
+        foreach (var language in SupportedLanguages)
+        {
+            if (language == excludedLanguage)
+                continue;
+
+            var otherModel = GetModel(language);
+            if (GetModelRoots(otherModel).Any(otherRoot =>
+                    string.Equals(
+                        normalizedRoot,
+                        Path.GetFullPath(otherRoot).TrimEnd(Path.DirectorySeparatorChar),
+                        StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<string> GetModelRoots(OnlineFullModels model)
+    {
+        yield return model.DetModel.RootDirectory;
+        if (model.ClsModel is { } clsModel)
+            yield return clsModel.RootDirectory;
+        yield return model.RecModel.RootDirectory;
     }
 #else
     public Task DownloadModelsAsync(string? proxyUrl, bool useProxy, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
+
+    public Task DownloadModelAsync(
+        OcrLanguage language,
+        string? proxyUrl,
+        bool useProxy,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        progress?.Report(1);
+        return Task.CompletedTask;
+    }
+
+    public bool IsModelDownloaded(OcrLanguage language) => true;
+
+    public void DeleteModel(OcrLanguage language)
+    {
+    }
+#endif
+
+#if !BUNDLED_OCR_MODELS
+    private static void ConfigureDownloadProxy(string? proxyUrl, bool useProxy)
+    {
+        var key = useProxy && !string.IsNullOrWhiteSpace(proxyUrl)
+            ? $"proxy:{proxyUrl}"
+            : "direct";
+
+        lock (DownloadProxyLock)
+        {
+            if (_configuredDownloadProxy == key)
+                return;
+
+            // PaddleOCR's downloader reads HttpClient.DefaultProxy. Only guard
+            // this short global configuration step so model downloads can run
+            // concurrently after they have the same proxy configuration.
+            HttpClient.DefaultProxy = key == "direct"
+                ? new WebProxy()
+                : new WebProxy(proxyUrl!);
+            _configuredDownloadProxy = key;
+        }
+    }
 #endif
 
     public void Dispose()
@@ -203,7 +308,8 @@ public class PaddleOcrService : IOcrService, IDisposable
 
     private PaddleOcrAll GetOrCreateEngine(OcrLanguage language)
     {
-        var lazyEngine = _engines.GetOrAdd(language, lang => new Lazy<PaddleOcrAll>(() =>
+        var resolvedLanguage = ResolveLanguage(language);
+        var lazyEngine = _engines.GetOrAdd(resolvedLanguage, lang => new Lazy<PaddleOcrAll>(() =>
         {
             _logger.LogInformation("Initializing PaddleOCR engine for {Language}...", lang.DisplayName);
 #if BUNDLED_OCR_MODELS
@@ -231,9 +337,28 @@ public class PaddleOcrService : IOcrService, IDisposable
         {
             // A missing model can be downloaded from Settings later. Do not
             // keep a faulted Lazy instance that would make the error permanent.
-            _engines.TryRemove(language, out _);
+            _engines.TryRemove(resolvedLanguage, out _);
             throw;
         }
+    }
+
+    private OcrLanguage ResolveLanguage(OcrLanguage language)
+    {
+        if (language != OcrLanguage.Auto)
+            return language;
+
+#if BUNDLED_OCR_MODELS
+        return OcrLanguage.ChineseSimplified;
+#else
+        if (IsModelDownloaded(OcrLanguage.ChineseSimplified))
+            return OcrLanguage.ChineseSimplified;
+        if (IsModelDownloaded(OcrLanguage.English))
+            return OcrLanguage.English;
+
+        // Keep the exception meaningful while preserving Chinese as the
+        // default once a model is downloaded later.
+        return OcrLanguage.ChineseSimplified;
+#endif
     }
 
 #if BUNDLED_OCR_MODELS
