@@ -883,6 +883,8 @@
   <data name="TextAssistAnnotationCollocation" xml:space="preserve"><value>Collocation</value></data>
   <data name="TextAssistAnnotationUsageTip" xml:space="preserve"><value>Usage tip</value></data>
   <data name="TextAssistRelatedTerms" xml:space="preserve"><value>Related</value></data>
+  <data name="ExpandSettings" xml:space="preserve"><value>Expand settings</value></data>
+  <data name="CollapseSettings" xml:space="preserve"><value>Collapse settings</value></data>
   <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate</value></data>
   <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct</value></data>
   <data name="ReadSelectedText" xml:space="preserve"><value>Read selected text</value></data>

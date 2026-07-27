@@ -1,3 +1,4 @@
+using System.Reactive.Threading.Tasks;
 using EasyChat.Models.Configuration;
 using EasyChat.Services;
 using EasyChat.Services.Abstractions;
@@ -9,6 +10,15 @@ namespace EasyChat.Tests.ViewModels.Pages;
 [TestClass]
 public sealed class TextAssistEditorViewModelTests
 {
+    [TestMethod]
+    public void ConfigurationExpansion_DefaultsToExpanded()
+    {
+        var config = new TextAssistConfig();
+
+        Assert.IsTrue(config.TranslationConfigurationExpanded);
+        Assert.IsTrue(config.CorrectionConfigurationExpanded);
+    }
+
     [TestMethod]
     public void AvailableAiModels_RefreshWhenConfiguredModelsChange()
     {
@@ -27,6 +37,29 @@ public sealed class TextAssistEditorViewModelTests
 
         CollectionAssert.AreEqual(new[] { initialModel, addedModel }, translation.AvailableAiModels.ToArray());
         CollectionAssert.AreEqual(new[] { initialModel, addedModel }, correction.AvailableAiModels.ToArray());
+    }
+
+    [TestMethod]
+    public async Task ConfigurationExpansion_IsPersistedIndependentlyForEachMode()
+    {
+        var textAssistConfig = new TextAssistConfig
+        {
+            TranslationConfigurationExpanded = false,
+            CorrectionConfigurationExpanded = true
+        };
+        var configuration = new FakeConfiguration { TextAssist = textAssistConfig };
+        var profileResolver = new TextAssistProfileResolver(configuration);
+        var translation = new TextAssistTranslationViewModel(configuration, profileResolver, null!, null!, null!, null!, null);
+        var correction = new TextAssistCorrectionViewModel(configuration, profileResolver, null!, null);
+
+        Assert.IsFalse(translation.IsConfigurationExpanded);
+        Assert.IsTrue(correction.IsConfigurationExpanded);
+
+        await translation.ToggleConfigurationCommand.Execute().ToTask();
+        await correction.ToggleConfigurationCommand.Execute().ToTask();
+
+        Assert.IsTrue(textAssistConfig.TranslationConfigurationExpanded);
+        Assert.IsFalse(textAssistConfig.CorrectionConfigurationExpanded);
     }
 
     private sealed class FakeConfiguration : IConfigurationService

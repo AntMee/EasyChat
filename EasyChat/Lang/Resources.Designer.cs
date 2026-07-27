@@ -1975,6 +1975,24 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("SetAsDefault", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Collapse settings.
+        /// </summary>
+        public static string CollapseSettings {
+            get {
+                return ResourceManager.GetString("CollapseSettings", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Expand settings.
+        /// </summary>
+        public static string ExpandSettings {
+            get {
+                return ResourceManager.GetString("ExpandSettings", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Setting.

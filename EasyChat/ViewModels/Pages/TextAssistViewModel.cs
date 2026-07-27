@@ -145,6 +145,7 @@ public abstract class TextAssistEditorViewModel : ViewModelBase
     private CustomAiModel? _selectedAiModel;
     private string _machineProvider;
     private string? _selectedPromptId;
+    private bool _isConfigurationExpanded;
     private bool _isBusy;
     private bool _isActive;
     private string _errorMessage = string.Empty;
@@ -182,12 +183,16 @@ public abstract class TextAssistEditorViewModel : ViewModelBase
         _selectedAiModel = AvailableAiModels.FirstOrDefault(x => x.Id == config.AiModelId) ?? AvailableAiModels.FirstOrDefault();
         _machineProvider = config.MachineProvider;
         _selectedPromptId = _correction ? config.CorrectionPromptId : config.TranslationPromptId;
+        _isConfigurationExpanded = _correction
+            ? config.CorrectionConfigurationExpanded
+            : config.TranslationConfigurationExpanded;
         _selectedPromptId ??= configurationService.Prompts?.SelectedPromptId;
         _selectedPromptId ??= PromptEntries.FirstOrDefault(x => x.IsDefault)?.Id;
 
         RunCommand = ReactiveCommand.CreateFromTask(ExecuteAsync,
             this.WhenAnyValue(x => x.IsBusy, busy => !busy));
         CancelCommand = ReactiveCommand.Create(Cancel);
+        ToggleConfigurationCommand = ReactiveCommand.Create(ToggleConfiguration);
     }
 
     public IReadOnlyList<LanguageDefinition> Languages { get; }
@@ -197,7 +202,27 @@ public abstract class TextAssistEditorViewModel : ViewModelBase
     public ObservableCollection<PromptEntry> PromptEntries { get; }
     public ReactiveCommand<Unit, Unit> RunCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleConfigurationCommand { get; }
     public bool IsCorrection => _correction;
+
+    public bool IsConfigurationExpanded
+    {
+        get => _isConfigurationExpanded;
+        private set
+        {
+            if (_isConfigurationExpanded == value) return;
+            this.RaiseAndSetIfChanged(ref _isConfigurationExpanded, value);
+            this.RaisePropertyChanged(nameof(ConfigurationToggleIcon));
+            this.RaisePropertyChanged(nameof(ConfigurationToggleText));
+            PersistSettings();
+        }
+    }
+
+    public MaterialIconKind ConfigurationToggleIcon =>
+        IsConfigurationExpanded ? MaterialIconKind.ChevronDoubleDown : MaterialIconKind.ChevronDoubleUp;
+
+    public string ConfigurationToggleText =>
+        IsConfigurationExpanded ? Resources.CollapseSettings : Resources.ExpandSettings;
 
     public bool IsActive
     {
@@ -320,9 +345,13 @@ public abstract class TextAssistEditorViewModel : ViewModelBase
         config.Provider = _provider;
         config.AiModelId = _selectedAiModel?.Id;
         config.MachineProvider = _machineProvider;
+        if (_correction) config.CorrectionConfigurationExpanded = _isConfigurationExpanded;
+        else config.TranslationConfigurationExpanded = _isConfigurationExpanded;
         if (_correction) config.CorrectionPromptId = _selectedPromptId;
         else config.TranslationPromptId = _selectedPromptId;
     }
+
+    private void ToggleConfiguration() => IsConfigurationExpanded = !IsConfigurationExpanded;
 
     private async Task ExecuteAsync()
     {

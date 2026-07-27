@@ -873,6 +873,8 @@
   <data name="TextAssistAnnotationCollocation" xml:space="preserve"><value>搭配</value></data>
   <data name="TextAssistAnnotationUsageTip" xml:space="preserve"><value>用法提示</value></data>
   <data name="TextAssistRelatedTerms" xml:space="preserve"><value>相关词</value></data>
+    <data name="ExpandSettings" xml:space="preserve"><value>展开设置</value></data>
+    <data name="CollapseSettings" xml:space="preserve"><value>收起设置</value></data>
     <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译</value></data>
     <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正</value></data>
     <data name="ReadSelectedText" xml:space="preserve"><value>读取选中文本</value></data>

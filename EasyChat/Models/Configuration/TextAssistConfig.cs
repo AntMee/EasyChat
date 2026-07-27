@@ -63,6 +63,20 @@ public sealed class TextAssistConfig : ReactiveObject
     }
 
     [JsonProperty]
+    public bool TranslationConfigurationExpanded
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = true;
+
+    [JsonProperty]
+    public bool CorrectionConfigurationExpanded
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = true;
+
+    [JsonProperty]
     public string MachineProvider
     {
         get;
