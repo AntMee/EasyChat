@@ -74,9 +74,15 @@ public sealed class TextAssistService : ITextAssistService
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var client = CreateTranslationClient(profile);
+        var annotationLanguage = ResolveOutputLanguage();
+        _logger.LogInformation(
+            "Detailed translation annotation language resolved to {AnnotationLanguage}; configured native language is {NativeLanguage}.",
+            annotationLanguage,
+            _configurationService.General?.NativeLanguage?.Id);
         var prompt = BuildDetailedTranslationPrompt(profile)
             .Replace("[SourceLang]", source.EnglishName)
-            .Replace("[TargetLang]", target.EnglishName);
+            .Replace("[TargetLang]", target.EnglishName)
+            .Replace("[AnnotationLanguage]", annotationLanguage);
         List<ChatMessage> messages =
         [
             new SystemChatMessage(prompt),
@@ -351,15 +357,16 @@ You are a professional translator and language-learning annotator.
 # Runtime detailed translation contract
 Source language: [SourceLang]
 Target language: [TargetLang]
+Annotation language: [AnnotationLanguage]
 Translate the input naturally, then explain the source-language vocabulary and expressions that materially help a reader understand or learn it.
-All meanings, notes, labels, and explanations MUST be in [TargetLang].
+The translation MUST be in [TargetLang]. All annotation meanings, notes, labels, and explanations MUST be in [AnnotationLanguage], matching the user's native language.
 
 Return raw NDJSON only, one complete JSON object per line, with no Markdown fences or prose.
 Emit exactly this order:
 1. `{"event":"source_detected","language":"en"}` when the source language is auto-detected.
 2. One or more `{"event":"translation_delta","text":"..."}` objects. Concatenating their text MUST produce only the complete translation.
 3. Zero to twelve annotation objects:
-   `{"event":"annotation","term":"source word or phrase","category":"important_word|uncommon_word|collocation|usage_tip","meaning":"concise meaning in [TargetLang]","note":"context, grammar, nuance, or collocation guidance in [TargetLang]","relatedTerms":["source-language related word or phrase"]}`
+   `{"event":"annotation","term":"source word or phrase","category":"important_word|uncommon_word|collocation|usage_tip","meaning":"concise meaning in [AnnotationLanguage]","note":"context, grammar, nuance, or collocation guidance in [AnnotationLanguage]","relatedTerms":["source-language related word or phrase"]}`
 4. `{"event":"done"}`
 
 Annotation rules:
