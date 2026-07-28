@@ -130,6 +130,94 @@
                   IsChecked="{Binding ReadSelectedText}"
                   IsVisible="{Binding IsTextAssistAction}" />
 
+        <StackPanel Spacing="10" IsVisible="{Binding IsInputTranslateAction}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{x:Static lang:Resources.InputTranslateSimulatedKeys}"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <avalonia:MaterialIcon Kind="InformationOutline"
+                                       Width="16"
+                                       Height="16"
+                                       Opacity="0.65"
+                                       VerticalAlignment="Center"
+                                       ToolTip.Tip="{x:Static lang:Resources.InputTranslateSimulatedKeysTip}" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0"
+                           Text="{x:Static lang:Resources.BeforeTextInput}"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Command="{Binding ToggleBeforeInputKeyRecordingCommand}"
+                        HorizontalAlignment="Stretch"
+                        Background="{DynamicResource SukiCardBackground}"
+                        BorderBrush="{DynamicResource SukiLowContrastBorderBrush}"
+                        BorderThickness="1"
+                        ToolTip.Tip="{x:Static lang:Resources.RecordShortcut}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <controls:KeySequenceDisplay KeyCombination="{Binding InputTranslateBeforeKey}"
+                                                     IsVisible="{Binding IsNotRecordingBeforeInputKey}"
+                                                     HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="0"
+                                   Text="{x:Static lang:Resources.RecordingShortcut}"
+                                   IsVisible="{Binding IsRecordingBeforeInputKey}"
+                                   Foreground="{DynamicResource SukiPrimaryColor}"
+                                   HorizontalAlignment="Center" />
+                        <avalonia:MaterialIcon Grid.Column="1" Kind="Keyboard" Opacity="0.5" />
+                    </Grid>
+                </Button>
+                <Button Grid.Column="2"
+                        Classes="Flat"
+                        Width="26"
+                        Height="26"
+                        Padding="0"
+                        CornerRadius="13"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Command="{Binding ClearBeforeInputKeyCommand}"
+                        ToolTip.Tip="{x:Static lang:Resources.Delete}">
+                    <avalonia:MaterialIcon Kind="Close" Width="14" Height="14" />
+                </Button>
+            </Grid>
+
+            <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0"
+                           Text="{x:Static lang:Resources.AfterTextInput}"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Command="{Binding ToggleAfterInputKeyRecordingCommand}"
+                        HorizontalAlignment="Stretch"
+                        Background="{DynamicResource SukiCardBackground}"
+                        BorderBrush="{DynamicResource SukiLowContrastBorderBrush}"
+                        BorderThickness="1"
+                        ToolTip.Tip="{x:Static lang:Resources.RecordShortcut}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <controls:KeySequenceDisplay KeyCombination="{Binding InputTranslateAfterKey}"
+                                                     IsVisible="{Binding IsNotRecordingAfterInputKey}"
+                                                     HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="0"
+                                   Text="{x:Static lang:Resources.RecordingShortcut}"
+                                   IsVisible="{Binding IsRecordingAfterInputKey}"
+                                   Foreground="{DynamicResource SukiPrimaryColor}"
+                                   HorizontalAlignment="Center" />
+                        <avalonia:MaterialIcon Grid.Column="1" Kind="Keyboard" Opacity="0.5" />
+                    </Grid>
+                </Button>
+                <Button Grid.Column="2"
+                        Classes="Flat"
+                        Width="26"
+                        Height="26"
+                        Padding="0"
+                        CornerRadius="13"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Command="{Binding ClearAfterInputKeyCommand}"
+                        ToolTip.Tip="{x:Static lang:Resources.Delete}">
+                    <avalonia:MaterialIcon Kind="Close" Width="14" Height="14" />
+                </Button>
+            </Grid>
+        </StackPanel>
+
         <!-- Hotkey Recording -->
         <StackPanel Spacing="10">
             <TextBlock Text="{x:Static lang:Resources.KeyCombination}" FontWeight="SemiBold" />

@@ -26,8 +26,10 @@ public partial class ShortcutEditDialogView : UserControl
             // Simple subscription - in a real app consider WeakEventManager or ReactiveUI's WhenActivated
             vm.PropertyChanged += (s, args) =>
             {
-                if (args.PropertyName == nameof(ShortcutEditDialogViewModel.IsRecording))
-                    if (vm.IsRecording)
+                if (args.PropertyName is nameof(ShortcutEditDialogViewModel.IsRecording)
+                    or nameof(ShortcutEditDialogViewModel.IsRecordingBeforeInputKey)
+                    or nameof(ShortcutEditDialogViewModel.IsRecordingAfterInputKey))
+                    if (IsRecording(vm))
                         // Slight delay to ensure command execution finishes and UI state settles
                         // Force focus to the UserControl itself so it captures all keys
                         Dispatcher.UIThread.Post(() => Focus());
@@ -36,7 +38,7 @@ public partial class ShortcutEditDialogView : UserControl
 
     private void OnKeyUp(object? sender, KeyEventArgs e)
     {
-        if (DataContext is not ShortcutEditDialogViewModel viewModel || !viewModel.IsRecording)
+        if (DataContext is not ShortcutEditDialogViewModel viewModel || !IsRecording(viewModel))
             return;
 
         // Suppress KeyUp to prevent buttons from firing on release (like Space)
@@ -52,18 +54,18 @@ public partial class ShortcutEditDialogView : UserControl
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (DataContext is not ShortcutEditDialogViewModel viewModel || !viewModel.IsRecording)
+        if (DataContext is not ShortcutEditDialogViewModel viewModel || !IsRecording(viewModel))
             return;
 
         // Escape cancels recording
         if (e.Key == Key.Escape)
         {
-            viewModel.IsRecording = false;
+            viewModel.StopRecording();
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Tab) return;
+        if (e.Key == Key.Tab && viewModel.IsRecording) return;
 
         var sb = new StringBuilder();
 
@@ -94,12 +96,16 @@ public partial class ShortcutEditDialogView : UserControl
         // But for "setting the value", maybe we want to keep it? 
         // Actually, if it's just modifiers, we show "Ctrl + "
 
-        viewModel.KeyCombination = currentCombo;
-
         if (!isModifierKey)
-            // Finished
-            viewModel.IsRecording = false;
+            viewModel.SetRecordedKeyCombination(currentCombo);
 
         e.Handled = true;
+    }
+
+    private static bool IsRecording(ShortcutEditDialogViewModel viewModel)
+    {
+        return viewModel.IsRecording ||
+               viewModel.IsRecordingBeforeInputKey ||
+               viewModel.IsRecordingAfterInputKey;
     }
 }

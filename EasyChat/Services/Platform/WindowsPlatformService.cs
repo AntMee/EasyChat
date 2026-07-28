@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Input.Platform;
 using EasyChat.Services.Abstractions;
+using EasyChat.Services.Shortcuts;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Services.Platform;
@@ -159,6 +160,105 @@ public class WindowsPlatformService : IPlatformService
         }
         
         await Task.CompletedTask;
+    }
+
+    public Task SendKeyCombinationAsync(string combination)
+    {
+        var parsed = KeyCombinationParser.Parse(combination);
+        if (parsed == null)
+        {
+            _logger.LogWarning("Cannot simulate invalid key combination: {Combination}", combination);
+            return Task.CompletedTask;
+        }
+
+        var (modifiers, key) = parsed.Value;
+        var inputs = new List<Win32.INPUT>();
+
+        AddModifierInput(inputs, modifiers, KeyModifiers.Control, 0x11, keyUp: false);
+        AddModifierInput(inputs, modifiers, KeyModifiers.Alt, 0x12, keyUp: false);
+        AddModifierInput(inputs, modifiers, KeyModifiers.Shift, 0x10, keyUp: false);
+        AddModifierInput(inputs, modifiers, KeyModifiers.Windows, 0x5B, keyUp: false);
+
+        var virtualKey = MapVirtualKey(key);
+        inputs.Add(CreateKeyboardInput(virtualKey, keyUp: false));
+        inputs.Add(CreateKeyboardInput(virtualKey, keyUp: true));
+
+        AddModifierInput(inputs, modifiers, KeyModifiers.Windows, 0x5B, keyUp: true);
+        AddModifierInput(inputs, modifiers, KeyModifiers.Shift, 0x10, keyUp: true);
+        AddModifierInput(inputs, modifiers, KeyModifiers.Alt, 0x12, keyUp: true);
+        AddModifierInput(inputs, modifiers, KeyModifiers.Control, 0x11, keyUp: true);
+
+        var sent = Win32.SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(Win32.INPUT)));
+        if (sent != (uint)inputs.Count)
+            _logger.LogWarning("Only {SentCount} of {InputCount} simulated key events were sent for {Combination}",
+                sent, inputs.Count, combination);
+
+        return Task.CompletedTask;
+    }
+
+    private static void AddModifierInput(List<Win32.INPUT> inputs, KeyModifiers modifiers,
+        KeyModifiers modifier, ushort virtualKey, bool keyUp)
+    {
+        if (modifiers.HasFlag(modifier))
+            inputs.Add(CreateKeyboardInput(virtualKey, keyUp));
+    }
+
+    private static Win32.INPUT CreateKeyboardInput(ushort virtualKey, bool keyUp)
+    {
+        return new Win32.INPUT
+        {
+            type = Win32.INPUT_KEYBOARD,
+            u = new Win32.InputUnion
+            {
+                ki = new Win32.KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    dwFlags = keyUp ? Win32.KEYEVENTF_KEYUP : 0
+                }
+            }
+        };
+    }
+
+    private static ushort MapVirtualKey(Key key)
+    {
+        if (key is >= Key.A and <= Key.Z) return (ushort)key;
+        if (key is >= Key.D0 and <= Key.D9) return (ushort)(0x30 + (int)key - (int)Key.D0);
+        if (key is >= Key.NumPad0 and <= Key.NumPad9) return (ushort)(0x60 + (int)key - (int)Key.NumPad0);
+        if (key is >= Key.F1 and <= Key.F24) return (ushort)key;
+
+        return key switch
+        {
+            Key.Escape => 0x1B,
+            Key.Tab => 0x09,
+            Key.Space => 0x20,
+            Key.Back => 0x08,
+            Key.Enter => 0x0D,
+            Key.Insert => 0x2D,
+            Key.Delete => 0x2E,
+            Key.PageUp => 0x21,
+            Key.PageDown => 0x22,
+            Key.Home => 0x24,
+            Key.End => 0x23,
+            Key.Left => 0x25,
+            Key.Up => 0x26,
+            Key.Right => 0x27,
+            Key.Down => 0x28,
+            Key.LWin => 0x5B,
+            Key.RWin => 0x5C,
+            Key.Apps => 0x5D,
+            Key.OemSemicolon => 0xBA,
+            Key.OemPlus => 0xBB,
+            Key.OemComma => 0xBC,
+            Key.OemMinus => 0xBD,
+            Key.OemPeriod => 0xBE,
+            Key.OemQuestion => 0xBF,
+            Key.OemTilde => 0xC0,
+            Key.OemOpenBrackets => 0xDB,
+            Key.OemPipe => 0xDC,
+            Key.OemCloseBrackets => 0xDD,
+            Key.OemQuotes => 0xDE,
+            _ => (ushort)key
+        };
     }
 
     [Obsolete("Obsolete")]

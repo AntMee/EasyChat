@@ -22,4 +22,10 @@ public class ShortcutParameter
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public bool? ReadSelectedText { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? InputTranslateBeforeKey { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? InputTranslateAfterKey { get; set; }
 }

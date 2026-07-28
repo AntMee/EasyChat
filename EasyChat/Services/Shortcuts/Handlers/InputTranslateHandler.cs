@@ -25,7 +25,7 @@ public class InputTranslateHandler : IShortcutActionHandler
         Dispatcher.UIThread.Post(() =>
         {
             var hwnd = _platformService.GetForegroundWindowHandle();
-            var typingView = new TypingView(hwnd);
+            var typingView = new TypingView(hwnd, parameter);
             typingView.Show();
         });
     }

@@ -26,4 +26,31 @@ public class ShortcutParameterTests
         Assert.IsNotNull(parameter);
         Assert.IsNull(parameter.ReadSelectedText);
     }
+
+    [TestMethod]
+    public void InputTranslateSimulatedKeys_RoundTrip()
+    {
+        var expected = new ShortcutParameter
+        {
+            InputTranslateBeforeKey = "Enter",
+            InputTranslateAfterKey = "Ctrl + Enter"
+        };
+
+        var json = JsonConvert.SerializeObject(expected);
+        var parameter = JsonConvert.DeserializeObject<ShortcutParameter>(json);
+
+        Assert.IsNotNull(parameter);
+        Assert.AreEqual(expected.InputTranslateBeforeKey, parameter.InputTranslateBeforeKey);
+        Assert.AreEqual(expected.InputTranslateAfterKey, parameter.InputTranslateAfterKey);
+    }
+
+    [TestMethod]
+    public void LegacyConfiguration_LeavesInputTranslateSimulatedKeysUnspecified()
+    {
+        var parameter = JsonConvert.DeserializeObject<ShortcutParameter>("{\"Value\":\"\"}");
+
+        Assert.IsNotNull(parameter);
+        Assert.IsNull(parameter.InputTranslateBeforeKey);
+        Assert.IsNull(parameter.InputTranslateAfterKey);
+    }
 }

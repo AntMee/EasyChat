@@ -275,6 +275,18 @@
     <data name="Action_InputTranslate" xml:space="preserve">
     <value>Typing Translate</value>
   </data>
+    <data name="AfterTextInput" xml:space="preserve">
+    <value>After text input</value>
+  </data>
+    <data name="BeforeTextInput" xml:space="preserve">
+    <value>Before text input</value>
+  </data>
+    <data name="InputTranslateSimulatedKeys" xml:space="preserve">
+    <value>Input translation simulated keys</value>
+  </data>
+    <data name="InputTranslateSimulatedKeysTip" xml:space="preserve">
+    <value>Simulates the configured key once before or after text input. This is useful when an application requires a specific key to open its chat box.</value>
+  </data>
     <data name="Action_SelectionTranslate" xml:space="preserve">
     <value>Selection Translation</value>
   </data>

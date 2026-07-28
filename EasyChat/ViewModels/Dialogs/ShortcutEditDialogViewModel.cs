@@ -46,6 +46,7 @@ public class ShortcutEditDialogViewModel : ViewModelBase
 
     public bool IsComplexSwitchAction => SelectedAction.ActionType == "SwitchEngineSourceTarget";
     public bool IsTextAssistAction => SelectedAction.ActionType is "QuickTranslate" or "QuickCorrect";
+    public bool IsInputTranslateAction => SelectedAction.ActionType == "InputTranslate";
 
     private EngineOption? _selectedEngineOption;
     private LanguageDefinition? _selectedSourceLang;
@@ -124,6 +125,8 @@ public class ShortcutEditDialogViewModel : ViewModelBase
             if (def != null) SelectedAction = def;
             KeyCombination = existingEntry.KeyCombination;
             ReadSelectedText = IsTextAssistAction && (existingEntry.Parameter?.ReadSelectedText ?? true);
+            InputTranslateBeforeKey = existingEntry.Parameter?.InputTranslateBeforeKey ?? string.Empty;
+            InputTranslateAfterKey = existingEntry.Parameter?.InputTranslateAfterKey ?? string.Empty;
 
             if (IsComplexSwitchAction && existingEntry.Parameter != null)
             {
@@ -171,11 +174,28 @@ public class ShortcutEditDialogViewModel : ViewModelBase
         ToggleRecordingCommand = ReactiveCommand.Create(() =>
         {
             IsRecording = !IsRecording;
+            IsRecordingBeforeInputKey = false;
+            IsRecordingAfterInputKey = false;
             if (IsRecording)
                 KeyCombination = "";
             else if (string.IsNullOrEmpty(KeyCombination) && _existingEntry != null)
                 // Restore if cancelled/empty
                 KeyCombination = _existingEntry.KeyCombination;
+        });
+
+        ToggleBeforeInputKeyRecordingCommand = ReactiveCommand.Create(() =>
+            StartInputKeyRecording(beforeInput: true));
+        ToggleAfterInputKeyRecordingCommand = ReactiveCommand.Create(() =>
+            StartInputKeyRecording(beforeInput: false));
+        ClearBeforeInputKeyCommand = ReactiveCommand.Create(() =>
+        {
+            InputTranslateBeforeKey = string.Empty;
+            StopRecording();
+        });
+        ClearAfterInputKeyCommand = ReactiveCommand.Create(() =>
+        {
+            InputTranslateAfterKey = string.Empty;
+            StopRecording();
         });
 
         var canSave = this.WhenAnyValue(
@@ -225,6 +245,7 @@ public class ShortcutEditDialogViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref field, value);
             this.RaisePropertyChanged(nameof(IsComplexSwitchAction));
             this.RaisePropertyChanged(nameof(IsTextAssistAction));
+            this.RaisePropertyChanged(nameof(IsInputTranslateAction));
             UpdateAvailableParameterOptions();
 
             if (_existingEntry == null || _existingEntry.ActionType != value.ActionType)
@@ -259,6 +280,42 @@ public class ShortcutEditDialogViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
+    public bool IsRecordingBeforeInputKey
+    {
+        get;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            this.RaisePropertyChanged(nameof(IsNotRecordingBeforeInputKey));
+        }
+    }
+
+    public bool IsNotRecordingBeforeInputKey => !IsRecordingBeforeInputKey;
+
+    public bool IsRecordingAfterInputKey
+    {
+        get;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            this.RaisePropertyChanged(nameof(IsNotRecordingAfterInputKey));
+        }
+    }
+
+    public bool IsNotRecordingAfterInputKey => !IsRecordingAfterInputKey;
+
+    public string InputTranslateBeforeKey
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = string.Empty;
+
+    public string InputTranslateAfterKey
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = string.Empty;
+
     public bool ReadSelectedText
     {
         get;
@@ -268,6 +325,10 @@ public class ShortcutEditDialogViewModel : ViewModelBase
     public IShortcutActionDefinition[] AvailableActions { get; }
 
     public ReactiveCommand<Unit, Unit> ToggleRecordingCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleBeforeInputKeyRecordingCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleAfterInputKeyRecordingCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClearBeforeInputKeyCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClearAfterInputKeyCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
@@ -300,8 +361,45 @@ public class ShortcutEditDialogViewModel : ViewModelBase
         return new ShortcutParameter
         {
             Value = Parameter,
-            ReadSelectedText = IsTextAssistAction ? ReadSelectedText : null
+            ReadSelectedText = IsTextAssistAction ? ReadSelectedText : null,
+            InputTranslateBeforeKey = IsInputTranslateAction
+                ? NullIfWhiteSpace(InputTranslateBeforeKey)
+                : null,
+            InputTranslateAfterKey = IsInputTranslateAction
+                ? NullIfWhiteSpace(InputTranslateAfterKey)
+                : null
         };
+    }
+
+    public void SetRecordedKeyCombination(string combination)
+    {
+        if (IsRecordingBeforeInputKey)
+            InputTranslateBeforeKey = combination;
+        else if (IsRecordingAfterInputKey)
+            InputTranslateAfterKey = combination;
+        else
+            KeyCombination = combination;
+
+        StopRecording();
+    }
+
+    public void StopRecording()
+    {
+        IsRecording = false;
+        IsRecordingBeforeInputKey = false;
+        IsRecordingAfterInputKey = false;
+    }
+
+    private void StartInputKeyRecording(bool beforeInput)
+    {
+        IsRecording = false;
+        IsRecordingBeforeInputKey = beforeInput;
+        IsRecordingAfterInputKey = !beforeInput;
+    }
+
+    private static string? NullIfWhiteSpace(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     private void UpdateAvailableParameterOptions()

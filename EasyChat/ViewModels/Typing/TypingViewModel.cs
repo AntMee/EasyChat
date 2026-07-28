@@ -18,6 +18,7 @@ public class TypingViewModel : ReactiveObject
 
     private readonly IConfigurationService? _configService;
     private readonly InputConfig? _inputConfig;
+    private readonly ShortcutParameter? _shortcutParameter;
 
     public IEnumerable<LanguageDefinition> SourceLanguages => LanguageService.GetAllLanguages();
     public IEnumerable<LanguageDefinition> TargetLanguages => LanguageService.GetAllLanguages();
@@ -64,9 +65,10 @@ public class TypingViewModel : ReactiveObject
         }
     }
 
-    public TypingViewModel(IntPtr targetHwnd)
+    public TypingViewModel(IntPtr targetHwnd, ShortcutParameter? shortcutParameter = null)
     {
         _targetHwnd = targetHwnd;
+        _shortcutParameter = shortcutParameter;
         _configService = Global.Services?.GetRequiredService<IConfigurationService>()!;
         _inputConfig = _configService?.Input!;
         _platformService = Global.Services?.GetRequiredService<IPlatformService>()!;
@@ -132,6 +134,8 @@ public class TypingViewModel : ReactiveObject
                  // Wait a bit for focus to settle completely
                  await Task.Delay(100);
 
+                 await SendConfiguredKeyAsync(_shortcutParameter?.InputTranslateBeforeKey, waitAfter: true);
+
                  // Send text
                  if (mode == InputDeliveryMode.Paste)
                  {
@@ -154,6 +158,8 @@ public class TypingViewModel : ReactiveObject
                  {
                      await _platformService.SendTextAsync(translatedText, delay);
                  }
+
+                 await SendConfiguredKeyAsync(_shortcutParameter?.InputTranslateAfterKey, waitAfter: false);
             }
             else
             {
@@ -164,6 +170,15 @@ public class TypingViewModel : ReactiveObject
         {
             _logger.LogError(ex, "Translation/Delivery failed");
         }
+    }
+
+    private async Task SendConfiguredKeyAsync(string? combination, bool waitAfter)
+    {
+        if (string.IsNullOrWhiteSpace(combination)) return;
+
+        await _platformService.SendKeyCombinationAsync(combination);
+        if (waitAfter)
+            await Task.Delay(100);
     }
 
     private async Task<string> TranslateText(string text)

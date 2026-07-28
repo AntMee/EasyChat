@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using System.Linq;
 using EasyChat.Common;
+using EasyChat.Models.Configuration;
 using EasyChat.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Key = Avalonia.Input.Key;
@@ -20,11 +21,11 @@ public partial class TypingView : Window
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public TypingView() {}
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public TypingView(IntPtr targetHwnd)
+    public TypingView(IntPtr targetHwnd, ShortcutParameter? shortcutParameter = null)
     {
         InitializeComponent();
         
-        DataContext = new TypingViewModel(targetHwnd);
+        DataContext = new TypingViewModel(targetHwnd, shortcutParameter);
         
         ApplyConfiguration();
         

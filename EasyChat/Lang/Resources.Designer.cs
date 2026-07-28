@@ -112,6 +112,42 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("Action_InputTranslate", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to After text input.
+        /// </summary>
+        public static string AfterTextInput {
+            get {
+                return ResourceManager.GetString("AfterTextInput", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Before text input.
+        /// </summary>
+        public static string BeforeTextInput {
+            get {
+                return ResourceManager.GetString("BeforeTextInput", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Input translation simulated keys.
+        /// </summary>
+        public static string InputTranslateSimulatedKeys {
+            get {
+                return ResourceManager.GetString("InputTranslateSimulatedKeys", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Simulates the configured key once before or after text input.
+        /// </summary>
+        public static string InputTranslateSimulatedKeysTip {
+            get {
+                return ResourceManager.GetString("InputTranslateSimulatedKeysTip", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Quick correct.
