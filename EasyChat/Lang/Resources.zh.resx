@@ -268,11 +268,17 @@
     <value>输入文本前</value>
   </data>
     <data name="InputTranslateSimulatedKeys" xml:space="preserve">
-    <value>输入翻译模拟按键</value>
+        <value>模拟按键</value>
   </data>
     <data name="InputTranslateSimulatedKeysTip" xml:space="preserve">
-    <value>会在输入文本前或输入文本后模拟一次所设置的按键，适用于需要按下特定按键打开聊天框的场景。</value>
-  </data>
+        <value>会在输入文本前或输入文本后模拟一次所设置的按键，适用于需要按下特定按键打开聊天框的场景。</value>
+    </data>
+    <data name="ReplaceCurrentInput" xml:space="preserve">
+        <value>替换当前输入</value>
+    </data>
+    <data name="ReplaceCurrentInputTip" xml:space="preserve">
+        <value>读取并翻译当前输入框中的全部文字，翻译成功后清空原文，再使用当前文本投递方式发送译文。软件会优先使用控件原生能力选中文字，并在必要时尝试 Ctrl+A；部分应用或游戏可能不支持读取或清空当前输入。</value>
+    </data>
     <data name="Action_SelectionTranslate" xml:space="preserve">
     <value>划词翻译</value>
   </data>

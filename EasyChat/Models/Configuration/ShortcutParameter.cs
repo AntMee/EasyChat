@@ -28,4 +28,7 @@ public class ShortcutParameter
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? InputTranslateAfterKey { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? ReplaceCurrentInput { get; set; }
 }

@@ -132,15 +132,34 @@
 
         <StackPanel Spacing="10" IsVisible="{Binding IsInputTranslateAction}">
             <StackPanel Orientation="Horizontal" Spacing="6">
+                <CheckBox Content="{x:Static lang:Resources.ReplaceCurrentInput}"
+                          IsChecked="{Binding ReplaceCurrentInput}" />
+                <Border Background="Transparent"
+                        Padding="2"
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="{x:Static lang:Resources.ReplaceCurrentInputTip}">
+                    <avalonia:MaterialIcon Kind="InformationOutline"
+                                           Width="16"
+                                           Height="16"
+                                           Opacity="0.65"
+                                           IsHitTestVisible="False" />
+                </Border>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="{x:Static lang:Resources.InputTranslateSimulatedKeys}"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center" />
-                <avalonia:MaterialIcon Kind="InformationOutline"
-                                       Width="16"
-                                       Height="16"
-                                       Opacity="0.65"
-                                       VerticalAlignment="Center"
-                                       ToolTip.Tip="{x:Static lang:Resources.InputTranslateSimulatedKeysTip}" />
+                <Border Background="Transparent"
+                        Padding="2"
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="{x:Static lang:Resources.InputTranslateSimulatedKeysTip}">
+                    <avalonia:MaterialIcon Kind="InformationOutline"
+                                           Width="16"
+                                           Height="16"
+                                           Opacity="0.65"
+                                           IsHitTestVisible="False" />
+                </Border>
             </StackPanel>
 
             <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="8">

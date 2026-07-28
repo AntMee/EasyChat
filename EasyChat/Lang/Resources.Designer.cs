@@ -132,7 +132,7 @@ namespace EasyChat.Lang {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Input translation simulated keys.
+        ///   Looks up a localized string similar to Simulated keys.
         /// </summary>
         public static string InputTranslateSimulatedKeys {
             get {
@@ -146,6 +146,24 @@ namespace EasyChat.Lang {
         public static string InputTranslateSimulatedKeysTip {
             get {
                 return ResourceManager.GetString("InputTranslateSimulatedKeysTip", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Replace current input.
+        /// </summary>
+        public static string ReplaceCurrentInput {
+            get {
+                return ResourceManager.GetString("ReplaceCurrentInput", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reads and translates all text from the focused input, clears the original text after translation succeeds, then sends the translation using the configured text delivery mode. Native control selection is used first, with Ctrl+A as a fallback. Some applications or games may not support reading or clearing their current input.
+        /// </summary>
+        public static string ReplaceCurrentInputTip {
+            get {
+                return ResourceManager.GetString("ReplaceCurrentInputTip", resourceCulture);
             }
         }
         

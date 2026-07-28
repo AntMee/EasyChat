@@ -37,6 +37,7 @@ public partial class TypingView : Window
         var inputBox = this.FindControl<TextBox>("InputBox");
 
         Opened += (_, _) => { inputBox?.Focus(); };
+        Closed += (_, _) => (DataContext as IDisposable)?.Dispose();
         
         Deactivated += (_, _) =>
         {

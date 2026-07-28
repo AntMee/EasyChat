@@ -282,11 +282,17 @@
     <value>Before text input</value>
   </data>
     <data name="InputTranslateSimulatedKeys" xml:space="preserve">
-    <value>Input translation simulated keys</value>
+    <value>Simulated keys</value>
   </data>
     <data name="InputTranslateSimulatedKeysTip" xml:space="preserve">
     <value>Simulates the configured key once before or after text input. This is useful when an application requires a specific key to open its chat box.</value>
-  </data>
+    </data>
+    <data name="ReplaceCurrentInput" xml:space="preserve">
+    <value>Replace current input</value>
+    </data>
+    <data name="ReplaceCurrentInputTip" xml:space="preserve">
+    <value>Reads and translates all text from the focused input, clears the original text after translation succeeds, then sends the translation using the configured text delivery mode. Native control selection is used first, with Ctrl+A as a fallback. Some applications or games may not support reading or clearing their current input.</value>
+    </data>
     <data name="Action_SelectionTranslate" xml:space="preserve">
     <value>Selection Translation</value>
   </data>

@@ -127,6 +127,7 @@ public class ShortcutEditDialogViewModel : ViewModelBase
             ReadSelectedText = IsTextAssistAction && (existingEntry.Parameter?.ReadSelectedText ?? true);
             InputTranslateBeforeKey = existingEntry.Parameter?.InputTranslateBeforeKey ?? string.Empty;
             InputTranslateAfterKey = existingEntry.Parameter?.InputTranslateAfterKey ?? string.Empty;
+            ReplaceCurrentInput = existingEntry.Parameter?.ReplaceCurrentInput ?? false;
 
             if (IsComplexSwitchAction && existingEntry.Parameter != null)
             {
@@ -252,6 +253,7 @@ public class ShortcutEditDialogViewModel : ViewModelBase
             {
                 Parameter = "";
                 ReadSelectedText = false;
+                ReplaceCurrentInput = false;
             }
         }
     } = ShortcutActionDefinition.AvailableActions.First();
@@ -316,6 +318,12 @@ public class ShortcutEditDialogViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     } = string.Empty;
 
+    public bool ReplaceCurrentInput
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
     public bool ReadSelectedText
     {
         get;
@@ -367,7 +375,8 @@ public class ShortcutEditDialogViewModel : ViewModelBase
                 : null,
             InputTranslateAfterKey = IsInputTranslateAction
                 ? NullIfWhiteSpace(InputTranslateAfterKey)
-                : null
+                : null,
+            ReplaceCurrentInput = IsInputTranslateAction ? ReplaceCurrentInput : null
         };
     }
 

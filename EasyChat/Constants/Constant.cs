@@ -64,5 +64,6 @@ public static class Windows
     public const uint WM_GETTEXT = 0x000D;
     public const uint WM_GETTEXTLENGTH = 0x000E;
     public const uint EM_GETSEL = 0x00B0;
+    public const uint EM_SETSEL = 0x00B1;
     public const int MaxWindowTextLength = 1_000_000;
 }

@@ -13,12 +13,13 @@ using ReactiveUI;
 
 namespace EasyChat.ViewModels.Typing;
 
-public class TypingViewModel : ReactiveObject
+public class TypingViewModel : ReactiveObject, IDisposable
 {
 
     private readonly IConfigurationService? _configService;
     private readonly InputConfig? _inputConfig;
     private readonly ShortcutParameter? _shortcutParameter;
+    private readonly IDisposable? _inputConfigSubscription;
 
     public IEnumerable<LanguageDefinition> SourceLanguages => LanguageService.GetAllLanguages();
     public IEnumerable<LanguageDefinition> TargetLanguages => LanguageService.GetAllLanguages();
@@ -82,7 +83,7 @@ public class TypingViewModel : ReactiveObject
         UpdateFromConfig();
         
         // Listen for config changes
-        _inputConfig?.Changed.Subscribe(_ => 
+        _inputConfigSubscription = _inputConfig?.Changed.Subscribe(_ => 
         {
             // Update UI on UI thread if needed, but ReactiveUI properties should handle it.
             // However, we need to sync *from* config if it changes externally.
@@ -118,6 +119,11 @@ public class TypingViewModel : ReactiveObject
         try
         {
             var translatedText = await TranslateText(text);
+            if (string.IsNullOrWhiteSpace(translatedText))
+            {
+                _logger.LogWarning("Translation returned no text; keeping the original input unchanged.");
+                return;
+            }
 
             var delay = 10;
             var mode = InputDeliveryMode.Type;
@@ -134,7 +140,21 @@ public class TypingViewModel : ReactiveObject
                  // Wait a bit for focus to settle completely
                  await Task.Delay(100);
 
-                 await SendConfiguredKeyAsync(_shortcutParameter?.InputTranslateBeforeKey, waitAfter: true);
+                 if (_shortcutParameter?.ReplaceCurrentInput == true)
+                 {
+                     if (!_platformService.TrySelectAllText())
+                     {
+                         _logger.LogDebug("Native select-all is unavailable; falling back to Ctrl+A.");
+                         await _platformService.SendKeyCombinationAsync("Ctrl + A");
+                     }
+                     await Task.Delay(50);
+                     await _platformService.SendKeyCombinationAsync("Delete");
+                     await Task.Delay(50);
+                 }
+                 else
+                 {
+                     await SendConfiguredKeyAsync(_shortcutParameter?.InputTranslateBeforeKey, waitAfter: true);
+                 }
 
                  // Send text
                  if (mode == InputDeliveryMode.Paste)
@@ -183,45 +203,42 @@ public class TypingViewModel : ReactiveObject
 
     private async Task<string> TranslateText(string text)
     {
-        try
+        var translator = _translationServiceFactory.CreateCurrentService();
+        var sourceLang = _configService?.General?.SourceLanguage;
+        var targetLang = _configService?.General?.TargetLanguage;
+        
+        // Override with Typing View Settings
+        if (_inputConfig is { FollowGlobalLanguage: false })
         {
-            var translator = _translationServiceFactory.CreateCurrentService();
-            var sourceLang = _configService?.General?.SourceLanguage;
-            var targetLang = _configService?.General?.TargetLanguage;
-            
-            // Override with Typing View Settings
-            if (_inputConfig is { FollowGlobalLanguage: false })
+            if (_inputConfig.TypingSourceLanguage is { } typingSource)
             {
-                if (_inputConfig.TypingSourceLanguage is { } typingSource)
-                {
-                    sourceLang = LanguageService.GetLanguage(typingSource);
-                }
-                if (_inputConfig.TypingTargetLanguage is { } typingTarget)
-                {
-                    targetLang = LanguageService.GetLanguage(typingTarget);
-                }
+                sourceLang = LanguageService.GetLanguage(typingSource);
             }
-
-            if (_inputConfig?.ReverseTranslateLanguage == true)
+            if (_inputConfig.TypingTargetLanguage is { } typingTarget)
             {
-                (sourceLang, targetLang) = (targetLang ?? throw new InvalidOperationException("Target language not configured"), 
-                    sourceLang ?? throw new InvalidOperationException("Source language not configured"));
+                targetLang = LanguageService.GetLanguage(typingTarget);
             }
-
-            var translatedText = new System.Text.StringBuilder();
-            await foreach (var item in translator.StreamTranslateEventsAsync(text, sourceLang, targetLang))
-            {
-                if (item is TranslationDeltaEvent delta)
-                {
-                    translatedText.Append(delta.Text);
-                }
-            }
-            return translatedText.ToString();
         }
-        catch (Exception ex)
+
+        if (_inputConfig?.ReverseTranslateLanguage == true)
         {
-            _logger.LogError(ex, "Error during translation");
-            return $"[Error] {ex.Message}";
+            (sourceLang, targetLang) = (targetLang ?? throw new InvalidOperationException("Target language not configured"), 
+                sourceLang ?? throw new InvalidOperationException("Source language not configured"));
         }
+
+        var translatedText = new System.Text.StringBuilder();
+        await foreach (var item in translator.StreamTranslateEventsAsync(text, sourceLang, targetLang))
+        {
+            if (item is TranslationDeltaEvent delta)
+            {
+                translatedText.Append(delta.Text);
+            }
+        }
+        return translatedText.ToString();
+    }
+
+    public void Dispose()
+    {
+        _inputConfigSubscription?.Dispose();
     }
 }

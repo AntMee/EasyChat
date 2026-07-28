@@ -326,21 +326,17 @@ public class WindowsPlatformService : IPlatformService
                 }
             }
 
-            const ushort vkControl = 0x11;
             const ushort vkC = 0x43;
 
             // Never synthesize Ctrl+C while the user is interacting with either
             // key. Releasing a real Ctrl key can turn the user's C press into a
             // literal character in the focused application.
-            if (IsKeyDown(vkControl) || IsKeyDown(vkC))
+            if (IsAnyModifierKeyDown() || IsKeyDown(vkC))
             {
-                _logger.LogDebug("Skipping selection capture while Ctrl or C is pressed by the user");
+                _logger.LogDebug("Skipping selection capture while a modifier or C is pressed by the user");
                 return null;
             }
 
-            // Track which modifier keys the user is currently pressing
-            var pressedModifiers = new List<ushort>();
-            
             try
             {
                 // 1. Clear Clipboard (to detect new copy)
@@ -367,40 +363,13 @@ public class WindowsPlatformService : IPlatformService
                     _logger.LogWarning("Failed to clear clipboard, text extraction might be inaccurate");
                 }
                 
-                // 2. Detect and temporarily release user's modifier keys
+                // Never release or re-press physical modifier keys. Doing so can
+                // activate menus or leave modifier state stuck in the target app.
                 await Task.Delay(10);
 
-                if (IsKeyDown(vkControl) || IsKeyDown(vkC))
+                if (IsAnyModifierKeyDown() || IsKeyDown(vkC))
                 {
-                    _logger.LogDebug("Skipping selection capture while Ctrl or C is pressed by the user");
-                    return null;
-                }
-                
-                // Check which modifier keys are currently pressed by user
-                if ((Win32.GetAsyncKeyState(0x10) & 0x8000) != 0) pressedModifiers.Add(0x10); // VK_SHIFT  
-                if ((Win32.GetAsyncKeyState(0x12) & 0x8000) != 0) pressedModifiers.Add(0x12); // VK_MENU (Alt)
-                
-                if (pressedModifiers.Count > 0)
-                {
-                    _logger.LogDebug("User has {Count} modifier keys pressed, temporarily releasing them", pressedModifiers.Count);
-                    
-                    // Release all pressed modifier keys
-                    var releaseInputs = new Win32.INPUT[pressedModifiers.Count];
-                    for (int i = 0; i < pressedModifiers.Count; i++)
-                    {
-                        releaseInputs[i].type = Win32.INPUT_KEYBOARD;
-                        releaseInputs[i].u.ki.wVk = pressedModifiers[i];
-                        releaseInputs[i].u.ki.dwFlags = Win32.KEYEVENTF_KEYUP;
-                    }
-                    Win32.SendInput((uint)releaseInputs.Length, releaseInputs, Marshal.SizeOf(typeof(Win32.INPUT)));
-                    
-                    // Small delay to let the release take effect
-                    await Task.Delay(5);
-                }
-
-                if (IsKeyDown(vkControl) || IsKeyDown(vkC))
-                {
-                    _logger.LogDebug("Skipping synthetic Ctrl+C because user is pressing Ctrl or C");
+                    _logger.LogDebug("Skipping selection capture while a modifier or C is pressed by the user");
                     return null;
                 }
                 
@@ -453,24 +422,6 @@ public class WindowsPlatformService : IPlatformService
                 _logger.LogError(ex, "Failed to get text via Clipboard");
                 return null;
             }
-            finally
-            {
-                // 5. Restore user's modifier key states (always, even on exception)
-                if (pressedModifiers.Count > 0)
-                {
-                    _logger.LogDebug("Restoring {Count} modifier keys for user", pressedModifiers.Count);
-                    
-                    // Re-press the modifier keys that were held by user
-                    var restoreInputs = new Win32.INPUT[pressedModifiers.Count];
-                    for (int i = 0; i < pressedModifiers.Count; i++)
-                    {
-                        restoreInputs[i].type = Win32.INPUT_KEYBOARD;
-                        restoreInputs[i].u.ki.wVk = pressedModifiers[i];
-                        restoreInputs[i].u.ki.dwFlags = 0; // Key down
-                    }
-                    Win32.SendInput((uint)restoreInputs.Length, restoreInputs, Marshal.SizeOf(typeof(Win32.INPUT)));
-                }
-            }
         });
     }
 
@@ -504,6 +455,39 @@ public class WindowsPlatformService : IPlatformService
 
         var selectedLength = Math.Min(selectionEnd, windowText.Length) - selectionStart;
         return selectedLength > 0 ? windowText.Substring(selectionStart, selectedLength) : null;
+    }
+
+    public bool TrySelectAllText()
+    {
+        var focusedWindow = GetFocusedWindow();
+        if (focusedWindow == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        Win32.SendMessage(focusedWindow, Constants.Windows.EM_SETSEL, IntPtr.Zero, new IntPtr(-1));
+        var packedSelection = unchecked((uint)Win32.SendMessage(
+            focusedWindow,
+            Constants.Windows.EM_GETSEL,
+            IntPtr.Zero,
+            IntPtr.Zero).ToInt64());
+        var selectionStart = (int)(packedSelection & 0xFFFF);
+        var selectionEnd = (int)(packedSelection >> 16);
+
+        // Some modern RichEdit controls (including newer Notepad versions)
+        // support selection messages but do not expose a reliable text length
+        // across processes. Verify the resulting selection directly instead.
+        var selected = selectionStart == 0 && selectionEnd > selectionStart;
+        if (selected)
+        {
+            _logger.LogDebug("Selected all text through the focused control's native edit messages.");
+        }
+        else
+        {
+            _logger.LogDebug("Focused control did not accept native select-all; selection is {Start}..{End}.",
+                selectionStart, selectionEnd);
+        }
+        return selected;
     }
 
     private async Task<string?> TryCopySelectedTextWithWindowMessageAsync()
@@ -581,6 +565,15 @@ public class WindowsPlatformService : IPlatformService
     private static bool IsKeyDown(ushort virtualKey)
     {
         return (Win32.GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+    }
+
+    private static bool IsAnyModifierKeyDown()
+    {
+        return IsKeyDown(0x10) // Shift
+               || IsKeyDown(0x11) // Ctrl
+               || IsKeyDown(0x12) // Alt
+               || IsKeyDown(0x5B) // Left Windows
+               || IsKeyDown(0x5C); // Right Windows
     }
     
     private string? GetClipboardTextWin32()
