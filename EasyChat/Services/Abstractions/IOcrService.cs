@@ -1,4 +1,5 @@
 using Avalonia.Media.Imaging;
+using EasyChat.Models.Ocr;
 using EasyChat.Services.Ocr;
 using System.Collections.Generic;
 
@@ -32,4 +33,9 @@ public interface IOcrService
     /// <param name="language">The target OCR language. If null, uses default language.</param>
     /// <returns>A tuple containing the annotated image and recognized text.</returns>
     (Bitmap AnnotatedImage, string Text) RecognizeTextWithAnnotation(Bitmap bitmap, OcrLanguage? language = null);
+
+    /// <summary>
+    /// Recognizes text and returns detected geometry for image translation.
+    /// </summary>
+    OcrRecognitionResult RecognizeDetailed(Bitmap bitmap, OcrLanguage? language = null, bool enableRotation = false);
 }

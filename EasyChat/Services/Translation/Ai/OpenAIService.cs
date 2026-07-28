@@ -17,7 +17,7 @@ using OpenAI.Chat;
 
 namespace EasyChat.Services.Translation.Ai;
 
-public class OpenAiService : ITranslation
+public class OpenAiService : ITranslation, IIdentifiedTranslationStream
 {
     private readonly string _apiKey;
     private readonly string _apiUrl;
@@ -140,6 +140,24 @@ public class OpenAiService : ITranslation
         return value.Trim();
     }
 
+    private string GetIdentifiedStructuredPrompt(LanguageDefinition source, LanguageDefinition destination)
+    {
+        var prompt = GetPrompt(source, destination);
+        var contract = "\n\n# Identified JSONL translation contract (highest priority)\n"
+            + "The contract below has higher priority than any earlier output-format instruction. "
+            + "Return raw NDJSON only, with one complete JSON object per line and no Markdown.\n"
+            + "Start with {\"event\":\"start\",\"mode\":\"identified_translation\","
+            + "\"source_language\":\"[SourceLang]\",\"target_language\":\"[TargetLang]\"}.\n"
+            + "For every requested OCR block, emit exactly one line in request order: "
+            + "{\"event\":\"translation_delta\",\"id\":\"block-0\",\"text\":\"translated text\"}.\n"
+            + "The id must be copied exactly from the input. Put only that block's translated replacement "
+            + "text in text. Do not nest JSON inside text.\n"
+            + "Finish with exactly {\"event\":\"done\"}.\n";
+        return (prompt + contract)
+            .Replace("[SourceLang]", source.EnglishName, StringComparison.OrdinalIgnoreCase)
+            .Replace("[TargetLang]", destination.EnglishName, StringComparison.OrdinalIgnoreCase);
+    }
+
     public async Task<string> TranslateAsync(string text, LanguageDefinition? source, LanguageDefinition? destination, bool showOriginal = false,
         CancellationToken cancellationToken = default)
     {
@@ -233,5 +251,58 @@ public class OpenAiService : ITranslation
         }
 
         yield return new TranslationCompletedEvent();
+    }
+
+    public async IAsyncEnumerable<IdentifiedTranslationStreamEvent> StreamIdentifiedTranslationsAsync(
+        string text,
+        LanguageDefinition? source,
+        LanguageDefinition? destination,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(destination);
+        _logger.LogDebug(
+            "Identified translation stream request: {Source} -> {Dest}, Length={Length}",
+            source.DisplayName,
+            destination.DisplayName,
+            text.Length);
+
+        var client = CreateClient();
+        List<ChatMessage> messages =
+        [
+            new SystemChatMessage(GetIdentifiedStructuredPrompt(source, destination)),
+            new UserChatMessage(text)
+        ];
+        var chatOptions = CreateChatOptions();
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var decoder = new JsonLinesEventStreamDecoder<IdentifiedTranslationStreamEvent>(
+            line => JsonSerializer.Deserialize<IdentifiedTranslationStreamEvent>(line, jsonOptions)
+                    ?? throw new JsonException("Empty identified translation event."),
+            (exception, line) => _logger.LogDebug(
+                exception,
+                "Ignoring invalid identified translation event: {Line}",
+                line));
+
+#pragma warning disable OPENAI001
+        await foreach (var update in client.CompleteChatStreamingAsync(messages, chatOptions, cancellationToken))
+        {
+            foreach (var content in update.ContentUpdate)
+            {
+                foreach (var item in decoder.Append(content.Text))
+                {
+                    if (item is not IdentifiedTranslationCompletedEvent)
+                        yield return item;
+                }
+            }
+        }
+#pragma warning restore OPENAI001
+
+        foreach (var item in decoder.Complete())
+        {
+            if (item is not IdentifiedTranslationCompletedEvent)
+                yield return item;
+        }
+
+        yield return new IdentifiedTranslationCompletedEvent();
     }
 }

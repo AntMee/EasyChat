@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using System.Threading;
 using AutoMapper;
 using Avalonia.Threading;
 using System.Collections.Generic;
@@ -27,6 +28,8 @@ using Avalonia.Input.Platform;
 using Microsoft.Extensions.DependencyInjection;
 using EasyChat.ViewModels.Windows;
 using EasyChat.Views.Windows;
+using EasyChat.Models.Ocr;
+using EasyChat.Services.ImageTranslation;
 using Avalonia.Controls;
 
 namespace EasyChat.Services.Shortcuts.Handlers;
@@ -47,6 +50,8 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
     private readonly ITtsService _ttsService;
     private readonly IAudioPlayer _audioPlayer;
     private readonly IPlatformService _platformService;
+    private readonly IImageTranslationService _imageTranslationService;
+    private CancellationTokenSource? _imageTranslationCancellation;
 
     private readonly IServiceProvider _serviceProvider;
     
@@ -67,7 +72,8 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
         ITtsService ttsService,
         IAudioPlayer audioPlayer,
         IPlatformService platformService,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IImageTranslationService imageTranslationService)
     {
         _screenCaptureService = screenCaptureService;
         _ocrService = ocrService;
@@ -80,6 +86,7 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
         _audioPlayer = audioPlayer;
         _platformService = platformService;
         _serviceProvider = serviceProvider;
+        _imageTranslationService = imageTranslationService;
     }
 
     public void Execute(ShortcutParameter? parameter = null)
@@ -98,6 +105,7 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
     
     private void OnScreenCaptureCancelled()
     {
+        _imageTranslationCancellation?.Cancel();
         _isExecuting = false;
         _logger.LogInformation("Screenshot capture cancelled.");
     }
@@ -118,10 +126,13 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
         {
             try
             {
-                if (intent == CaptureIntent.CopyImageTranslated && _ocrService is PaddleOcrService paddleService)
+                if (intent == CaptureIntent.CopyImageTranslated)
                 {
-                     var result = paddleService.RecognizeTextRaw(bitmap, ocrLanguage, enableRotation: true);
-                     Dispatcher.UIThread.Post(() => ProcessImageTranslation(bitmap, result));
+                     _imageTranslationCancellation?.Cancel();
+                     var cancellation = new CancellationTokenSource();
+                     _imageTranslationCancellation = cancellation;
+                     var result = _ocrService.RecognizeDetailed(bitmap, ocrLanguage, enableRotation: true);
+                     Dispatcher.UIThread.Post(() => ProcessImageTranslation(bitmap, result, cancellation));
                 }
                 else
                 {
@@ -443,206 +454,49 @@ public class ScreenshotTranslateHandler : IShortcutActionHandler
             .WithContent(message)
             .Queue();
     }
-    private async void ProcessImageTranslation(Bitmap bitmap, PaddleOcrResult result)
+    private async void ProcessImageTranslation(
+        Bitmap bitmap,
+        OcrRecognitionResult recognition,
+        CancellationTokenSource cancellation)
     {
-        try 
+        try
         {
-             var regions = result.Regions;
-             if (regions.Length == 0) 
-             {
-                 ShowError("OCR Warning", "No text detected.");
-                 return;
-             }
-             
-             // Sort regions top-bottom, left-right
-             regions = regions.OrderBy(x => x.Rect.Center.Y).ThenBy(x => x.Rect.Center.X).ToArray();
+            if (recognition.Regions.Count == 0)
+            {
+                ShowError("OCR Warning", "No text detected.");
+                return;
+            }
 
-             ShowError("Translating...", $"Please wait, processing {regions.Length} text regions.");
+            var sourceLang = _configurationService.General?.SourceLanguage;
+            var targetLang = _configurationService.General?.TargetLanguage;
+            var result = await Task.Run(() => _imageTranslationService.TranslateAsync(
+                bitmap, recognition, sourceLang, targetLang, cancellation.Token), cancellation.Token);
 
-             var translator = _translationServiceFactory.CreateCurrentService();
-             var sourceLang = _configurationService.General?.SourceLanguage;
-             var targetLang = _configurationService.General?.TargetLanguage;
-             
-             // Translate
-             var translationTasks = regions.Select(async r => 
-             {
-                 try {
-                     var text = await TranslateToTextAsync(translator, r.Text, sourceLang, targetLang);
-                     return (Region: r, Text: text);
-                 } catch {
-                     return (Region: r, r.Text);
-                 }
-             });
-             
-             var translatedRegions = await Task.WhenAll(translationTasks);
-             
-             // Process Image with OpenCV
-             using var mat = BitmapToMat(bitmap);
-             using var mask = new Mat(mat.Size(), MatType.CV_8UC1, new Scalar(0));
-             
-             // Create mask from all regions
-             foreach (var item in translatedRegions)
-             {
-                 var r = item.Region.Rect;
-                 var points = r.Points().Select(p => new OpenCvSharp.Point((int)p.X, (int)p.Y)).ToArray();
-                 // Inflate slightly to ensure full coverage
-                 var poly = new List<List<OpenCvSharp.Point>> { points.ToList() };
-                 Cv2.FillPoly(mask, poly, new Scalar(255));
-             }
-             
-             // Dilate mask to cover edges
-             using var kernel = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(3, 3));
-             Cv2.Dilate(mask, mask, kernel);
-             
-             // Inpaint to remove original text
-             using var inpaintedMat = new Mat();
-             Cv2.Inpaint(mat, mask, inpaintedMat, 3, InpaintMethod.Telea);
-             
-             // Convert back to Bitmap for drawing
-             using var backgroundBitmap = MatToBitmap(inpaintedMat);
-             
-             var pixelSize = new PixelSize((int)bitmap.Size.Width, (int)bitmap.Size.Height);
-             var targetBitmap = new RenderTargetBitmap(pixelSize, new Vector(96, 96));
-             
-             using (var ctx = targetBitmap.CreateDrawingContext())
-             {
-                 // Draw the clean background
-                 ctx.DrawImage(backgroundBitmap, new Avalonia.Rect(bitmap.Size));
-                 
-                 foreach (var item in translatedRegions)
-                 {
-                     var r = item.Region.Rect;
-                     var text = item.Text;
-                     
-                     // Calculate text metrics
-                     // We want to fit the text into the rotated rect.
-                     // The visual rect size in unrotated space:
-                     var width = r.Size.Width;
-                     var height = r.Size.Height;
-                     
-                     // Get average color of the region from inpainted image for contrast
-                     var rect = r.BoundingRect();
-                     var safeRect = rect.Intersect(new OpenCvSharp.Rect(0, 0, mat.Width, mat.Height));
-                     
-                     var brightness = 128.0;
-                     if (safeRect.Width > 0 && safeRect.Height > 0)
-                     {
-                         using var roi = new Mat(inpaintedMat, safeRect);
-                         var mean = Cv2.Mean(roi);
-                         brightness = 0.299 * mean.Val2 + 0.587 * mean.Val1 + 0.114 * mean.Val0;
-                     }
-                     
-                     var textColor = brightness < 128 ? Brushes.White : Brushes.Black;
-                     
-                     // Initial formatted text
-                     var typeFace = new Typeface("Microsoft YaHei UI"); 
-                     var ft = new FormattedText(
-                             text,
-                             System.Globalization.CultureInfo.CurrentCulture,
-                             FlowDirection.LeftToRight,
-                             typeFace,
-                             20, // Base size to measure relative proportions
-                             textColor
-                         );
-                     
-                     // Calculate Scaling
-                     // 1. Height priority: Match the height of the box
-                     var scaleY = height / Math.Max(1, ft.Height);
-                     
-                     // 2. Width constraint: Ensure it fits in width
-                     var scaleX = width / Math.Max(1, ft.Width);
-                     
-                     // 3. Uniform scaling: Use the smaller scale to fit inside both dimensions
-                     // However, if the width difference is huge (e.g. short text in wide box), 
-                     // strictly fitting height might make it super wide if we didn't use uniform.
-                     // But if we use uniform based on Min, and the box is wide, we are limited by height. (Good)
-                     // If the box is narrow, we are limited by width. (Good)
-                     var finalScale = Math.Min(scaleX, scaleY);
-                     
-                     // 4. Angle Snapping
-                     // Most text is horizontal. If angle is small, snap to 0 to avoid jaggedness.
-                     var rotation = r.Angle;
-                     if (Math.Abs(rotation) < 10) rotation = 0;
-                     
-                     var matrix = Matrix.CreateTranslation(-ft.Width / 2, -ft.Height / 2) // Center text at 0,0 locally
-                                   * Matrix.CreateScale(finalScale, finalScale)           // Uniform Scale
-                                   * Matrix.CreateRotation(rotation * Math.PI / 180.0)    // Rotate
-                                   * Matrix.CreateTranslation(r.Center.X, r.Center.Y);    // Move to global position
+            if (result.TranslatedBlockCount == 0)
+            {
+                ShowError("Image Translation", result.Warnings.Count > 0
+                    ? result.Warnings[0]
+                    : "No text could be translated.");
+                return;
+            }
 
-                     using (ctx.PushTransform(matrix))
-                     {
-                         // Draw at 0,0 because we centered via transform
-                         ctx.DrawText(ft, new Avalonia.Point(0, 0));
-                     }
-                 }
-             }
-             
-             CopyImageToClipboard(targetBitmap);
+            var view = new ImageTranslationResultWindow(result.Bitmap, result.Warnings.ToArray());
+            view.Show();
         }
         catch (Exception ex)
         {
+            if (ex is OperationCanceledException)
+                return;
             _logger.LogError(ex, "Image Translation failed");
             ShowError("Image Translate Error", ex.Message);
         }
-    }
-
-    private static async Task<string> TranslateToTextAsync(
-        ITranslation translator,
-        string text,
-        LanguageDefinition? sourceLang,
-        LanguageDefinition? targetLang)
-    {
-        var result = new System.Text.StringBuilder();
-        await foreach (var item in translator.StreamTranslateEventsAsync(text, sourceLang, targetLang))
+        finally
         {
-            if (item is TranslationDeltaEvent delta)
-                result.Append(delta.Text);
-        }
-
-        return result.ToString();
-    }
-
-    private async void CopyImageToClipboard(Bitmap bitmap)
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } window })
-        {
-            var clipboard = window.Clipboard;
-            if (clipboard != null)
+            if (ReferenceEquals(_imageTranslationCancellation, cancellation))
             {
-                 try 
-                 {
-                     await clipboard.SetValueAsync(DataFormat.Bitmap, bitmap);
-                     
-                     _toastManager.CreateSimpleInfoToast()
-                        .WithTitle("Copied")
-                        .WithContent("Translated Image copied.")
-                        .Queue();
-                 }
-                 catch (Exception ex)
-                 {
-                     _logger.LogError(ex, "Failed to copy image to clipboard.");
-                     _toastManager.CreateSimpleInfoToast()
-                        .WithTitle("Copy Failed")
-                        .WithContent("Could not copy image.")
-                        .Queue();
-                 }
+                _imageTranslationCancellation = null;
+                cancellation.Dispose();
             }
         }
-    }
-
-    private static Mat BitmapToMat(Bitmap bitmap)
-    {
-        using var memoryStream = new System.IO.MemoryStream();
-        bitmap.Save(memoryStream);
-        memoryStream.Seek(0, System.IO.SeekOrigin.Begin);
-        return Mat.FromStream(memoryStream, ImreadModes.Color);
-    }
-    
-    private static Bitmap MatToBitmap(Mat mat)
-    {
-        using var memoryStream = new System.IO.MemoryStream();
-        mat.WriteToStream(memoryStream);
-        memoryStream.Seek(0, System.IO.SeekOrigin.Begin);
-        return new Bitmap(memoryStream);
     }
 }

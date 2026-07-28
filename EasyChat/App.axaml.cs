@@ -14,6 +14,7 @@ using EasyChat.Services;
 using EasyChat.Services.Abstractions;
 using EasyChat.Services.HotKey;
 using EasyChat.Services.Ocr;
+using EasyChat.Services.ImageTranslation;
 using EasyChat.Services.Platform;
 using EasyChat.Services.Languages;
 using EasyChat.Services.Languages.Providers;
@@ -126,6 +127,7 @@ public class App : Application
 
             // Other Services
             services.AddSingleton<IOcrService, PaddleOcrService>();
+            services.AddSingleton<IImageTranslationService, ImageTranslationService>();
             services.AddSingleton<ITranslationServiceFactory, TranslationServiceFactory>();
             services.AddSingleton<SelectionTranslationService>();
 

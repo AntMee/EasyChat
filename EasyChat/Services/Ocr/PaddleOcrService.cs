@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.Http;
 #endif
 using EasyChat.Services.Abstractions;
+using EasyChat.Models.Ocr;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Sdcb.PaddleInference;
@@ -322,8 +323,8 @@ public class PaddleOcrService : IOcrService, IDisposable
 #endif
             var engine = new PaddleOcrAll(model, PaddleDevice.Onnx())
             {
-                AllowRotateDetection = false,
-                Enable180Classification = false
+                AllowRotateDetection = true,
+                Enable180Classification = true
             };
             _logger.LogInformation("PaddleOCR engine for {Language} initialized successfully", lang.DisplayName);
             return engine;
@@ -340,6 +341,24 @@ public class PaddleOcrService : IOcrService, IDisposable
             _engines.TryRemove(resolvedLanguage, out _);
             throw;
         }
+    }
+
+    public OcrRecognitionResult RecognizeDetailed(Bitmap bitmap, OcrLanguage? language = null, bool enableRotation = false)
+    {
+        var result = RecognizeTextRaw(bitmap, language, enableRotation);
+        var regions = result.Regions
+            .Where(region => !string.IsNullOrWhiteSpace(region.Text))
+            .Select(region =>
+            {
+                var points = region.Rect.Points()
+                    .Select(point => new Avalonia.Point(point.X, point.Y))
+                    .ToArray();
+                var angle = OcrTextRegion.CalculateTextAngle(points, region.Rect.Angle);
+                return new OcrTextRegion(region.Text.Trim(), points, angle);
+            })
+            .ToArray();
+
+        return new OcrRecognitionResult(regions);
     }
 
     private OcrLanguage ResolveLanguage(OcrLanguage language)
