@@ -544,6 +544,15 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("Copy", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Copied.
+        /// </summary>
+        public static string Copied {
+            get {
+                return ResourceManager.GetString("Copied", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Copy Bilingual.

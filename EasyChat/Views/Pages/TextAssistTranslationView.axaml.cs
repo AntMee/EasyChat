@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using EasyChat.Common;
 using EasyChat.ViewModels.Pages;
 
 namespace EasyChat.Views.Pages;
@@ -18,7 +19,11 @@ public partial class TextAssistTranslationView : UserControl
     {
         if (DataContext is not TextAssistTranslationViewModel vm || string.IsNullOrWhiteSpace(vm.TranslationResult)) return;
         var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard != null) await clipboard.SetTextAsync(vm.TranslationResult);
+        if (clipboard != null)
+        {
+            await clipboard.SetTextAsync(vm.TranslationResult);
+            CopyFeedback.Show(sender as Control);
+        }
     }
 
 }

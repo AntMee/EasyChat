@@ -178,6 +178,7 @@ public partial class TranslationDictionaryWindowView : Window
             if (clipboard != null)
             {
                 await clipboard.SetTextAsync(textToCopy);
+                CopyFeedback.Show(sender as Control);
                 _logger?.LogDebug("Copied result to clipboard");
             }
         }

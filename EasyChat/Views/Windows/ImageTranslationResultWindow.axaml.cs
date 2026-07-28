@@ -50,7 +50,10 @@ public partial class ImageTranslationResultWindow : SukiWindow
         {
             var clipboard = GetTopLevel(this)?.Clipboard;
             if (clipboard != null && _bitmap != null)
+            {
                 await clipboard.SetValueAsync(DataFormat.Bitmap, _bitmap);
+                CopyFeedback.Show(sender as Control);
+            }
         }
         catch (Exception ex)
         {

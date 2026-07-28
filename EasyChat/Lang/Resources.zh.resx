@@ -648,6 +648,9 @@
     <data name="Copy" xml:space="preserve">
         <value>复制</value>
     </data>
+    <data name="Copied" xml:space="preserve">
+        <value>已复制</value>
+    </data>
     <data name="CopyOriginal" xml:space="preserve">
         <value>复制原文</value>
     </data>

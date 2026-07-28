@@ -6,6 +6,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
+using EasyChat.Common;
 using EasyChat.Controls;
 using EasyChat.ViewModels.Pages;
 
@@ -59,6 +60,9 @@ public partial class TextAssistCorrectionView : UserControl
         if (sender is not Button { Tag: CorrectionVariant variant }) return;
         var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
         if (clipboard != null)
+        {
             await clipboard.SetTextAsync(variant.Text);
+            CopyFeedback.Show(sender as Control);
+        }
     }
 }
