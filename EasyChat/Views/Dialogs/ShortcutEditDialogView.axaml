@@ -128,7 +128,27 @@
 
         <CheckBox Content="{x:Static lang:Resources.ReadSelectedText}"
                   IsChecked="{Binding ReadSelectedText}"
+                  IsEnabled="{Binding !IsReadSelectionLocked}"
                   IsVisible="{Binding IsTextAssistAction}" />
+
+        <StackPanel Spacing="4" IsVisible="{Binding IsModeSelectableTextAssistAction}">
+            <TextBlock Text="Mode" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding TextAssistModes}" SelectedItem="{Binding TextAssistMode}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="7" IsVisible="{Binding IsSelectionTranslateAction}">
+            <CheckBox Content="{Binding SelectionToolbarOptionText}"
+                      IsChecked="{Binding ShowSelectionToolbar}" VerticalAlignment="Center" />
+            <Border Width="28" Height="28" CornerRadius="4" Cursor="Help" Background="Transparent"
+                    VerticalAlignment="Center" ToolTip.ShowDelay="0"
+                    ToolTip.Placement="Right" ToolTip.Tip="{Binding SelectionToolbarOptionTip}"
+                    PointerEntered="OnSelectionToolbarInfoPointerEntered"
+                    PointerExited="OnSelectionToolbarInfoPointerExited">
+                <avalonia:MaterialIcon Kind="InformationOutline" Width="19" Height="19"
+                                       Opacity="0.72" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" IsHitTestVisible="False" />
+            </Border>
+        </StackPanel>
 
         <StackPanel Spacing="10" IsVisible="{Binding IsInputTranslateAction}">
             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -186,7 +206,7 @@
                     </Grid>
                 </Button>
                 <Button Grid.Column="2"
-                        Classes="Flat"
+                        Classes="Flat Danger"
                         Width="26"
                         Height="26"
                         Padding="0"
@@ -223,7 +243,7 @@
                     </Grid>
                 </Button>
                 <Button Grid.Column="2"
-                        Classes="Flat"
+                        Classes="Flat Danger"
                         Width="26"
                         Height="26"
                         Padding="0"

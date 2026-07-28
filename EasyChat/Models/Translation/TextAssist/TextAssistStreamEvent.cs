@@ -12,6 +12,7 @@ namespace EasyChat.Models.Translation.TextAssist;
 [JsonDerivedType(typeof(TextAssistSourceDetectedEvent), "source_detected")]
 [JsonDerivedType(typeof(TextAssistTranslationDeltaEvent), "translation_delta")]
 [JsonDerivedType(typeof(TextAssistTranslationAnnotationEvent), "annotation")]
+[JsonDerivedType(typeof(TextAssistPolishExplanationEvent), "polish_explanation")]
 [JsonDerivedType(typeof(TextAssistIssueEvent), "issue")]
 [JsonDerivedType(typeof(TextAssistCorrectedDeltaEvent), "corrected_delta")]
 [JsonDerivedType(typeof(TextAssistCorrectionTranslationDeltaEvent), "correction_translation_delta")]
@@ -65,6 +66,16 @@ public sealed record TextAssistTranslationAnnotationEvent(
 
     public bool HasNote => !string.IsNullOrWhiteSpace(Note);
     public bool HasRelatedTerms => RelatedTerms is { Length: > 0 };
+}
+
+public sealed record TextAssistPolishExplanationEvent(
+    string Category,
+    string Original,
+    string Revised,
+    string Explanation) : TextAssistStreamEvent
+{
+    public bool HasOriginal => !string.IsNullOrWhiteSpace(Original);
+    public bool HasRevised => !string.IsNullOrWhiteSpace(Revised);
 }
 
 public sealed record TextAssistIssueEvent(

@@ -155,6 +155,7 @@ public class App : Application
             services.AddTransient<Page, TextAssistTranslationPageViewModel>();
             services.AddTransient<Page, TextAssistCorrectionPageViewModel>();
             services.AddTransient<TextAssistViewModel>();
+            services.AddTransient<TextAssistResultWindowViewModel>();
 
             // ViewModels
             services.AddSingleton<MainWindowViewModel>();

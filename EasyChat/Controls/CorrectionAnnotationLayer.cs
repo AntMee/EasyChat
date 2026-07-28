@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using EasyChat.Models.Translation.TextAssist;
 
 namespace EasyChat.Controls;
@@ -30,6 +30,9 @@ public sealed class CorrectionAnnotationLayer : Control
     public static readonly StyledProperty<Thickness> PaddingProperty =
         AvaloniaProperty.Register<CorrectionAnnotationLayer, Thickness>(nameof(Padding), new Thickness(0));
 
+    public static readonly StyledProperty<double> LineHeightProperty =
+        AvaloniaProperty.Register<CorrectionAnnotationLayer, double>(nameof(LineHeight), 0);
+
     public string Text
     {
         get => GetValue(TextProperty);
@@ -46,6 +49,7 @@ public sealed class CorrectionAnnotationLayer : Control
     public FontFamily FontFamily { get => GetValue(FontFamilyProperty); set => SetValue(FontFamilyProperty, value); }
     public FontWeight FontWeight { get => GetValue(FontWeightProperty); set => SetValue(FontWeightProperty, value); }
     public Thickness Padding { get => GetValue(PaddingProperty); set => SetValue(PaddingProperty, value); }
+    public double LineHeight { get => GetValue(LineHeightProperty); set => SetValue(LineHeightProperty, value); }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -71,19 +75,29 @@ public sealed class CorrectionAnnotationLayer : Control
         {
             if (issue.Start < 0 || issue.Length <= 0 || issue.Start >= Text.Length) continue;
             var end = Math.Min(Text.Length, issue.Start + issue.Length);
-            var start = layout[Math.Min(issue.Start, layout.Count - 1)];
-            var finish = layout[Math.Max(issue.Start, end - 1)];
-            var brush = Brushes.IndianRed;
-            if (Math.Abs(start.Y - finish.Y) < 0.5)
+            Rect? line = null;
+            for (var i = issue.Start; i < end; i++)
             {
-                context.FillRectangle(brush, new Rect(start.X, start.Bottom - 2, Math.Max(2, finish.Right - start.X), 2));
+                var character = layout[i];
+                if (character.Width <= 0) continue;
+
+                if (line is { } current && Math.Abs(current.Y - character.Y) < 0.5)
+                {
+                    line = current.Union(character);
+                    continue;
+                }
+
+                if (line is { } completed) DrawUnderline(context, completed);
+                line = character;
             }
-            else
-            {
-                context.FillRectangle(brush, new Rect(start.X, start.Bottom - 2, Math.Max(2, Bounds.Width - start.X - 8), 2));
-                context.FillRectangle(brush, new Rect(0, finish.Bottom - 2, Math.Max(2, finish.Right), 2));
-            }
+            if (line is { } completedLine) DrawUnderline(context, completedLine);
         }
+    }
+
+    private static void DrawUnderline(DrawingContext context, Rect line)
+    {
+        context.FillRectangle(Brushes.IndianRed,
+            new Rect(line.X, line.Bottom - 2, Math.Max(2, line.Width), 2));
     }
 
     public TextAssistIssueEvent? GetIssueAt(Point point)
@@ -123,32 +137,44 @@ public sealed class CorrectionAnnotationLayer : Control
     private List<Rect> BuildLayout()
     {
         var result = new List<Rect>(Text.Length);
+        if (Text.Length == 0) return result;
+
         var width = Math.Max(20, Bounds.Width - Padding.Left - Padding.Right);
-        var x = Padding.Left;
-        var y = Padding.Top;
-        var lineHeight = Math.Max(18, FontSize * 1.45);
-        var typeface = new Typeface(FontFamily, FontStyle.Normal, FontWeight);
+        var lineHeight = LineHeight > 0 ? LineHeight : Math.Max(18, FontSize * 1.45);
+        var layout = new TextLayout(
+            Text,
+            new Typeface(FontFamily, FontStyle.Normal, FontWeight),
+            FontSize,
+            Brushes.Transparent,
+            TextAlignment.Left,
+            TextWrapping.Wrap,
+            TextTrimming.None,
+            null,
+            FlowDirection.LeftToRight,
+            width,
+            double.PositiveInfinity,
+            lineHeight,
+            0,
+            int.MaxValue);
+
         for (var i = 0; i < Text.Length; i++)
         {
-            var value = Text[i].ToString();
-            if (value == "\r") { result.Add(new Rect(x, y, 0, lineHeight)); continue; }
-            if (value == "\n")
+            var start = layout.HitTestTextPosition(i);
+            if (Text[i] is '\r' or '\n')
             {
-                result.Add(new Rect(x, y, 0, lineHeight));
-                x = Padding.Left;
-                y += lineHeight;
+                result.Add(new Rect(start.X + Padding.Left, start.Y + Padding.Top, 0, start.Height));
                 continue;
             }
-            var formatted = new FormattedText(value, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                typeface, FontSize, Brushes.Transparent);
-            var charWidth = Math.Max(1, formatted.Width);
-            if (x + charWidth > width + Padding.Left && x > Padding.Left)
-            {
-                x = Padding.Left;
-                y += lineHeight;
-            }
-            result.Add(new Rect(x, y, charWidth, lineHeight));
-            x += charWidth;
+
+            var next = layout.HitTestTextPosition(i + 1);
+            var characterWidth = Math.Abs(start.Y - next.Y) < 0.5
+                ? Math.Max(1, next.X - start.X)
+                : Math.Max(1, width - start.X);
+            result.Add(new Rect(
+                start.X + Padding.Left,
+                start.Y + Padding.Top,
+                characterWidth,
+                Math.Max(1, start.Height)));
         }
         return result;
     }

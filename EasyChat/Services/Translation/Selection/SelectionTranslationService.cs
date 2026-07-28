@@ -2,8 +2,10 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Threading;
 using EasyChat.Common;
+using EasyChat.Models;
 using EasyChat.Models.Configuration;
 using EasyChat.Services.Abstractions;
 using EasyChat.Views.Windows;
@@ -29,6 +31,7 @@ public class SelectionTranslationService : IDisposable
     
     private SelectionIconWindowView? _iconWindow;
     private TranslationDictionaryWindowView? _currentTranslateWindow;
+    private TextAssistResultWindowView? _currentResultWindow;
     private TranslationDictionaryWindowView? _prewarmedTranslateWindow;
     private int _lastIconX;
     private int _lastIconY;
@@ -194,6 +197,9 @@ public class SelectionTranslationService : IDisposable
 
         _iconWindow = new SelectionIconWindowView();
         _iconWindow.TranslateClicked += OnTranslateClicked;
+        _iconWindow.CorrectionClicked += (_, _) => OnTextAssistClicked(TextAssistOperation.Correction);
+        _iconWindow.PolishClicked += (_, _) => OnTextAssistClicked(TextAssistOperation.Polish);
+        _iconWindow.SummaryClicked += (_, _) => OnTextAssistClicked(TextAssistOperation.Summary);
         return _iconWindow;
     }
 
@@ -209,9 +215,7 @@ public class SelectionTranslationService : IDisposable
         // delivered to its own handler instead of hiding it first.
         if (_iconWindow?.IsVisible == true)
         {
-            var iconPos = _iconWindow.Position;
-            var iconBounds = new Rect(iconPos.X, iconPos.Y, 40, 40);
-            if (iconBounds.Contains(new Point(e.X, e.Y)))
+            if (IsPointInsideWindow(_iconWindow, e.X, e.Y))
             {
                 _logger.LogDebug("Click is on icon window, not hiding");
                 return;
@@ -267,6 +271,20 @@ public class SelectionTranslationService : IDisposable
                 }
             });
         }
+
+        if (_currentResultWindow?.IsVisible == true)
+        {
+            var screenPoint = new PixelPoint(e.X, e.Y);
+            var clientPoint = _currentResultWindow.PointToClient(screenPoint);
+            if (new Rect(0, 0, _currentResultWindow.Bounds.Width, _currentResultWindow.Bounds.Height).Contains(clientPoint))
+            {
+                _downPoint = null;
+                _logger.LogDebug("Click is inside text assist result window, ignoring selection hook");
+                return;
+            }
+            else
+                Dispatcher.UIThread.Post(() => _currentResultWindow?.Close());
+        }
         
         // Hide icon on any click elsewhere (start of new interaction)
         
@@ -311,10 +329,10 @@ public class SelectionTranslationService : IDisposable
 
         // Releasing the mouse after dragging the translation window must not start
         // another selection capture or show the selection icon.
-        if (_currentTranslateWindow?.IsVisible == true)
+        if (_currentTranslateWindow?.IsVisible == true || _currentResultWindow?.IsVisible == true)
         {
             _downPoint = null;
-            _logger.LogDebug("Ignoring MouseUp while translation window is open");
+            _logger.LogDebug("Ignoring MouseUp while an application result window is open");
             return;
         }
 
@@ -448,6 +466,8 @@ public class SelectionTranslationService : IDisposable
     private void OnMouseDoubleClick(object? sender, SimpleMouseEventArgs e)
     {
         if (_configurationService.SelectionTranslation?.Enabled != true || !HandlesDoubleClick()) return;
+        if (IsPointInsideWindow(_currentTranslateWindow, e.X, e.Y) ||
+            IsPointInsideWindow(_currentResultWindow, e.X, e.Y)) return;
         
         _logger.LogInformation("Double Click detected at {X}, {Y}", e.X, e.Y);
         
@@ -555,13 +575,18 @@ public class SelectionTranslationService : IDisposable
         _logger.LogDebug("Showing icon at {X}, {Y}", x, y);
 
         var iconWindow = EnsureIconWindow();
+        var config = _configurationService.SelectionTranslation;
+        if (config == null || (!config.TranslationEnabled && !config.CorrectionEnabled && !config.PolishEnabled && !config.SummaryEnabled))
+        {
+            HideIcon();
+            return;
+        }
+        iconWindow.ApplyConfiguration(config);
         
         // Ensure window is usable (in case it was closed externally)
         try 
         {
-            // Set position
-            var pixelPoint = new PixelPoint(x + 10, y + 10);
-            iconWindow.Position = pixelPoint;
+            PositionToolbarWindow(iconWindow, x, y);
             iconWindow.Show();
             iconWindow.Topmost = true;
             // DO NOT Activate() to avoid stealing focus
@@ -571,12 +596,41 @@ public class SelectionTranslationService : IDisposable
             // Recreate if failed (e.g. invalid handle)
             _iconWindow = new SelectionIconWindowView();
             _iconWindow.TranslateClicked += OnTranslateClicked;
-            _iconWindow.Position = new PixelPoint(x + 10, y + 10);
+            _iconWindow.CorrectionClicked += (_, _) => OnTextAssistClicked(TextAssistOperation.Correction);
+            _iconWindow.PolishClicked += (_, _) => OnTextAssistClicked(TextAssistOperation.Polish);
+            _iconWindow.SummaryClicked += (_, _) => OnTextAssistClicked(TextAssistOperation.Summary);
+            _iconWindow.ApplyConfiguration(config);
+            PositionToolbarWindow(_iconWindow, x, y);
             _iconWindow.Show();
             _iconWindow.Topmost = true;
         }
         
         _logger.LogDebug("Icon window shown");
+    }
+
+    private static void PositionToolbarWindow(Window window, int x, int y)
+    {
+        var screen = window.Screens.ScreenFromPoint(new PixelPoint(x, y)) ?? window.Screens.Primary;
+        if (screen == null)
+        {
+            window.Position = new PixelPoint(x + 6, y + 6);
+            return;
+        }
+
+        var area = screen.WorkingArea;
+        var scale = screen.Scaling;
+        var offset = Math.Max(4, (int)Math.Ceiling(6 * scale));
+        var width = Math.Max(1, (int)Math.Ceiling(window.Width * scale));
+        var height = Math.Max(1, (int)Math.Ceiling(window.Height * scale));
+        var left = x + offset;
+        var top = y + offset;
+
+        if (left + width > area.Right) left = x - width - offset;
+        if (top + height > area.Bottom) top = y - height - offset;
+
+        left = Math.Clamp(left, area.X, Math.Max(area.X, area.Right - width));
+        top = Math.Clamp(top, area.Y, Math.Max(area.Y, area.Bottom - height));
+        window.Position = new PixelPoint(left, top);
     }
 
     private void OnTranslateClicked(object? sender, EventArgs e)
@@ -683,6 +737,67 @@ public class SelectionTranslationService : IDisposable
                 await Dispatcher.UIThread.InvokeAsync(HideIconAndLoading);
             }
         });
+    }
+
+    private static bool IsPointInsideWindow(Window? window, int x, int y)
+    {
+        if (window?.IsVisible != true) return false;
+        var clientPoint = window.PointToClient(new PixelPoint(x, y));
+        return new Rect(0, 0, window.Bounds.Width, window.Bounds.Height).Contains(clientPoint);
+    }
+
+    private void OnTextAssistClicked(TextAssistOperation operation)
+    {
+        var text = _lastSelectedText;
+        var x = _lastIconX;
+        var y = _lastIconY;
+        var generation = System.Threading.Interlocked.Read(ref _interactionGeneration);
+        if (string.IsNullOrWhiteSpace(text)) return;
+        Dispatcher.UIThread.Post(() => _iconWindow?.ShowLoading());
+        Task.Run(async () =>
+        {
+            try
+            {
+                if (generation != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    try { _currentResultWindow?.Close(); } catch { }
+                    var window = new TextAssistResultWindowView();
+                    _currentResultWindow = window;
+                    window.Closed += (_, _) =>
+                    {
+                        if (_currentResultWindow == window) _currentResultWindow = null;
+                    };
+                    PositionResultWindow(window, x, y);
+                    window.Show();
+                    HideIconAndLoading();
+                    _ = window.InitializeAsync(text, operation);
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to open selection text assist window");
+                await Dispatcher.UIThread.InvokeAsync(HideIconAndLoading);
+            }
+        });
+    }
+
+    private static void PositionResultWindow(Window window, int x, int y)
+    {
+        var screen = window.Screens.ScreenFromPoint(new PixelPoint(x, y)) ?? window.Screens.Primary;
+        if (screen == null) { window.Position = new PixelPoint(x + 16, y + 16); return; }
+        var area = screen.WorkingArea;
+        var scale = screen.Scaling;
+        var width = Math.Max(1, (int)Math.Ceiling(window.Width * scale));
+        var height = Math.Max(1, (int)Math.Ceiling(window.Height * scale));
+        var offset = Math.Max(8, (int)Math.Ceiling(16 * scale));
+        var left = x + offset;
+        var top = y + offset;
+        if (left + width > area.Right) left = x - width - offset;
+        if (top + height > area.Bottom) top = y - height - offset;
+        left = Math.Clamp(left, area.X, Math.Max(area.X, area.Right - width));
+        top = Math.Clamp(top, area.Y, Math.Max(area.Y, area.Bottom - height));
+        window.Position = new PixelPoint(left, top);
     }
     
     private void ShowDialogAtPosition(TranslationDictionaryWindowView? dialog, int x, int y)
@@ -830,6 +945,48 @@ public class SelectionTranslationService : IDisposable
                 if (dialog == null || _currentTranslateWindow != dialog) return;
                 dialog.HideInputCaptureLoading();
             });
+        }
+    }
+
+    public async Task ShowToolbarForCurrentSelectionAsync()
+    {
+        try
+        {
+            var (x, y) = _platformService.GetCursorPosition();
+            UpdateGeneration();
+            var generation = System.Threading.Interlocked.Read(ref _interactionGeneration);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                try { _currentTranslateWindow?.Close(); } catch { /* Ignore */ }
+                try { _currentResultWindow?.Close(); } catch { /* Ignore */ }
+                HideIcon();
+            });
+
+            var snapshot = await _selectedTextCaptureService.CaptureAsync();
+            if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.Text) ||
+                generation != System.Threading.Interlocked.Read(ref _interactionGeneration))
+                return;
+
+            _lastSelectedText = snapshot.Text;
+            _lastIconX = x;
+            _lastIconY = y;
+            _logger.LogInformation(
+                "Selected text captured for shortcut toolbar using {Method}: {Length} chars",
+                _platformService.LastSelectedTextCaptureMethod ?? "Unknown",
+                snapshot.Text.Length);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (generation != System.Threading.Interlocked.Read(ref _interactionGeneration)) return;
+                ShowIcon(x, y);
+                _iconWindow?.HideLoading();
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to show selection toolbar from shortcut");
+            await Dispatcher.UIThread.InvokeAsync(HideIconAndLoading);
         }
     }
 

@@ -3,10 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:lang="clr-namespace:EasyChat.Lang"
         xmlns:suki="https://github.com/kikipoulet/SukiUI"
-        mc:Ignorable="d" d:DesignWidth="40" d:DesignHeight="40"
+        mc:Ignorable="d" d:DesignWidth="153" d:DesignHeight="40"
         x:Class="EasyChat.Views.Windows.SelectionIconWindowView"
-        Width="40" Height="40"
+        Width="153" Height="40"
         WindowDecorations="None"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
@@ -17,26 +18,17 @@
         ShowActivated="False"
         WindowStartupLocation="Manual">
     
-    <Border CornerRadius="16"
-            Background="{DynamicResource SukiPrimaryColor}"
-            Width="32" Height="32"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Cursor="Hand"
-            PointerPressed="OnIconPointerPressed">
-        <Panel>
-            <!-- Normal translate icon -->
-            <icons:MaterialIcon x:Name="TranslateIcon" Kind="Translate" Width="20" Height="20" 
-                                Foreground="White"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"/>
-            <!-- Loading spinner (initially hidden) -->
-            <suki:Loading x:Name="LoadingSpinner" 
-                          Width="18" Height="18"
-                          Foreground="White"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          IsVisible="False"/>
-        </Panel>
+    <Border CornerRadius="8" Background="{DynamicResource SukiPrimaryColor}" Padding="4"
+            HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid>
+            <StackPanel x:Name="Toolbar" Orientation="Horizontal" Spacing="3">
+                <Button x:Name="TranslateButton" Classes="Basic" Width="34" Height="32" Padding="5" ToolTip.Tip="{x:Static lang:Resources.TextAssistTranslate}" Click="OnTranslateClick"><icons:MaterialIcon Kind="Translate" Width="20" Height="20" Foreground="White" /></Button>
+                <Button x:Name="CorrectionButton" Classes="Basic" Width="34" Height="32" Padding="5" ToolTip.Tip="{x:Static lang:Resources.TextAssistCorrect}" Click="OnCorrectionClick"><icons:MaterialIcon Kind="Spellcheck" Width="20" Height="20" Foreground="White" /></Button>
+                <Button x:Name="PolishButton" Classes="Basic" Width="34" Height="32" Padding="5" ToolTip.Tip="{x:Static lang:Resources.TextAssistPolish}" Click="OnPolishClick"><icons:MaterialIcon Kind="FormatPaint" Width="20" Height="20" Foreground="White" /></Button>
+                <Button x:Name="SummaryButton" Classes="Basic" Width="34" Height="32" Padding="5" ToolTip.Tip="{x:Static lang:Resources.TextAssistSummary}" Click="OnSummaryClick"><icons:MaterialIcon Kind="TextShort" Width="20" Height="20" Foreground="White" /></Button>
+            </StackPanel>
+            <suki:Loading x:Name="LoadingSpinner" Width="18" Height="18" Foreground="White"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="False"/>
+        </Grid>
     </Border>
 </Window>

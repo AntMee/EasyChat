@@ -729,10 +729,13 @@
         <value>Fixed Area Settings</value>
     </data>
     <data name="SelectionTranslation" xml:space="preserve">
-        <value>Selection Translation</value>
+        <value>Selection Toolbar</value>
     </data>
     <data name="EnableSelectionTranslation" xml:space="preserve">
-        <value>Enable Selection Translation</value>
+        <value>Enable Selection Toolbar</value>
+    </data>
+    <data name="SelectionShortcutToolbarTip" xml:space="preserve">
+        <value>When enabled, the shortcut shows the configured selection toolbar. When disabled, it translates the selected text immediately.</value>
     </data>
     <data name="SelectionTriggerMode" xml:space="preserve">
         <value>Selection Method</value>
@@ -882,6 +885,8 @@
   <data name="TextAssistSubtitle" xml:space="preserve"><value>Translate naturally or polish your writing with streaming feedback.</value></data>
   <data name="TextAssistTranslate" xml:space="preserve"><value>Translate</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>Correct</value></data>
+  <data name="TextAssistPolish" xml:space="preserve"><value>Polish</value></data>
+  <data name="TextAssistSummary" xml:space="preserve"><value>Summary</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>No AI model is configured. Add an AI model in Settings.</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>No voice is available for this language.</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>Enter text...</value></data>
@@ -908,6 +913,8 @@
   <data name="CollapseSettings" xml:space="preserve"><value>Collapse settings</value></data>
   <data name="Action_QuickTranslate" xml:space="preserve"><value>Quick translate</value></data>
   <data name="Action_QuickCorrect" xml:space="preserve"><value>Quick correct</value></data>
+  <data name="Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Tts_ConfigureVoices" xml:space="preserve"><value>Configure Voices</value></data>
   <data name="ReadSelectedText" xml:space="preserve"><value>Read selected text</value></data>
   <data name="OcrModels" xml:space="preserve"><value>OCR models</value></data>
   <data name="OcrUseProxy" xml:space="preserve"><value>Use proxy for model download</value></data>

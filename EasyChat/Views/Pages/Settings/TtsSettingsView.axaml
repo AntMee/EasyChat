@@ -19,7 +19,7 @@
                           MinWidth="150" />
             </StackPanel>
             
-            <Button Content="Configure Voices" 
+            <Button Content="{x:Static lang:Resources.Tts_ConfigureVoices}"
                     Command="{Binding ConfigureTtsCommand}" 
                     HorizontalAlignment="Left"
                     Classes="Flat"

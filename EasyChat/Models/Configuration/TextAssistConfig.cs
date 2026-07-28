@@ -56,6 +56,20 @@ public sealed class TextAssistConfig : ReactiveObject
     }
 
     [JsonProperty]
+    public string? PolishPromptId
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    [JsonProperty]
+    public string? SummaryPromptId
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    [JsonProperty]
     public bool DetailedExplanation
     {
         get;

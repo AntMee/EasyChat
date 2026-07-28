@@ -46,6 +46,11 @@ public class ShortcutEditDialogViewModel : ViewModelBase
 
     public bool IsComplexSwitchAction => SelectedAction.ActionType == "SwitchEngineSourceTarget";
     public bool IsTextAssistAction => SelectedAction.ActionType is "QuickTranslate" or "QuickCorrect";
+    public bool IsModeSelectableTextAssistAction => false;
+    public bool IsSelectionTranslateAction => SelectedAction.ActionType == "SelectionTranslate";
+    public string SelectionToolbarOptionText => Resources.SelectionTranslation;
+    public string SelectionToolbarOptionTip => Resources.ResourceManager.GetString("SelectionShortcutToolbarTip", Resources.Culture)
+                                                       ?? "Show the configured selection toolbar instead of translating immediately.";
     public bool IsInputTranslateAction => SelectedAction.ActionType == "InputTranslate";
 
     private EngineOption? _selectedEngineOption;
@@ -247,12 +252,16 @@ public class ShortcutEditDialogViewModel : ViewModelBase
             this.RaisePropertyChanged(nameof(IsComplexSwitchAction));
             this.RaisePropertyChanged(nameof(IsTextAssistAction));
             this.RaisePropertyChanged(nameof(IsInputTranslateAction));
+            this.RaisePropertyChanged(nameof(IsModeSelectableTextAssistAction));
+            this.RaisePropertyChanged(nameof(IsSelectionTranslateAction));
             UpdateAvailableParameterOptions();
 
             if (_existingEntry == null || _existingEntry.ActionType != value.ActionType)
             {
                 Parameter = "";
                 ReadSelectedText = false;
+                TextAssistMode = TextAssistShortcutMode.Simple;
+                ShowSelectionToolbar = false;
                 ReplaceCurrentInput = false;
             }
         }
@@ -330,6 +339,26 @@ public class ShortcutEditDialogViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
+    public bool ShowSelectionToolbar
+    {
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    }
+
+    public TextAssistShortcutMode TextAssistMode
+    {
+        get;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref field, value);
+            if (value == TextAssistShortcutMode.Simple) ReadSelectedText = true;
+            this.RaisePropertyChanged(nameof(IsReadSelectionLocked));
+        }
+    } = TextAssistShortcutMode.Simple;
+
+    public bool IsReadSelectionLocked => IsModeSelectableTextAssistAction && TextAssistMode == TextAssistShortcutMode.Simple;
+    public IReadOnlyList<TextAssistShortcutMode> TextAssistModes { get; } = [TextAssistShortcutMode.Simple, TextAssistShortcutMode.Complex];
+
     public IShortcutActionDefinition[] AvailableActions { get; }
 
     public ReactiveCommand<Unit, Unit> ToggleRecordingCommand { get; }
@@ -376,7 +405,9 @@ public class ShortcutEditDialogViewModel : ViewModelBase
             InputTranslateAfterKey = IsInputTranslateAction
                 ? NullIfWhiteSpace(InputTranslateAfterKey)
                 : null,
-            ReplaceCurrentInput = IsInputTranslateAction ? ReplaceCurrentInput : null
+            ReplaceCurrentInput = IsInputTranslateAction ? ReplaceCurrentInput : null,
+            TextAssistMode = IsModeSelectableTextAssistAction ? TextAssistMode : null,
+            ShowSelectionToolbar = IsSelectionTranslateAction ? ShowSelectionToolbar : null
         };
     }
 

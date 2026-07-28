@@ -31,4 +31,16 @@ public class ShortcutParameter
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public bool? ReplaceCurrentInput { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public TextAssistShortcutMode? TextAssistMode { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? ShowSelectionToolbar { get; set; }
+}
+
+public enum TextAssistShortcutMode
+{
+    Simple,
+    Complex
 }

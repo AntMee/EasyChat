@@ -21,7 +21,8 @@ public class SelectionTranslateHandler : IShortcutActionHandler
 
     public void Execute(ShortcutParameter? parameter = null)
     {
-        // Fire and forget
-        _ = _selectionTranslationService.TranslateCurrentSelectionAsync();
+        _ = parameter?.ShowSelectionToolbar == true
+            ? _selectionTranslationService.ShowToolbarForCurrentSelectionAsync()
+            : _selectionTranslationService.TranslateCurrentSelectionAsync();
     }
 }

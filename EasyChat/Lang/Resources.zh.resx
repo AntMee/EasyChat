@@ -718,10 +718,13 @@
         <value>固定区域设置</value>
     </data>
     <data name="SelectionTranslation" xml:space="preserve">
-        <value>划词翻译</value>
+        <value>划词工具栏</value>
     </data>
     <data name="EnableSelectionTranslation" xml:space="preserve">
-        <value>启用划词翻译</value>
+        <value>启用划词工具栏</value>
+    </data>
+    <data name="SelectionShortcutToolbarTip" xml:space="preserve">
+        <value>启用后，按下快捷键将显示设置中已配置的划词工具栏；关闭时直接翻译选中的文本。</value>
     </data>
     <data name="SelectionTriggerMode" xml:space="preserve">
         <value>取词方式</value>
@@ -872,6 +875,8 @@
   <data name="TextAssistSubtitle" xml:space="preserve"><value>流式翻译文本，或实时完善你的表达。</value></data>
   <data name="TextAssistTranslate" xml:space="preserve"><value>翻译</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
+  <data name="TextAssistPolish" xml:space="preserve"><value>润色</value></data>
+  <data name="TextAssistSummary" xml:space="preserve"><value>总结</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>
@@ -914,4 +919,6 @@
     <data name="OcrModelDownloadTitle" xml:space="preserve"><value>OCR 模型</value></data>
     <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR 模型下载完成。</value></data>
     <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR 模型下载失败</value></data>
+  <data name="Retry" xml:space="preserve"><value>重试</value></data>
+  <data name="Tts_ConfigureVoices" xml:space="preserve"><value>配置语音</value></data>
 </root>

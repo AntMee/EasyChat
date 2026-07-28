@@ -12,6 +12,10 @@ public class SelectionTranslationConfig : ReactiveObject
     private string? _aiModelId;
     private string? _machineProvider;
     private SelectionTriggerMode _triggerMode = SelectionTriggerMode.All;
+    private bool _translationEnabled = true;
+    private bool _correctionEnabled;
+    private bool _polishEnabled;
+    private bool _summaryEnabled;
 
     [JsonProperty]
     public bool Enabled
@@ -53,6 +57,34 @@ public class SelectionTranslationConfig : ReactiveObject
     {
         get => _triggerMode;
         set => this.RaiseAndSetIfChanged(ref _triggerMode, value);
+    }
+
+    [JsonProperty]
+    public bool TranslationEnabled
+    {
+        get => _translationEnabled;
+        set => this.RaiseAndSetIfChanged(ref _translationEnabled, value);
+    }
+
+    [JsonProperty]
+    public bool CorrectionEnabled
+    {
+        get => _correctionEnabled;
+        set => this.RaiseAndSetIfChanged(ref _correctionEnabled, value);
+    }
+
+    [JsonProperty]
+    public bool PolishEnabled
+    {
+        get => _polishEnabled;
+        set => this.RaiseAndSetIfChanged(ref _polishEnabled, value);
+    }
+
+    [JsonProperty]
+    public bool SummaryEnabled
+    {
+        get => _summaryEnabled;
+        set => this.RaiseAndSetIfChanged(ref _summaryEnabled, value);
     }
 }
 

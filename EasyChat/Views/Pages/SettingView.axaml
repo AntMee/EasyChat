@@ -41,7 +41,7 @@
                             </suki:SettingsLayoutItem.Content>
                         </suki:SettingsLayoutItem>
 
-                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.SelectionTranslation}">
+                        <suki:SettingsLayoutItem Header="划词工具栏">
                             <suki:SettingsLayoutItem.Content>
                                 <settings:SelectionTranslationSettingsView DataContext="{Binding}" />
                             </suki:SettingsLayoutItem.Content>

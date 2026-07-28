@@ -228,6 +228,127 @@ After each corrected version, emit one or more {"event":"correction_translation_
         }
     }
 
+    public async IAsyncEnumerable<TextAssistStreamEvent> StreamPolishAsync(
+        string text,
+        TextAssistProfile profile,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var (client, language) = CreateCorrectionClient(profile);
+        var nativeLanguage = ResolveOutputLanguage();
+        var prompt = $$"""
+# Role
+You are a precise writing editor.
+
+# Task
+Polish the user's text while preserving its meaning and input language.
+Detect the input language yourself unless the configured language is explicitly {{language.EnglishName}}.
+After the polished text, explain the meaningful changes in {{nativeLanguage}}.
+For each explanation, quote only the shortest useful original and revised snippets.
+Do not invent changes, and omit explanations when no meaningful change was made.
+
+# Optional user guidance
+{{BuildAssistGuidance(profile)}}
+
+# Output protocol
+Return raw NDJSON only, one JSON object per line, without Markdown fences.
+Emit exactly this order:
+{"event":"start","mode":"polish","language":"{{language.Id}}"}
+One or more {"event":"translation_delta","text":"..."} objects whose concatenated text is the complete polished result.
+Zero or more {"event":"polish_explanation","category":"a short category in {{nativeLanguage}}","original":"...","revised":"...","explanation":"a concise explanation in {{nativeLanguage}}"}
+{"event":"done"}
+""";
+        var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage(prompt),
+            new UserChatMessage(text)
+        };
+        var options = new ChatCompletionOptions { Temperature = 0.2f, MaxOutputTokenCount = 4000 };
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var decoder = new JsonLinesDeltaStreamDecoder<TextAssistStreamEvent>(
+            line => JsonSerializer.Deserialize<TextAssistStreamEvent>(line, jsonOptions)
+                    ?? throw new JsonException("Empty polish event."),
+            "translation_delta",
+            "text",
+            (exception, line) => _logger.LogDebug(exception, "Ignoring invalid polish event: {Line}", line));
+        var rawResponse = new StringBuilder();
+        var emittedEvent = false;
+
+#pragma warning disable OPENAI001
+        await foreach (var update in client.CompleteChatStreamingAsync(messages, options, cancellationToken))
+        {
+            foreach (var content in update.ContentUpdate)
+            {
+                rawResponse.Append(content.Text);
+                foreach (var item in decoder.Append(content.Text))
+                {
+                    emittedEvent = true;
+                    yield return item;
+                }
+            }
+        }
+#pragma warning restore OPENAI001
+
+        foreach (var item in decoder.Complete())
+        {
+            emittedEvent = true;
+            yield return item;
+        }
+
+        if (!emittedEvent)
+        {
+            var fallback = StripMarkdownFence(rawResponse.ToString().Trim());
+            if (!string.IsNullOrWhiteSpace(fallback))
+                yield return new TextAssistTranslationDeltaEvent(fallback);
+            yield return new TextAssistCompletedEvent();
+        }
+    }
+
+    public IAsyncEnumerable<TextAssistStreamEvent> StreamSummarizeAsync(
+        string text,
+        TextAssistProfile profile,
+        CancellationToken cancellationToken = default) =>
+        StreamPlainTextAssistAsync(text, profile, cancellationToken);
+
+    private async IAsyncEnumerable<TextAssistStreamEvent> StreamPlainTextAssistAsync(
+        string text,
+        TextAssistProfile profile,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var (client, _) = CreateCorrectionClient(profile);
+        var nativeLanguage = ResolveOutputLanguage();
+        var instruction = $"First create a concise summary of the user's text, then translate that summary into {nativeLanguage}. Detect the input language yourself. Output only the final {nativeLanguage} summary, with no label or commentary.";
+        var prompt = $"""
+# Role
+You are a precise writing assistant.
+
+# Task
+{instruction}
+
+# Optional user guidance
+{BuildAssistGuidance(profile)}
+""";
+        var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage(prompt),
+            new UserChatMessage(text)
+        };
+        var options = new ChatCompletionOptions { Temperature = 0.2f, MaxOutputTokenCount = 4000 };
+        var emitted = false;
+#pragma warning disable OPENAI001
+        await foreach (var update in client.CompleteChatStreamingAsync(messages, options, cancellationToken))
+        {
+            foreach (var content in update.ContentUpdate)
+            {
+                if (string.IsNullOrEmpty(content.Text)) continue;
+                emitted = true;
+                yield return new TextAssistTranslationDeltaEvent(content.Text);
+            }
+        }
+#pragma warning restore OPENAI001
+        if (!emitted) yield return new TextAssistTranslationDeltaEvent(string.Empty);
+        yield return new TextAssistCompletedEvent();
+    }
+
     private static string StripMarkdownFence(string value)
     {
         if (!value.StartsWith("```", StringComparison.Ordinal)) return value;
@@ -399,5 +520,13 @@ Optional variants 2 and 3 use their own concatenated corrected_delta sequence.
 After each corrected version, emit one or more {"event":"correction_translation_delta","variant":1,"text":"..."} objects containing its translation in [UiLanguage].
 {"event":"done"}
 """;
+    }
+
+    private string BuildAssistGuidance(TextAssistProfile profile)
+    {
+        var configured = profile.PromptId is { Length: > 0 }
+            ? _configurationService.Prompts?.FindById(profile.PromptId)?.Content
+            : null;
+        return configured ?? _configurationService.Prompts?.ActivePromptContent ?? string.Empty;
     }
 }

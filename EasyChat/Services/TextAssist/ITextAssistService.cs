@@ -16,4 +16,14 @@ public interface ITextAssistService
         string text,
         TextAssistProfile profile,
         CancellationToken cancellationToken = default);
+
+    IAsyncEnumerable<TextAssistStreamEvent> StreamPolishAsync(
+        string text,
+        TextAssistProfile profile,
+        CancellationToken cancellationToken = default);
+
+    IAsyncEnumerable<TextAssistStreamEvent> StreamSummarizeAsync(
+        string text,
+        TextAssistProfile profile,
+        CancellationToken cancellationToken = default);
 }

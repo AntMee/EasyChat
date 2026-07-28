@@ -1732,6 +1732,15 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("Reset", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Retry.
+        /// </summary>
+        public static string Retry {
+            get {
+                return ResourceManager.GetString("Retry", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Please restart the application to take effect..
@@ -2497,6 +2506,24 @@ namespace EasyChat.Lang {
                 return ResourceManager.GetString("TextAssistCorrect", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Polish.
+        /// </summary>
+        public static string TextAssistPolish {
+            get {
+                return ResourceManager.GetString("TextAssistPolish", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Summary.
+        /// </summary>
+        public static string TextAssistSummary {
+            get {
+                return ResourceManager.GetString("TextAssistSummary", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Corrected result.
@@ -2801,6 +2828,15 @@ namespace EasyChat.Lang {
         public static string Tts_Configuration {
             get {
                 return ResourceManager.GetString("Tts_Configuration", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Configure Voices.
+        /// </summary>
+        public static string Tts_ConfigureVoices {
+            get {
+                return ResourceManager.GetString("Tts_ConfigureVoices", resourceCulture);
             }
         }
         

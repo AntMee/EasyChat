@@ -74,4 +74,27 @@ public class ShortcutParameterTests
         Assert.IsNotNull(parameter);
         Assert.IsNull(parameter.ReplaceCurrentInput);
     }
+
+    [TestMethod]
+    public void TextAssistMode_RoundTrips()
+    {
+        var json = JsonConvert.SerializeObject(new ShortcutParameter { TextAssistMode = TextAssistShortcutMode.Simple });
+        var parameter = JsonConvert.DeserializeObject<ShortcutParameter>(json);
+
+        Assert.IsNotNull(parameter);
+        Assert.AreEqual(TextAssistShortcutMode.Simple, parameter.TextAssistMode);
+    }
+
+    [TestMethod]
+    public void ShowSelectionToolbar_RoundTripsAndDefaultsToUnspecified()
+    {
+        var json = JsonConvert.SerializeObject(new ShortcutParameter { ShowSelectionToolbar = true });
+        var parameter = JsonConvert.DeserializeObject<ShortcutParameter>(json);
+        var legacy = JsonConvert.DeserializeObject<ShortcutParameter>("{\"Value\":\"\"}");
+
+        Assert.IsNotNull(parameter);
+        Assert.IsTrue(parameter.ShowSelectionToolbar);
+        Assert.IsNotNull(legacy);
+        Assert.IsNull(legacy.ShowSelectionToolbar);
+    }
 }

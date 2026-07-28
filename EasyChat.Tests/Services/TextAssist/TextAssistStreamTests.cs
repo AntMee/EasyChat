@@ -93,6 +93,25 @@ public sealed class TextAssistStreamTests
     }
 
     [TestMethod]
+    public void Decoder_ParsesPolishedTextAndExplanation()
+    {
+        var decoder = new JsonLinesDeltaStreamDecoder<TextAssistStreamEvent>(Deserialize, "translation_delta", "text");
+        var events = new List<TextAssistStreamEvent>();
+        events.AddRange(decoder.Append("{\"event\":\"translation_delta\",\"text\":\"More natu"));
+        events.AddRange(decoder.Append("ral text.\"}\n{\"event\":\"polish_explanation\",\"category\":\"Clarity\",\"original\":\"old text\",\"revised\":\"natural text\",\"explanation\":\"Uses a clearer expression.\"}\n{\"event\":\"done\"}"));
+        events.AddRange(decoder.Complete());
+
+        Assert.AreEqual("More natural text.", string.Concat(events.OfType<TextAssistTranslationDeltaEvent>().Select(x => x.Text)));
+        var explanation = events.OfType<TextAssistPolishExplanationEvent>().Single();
+        Assert.AreEqual("Clarity", explanation.Category);
+        Assert.AreEqual("old text", explanation.Original);
+        Assert.AreEqual("natural text", explanation.Revised);
+        Assert.IsTrue(explanation.HasOriginal);
+        Assert.IsTrue(explanation.HasRevised);
+        Assert.IsTrue(events.Last() is TextAssistCompletedEvent);
+    }
+
+    [TestMethod]
     public void CorrectionAccumulator_AssociatesTranslationsByVariant()
     {
         var accumulator = new TextAssistCorrectionAccumulator(4);

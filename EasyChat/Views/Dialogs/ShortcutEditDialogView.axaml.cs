@@ -45,6 +45,18 @@ public partial class ShortcutEditDialogView : UserControl
         e.Handled = true;
     }
 
+    private void OnSelectionToolbarInfoPointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Control control)
+            control.SetValue(ToolTip.IsOpenProperty, true);
+    }
+
+    private void OnSelectionToolbarInfoPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Control control)
+            control.SetValue(ToolTip.IsOpenProperty, false);
+    }
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
