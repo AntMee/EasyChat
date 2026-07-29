@@ -71,6 +71,12 @@ jobs:
           # Velopack 1.2.0 maps msiBanner to the dialog image and msiLogo to the top banner.
           vpk pack -u EasyChat -v ${{ env.VERSION }} -p ./publish-bundled -e EasyChat.exe -c bundled -o ./Releases --msi true --instLocation Either -i ./EasyChat/Assets/easychat-logo.ico --msiBanner ./.github/assets/installer/msi-dialog.bmp --msiLogo ./.github/assets/installer/msi-banner.bmp
 
+      - name: Remove EXE installer packages
+        shell: pwsh
+        run: |
+          Get-ChildItem -LiteralPath ./Releases -Filter '*Setup.exe' -File |
+            Remove-Item -Force
+
       - name: Add install directory selection to MSI packages
         shell: pwsh
         run: |
@@ -113,7 +119,6 @@ jobs:
         with:
           body_path: artifacts/release-notes.md
           files: |
-            Releases/*Setup.exe
             Releases/*.msi
             Releases/*.zip
             Releases/*-${{ env.VERSION }}-delta.nupkg
@@ -123,14 +128,6 @@ jobs:
             Releases/releases.*.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Setup
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: EasyChat-Setup
-          path: |
-            Releases/*Setup.exe
 
       - name: Upload Portable
         if: always()
