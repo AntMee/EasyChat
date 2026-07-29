@@ -25,7 +25,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install Velopack CLI
-        run: dotnet tool install -g vpk
+        run: dotnet tool install -g vpk --version 1.2.0
 
       - name: Restore online OCR dependencies
         run: dotnet restore ./EasyChat/EasyChat.csproj -r win-x64 -p:UseBundledOcrModels=false
@@ -63,11 +63,37 @@ jobs:
         
       - name: Pack online Velopack channel (win compatibility channel)
         run: |
-          vpk pack -u EasyChat -v ${{ env.VERSION }} -p ./publish-online -e EasyChat.exe -c win -o ./Releases
+          # Velopack 1.2.0 maps msiBanner to the dialog image and msiLogo to the top banner.
+          vpk pack -u EasyChat -v ${{ env.VERSION }} -p ./publish-online -e EasyChat.exe -c win -o ./Releases --msi true --instLocation Either -i ./EasyChat/Assets/easychat-logo.ico --msiBanner ./.github/assets/installer/msi-dialog.bmp --msiLogo ./.github/assets/installer/msi-banner.bmp
 
       - name: Pack bundled Velopack channel
         run: |
-          vpk pack -u EasyChat -v ${{ env.VERSION }} -p ./publish-bundled -e EasyChat.exe -c bundled -o ./Releases
+          # Velopack 1.2.0 maps msiBanner to the dialog image and msiLogo to the top banner.
+          vpk pack -u EasyChat -v ${{ env.VERSION }} -p ./publish-bundled -e EasyChat.exe -c bundled -o ./Releases --msi true --instLocation Either -i ./EasyChat/Assets/easychat-logo.ico --msiBanner ./.github/assets/installer/msi-dialog.bmp --msiLogo ./.github/assets/installer/msi-banner.bmp
+
+      - name: Add install directory selection to MSI packages
+        shell: pwsh
+        run: |
+          Get-ChildItem ./Releases/*.msi | ForEach-Object {
+            ./.github/scripts/customize-velopack-msi.ps1 -Path $_.FullName
+          }
+
+      - name: Add channel and version to MSI file names
+        shell: pwsh
+        run: |
+          $names = @{
+            'EasyChat-win.msi' = "EasyChat-Win-${{ env.VERSION }}.msi"
+            'EasyChat-bundled.msi' = "EasyChat-Bundled-${{ env.VERSION }}.msi"
+          }
+
+          foreach ($entry in $names.GetEnumerator()) {
+            $source = Join-Path ./Releases $entry.Key
+            if (-not (Test-Path -LiteralPath $source)) {
+              throw "Expected MSI was not generated: $source"
+            }
+
+            Rename-Item -LiteralPath $source -NewName $entry.Value
+          }
 
       - name: Generate release notes
         if: startsWith(github.ref, 'refs/tags/v')
@@ -88,6 +114,7 @@ jobs:
           body_path: artifacts/release-notes.md
           files: |
             Releases/*Setup.exe
+            Releases/*.msi
             Releases/*.zip
             Releases/*-${{ env.VERSION }}-delta.nupkg
             Releases/*-${{ env.VERSION }}-full.nupkg
@@ -112,6 +139,14 @@ jobs:
           name: EasyChat-Portable
           path: |
             Releases/*.zip
+
+      - name: Upload MSI
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EasyChat-MSI
+          path: |
+            Releases/*.msi
 
       - name: Upload Velopack Assets
         if: always()
