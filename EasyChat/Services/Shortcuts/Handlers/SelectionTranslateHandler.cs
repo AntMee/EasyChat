@@ -1,6 +1,8 @@
 using EasyChat.Models.Configuration;
 using EasyChat.Services.Abstractions;
 using EasyChat.Services.Translation.Selection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EasyChat.Services.Shortcuts.Handlers;
 
@@ -11,8 +13,11 @@ namespace EasyChat.Services.Shortcuts.Handlers;
 public class SelectionTranslateHandler : IShortcutActionHandler
 {
     private readonly SelectionTranslationService _selectionTranslationService;
+    private int _isExecuting;
 
     public string ActionType => "SelectionTranslate";
+    public bool PreventConcurrentExecution => true;
+    public bool IsExecuting => Volatile.Read(ref _isExecuting) != 0;
     
     public SelectionTranslateHandler(SelectionTranslationService selectionTranslationService)
     {
@@ -21,8 +26,30 @@ public class SelectionTranslateHandler : IShortcutActionHandler
 
     public void Execute(ShortcutParameter? parameter = null)
     {
-        _ = parameter?.ShowSelectionToolbar == true
-            ? _selectionTranslationService.ShowToolbarForCurrentSelectionAsync()
-            : _selectionTranslationService.TranslateCurrentSelectionAsync();
+        if (Interlocked.CompareExchange(ref _isExecuting, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _ = ExecuteAsync(parameter);
+    }
+
+    private async Task ExecuteAsync(ShortcutParameter? parameter)
+    {
+        try
+        {
+            if (parameter?.ShowSelectionToolbar == true)
+            {
+                await _selectionTranslationService.ShowToolbarForCurrentSelectionAsync();
+            }
+            else
+            {
+                await _selectionTranslationService.TranslateCurrentSelectionAsync();
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref _isExecuting, 0);
+        }
     }
 }

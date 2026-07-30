@@ -74,7 +74,7 @@ public sealed class SelectedTextCaptureService : ISelectedTextCaptureService
                 ? null
                 : await _platformService.GetSelectedTextDirectAsync();
 
-            if (string.IsNullOrWhiteSpace(text) && copyOnly)
+            if (string.IsNullOrWhiteSpace(text))
             {
                 backup = await Task.Run(() => _clipboardSnapshotService.Backup(_logger));
                 if (backup == null)
