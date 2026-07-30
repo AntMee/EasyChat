@@ -6,6 +6,7 @@ namespace EasyChat.Services.Abstractions;
 public interface IPlatformService
 {
     IntPtr GetForegroundWindowHandle();
+    IntPtr GetFocusedWindowHandle();
     void SetForegroundWindow(IntPtr hWnd);
     void SetFocus(IntPtr hWnd);
     void PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
@@ -16,7 +17,12 @@ public interface IPlatformService
     Task SendTextMessageAsync(IntPtr hWnd, string text, int delayMs = 10);
     Task<bool> EnsureFocused(IntPtr hWnd);
     bool TrySelectAllText();
-    Task<string?> GetSelectedTextAsync(int? x = null, int? y = null, bool copyOnly = false);
+    Task<string?> GetSelectedTextAsync(
+        int? x = null,
+        int? y = null,
+        bool copyOnly = false,
+        IntPtr? expectedForegroundWindow = null,
+        IntPtr? expectedFocusedWindow = null);
     string? LastSelectedTextCaptureMethod { get; }
     (int X, int Y) GetCursorPosition();
 }

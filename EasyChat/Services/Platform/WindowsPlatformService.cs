@@ -25,6 +25,11 @@ public class WindowsPlatformService : IPlatformService
         return Win32.GetForegroundWindow();
     }
 
+    public IntPtr GetFocusedWindowHandle()
+    {
+        return GetFocusedWindow();
+    }
+
     public void SetForegroundWindow(IntPtr hWnd)
     {
         var targetThreadId = Win32.GetWindowThreadProcessId(hWnd, out _);
@@ -296,11 +301,22 @@ public class WindowsPlatformService : IPlatformService
         }
     }
     
-    public async Task<string?> GetSelectedTextAsync(int? x = null, int? y = null, bool copyOnly = false)
+    public async Task<string?> GetSelectedTextAsync(
+        int? x = null,
+        int? y = null,
+        bool copyOnly = false,
+        IntPtr? expectedForegroundWindow = null,
+        IntPtr? expectedFocusedWindow = null)
     {
         return await Task.Run(async () =>
         {
             LastSelectedTextCaptureMethod = null;
+
+            if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow, "before capture"))
+            {
+                _logger.LogDebug("Skipping selection capture because the source window changed before capture");
+                return null;
+            }
 
             if (!copyOnly)
             {
@@ -317,6 +333,12 @@ public class WindowsPlatformService : IPlatformService
                 // Some controls implement the copy command but do not expose their
                 // text through EM_GETSEL. Ask the focused control to copy directly
                 // before falling back to synthesized Ctrl+C.
+                if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow, "before WM_COPY"))
+                {
+                    _logger.LogDebug("Skipping selection capture because the source window changed before WM_COPY");
+                    return null;
+                }
+
                 text = await TryCopySelectedTextWithWindowMessageAsync();
                 if (!string.IsNullOrWhiteSpace(text))
                 {
@@ -372,6 +394,16 @@ public class WindowsPlatformService : IPlatformService
                     _logger.LogDebug("Skipping selection capture while a modifier or C is pressed by the user");
                     return null;
                 }
+
+                // The source application can handle a mouse gesture (for example,
+                // copying an image on double-click) while this capture is waiting.
+                // Do not send Ctrl+C to a different focused control than the one
+                // that received the original mouse event.
+                if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow, "before Ctrl+C"))
+                {
+                    _logger.LogDebug("Skipping Ctrl+C because the source window changed before copy");
+                    return null;
+                }
                 
                 // 3. Send Ctrl+C
                 var inputs = new Win32.INPUT[4];
@@ -423,6 +455,48 @@ public class WindowsPlatformService : IPlatformService
                 return null;
             }
         });
+    }
+
+    private bool HasExpectedWindowContext(
+        IntPtr? expectedForegroundWindow,
+        IntPtr? expectedFocusedWindow,
+        string? logStage = null)
+    {
+        var currentForegroundWindow = Win32.GetForegroundWindow();
+        var currentFocusedWindow = GetFocusedWindow();
+        if (logStage != null)
+        {
+            LogWindowContext(
+                logStage,
+                expectedForegroundWindow,
+                expectedFocusedWindow,
+                currentForegroundWindow,
+                currentFocusedWindow);
+        }
+
+        var foregroundMatches = !expectedForegroundWindow.HasValue ||
+                                 expectedForegroundWindow.Value == IntPtr.Zero ||
+                                 expectedForegroundWindow.Value == currentForegroundWindow;
+        var focusedMatches = !expectedFocusedWindow.HasValue ||
+                             expectedFocusedWindow.Value == IntPtr.Zero ||
+                             expectedFocusedWindow.Value == currentFocusedWindow;
+        return foregroundMatches && focusedMatches;
+    }
+
+    private void LogWindowContext(
+        string stage,
+        IntPtr? expectedForegroundWindow,
+        IntPtr? expectedFocusedWindow,
+        IntPtr currentForegroundWindow,
+        IntPtr currentFocusedWindow)
+    {
+        _logger.LogInformation(
+            "Selection window snapshot at {Stage}: expected foreground=0x{ExpectedForeground:X}, current foreground=0x{CurrentForeground:X}, expected focused=0x{ExpectedFocused:X}, current focused=0x{CurrentFocused:X}",
+            stage,
+            expectedForegroundWindow?.ToInt64() ?? 0,
+            currentForegroundWindow.ToInt64(),
+            expectedFocusedWindow?.ToInt64() ?? 0,
+            currentFocusedWindow.ToInt64());
     }
 
     private string? TryGetSelectedTextFromFocusedControl()

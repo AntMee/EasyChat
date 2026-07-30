@@ -25,6 +25,8 @@ public class SelectionTranslationService : IDisposable
     private readonly ISelectedTextCaptureService _selectedTextCaptureService;
 
     private (int x, int y)? _downPoint;
+    private IntPtr _foregroundWindowAtMouseDown;
+    private IntPtr _focusedWindowAtMouseDown;
     
     // Thresholds
     private const int DragThreshold = 5; // pixels
@@ -210,6 +212,16 @@ public class SelectionTranslationService : IDisposable
             return;
         }
 
+        // MouseDoubleClick is raised by the low-level hook before the second
+        // MouseDown. Keep the snapshot at the start of MouseDown so a double
+        // click can compare against the first click's source window.
+        _foregroundWindowAtMouseDown = _platformService.GetForegroundWindowHandle();
+        _focusedWindowAtMouseDown = _platformService.GetFocusedWindowHandle();
+        _logger.LogInformation(
+            "Selection mouse-down window snapshot: foreground=0x{Foreground:X}, focused=0x{Focused:X}",
+            _foregroundWindowAtMouseDown.ToInt64(),
+            _focusedWindowAtMouseDown.ToInt64());
+
         // The global hook sees the mouse-down before the icon window does. Keep
         // this guard before the trigger-mode branches so clicking the icon is
         // delivered to its own handler instead of hiding it first.
@@ -358,6 +370,8 @@ public class SelectionTranslationService : IDisposable
             // A screenshot overlay also looks like a drag selection to the global
             // mouse hook. Snapshot the external state before the overlay handles
             // mouse-up so we can avoid racing its clipboard/focus cleanup below.
+            var foregroundWindowAtMouseDown = _foregroundWindowAtMouseDown;
+            var focusedWindowAtMouseDown = _focusedWindowAtMouseDown;
             var foregroundWindowAtMouseUp = _platformService.GetForegroundWindowHandle();
             var clipboardSequenceAtMouseUp = ClipboardHelper.GetClipboardSequenceNumber();
             
@@ -402,7 +416,11 @@ public class SelectionTranslationService : IDisposable
                         () => ClipboardHelper.BackupClipboardAsync(_logger),
                         DispatcherPriority.Background);
                     
-                    var text = await _platformService.GetSelectedTextAsync(x2, y2);
+                    var text = await _platformService.GetSelectedTextAsync(
+                        x2,
+                        y2,
+                        expectedForegroundWindow: foregroundWindowAtMouseDown,
+                        expectedFocusedWindow: focusedWindowAtMouseDown);
                     _lastSelectedText = text;
 
                     var selectionClipboardSequence = ClipboardHelper.GetClipboardSequenceNumber();
@@ -478,8 +496,15 @@ public class SelectionTranslationService : IDisposable
 
         // Screenshot tools may use a double-click to accept a window/region and
         // then update the clipboard or close their overlay asynchronously.
-        var foregroundWindowAtDoubleClick = _platformService.GetForegroundWindowHandle();
+        // The hook raises MouseDoubleClick before the second MouseDown, so the
+        // stored values still represent the first click's source window.
+        var foregroundWindowAtDoubleClick = _foregroundWindowAtMouseDown;
+        var focusedWindowAtDoubleClick = _focusedWindowAtMouseDown;
         var clipboardSequenceAtDoubleClick = ClipboardHelper.GetClipboardSequenceNumber();
+        _logger.LogInformation(
+            "Selection double-click initial window snapshot: foreground=0x{Foreground:X}, focused=0x{Focused:X}",
+            foregroundWindowAtDoubleClick.ToInt64(),
+            focusedWindowAtDoubleClick.ToInt64());
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
@@ -512,7 +537,11 @@ public class SelectionTranslationService : IDisposable
                     () => ClipboardHelper.BackupClipboardAsync(_logger),
                     DispatcherPriority.Background);
                     
-                var text = await _platformService.GetSelectedTextAsync(e.X, e.Y);
+                var text = await _platformService.GetSelectedTextAsync(
+                    e.X,
+                    e.Y,
+                    expectedForegroundWindow: foregroundWindowAtDoubleClick,
+                    expectedFocusedWindow: focusedWindowAtDoubleClick);
                 _lastSelectedText = text;
 
                 var selectionClipboardSequence = ClipboardHelper.GetClipboardSequenceNumber();
