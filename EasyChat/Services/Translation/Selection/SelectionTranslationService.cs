@@ -217,10 +217,6 @@ public class SelectionTranslationService : IDisposable
         // click can compare against the first click's source window.
         _foregroundWindowAtMouseDown = _platformService.GetForegroundWindowHandle();
         _focusedWindowAtMouseDown = _platformService.GetFocusedWindowHandle();
-        _logger.LogInformation(
-            "Selection mouse-down window snapshot: foreground=0x{Foreground:X}, focused=0x{Focused:X}",
-            _foregroundWindowAtMouseDown.ToInt64(),
-            _focusedWindowAtMouseDown.ToInt64());
 
         // The global hook sees the mouse-down before the icon window does. Keep
         // this guard before the trigger-mode branches so clicking the icon is
@@ -501,10 +497,6 @@ public class SelectionTranslationService : IDisposable
         var foregroundWindowAtDoubleClick = _foregroundWindowAtMouseDown;
         var focusedWindowAtDoubleClick = _focusedWindowAtMouseDown;
         var clipboardSequenceAtDoubleClick = ClipboardHelper.GetClipboardSequenceNumber();
-        _logger.LogInformation(
-            "Selection double-click initial window snapshot: foreground=0x{Foreground:X}, focused=0x{Focused:X}",
-            foregroundWindowAtDoubleClick.ToInt64(),
-            focusedWindowAtDoubleClick.ToInt64());
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 

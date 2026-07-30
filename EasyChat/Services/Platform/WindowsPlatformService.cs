@@ -312,7 +312,7 @@ public class WindowsPlatformService : IPlatformService
         {
             LastSelectedTextCaptureMethod = null;
 
-            if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow, "before capture"))
+            if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow))
             {
                 _logger.LogDebug("Skipping selection capture because the source window changed before capture");
                 return null;
@@ -333,7 +333,7 @@ public class WindowsPlatformService : IPlatformService
                 // Some controls implement the copy command but do not expose their
                 // text through EM_GETSEL. Ask the focused control to copy directly
                 // before falling back to synthesized Ctrl+C.
-                if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow, "before WM_COPY"))
+                if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow))
                 {
                     _logger.LogDebug("Skipping selection capture because the source window changed before WM_COPY");
                     return null;
@@ -399,7 +399,7 @@ public class WindowsPlatformService : IPlatformService
                 // copying an image on double-click) while this capture is waiting.
                 // Do not send Ctrl+C to a different focused control than the one
                 // that received the original mouse event.
-                if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow, "before Ctrl+C"))
+                if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow))
                 {
                     _logger.LogDebug("Skipping Ctrl+C because the source window changed before copy");
                     return null;
@@ -457,23 +457,10 @@ public class WindowsPlatformService : IPlatformService
         });
     }
 
-    private bool HasExpectedWindowContext(
-        IntPtr? expectedForegroundWindow,
-        IntPtr? expectedFocusedWindow,
-        string? logStage = null)
+    private bool HasExpectedWindowContext(IntPtr? expectedForegroundWindow, IntPtr? expectedFocusedWindow)
     {
         var currentForegroundWindow = Win32.GetForegroundWindow();
         var currentFocusedWindow = GetFocusedWindow();
-        if (logStage != null)
-        {
-            LogWindowContext(
-                logStage,
-                expectedForegroundWindow,
-                expectedFocusedWindow,
-                currentForegroundWindow,
-                currentFocusedWindow);
-        }
-
         var foregroundMatches = !expectedForegroundWindow.HasValue ||
                                  expectedForegroundWindow.Value == IntPtr.Zero ||
                                  expectedForegroundWindow.Value == currentForegroundWindow;
@@ -481,22 +468,6 @@ public class WindowsPlatformService : IPlatformService
                              expectedFocusedWindow.Value == IntPtr.Zero ||
                              expectedFocusedWindow.Value == currentFocusedWindow;
         return foregroundMatches && focusedMatches;
-    }
-
-    private void LogWindowContext(
-        string stage,
-        IntPtr? expectedForegroundWindow,
-        IntPtr? expectedFocusedWindow,
-        IntPtr currentForegroundWindow,
-        IntPtr currentFocusedWindow)
-    {
-        _logger.LogInformation(
-            "Selection window snapshot at {Stage}: expected foreground=0x{ExpectedForeground:X}, current foreground=0x{CurrentForeground:X}, expected focused=0x{ExpectedFocused:X}, current focused=0x{CurrentFocused:X}",
-            stage,
-            expectedForegroundWindow?.ToInt64() ?? 0,
-            currentForegroundWindow.ToInt64(),
-            expectedFocusedWindow?.ToInt64() ?? 0,
-            currentFocusedWindow.ToInt64());
     }
 
     private string? TryGetSelectedTextFromFocusedControl()
