@@ -118,9 +118,11 @@ public class App : Application
                 services.AddSingleton<IScreenCaptureService, WindowsScreenCaptureService>();
                 services.AddSingleton<IMouseHookService, WindowsMouseHookService>();
                 services.AddSingleton<IFocusService, WindowsFocusService>();
+                services.AddSingleton<IClipboardSnapshotService, WindowsClipboardProcessClient>();
             }
             else
             {
+                services.AddSingleton<IClipboardSnapshotService, UnsupportedClipboardSnapshotService>();
                 // Stub or throw
                 throw new PlatformNotSupportedException("This OS is not supported yet.");
             }

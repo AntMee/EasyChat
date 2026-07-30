@@ -457,6 +457,28 @@ public class WindowsPlatformService : IPlatformService
         });
     }
 
+    public Task<string?> GetSelectedTextDirectAsync(
+        IntPtr? expectedForegroundWindow = null,
+        IntPtr? expectedFocusedWindow = null)
+    {
+        return Task.Run(() =>
+        {
+            LastSelectedTextCaptureMethod = null;
+            if (!HasExpectedWindowContext(expectedForegroundWindow, expectedFocusedWindow))
+            {
+                return null;
+            }
+
+            var text = TryGetSelectedTextFromFocusedControl();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                LastSelectedTextCaptureMethod = "EM_GETSEL/WM_GETTEXT";
+            }
+
+            return text;
+        });
+    }
+
     private bool HasExpectedWindowContext(IntPtr? expectedForegroundWindow, IntPtr? expectedFocusedWindow)
     {
         var currentForegroundWindow = Win32.GetForegroundWindow();

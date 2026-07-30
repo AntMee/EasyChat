@@ -49,6 +49,7 @@ public class TypingViewModel : ReactiveObject, IDisposable
 
     private readonly IPlatformService _platformService;
     private readonly ITranslationServiceFactory _translationServiceFactory;
+    private readonly IClipboardSnapshotService _clipboardSnapshotService;
     private readonly ILogger<TypingViewModel> _logger;
     private readonly IntPtr _targetHwnd;
 
@@ -74,6 +75,7 @@ public class TypingViewModel : ReactiveObject, IDisposable
         _inputConfig = _configService?.Input!;
         _platformService = Global.Services?.GetRequiredService<IPlatformService>()!;
         _translationServiceFactory = Global.Services?.GetRequiredService<ITranslationServiceFactory>()!;
+        _clipboardSnapshotService = Global.Services?.GetRequiredService<IClipboardSnapshotService>()!;
         _logger = Global.Services?.GetRequiredService<ILogger<TypingViewModel>>()!;
 
         // Initialize Languages
@@ -159,8 +161,9 @@ public class TypingViewModel : ReactiveObject, IDisposable
                  // Send text
                  if (mode == InputDeliveryMode.Paste)
                  {
-                     // Backup clipboard logic using helper
-                     var backup = await ClipboardHelper.BackupClipboardAsync(_logger);
+                     // Keep the clipboard adapter off the UI thread. The concrete
+                     // Windows implementation owns its STA/OLE worker process.
+                     var backup = await Task.Run(() => _clipboardSnapshotService.Backup(_logger));
 
                      await _platformService.PasteTextAsync(translatedText);
                      
@@ -168,7 +171,7 @@ public class TypingViewModel : ReactiveObject, IDisposable
                      await Task.Delay(200);
                      
                      // Restore clipboard
-                     await ClipboardHelper.RestoreClipboardAsync(backup, _logger);
+                     await Task.Run(() => _clipboardSnapshotService.Restore(backup, _logger));
                  }
                  else if (mode == InputDeliveryMode.Message)
                  {

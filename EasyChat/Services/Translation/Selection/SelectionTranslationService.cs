@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
-using EasyChat.Common;
 using EasyChat.Models;
 using EasyChat.Models.Configuration;
 using EasyChat.Services.Abstractions;
@@ -21,6 +20,7 @@ public class SelectionTranslationService : IDisposable
     private readonly IMouseHookService _mouseHookService;
     private readonly IConfigurationService _configurationService;
     private readonly IPlatformService _platformService;
+    private readonly IClipboardSnapshotService _clipboardSnapshotService;
     private readonly ILogger<SelectionTranslationService> _logger;
     private readonly ISelectedTextCaptureService _selectedTextCaptureService;
 
@@ -45,11 +45,13 @@ public class SelectionTranslationService : IDisposable
         IConfigurationService configurationService,
         IPlatformService platformService,
         ILogger<SelectionTranslationService> logger,
-        ISelectedTextCaptureService selectedTextCaptureService)
+        ISelectedTextCaptureService selectedTextCaptureService,
+        IClipboardSnapshotService clipboardSnapshotService)
     {
         _mouseHookService = mouseHookService;
         _configurationService = configurationService;
         _platformService = platformService;
+        _clipboardSnapshotService = clipboardSnapshotService;
         _logger = logger;
         _selectedTextCaptureService = selectedTextCaptureService;
 
@@ -369,13 +371,15 @@ public class SelectionTranslationService : IDisposable
             var foregroundWindowAtMouseDown = _foregroundWindowAtMouseDown;
             var focusedWindowAtMouseDown = _focusedWindowAtMouseDown;
             var foregroundWindowAtMouseUp = _platformService.GetForegroundWindowHandle();
-            var clipboardSequenceAtMouseUp = ClipboardHelper.GetClipboardSequenceNumber();
+            var clipboardSequenceAtMouseUp = _clipboardSnapshotService.GetChangeToken();
             
             // Capture current generation
             var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
             Task.Run(async () =>
             {
+                IClipboardSnapshot? backup = null;
+                uint? clipboardSequenceAfterCopy = null;
                 try
                 {
                     // Wait for potential selection finalization
@@ -405,32 +409,49 @@ public class SelectionTranslationService : IDisposable
                         return;
                     }
                     
-                    // Avalonia's Win32 clipboard implementation is UI-thread
-                    // affine. The snapshot itself must therefore be created on
-                    // the dispatcher.
-                    var backup = await Dispatcher.UIThread.InvokeAsync(
-                        () => ClipboardHelper.BackupClipboardAsync(_logger),
-                        DispatcherPriority.Background);
-                    
-                    var text = await _platformService.GetSelectedTextAsync(
-                        x2,
-                        y2,
+                    // Prefer the clipboard-free native edit-control path. Some
+                    // applications expose no native selection text, so use the
+                    // complete OLE snapshot around the copy fallback.
+                    var text = await _platformService.GetSelectedTextDirectAsync(
                         expectedForegroundWindow: foregroundWindowAtMouseDown,
                         expectedFocusedWindow: focusedWindowAtMouseDown);
+                    if (string.IsNullOrWhiteSpace(text))
+                    {
+                        backup = _clipboardSnapshotService.Backup(_logger);
+                        if (backup == null)
+                        {
+                            _logger.LogWarning("Skipping selection capture because a complete clipboard snapshot was unavailable.");
+                            return;
+                        }
+
+                        text = await _platformService.GetSelectedTextAsync(
+                            x2,
+                            y2,
+                            copyOnly: true,
+                            expectedForegroundWindow: foregroundWindowAtMouseDown,
+                            expectedFocusedWindow: focusedWindowAtMouseDown);
+                        clipboardSequenceAfterCopy = _clipboardSnapshotService.GetChangeToken();
+                    }
                     _lastSelectedText = text;
 
-                    var selectionClipboardSequence = ClipboardHelper.GetClipboardSequenceNumber();
-                    
                     // Check if canceled again before showing
                     if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration))
                     {
-                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                        _clipboardSnapshotService.RestoreIfUnchanged(
+                            backup,
+                            clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                            _logger);
+                        backup = null;
                         return;
                     }
 
                     if (await Dispatcher.UIThread.InvokeAsync(() => _currentTranslateWindow?.IsVisible == true))
                     {
-                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                        _clipboardSnapshotService.RestoreIfUnchanged(
+                            backup,
+                            clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                            _logger);
+                        backup = null;
                         Dispatcher.UIThread.Post(() =>
                         {
                             if (gen == System.Threading.Interlocked.Read(ref _interactionGeneration)) HideIcon();
@@ -452,20 +473,29 @@ public class SelectionTranslationService : IDisposable
                                 _iconWindow?.HideLoading();
                             }
                         });
-
-                        // Restoring all formats can block in the OLE clipboard
-                        // implementation. Do it after the icon's first frame.
-                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                        _clipboardSnapshotService.RestoreIfUnchanged(
+                            backup,
+                            clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                            _logger);
+                        backup = null;
                     }
                     else
                     {
                         await Dispatcher.UIThread.InvokeAsync(HideIcon, DispatcherPriority.Input);
-                        await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger), DispatcherPriority.Background);
+                        _clipboardSnapshotService.RestoreIfUnchanged(
+                            backup,
+                            clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                            _logger);
+                        backup = null;
                         _logger.LogDebug("No text selected (or extraction failed)");
                     }
                 }
                 catch (Exception ex)
                 {
+                    _clipboardSnapshotService.RestoreIfUnchanged(
+                        backup,
+                        clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                        _logger);
                     _logger.LogError(ex, "Error getting selected text");
                     Dispatcher.UIThread.Post(() =>
                     {
@@ -496,12 +526,14 @@ public class SelectionTranslationService : IDisposable
         // stored values still represent the first click's source window.
         var foregroundWindowAtDoubleClick = _foregroundWindowAtMouseDown;
         var focusedWindowAtDoubleClick = _focusedWindowAtMouseDown;
-        var clipboardSequenceAtDoubleClick = ClipboardHelper.GetClipboardSequenceNumber();
+        var clipboardSequenceAtDoubleClick = _clipboardSnapshotService.GetChangeToken();
             
         var gen = System.Threading.Interlocked.Read(ref _interactionGeneration);
 
         Task.Run(async () =>
         {
+            IClipboardSnapshot? backup = null;
+            uint? clipboardSequenceAfterCopy = null;
             try
             {
                 // Wait for potential selection finalization (double click selects word)
@@ -525,22 +557,35 @@ public class SelectionTranslationService : IDisposable
                     return;
                 }
                     
-                var backup = await Dispatcher.UIThread.InvokeAsync(
-                    () => ClipboardHelper.BackupClipboardAsync(_logger),
-                    DispatcherPriority.Background);
-                    
-                var text = await _platformService.GetSelectedTextAsync(
-                    e.X,
-                    e.Y,
+                var text = await _platformService.GetSelectedTextDirectAsync(
                     expectedForegroundWindow: foregroundWindowAtDoubleClick,
                     expectedFocusedWindow: focusedWindowAtDoubleClick);
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    backup = _clipboardSnapshotService.Backup(_logger);
+                    if (backup == null)
+                    {
+                        _logger.LogWarning("Skipping double-click capture because a complete clipboard snapshot was unavailable.");
+                        return;
+                    }
+
+                    text = await _platformService.GetSelectedTextAsync(
+                        e.X,
+                        e.Y,
+                        copyOnly: true,
+                        expectedForegroundWindow: foregroundWindowAtDoubleClick,
+                        expectedFocusedWindow: focusedWindowAtDoubleClick);
+                    clipboardSequenceAfterCopy = _clipboardSnapshotService.GetChangeToken();
+                }
                 _lastSelectedText = text;
 
-                var selectionClipboardSequence = ClipboardHelper.GetClipboardSequenceNumber();
-                    
                 if (gen != System.Threading.Interlocked.Read(ref _interactionGeneration))
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                    _clipboardSnapshotService.RestoreIfUnchanged(
+                        backup,
+                        clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                        _logger);
+                    backup = null;
                     return;
                 }
 
@@ -558,18 +603,29 @@ public class SelectionTranslationService : IDisposable
                             _iconWindow?.HideLoading();
                         }
                     });
-
-                    await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardIfUnchangedAsync(backup, selectionClipboardSequence, _logger), DispatcherPriority.Background);
+                    _clipboardSnapshotService.RestoreIfUnchanged(
+                        backup,
+                        clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                        _logger);
+                    backup = null;
                 }
                 else
                 {
                     await Dispatcher.UIThread.InvokeAsync(HideIcon, DispatcherPriority.Input);
-                    await Dispatcher.UIThread.InvokeAsync(() => ClipboardHelper.RestoreClipboardAsync(backup, _logger), DispatcherPriority.Background);
+                    _clipboardSnapshotService.RestoreIfUnchanged(
+                        backup,
+                        clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                        _logger);
+                    backup = null;
                     _logger.LogDebug("No text selected (Double Click) - Text was empty");
                 }
             }
             catch (Exception ex)
             {
+                _clipboardSnapshotService.RestoreIfUnchanged(
+                    backup,
+                    clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken(),
+                    _logger);
                 _logger.LogError(ex, "Error getting selected text (Double Click)");
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -588,7 +644,7 @@ public class SelectionTranslationService : IDisposable
                                       foregroundWindowAtTrigger != currentForegroundWindow;
 
         return foregroundWindowChanged ||
-               clipboardSequenceAtTrigger != ClipboardHelper.GetClipboardSequenceNumber();
+               clipboardSequenceAtTrigger != _clipboardSnapshotService.GetChangeToken();
     }
 
     private void ShowIcon(int x, int y)
@@ -984,18 +1040,26 @@ public class SelectionTranslationService : IDisposable
                 HideIcon();
             });
 
-            var snapshot = await _selectedTextCaptureService.CaptureAsync();
-            if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.Text) ||
+            // Prefer direct extraction, then use the capture service's complete
+            // OLE snapshot around the copy fallback for apps without native text.
+            var text = await _platformService.GetSelectedTextDirectAsync();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                var snapshot = await _selectedTextCaptureService.CaptureViaCopyAsync();
+                text = snapshot?.Text;
+            }
+
+            if (string.IsNullOrWhiteSpace(text) ||
                 generation != System.Threading.Interlocked.Read(ref _interactionGeneration))
                 return;
 
-            _lastSelectedText = snapshot.Text;
+            _lastSelectedText = text;
             _lastIconX = x;
             _lastIconY = y;
             _logger.LogInformation(
                 "Selected text captured for shortcut toolbar using {Method}: {Length} chars",
                 _platformService.LastSelectedTextCaptureMethod ?? "Unknown",
-                snapshot.Text.Length);
+                text.Length);
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {

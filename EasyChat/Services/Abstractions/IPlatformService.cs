@@ -23,6 +23,9 @@ public interface IPlatformService
         bool copyOnly = false,
         IntPtr? expectedForegroundWindow = null,
         IntPtr? expectedFocusedWindow = null);
+    Task<string?> GetSelectedTextDirectAsync(
+        IntPtr? expectedForegroundWindow = null,
+        IntPtr? expectedFocusedWindow = null);
     string? LastSelectedTextCaptureMethod { get; }
     (int X, int Y) GetCursorPosition();
 }

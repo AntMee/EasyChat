@@ -2,7 +2,6 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using EasyChat.Common;
 using EasyChat.Services.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -11,11 +10,16 @@ namespace EasyChat.Services.TextAssist;
 public sealed class SelectedTextCaptureService : ISelectedTextCaptureService
 {
     private readonly IPlatformService _platformService;
+    private readonly IClipboardSnapshotService _clipboardSnapshotService;
     private readonly ILogger<SelectedTextCaptureService> _logger;
 
-    public SelectedTextCaptureService(IPlatformService platformService, ILogger<SelectedTextCaptureService> logger)
+    public SelectedTextCaptureService(
+        IPlatformService platformService,
+        IClipboardSnapshotService clipboardSnapshotService,
+        ILogger<SelectedTextCaptureService> logger)
     {
         _platformService = platformService;
+        _clipboardSnapshotService = clipboardSnapshotService;
         _logger = logger;
     }
 
@@ -45,9 +49,9 @@ public sealed class SelectedTextCaptureService : ISelectedTextCaptureService
         }
         await Task.Delay(50, cancellationToken);
 
-        // Prefer direct edit-control text and WM_COPY now that the full range is
-        // selected. CaptureAsync will synthesize Ctrl+C only if both native paths fail.
-        return await CaptureAsync(false, cancellationToken);
+        // This operation explicitly opts into clipboard capture because the input
+        // translation workflow is designed around copying the complete field.
+        return await CaptureAsync(true, cancellationToken);
     }
 
     private async Task<SelectedTextSnapshot?> CaptureAsync(bool copyOnly, CancellationToken cancellationToken)
@@ -60,17 +64,41 @@ public sealed class SelectedTextCaptureService : ISelectedTextCaptureService
         cancellationToken.ThrowIfCancellationRequested();
 
         var (x, y) = _platformService.GetCursorPosition();
-        var backup = await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
-            () => ClipboardHelper.BackupClipboardAsync(_logger));
+        IClipboardSnapshot? backup = null;
+        uint? clipboardSequenceAfterCopy = null;
         try
         {
-            var text = await _platformService.GetSelectedTextAsync(x, y, copyOnly);
+            // Standard edit controls can be read without touching the clipboard.
+            // The native clipboard fallback is delayed until this path fails.
+            var text = copyOnly
+                ? null
+                : await _platformService.GetSelectedTextDirectAsync();
+
+            if (string.IsNullOrWhiteSpace(text) && copyOnly)
+            {
+                backup = await Task.Run(() => _clipboardSnapshotService.Backup(_logger));
+                if (backup == null)
+                {
+                    _logger.LogWarning("Clipboard capture skipped because a complete OLE snapshot was unavailable.");
+                    return null;
+                }
+
+                text = await _platformService.GetSelectedTextAsync(x, y, copyOnly: true);
+                clipboardSequenceAfterCopy = _clipboardSnapshotService.GetChangeToken();
+            }
+
             return string.IsNullOrWhiteSpace(text) ? null : new SelectedTextSnapshot(text, x, y);
         }
         finally
         {
-            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
-                () => ClipboardHelper.RestoreClipboardAsync(backup, _logger));
+            if (backup != null)
+            {
+                var expectedSequence = clipboardSequenceAfterCopy ?? _clipboardSnapshotService.GetChangeToken();
+                await Task.Run(() => _clipboardSnapshotService.RestoreIfUnchanged(
+                    backup,
+                    expectedSequence,
+                    _logger));
+            }
         }
     }
 

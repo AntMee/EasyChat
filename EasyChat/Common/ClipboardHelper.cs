@@ -30,22 +30,38 @@ public static class ClipboardHelper
                 return null;
             }
 
-            var items = new List<ClipboardSnapshotItem>();
+            var rawItems = new List<RawClipboardSnapshotItem>();
             foreach (var item in data.Items)
             {
                 var values = new Dictionary<DataFormat, object?>();
                 foreach (var format in item.Formats)
                 {
                     var value = await item.TryGetRawAsync(format);
-                    values[format] = CloneValue(value);
+                    values[format] = value;
                 }
 
                 if (values.Count > 0)
                 {
-                    items.Add(new ClipboardSnapshotItem(values));
+                    rawItems.Add(new RawClipboardSnapshotItem(values));
                 }
             }
 
+            // Keep the Avalonia platform object on its owning UI thread, but
+            // move potentially expensive stream/bitmap/array cloning away from
+            // it. The raw values remain alive until this task completes.
+            var items = await Task.Run(() =>
+            {
+                var cloned = new List<ClipboardSnapshotItem>();
+                foreach (var item in rawItems)
+                {
+                    var values = item.Values.ToDictionary(
+                        pair => pair.Key,
+                        pair => CloneValue(pair.Value));
+                    cloned.Add(new ClipboardSnapshotItem(values));
+                }
+
+                return cloned;
+            });
             return new ClipboardSnapshot(items);
         }
         catch (Exception ex)
@@ -210,6 +226,16 @@ public static class ClipboardHelper
     internal sealed class ClipboardSnapshotItem
     {
         public ClipboardSnapshotItem(IReadOnlyDictionary<DataFormat, object?> values)
+        {
+            Values = values;
+        }
+
+        public IReadOnlyDictionary<DataFormat, object?> Values { get; }
+    }
+
+    private sealed class RawClipboardSnapshotItem
+    {
+        public RawClipboardSnapshotItem(IReadOnlyDictionary<DataFormat, object?> values)
         {
             Values = values;
         }
