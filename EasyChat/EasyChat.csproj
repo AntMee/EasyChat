@@ -14,33 +14,6 @@
         <!-- Set UseBundledOcrModels=true for the offline/local-model distribution. -->
         <UseBundledOcrModels Condition="'$(UseBundledOcrModels)' == ''">false</UseBundledOcrModels>
         <DefineConstants Condition="'$(UseBundledOcrModels)' == 'true'">$(DefineConstants);BUNDLED_OCR_MODELS</DefineConstants>
-
-        <!-- NetBeauty Settings -->
-        <DisableBeauty>True</DisableBeauty>
-        <BeautySharedRuntimeMode>False</BeautySharedRuntimeMode>
-        <BeautyLibsDir Condition="$(BeautySharedRuntimeMode) == 'True'">../libraries</BeautyLibsDir>
-        <BeautyLibsDir Condition="$(BeautySharedRuntimeMode) != 'True'">./libraries</BeautyLibsDir>
-
-        <!-- Files to hide from end users (e.g., runtime or config files). Only supported on Windows. -->
-        <BeautyHiddens>hostfxr;hostpolicy;*.deps.json;*.runtimeconfig*.json;*.pdb;EasyChat.dll</BeautyHiddens>
-
-        <!-- Files to exclude from packing (e.g., resource assemblies). -->
-        <BeautyExcludes>*.resources.dll</BeautyExcludes>
-        
-        <!-- Only run NetBeauty on publish (set to True to skip on build). -->
-        <BeautyOnPublishOnly>False</BeautyOnPublishOnly>
-
-        <!-- Loader version policy: auto, with, or without. -->
-        <BeautyNBLoaderVerPolicy>auto</BeautyNBLoaderVerPolicy>
-
-        <!-- Enable debugging support for third-party debuggers (e.g., dnSpy). -->
-        <BeautyEnableDebugging>False</BeautyEnableDebugging>
-
-        <!-- Use the patch to minimize file count (SCD mode only). Set to False to disable. -->
-        <BeautyUsePatch>True</BeautyUsePatch>
-
-        <!-- Log verbosity: Error, Detail, or Info. -->
-        <BeautyLogLevel>Info</BeautyLogLevel>
     </PropertyGroup>
 
     <ItemGroup>
