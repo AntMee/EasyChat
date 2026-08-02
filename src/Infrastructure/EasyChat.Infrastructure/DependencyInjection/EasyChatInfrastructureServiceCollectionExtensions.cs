@@ -1,6 +1,9 @@
 using EasyChat.Contracts.Settings.Persistence;
+using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Infrastructure.Settings.Persistence;
+using EasyChat.Infrastructure.Speech;
+using EasyChat.Infrastructure.Speech.EdgeTts;
 using EasyChat.Infrastructure.Translation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,6 +38,9 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
             _ => new JsonSettingsPersistenceGateway(fullConfigurationDirectory));
         services.AddSingleton<ITranslationProviderFactory, TranslationProviderFactory>();
         services.AddSingleton<ITranslationFailureSink, LoggingTranslationFailureSink>();
+        var assetsDirectory = Path.Combine(AppContext.BaseDirectory, "Assets");
+        services.AddSingleton<ITtsSynthesisProvider>(_ => new EdgeTtsProvider(assetsDirectory));
+        services.AddSingleton<ITtsOutputWriter, FileTtsOutputWriter>();
         return services;
     }
 }

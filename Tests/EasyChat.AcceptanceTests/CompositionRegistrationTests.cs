@@ -6,6 +6,7 @@ using EasyChat.Application.Settings;
 using EasyChat.Application.Selection;
 using EasyChat.Application.SelectionTranslation;
 using EasyChat.Application.Shell;
+using EasyChat.Application.Speech;
 using EasyChat.Application.Translation;
 using EasyChat.Application.TextAssist;
 using EasyChat.Contracts.ImageTranslation;
@@ -17,6 +18,7 @@ using EasyChat.Contracts.SelectionTranslation;
 using EasyChat.Contracts.Shell;
 using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.TextAssist;
+using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Platform;
 using EasyChat.Infrastructure.DependencyInjection;
 using EasyChat.Infrastructure.Translation;
@@ -77,7 +79,14 @@ public sealed class CompositionRegistrationTests
             provider.GetRequiredService<ISelectionTranslationUseCases>());
         Assert.IsInstanceOfType<TextAssistUseCases>(
             provider.GetRequiredService<ITextAssistUseCases>());
+        Assert.IsInstanceOfType<TtsUseCases>(
+            provider.GetRequiredService<ITtsUseCases>());
+        Assert.IsInstanceOfType<SpeechRecognitionUseCases>(
+            provider.GetRequiredService<ISpeechRecognitionUseCases>());
         Assert.IsNotNull(provider.GetRequiredService<IGlobalPointerMonitor>());
         Assert.IsNotNull(provider.GetRequiredService<ISelectedTextCapture>());
+        Assert.IsNotNull(provider.GetRequiredService<IProcessCatalog>());
+        Assert.IsNotNull(provider.GetRequiredService<ISpeechRecognitionEngine>());
+        Assert.IsNotNull(provider.GetRequiredService<IAudioPlaybackQueue>());
     }
 }

@@ -13,7 +13,10 @@ public sealed class WindowsPlatformCapabilities : IPlatformCapabilities
             PlatformCapability.Clipboard,
             PlatformCapability.WindowActivation,
             PlatformCapability.GlobalPointerMonitoring,
-            PlatformCapability.SelectedTextCapture
+            PlatformCapability.SelectedTextCapture,
+            PlatformCapability.ProcessEnumeration,
+            PlatformCapability.SpeechRecognition,
+            PlatformCapability.AudioPlayback
         };
 
     public ValueTask<CapabilityStatus> GetStatusAsync(

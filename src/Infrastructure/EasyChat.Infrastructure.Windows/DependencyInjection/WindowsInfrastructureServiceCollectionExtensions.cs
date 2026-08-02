@@ -2,10 +2,13 @@ using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
 using EasyChat.Infrastructure.Windows.Capture;
+using EasyChat.Infrastructure.Windows.Audio;
 using EasyChat.Infrastructure.Windows.ImageTranslation;
 using EasyChat.Infrastructure.Windows.Hotkeys;
 using EasyChat.Infrastructure.Windows.Input;
 using EasyChat.Infrastructure.Windows.Ocr;
+using EasyChat.Infrastructure.Windows.Processes;
+using EasyChat.Infrastructure.Windows.Speech;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasyChat.Infrastructure.Windows.DependencyInjection;
@@ -35,6 +38,9 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IClipboardText, WindowsClipboardText>();
         services.AddSingleton<ITextDelivery, WindowsTextDelivery>();
         services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
+        services.AddSingleton<IProcessCatalog, WindowsProcessCatalog>();
+        services.AddSingleton<ISpeechRecognitionEngine, WindowsSpeechRecognitionEngine>();
+        services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
         services.AddSingleton<WindowsPaddleOcr>();
         services.AddSingleton<IOcrRecognizer>(provider =>
