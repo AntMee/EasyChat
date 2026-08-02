@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>EasyChat</AssemblyName>
+    <RootNamespace>EasyChat</RootNamespace>
+    <Version>1.0.6</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EasyChat.Desktop\EasyChat.Desktop.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\EasyChat.Infrastructure.Windows\EasyChat.Infrastructure.Windows.csproj" />
+  </ItemGroup>
+</Project>
+

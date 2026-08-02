@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
+    <PackageReference Include="ReactiveUI" Version="22.3.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Contracts\EasyChat.Contracts\EasyChat.Contracts.csproj" />
+    <ProjectReference Include="..\EasyChat.Presentation.Shared\EasyChat.Presentation.Shared.csproj" />
+  </ItemGroup>
+</Project>
+

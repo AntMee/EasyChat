@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Application\EasyChat.Application\EasyChat.Application.csproj" />
+    <ProjectReference Include="..\..\Contracts\EasyChat.Contracts\EasyChat.Contracts.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\EasyChat.Infrastructure\EasyChat.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Presentation\EasyChat.Presentation\EasyChat.Presentation.csproj" />
+  </ItemGroup>
+</Project>
+

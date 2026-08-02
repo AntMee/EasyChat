@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup><PackageReference Include="MSTest" Version="4.0.1" /></ItemGroup>
+  <ItemGroup><Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\..\src\Domain\EasyChat.Domain\EasyChat.Domain.csproj" /></ItemGroup>
+</Project>
+

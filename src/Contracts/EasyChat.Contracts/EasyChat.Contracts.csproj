@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\EasyChat.Shared\EasyChat.Shared.csproj" />
+  </ItemGroup>
+</Project>
+

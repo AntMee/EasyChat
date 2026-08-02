@@ -1,0 +1,26 @@
+# Build outputs
+**/bin/
+**/obj/
+artifacts/
+publish/
+.verification/
+/PreviousRefactor/
+
+# IDE and user files
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+*.rsuser
+*.DotSettings.user
+
+# Local refactor documentation (never tracked)
+/REFACTOR_*.md
+/docs/refactor/
+/docs/architecture/ddd-architecture.md
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
