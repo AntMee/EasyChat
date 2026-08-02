@@ -20,6 +20,7 @@ using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.TextAssist;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Platform;
+using EasyChat.DependencyInjection;
 using EasyChat.Infrastructure.DependencyInjection;
 using EasyChat.Infrastructure.Translation;
 using EasyChat.Infrastructure.Windows.DependencyInjection;
@@ -48,6 +49,7 @@ public sealed class CompositionRegistrationTests
         services.AddEasyChatWindowsInfrastructure();
         services.AddEasyChatPresentation();
         services.AddEasyChatApplication(new TranslationMessages("request failed"));
+        services.AddEasyChatWindowsDesktop();
 
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {

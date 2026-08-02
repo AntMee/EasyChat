@@ -6,10 +6,12 @@
   <ItemGroup>
     <PackageReference Include="DeepL.net" Version="1.11.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="OpenAI" Version="2.8.0" />
     <PackageReference Include="RestSharp" Version="112.1.0" />
+    <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="EasyChat.Infrastructure.Tests" />

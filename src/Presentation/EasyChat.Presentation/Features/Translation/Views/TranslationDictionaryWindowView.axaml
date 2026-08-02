@@ -1,0 +1,474 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:lang="using:EasyChat.Lang"
+        xmlns:vm="using:EasyChat.ViewModels.Windows"
+        xmlns:controls="clr-namespace:EasyChat.Controls"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="400"
+        x:Class="EasyChat.Views.Windows.TranslationDictionaryWindowView"
+        x:DataType="vm:TranslationDictionaryWindowViewModel"
+        x:Name="TranslationWindow"
+        Width="450" MinHeight="250" MaxHeight="900" MinWidth="150"
+        WindowDecorations="None"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        CornerRadius="12"
+        CanResize="True"
+        Focusable="False"
+        ShowActivated="False"
+        WindowStartupLocation="Manual"
+        SizeToContent="Height">
+
+    <Window.Styles>
+        <!-- Style for interactive word tokens -->
+        <Style Selector="Button.WordToken">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,1,2"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            
+            <!-- Keep background transparent on hover -->
+            <Style Selector="^:pointerover /template/ ContentPresenter">
+                <Setter Property="Background" Value="Transparent"/>
+            </Style>
+
+            <!-- Non-word tokens -->
+            <Style Selector="^.NonWord">
+                 <Setter Property="Cursor" Value="Arrow"/>
+                 <Setter Property="IsEnabled" Value="False"/> 
+                 <Style Selector="^ /template/ ContentPresenter">
+                     <Setter Property="Background" Value="Transparent"/>
+                     <Setter Property="Foreground" Value="{DynamicResource SukiText}"/>
+                 </Style>
+            </Style>
+        </Style>
+
+        <!-- Animated Underline Base Style -->
+        <Style Selector="Border.AnimatedUnderline">
+            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}"/>
+            <Setter Property="Height" Value="3"/> <!-- Thicker as requested -->
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="RenderTransform" Value="scaleX(0)"/>
+            <Setter Property="RenderTransformOrigin" Value="0%,50%"/> <!-- Left Anchor -->
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" Easing="CircularEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Animated Underline Trigger -->
+        <!-- Important: Target the Border inside the Button when Button is hovered -->
+        <Style Selector="Button.WordToken:pointerover Border.AnimatedUnderline">
+            <Setter Property="RenderTransform" Value="scaleX(1)"/>
+        </Style>
+
+        <!-- TTS Loading Button Style -->
+        <Style Selector="Button.TtsButton">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Opacity" Value="0.7"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Opacity" Value="1"/>
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="Opacity" Value="0.45"/>
+            </Style>
+        </Style>
+
+        <Style Selector="StackPanel.StreamingSkeleton">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Height" Value="0"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+                    <DoubleTransition Property="Height" Duration="0:0:0.18"/>
+                </Transitions>
+            </Setter>
+            <Style Selector="^.loading">
+                <Setter Property="Opacity" Value="1"/>
+                <Setter Property="Height" Value="125"/>
+            </Style>
+        </Style>
+
+        <Style Selector="StackPanel.StreamingSkeleton.TranslationSkeleton.loading">
+            <Setter Property="Height" Value="68"/>
+        </Style>
+
+        <Style Selector="StackPanel.StreamingSkeleton.loading">
+            <Style.Animations>
+                <Animation Duration="0:0:1.1" IterationCount="INFINITE">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0.35"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Opacity" Value="0.9"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.35"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+    </Window.Styles>
+
+    <Panel Margin="5">
+        <suki:GlassCard Padding="0" CornerRadius="12">
+            <Grid RowDefinitions="Auto,*,Auto">
+                
+                <!-- Header -->
+                <Border Grid.Row="0" Background="{DynamicResource SukiCardBackground}" 
+                        CornerRadius="12,12,0,0" Padding="16,12"
+                        IsVisible="{Binding IsWordMode}"
+                        PointerPressed="OnHeaderPointerPressed">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <!-- Dynamic Title -->
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <!-- Back Button (Word Mode) -->
+                            <Button IsVisible="{Binding ShowBackButton}" 
+                                    Command="{Binding SwitchToSentenceModeCommand}"
+                                    Classes="Flat" Padding="4" Width="28" Height="28">
+                                <icons:MaterialIcon Kind="ArrowLeft" Width="18" Height="18" Foreground="White"/>
+                            </Button>
+
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DictionaryResult.Word, FallbackValue='Translation'}" 
+                                           IsVisible="{Binding IsWordMode}"
+                                           FontWeight="Bold" FontSize="18" Foreground="{DynamicResource SukiText}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsWordMode}">
+                                    <TextBlock Text="{Binding DictionaryResult.Phonetic}" 
+                                               FontSize="13" Foreground="{DynamicResource SukiLowText}" VerticalAlignment="Center"/>
+                                    <Button Classes="TtsButton" 
+                                            Command="{Binding PlayTtsCommand}"
+                                            CommandParameter="{Binding DictionaryResult.Word}"
+                                            Tag="{Binding IsWordTtsLoading}"
+                                            IsVisible="{Binding DictionaryResult.Phonetic, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                         <Panel>
+                                             <icons:MaterialIcon Kind="VolumeHigh" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"
+                                                                 IsVisible="{Binding !$parent[Button].Tag}"/>
+                                             <suki:Loading Width="16" Height="16" IsVisible="{Binding $parent[Button].Tag}"
+                                                           Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                         </Panel>
+                                    </Button>
+                                </StackPanel>
+                                
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Streaming state is intentionally non-blocking so partial results remain usable. -->
+                        <suki:Loading Grid.Column="1"
+                                      Width="16"
+                                      Height="16"
+                                      IsVisible="{Binding IsLoading}"
+                                      IsHitTestVisible="False"
+                                      Foreground="{DynamicResource SukiPrimaryColor}"
+                                      ToolTip.Tip="{x:Static lang:Resources.Speech_Translating}"/>
+                        
+                    </Grid>
+                </Border>
+                
+                <!-- Main Content -->
+                <Panel Grid.Row="1">
+                    <Border Background="{DynamicResource SukiCardBackground}">
+                        <ScrollViewer x:Name="ContentScrollViewer" MaxHeight="400">
+                    <Panel>
+                        <!-- Loading State Removed from inside Panel -->
+
+                        <!-- Dictionary View (Word Mode) -->
+                        <StackPanel Margin="16,8" IsVisible="{Binding IsWordMode}" Spacing="16">
+
+                              <!-- Keeps the dictionary window stable while the first definition streams in. -->
+                              <StackPanel Classes="StreamingSkeleton"
+                                          Classes.loading="{Binding ShowDictionarySkeleton}"
+                                          IsVisible="{Binding ShowDictionarySkeleton}"
+                                          Spacing="10">
+                                  <Border Height="18" Width="150" HorizontalAlignment="Left"
+                                          Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                                  <Border Height="14" Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                                  <Border Height="14" Width="320" HorizontalAlignment="Left"
+                                          Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                                  <Border Height="1" Background="{DynamicResource SukiControlBorderBrush}" Margin="0,6"/>
+                                  <Border Height="14" Width="370" HorizontalAlignment="Left"
+                                          Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                                  <Border Height="14" Width="280" HorizontalAlignment="Left"
+                                          Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                              </StackPanel>
+                              
+                              <!-- Tips -->
+                             <Border Background="#1AFFFF00" CornerRadius="8" Padding="12" 
+                                     IsVisible="{Binding DictionaryResult.Tips, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                 <StackPanel Spacing="4">
+                                     <StackPanel Orientation="Horizontal" Spacing="6">
+                                         <icons:MaterialIcon Kind="LightbulbOutline" Width="16" Height="16" Foreground="#E6E600"/>
+                                         <TextBlock Text="{x:Static lang:Resources.Tips}" FontWeight="Bold" FontSize="12" Foreground="#E6E600"/>
+                                     </StackPanel>
+                                     <TextBlock Text="{Binding DictionaryResult.Tips}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource SukiText}"/>
+                                 </StackPanel>
+                             </Border>
+
+                             <!-- Forms (Morphologies) -->
+                             <ItemsControl ItemsSource="{Binding DictionaryResult.Forms}" IsVisible="{Binding DictionaryResult.HasForms}">
+                                 <ItemsControl.ItemsPanel>
+                                     <ItemsPanelTemplate>
+                                         <WrapPanel Orientation="Horizontal" />
+                                     </ItemsPanelTemplate>
+                                 </ItemsControl.ItemsPanel>
+                                 <ItemsControl.ItemTemplate>
+                                     <DataTemplate DataType="vm:DictionaryFormViewModel">
+                                         <Border Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,8,8">
+                                             <StackPanel Orientation="Horizontal" Spacing="6">
+                                                 <TextBlock Text="{Binding Label}" FontSize="12" Foreground="{DynamicResource SukiLowText}" FontStyle="Italic" VerticalAlignment="Center"/>
+                                                 <TextBlock Text="{Binding Word}" FontSize="13" Foreground="{DynamicResource SukiText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                 
+                                                 <!-- TTS for Form -->
+                                                 <Button Classes="TtsButton" Width="24" Height="24"
+                                                         Command="{Binding #TranslationWindow.((vm:TranslationDictionaryWindowViewModel)DataContext).PlaySourceAudioCommand}"
+                                                         CommandParameter="{Binding .}"
+                                                         Tag="{Binding IsLoading}">
+                                                     <Panel>
+                                                         <icons:MaterialIcon Kind="VolumeHigh" Width="14" Height="14" Foreground="{DynamicResource SukiPrimaryColor}"
+                                                                             IsVisible="{Binding !$parent[Button].Tag}"/>
+                                                         <suki:Loading Width="14" Height="14" IsVisible="{Binding $parent[Button].Tag}"
+                                                                       Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                                     </Panel>
+                                                 </Button>
+                                             </StackPanel>
+                                         </Border>
+                                     </DataTemplate>
+                                 </ItemsControl.ItemTemplate>
+                             </ItemsControl>
+
+                             <ItemsControl ItemsSource="{Binding DictionaryResult.Parts}">
+                                 <ItemsControl.ItemTemplate>
+                                     <DataTemplate DataType="vm:DictionaryPartViewModel">
+                                         <StackPanel Margin="0,0,0,12">
+                                             <Border Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" Margin="0,0,0,8"
+                                                     IsVisible="{Binding PartOfSpeech, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                 <TextBlock Text="{Binding PartOfSpeech}" FontSize="13" Foreground="{DynamicResource SukiText}" FontWeight="SemiBold"/>
+                                             </Border>
+                                             <ItemsControl ItemsSource="{Binding Definitions}">
+                                                 <ItemsControl.ItemTemplate>
+                                                     <DataTemplate>
+                                                         <Grid ColumnDefinitions="Auto, *" Margin="4,2,0,4">
+                                                             <Border Width="4" Height="4" Background="{DynamicResource SukiText}" CornerRadius="2" Margin="0,8,8,0" VerticalAlignment="Top" Opacity="0.6"/>
+                                                             <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap"
+                                                                    FontSize="14" Foreground="{DynamicResource SukiText}"/>
+                                                         </Grid>
+                                                     </DataTemplate>
+                                                 </ItemsControl.ItemTemplate>
+                                             </ItemsControl>
+                                         </StackPanel>
+                                     </DataTemplate>
+                                 </ItemsControl.ItemTemplate>
+                             </ItemsControl>
+
+                             <!-- Examples -->
+                             <StackPanel IsVisible="{Binding DictionaryResult.HasExamples}">
+                                 <Border Background="{DynamicResource SukiControlBorderBrush}" Height="1" Margin="0,0,0,12"/>
+                                 <TextBlock Text="{x:Static lang:Resources.Examples}" FontWeight="Bold" Margin="0,0,0,8" Foreground="{DynamicResource SukiText}"/>
+                                 <ItemsControl ItemsSource="{Binding DictionaryResult.Examples}">
+                                     <ItemsControl.ItemTemplate>
+                                         <DataTemplate DataType="vm:DictionaryExampleViewModel">
+                                             <StackPanel Margin="0,0,0,12">
+                                                  <Grid ColumnDefinitions="*,Auto">
+                                                       <TextBlock Grid.Column="0" Text="{Binding Origin}" TextWrapping="Wrap" FontSize="14" Foreground="{DynamicResource SukiText}" VerticalAlignment="Center"/>
+                                                       <Button Grid.Column="1" Classes="TtsButton" Margin="6,0,0,0" VerticalAlignment="Top"
+                                                               Command="{Binding #TranslationWindow.((vm:TranslationDictionaryWindowViewModel)DataContext).PlaySourceAudioCommand}"
+                                                               CommandParameter="{Binding .}"
+                                                               Tag="{Binding IsOriginLoading}">
+                                                           <Panel>
+                                                               <icons:MaterialIcon Kind="VolumeHigh" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"
+                                                                                   IsVisible="{Binding !$parent[Button].Tag}"/>
+                                                               <suki:Loading Width="16" Height="16" IsVisible="{Binding $parent[Button].Tag}"
+                                                                             Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                                           </Panel>
+                                                       </Button>
+                                                  </Grid>
+                                                 
+                                                  <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+                                                      <TextBlock Grid.Column="0" Text="{Binding Translation}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource SukiLowText}" VerticalAlignment="Center"/>
+                                                      <Button Grid.Column="1" Classes="TtsButton" Margin="6,0,0,0" VerticalAlignment="Top"
+                                                               Command="{Binding #TranslationWindow.((vm:TranslationDictionaryWindowViewModel)DataContext).PlayTargetAudioCommand}"
+                                                               CommandParameter="{Binding .}"
+                                                               Tag="{Binding IsTranslationLoading}">
+                                                           <Panel>
+                                                               <icons:MaterialIcon Kind="VolumeHigh" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"
+                                                                                   IsVisible="{Binding !$parent[Button].Tag}"/>
+                                                               <suki:Loading Width="16" Height="16" IsVisible="{Binding $parent[Button].Tag}"
+                                                                             Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                                           </Panel>
+                                                       </Button>
+                                                  </Grid>
+                                             </StackPanel>
+                                         </DataTemplate>
+                                     </ItemsControl.ItemTemplate>
+                                 </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Sentence View (Transition Mode) -->
+                        <Border IsVisible="{Binding !IsWordMode}" Padding="16,12,12,12">
+                            <StackPanel Spacing="16">
+                                <!-- Translation Result -->
+                                <Grid RowDefinitions="Auto,*">
+                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,0,0,8">
+                                        <Border Background="Transparent"
+                                                VerticalAlignment="Stretch"
+                                                PointerPressed="OnHeaderPointerPressed">
+                                            <StackPanel Orientation="Horizontal"
+                                                        Spacing="6"
+                                                        VerticalAlignment="Center"
+                                                        IsHitTestVisible="False">
+                                            <icons:MaterialIcon Kind="Translate" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                            <TextBlock Text="{x:Static lang:Resources.SelectionTranslate_ResultLabel}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource SukiText}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Button Grid.Column="1"
+                                                Classes="TtsButton"
+                                                VerticalAlignment="Center"
+                                                Command="{Binding PlayTargetAudioCommand}"
+                                                CommandParameter="{Binding TranslationResult}"
+                                                Tag="{Binding IsResultTtsLoading}">
+                                            <Panel>
+                                                <icons:MaterialIcon Kind="VolumeHigh" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"
+                                                                    IsVisible="{Binding !$parent[Button].Tag}"/>
+                                                <suki:Loading Width="16" Height="16" IsVisible="{Binding $parent[Button].Tag}"
+                                                              Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                            </Panel>
+                                        </Button>
+
+                                        <Border Grid.Column="2"
+                                                Background="Transparent"
+                                                PointerPressed="OnHeaderPointerPressed"/>
+
+                                        <!-- Keep streaming status in the existing result header row. -->
+                                        <suki:Loading Grid.Column="3"
+                                                      Width="16"
+                                                      Height="16"
+                                                      VerticalAlignment="Center"
+                                                      IsVisible="{Binding IsLoading}"
+                                                      IsHitTestVisible="False"
+                                                      Foreground="{DynamicResource SukiPrimaryColor}"
+                                                      ToolTip.Tip="{x:Static lang:Resources.Speech_Translating}"/>
+                                    </Grid>
+                                    <Panel Grid.Row="1">
+                                        <!-- Appears only before the first streamed translation fragment. -->
+                                        <StackPanel Classes="StreamingSkeleton TranslationSkeleton"
+                                                    Classes.loading="{Binding ShowTranslationSkeleton}"
+                                                    Spacing="10">
+                                            <Border Height="16" Width="360" HorizontalAlignment="Left"
+                                                    Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                                            <Border Height="16" Width="280" HorizontalAlignment="Left"
+                                                    Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                                            <Border Height="16" Width="320" HorizontalAlignment="Left"
+                                                    Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ResultTextBlock"
+                                                   Text="{Binding TranslationResult}"
+                                                   TextWrapping="Wrap" FontSize="15" LineHeight="24"
+                                                   Foreground="{DynamicResource SukiText}"/>
+                                    </Panel>
+                                </Grid>
+
+                                <Separator Background="{DynamicResource SukiControlBorderBrush}" Height="1"/>
+
+                                <!-- Interactive Source Text -->
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
+                                        <icons:MaterialIcon Kind="TextShort" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                        <TextBlock Text="{x:Static lang:Resources.SelectionTranslate_SourceLabel}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource SukiText}"/>
+                                        <Button Classes="TtsButton" VerticalAlignment="Center"
+                                                Command="{Binding PlaySourceAudioCommand}"
+                                                CommandParameter="{Binding SourceText}"
+                                                Tag="{Binding IsSourceTtsLoading}">
+                                            <Panel>
+                                                <icons:MaterialIcon Kind="VolumeHigh" Width="16" Height="16" Foreground="{DynamicResource SukiPrimaryColor}"
+                                                                    IsVisible="{Binding !$parent[Button].Tag}"/>
+                                                <suki:Loading Width="16" Height="16" IsVisible="{Binding $parent[Button].Tag}"
+                                                              Foreground="{DynamicResource SukiPrimaryColor}"/>
+                                            </Panel>
+                                        </Button>
+                                    </StackPanel>
+
+                                    <controls:VirtualizedTokenDisplay
+                                        Tokens="{Binding SourceTokens}"
+                                        WordClickedCommand="{Binding LookupWordCommand}"
+                                        FontSize="15"
+                                        LineHeight="24"
+                                        Foreground="{DynamicResource SukiText}"
+                                        NonWordForeground="Gray"
+                                        FontWeight="Bold"
+                                        UnderlineColor="{DynamicResource SukiPrimaryColor}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Panel>
+                    </ScrollViewer>
+                    </Border>
+                </Panel>
+
+                <!-- Footer Actions -->
+                <Border Grid.Row="2" Background="{DynamicResource SukiCardBackground}" 
+                        CornerRadius="0,0,12,12" Padding="12,8" BorderBrush="{DynamicResource SukiControlBorderBrush}" BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                             <Border Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4" Padding="6,2">
+                                 <TextBlock Text="Auto Detect" FontSize="11" Foreground="{DynamicResource SukiText}"/>
+                             </Border>
+                             <icons:MaterialIcon Kind="ArrowRight" Width="14" Height="14" Foreground="{DynamicResource SukiText}"/>
+                             <Border Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4" Padding="6,2">
+                                 <TextBlock Text="{x:Static lang:Resources.SelectionTranslate_Language_Chinese}" FontSize="11" Foreground="{DynamicResource SukiText}"/>
+                             </Border>
+                         </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                            <Button Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.SelectionTranslate_CopyTooltip}" 
+                                    Classes="Flat" Padding="6" Width="32" Height="32">
+                                <icons:MaterialIcon Kind="ContentCopy" Width="18" Height="18" Foreground="White"/>
+                            </Button>
+                            
+                            <!-- Close Button -->
+                            <Button Click="OnCloseClick"
+                                    IsVisible="{Binding ShowCloseButton}"
+                                    ToolTip.Tip="{x:Static lang:Resources.Close}" 
+                                    Classes="Danger" Padding="6" Width="32" Height="32">
+                                <icons:MaterialIcon Kind="Close" Width="18" Height="18" Foreground="White"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <!-- Resize Grip -->
+                <icons:MaterialIcon Kind="ResizeBottomRight" 
+                                   Grid.Row="2"
+                                   Width="20" Height="20" 
+                                   Foreground="{DynamicResource SukiText}"
+                                   Opacity="0.5"
+                                   VerticalAlignment="Bottom"
+                                   HorizontalAlignment="Right"
+                                   Cursor="BottomRightCorner"
+                                   PointerPressed="OnResizePointerPressed"
+                                   Margin="0,0,2,2"/>
+            </Grid>
+        </suki:GlassCard>
+    </Panel>
+</Window>

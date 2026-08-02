@@ -7,6 +7,14 @@ public sealed record SpeechRecognitionCommand(
     string Language,
     IReadOnlyList<int> ProcessIds);
 
+public sealed record SpeechRecognitionModel(string Id);
+
+public interface ISpeechRecognitionModelCatalog
+{
+    ValueTask<IReadOnlyList<SpeechRecognitionModel>> GetModelsAsync(
+        CancellationToken cancellationToken = default);
+}
+
 public sealed record SpeechSubtitleLine(
     long Id,
     TimeSpan Timestamp,

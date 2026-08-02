@@ -1,0 +1,924 @@
+<root>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <data name="Copyright" xml:space="preserve">
+        <value>©️ EasyChatOrg</value>
+    </data>
+    <data name="AppName" xml:space="preserve">
+        <value>EasyChat</value>
+    </data>
+    <data name="ToggleMode" xml:space="preserve">
+        <value>切换</value>
+    </data>
+    <data name="LightMode" xml:space="preserve">
+        <value>明亮</value>
+    </data>
+    <data name="DarkMode" xml:space="preserve">
+        <value>黑暗</value>
+    </data>
+    <data name="Home" xml:space="preserve">
+        <value>主页</value>
+    </data>
+    <data name="Settings" xml:space="preserve">
+        <value>设置</value>
+    </data>
+    <data name="About" xml:space="preserve">
+        <value>关于</value>
+    </data>
+    <data name="Theme" xml:space="preserve">
+        <value>主题</value>
+    </data>
+    <data name="SwitchTo" xml:space="preserve">
+        <value>切换至...</value>
+    </data>
+    <data name="CreateCustom" xml:space="preserve">
+        <value>自定义</value>
+    </data>
+    <data name="TitleBar" xml:space="preserve">
+        <value>标题栏</value>
+    </data>
+    <data name="FullScreen" xml:space="preserve">
+        <value>全屏</value>
+    </data>
+    <data name="FullScreenTip" xml:space="preserve">
+        <value>全屏APP</value>
+    </data>
+    <data name="TitleBarTip" xml:space="preserve">
+        <value>切换标题栏</value>
+    </data>
+    <data name="ToggleMenuTip" xml:space="preserve">
+        <value>显示/隐藏 顶部菜单</value>
+    </data>
+    <data name="ColorChangedTitle" xml:space="preserve">
+        <value>更换主题色</value>
+    </data>
+    <data name="ColorChangedContent" xml:space="preserve">
+        <value>主题色已切换至</value>
+    </data>
+    <data name="ThemeChangedTitle" xml:space="preserve">
+        <value>主题切换</value>
+    </data>
+    <data name="ThemeChangedContent" xml:space="preserve">
+        <value>主题已切换至</value>
+    </data>
+    <data name="TitleBarTitle" xml:space="preserve">
+        <value>标题栏 </value>
+    </data>
+    <data name="TitleBarContent" xml:space="preserve">
+        <value>窗口标题已 </value>
+    </data>
+    <data name="OpenOnGithub" xml:space="preserve">
+        <value>在 Github 上打开</value>
+    </data>
+    <data name="OpenOnOfficialSite" xml:space="preserve">
+        <value>在 官网 上打开</value>
+    </data>
+    <data name="Create" xml:space="preserve">
+        <value>创建</value>
+    </data>
+    <data name="Cancel" xml:space="preserve">
+        <value>取消</value>
+    </data>
+    <data name="General" xml:space="preserve">
+        <value>常规</value>
+    </data>
+    <data name="Shortcut" xml:space="preserve">
+        <value>热键</value>
+    </data>
+    <data name="AboutLine1" xml:space="preserve">
+        <value>一个用于对话的自动翻译多种语言工具。</value>
+    </data>
+    <data name="AboutLine2" xml:space="preserve">
+        <value>该版本为重构版本，重构自18年开发的交流神器。</value>
+    </data>
+    <data name="Other" xml:space="preserve">
+        <value>其它</value>
+    </data>
+    <data name="AIEngine" xml:space="preserve">
+        <value>大模型</value>
+    </data>
+    <data name="MachineTranslation" xml:space="preserve">
+        <value>机器翻译</value>
+    </data>
+    <data name="TransEngine" xml:space="preserve">
+        <value>翻译引擎</value>
+    </data>
+    <data name="Translation" xml:space="preserve">
+        <value>翻译</value>
+    </data>
+    <data name="Model" xml:space="preserve">
+        <value>模型</value>
+    </data>
+    <data name="DeepL" xml:space="preserve">
+        <value>DeepL</value>
+    </data>
+    <data name="Tencent" xml:space="preserve">
+        <value>腾讯</value>
+    </data>
+    <data name="Google" xml:space="preserve">
+        <value>谷歌</value>
+    </data>
+    <data name="Baidu" xml:space="preserve">
+        <value>百度</value>
+    </data>
+    <data name="Proxy" xml:space="preserve">
+        <value>代理</value>
+    </data>
+    <data name="ProxyType" xml:space="preserve">
+        <value>代理类型</value>
+    </data>
+    <data name="ProxyUrl" xml:space="preserve">
+        <value>代理地址</value>
+    </data>
+    <data name="ProxyTypeQuestion" xml:space="preserve">
+        <value>用来代理翻译API的网络请求，例如OpenAI、Gemini等。</value>
+    </data>
+    <data name="ProxyAddrQuestion" xml:space="preserve">
+        <value>http://username:password@server:port</value>
+    </data>
+    <data name="ApplyTo" xml:space="preserve">
+        <value>作用于</value>
+    </data>
+    <data name="Language" xml:space="preserve">
+        <value>语言</value>
+    </data>
+    <data name="DisplayLanguage" xml:space="preserve">
+        <value>显示语言</value>
+    </data>
+    <data name="NativeLanguage" xml:space="preserve">
+        <value>母语</value>
+    </data>
+    <data name="Save" xml:space="preserve">
+        <value>保存</value>
+    </data>
+    <data name="FollowConfig" xml:space="preserve">
+        <value>跟随配置</value>
+    </data>
+    <data name="Restore" xml:space="preserve">
+        <value>恢复上次</value>
+    </data>
+    <data name="SaveSuccess" xml:space="preserve">
+        <value>设置已保存!</value>
+    </data>
+    <data name="Success" xml:space="preserve">
+        <value>成功!</value>
+    </data>
+    <data name="RestoreSuccess" xml:space="preserve">
+        <value>已恢复上次配置</value>
+    </data>
+    <data name="RequestError" xml:space="preserve">
+        <value>网络请求错误，请检查网络连接。</value>
+    </data>
+    <data name="TypeSomethingHere" xml:space="preserve">
+        <value>输入想要翻译的文字</value>
+    </data>
+    <data name="TypingViewTitle" xml:space="preserve">
+        <value>输入文字翻译</value>
+    </data>
+    <data name="OcrKey" xml:space="preserve">
+        <value>截图翻译</value>
+    </data>
+    <data name="UsingAiModel" xml:space="preserve">
+        <value>大模型</value>
+    </data>
+    <data name="UsingMachineTransEngine" xml:space="preserve">
+        <value>机器翻译</value>
+    </data>
+    <data name="Action" xml:space="preserve">
+        <value>动作</value>
+    </data>
+    <data name="KeyCombination" xml:space="preserve">
+        <value>快捷键</value>
+    </data>
+    <data name="Enabled" xml:space="preserve">
+        <value>启用</value>
+    </data>
+    <data name="Screenshot" xml:space="preserve">
+        <value>截图</value>
+    </data>
+    <data name="RecordShortcut" xml:space="preserve">
+        <value>录制快捷键</value>
+    </data>
+    <data name="RecordingShortcut" xml:space="preserve">
+        <value>请按下快捷键组合...</value>
+    </data>
+    <data name="Add" xml:space="preserve">
+    <value>添加</value>
+  </data>
+    <data name="Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+    <data name="ClickToRecord" xml:space="preserve">
+    <value>点击录制</value>
+  </data>
+    <data name="NotSet" xml:space="preserve">
+    <value>未设置</value>
+  </data>
+    <data name="Parameter" xml:space="preserve">
+    <value>参数</value>
+  </data>
+    <data name="ParameterHint" xml:space="preserve">
+    <value>参数 (如: zh, en)</value>
+  </data>
+    <data name="BasicShortcuts" xml:space="preserve">
+    <value>基础热键</value>
+  </data>
+    <data name="LanguageShortcuts" xml:space="preserve">
+    <value>语种切换热键</value>
+  </data>
+    <data name="AddBasicShortcut" xml:space="preserve">
+    <value>添加基础热键</value>
+  </data>
+    <data name="AddLanguageShortcut" xml:space="preserve">
+    <value>添加语种切换热键</value>
+  </data>
+    <data name="Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+    <data name="Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+    <data name="ActionType" xml:space="preserve">
+    <value>动作类型</value>
+  </data>
+    <data name="Action_ScreenshotTranslate" xml:space="preserve">
+    <value>截图翻译</value>
+  </data>
+    <data name="Action_InputTranslate" xml:space="preserve">
+    <value>输入翻译</value>
+  </data>
+    <data name="AfterTextInput" xml:space="preserve">
+    <value>输入文本后</value>
+  </data>
+    <data name="BeforeTextInput" xml:space="preserve">
+    <value>输入文本前</value>
+  </data>
+    <data name="InputTranslateSimulatedKeys" xml:space="preserve">
+        <value>模拟按键</value>
+  </data>
+    <data name="InputTranslateSimulatedKeysTip" xml:space="preserve">
+        <value>会在输入文本前或输入文本后模拟一次所设置的按键，适用于需要按下特定按键打开聊天框的场景。</value>
+    </data>
+    <data name="ReplaceCurrentInput" xml:space="preserve">
+        <value>替换当前输入</value>
+    </data>
+    <data name="ReplaceCurrentInputTip" xml:space="preserve">
+        <value>读取并翻译当前输入框中的全部文字，翻译成功后清空原文，再使用当前文本投递方式发送译文。软件会优先使用控件原生能力选中文字，并在必要时尝试 Ctrl+A；部分应用或游戏可能不支持读取或清空当前输入。</value>
+    </data>
+    <data name="Action_SelectionTranslate" xml:space="preserve">
+    <value>划词翻译</value>
+  </data>
+    <data name="Action_SwitchSourceLang" xml:space="preserve">
+    <value>切换源语言</value>
+  </data>
+    <data name="Action_SwitchTargetLang" xml:space="preserve">
+    <value>切换目标语言</value>
+  </data>
+    <data name="Action_SwitchEngineSourceTarget" xml:space="preserve">
+    <value>切换引擎、源及目标语言</value>
+  </data>
+    <data name="Hint_SwitchConfig" xml:space="preserve">
+    <value>引擎,源ID,目标ID (如 Baidu,en,zh-Hans)</value>
+  </data>
+    <data name="ConfirmDeletion" xml:space="preserve">
+    <value>确认删除</value>
+  </data>
+    <data name="AreYouSureDelete" xml:space="preserve">
+    <value>确定要删除此快捷键吗？</value>
+  </data>
+    <data name="AddModel" xml:space="preserve">
+    <value>添加模型</value>
+  </data>
+    <data name="EditModel" xml:space="preserve">
+    <value>编辑模型</value>
+  </data>
+    <data name="DeleteModel" xml:space="preserve">
+    <value>删除模型</value>
+  </data>
+    <data name="ModelName" xml:space="preserve">
+    <value>模型名称</value>
+  </data>
+    <data name="ModelType" xml:space="preserve">
+    <value>模型类型</value>
+  </data>
+    <data name="CustomModel" xml:space="preserve">
+    <value>自定义模型</value>
+  </data>
+    <data name="ConfirmDeleteModel" xml:space="preserve">
+    <value>确定要删除此模型吗？</value>
+  </data>
+    <data name="OpenAI" xml:space="preserve">
+    <value>OpenAI</value>
+  </data>
+    <data name="Gemini" xml:space="preserve">
+    <value>Gemini</value>
+  </data>
+    <data name="Claude" xml:space="preserve">
+    <value>Claude</value>
+  </data>
+    <data name="Keys" xml:space="preserve">
+    <value>密钥</value>
+  </data>
+    <data name="EditKeys" xml:space="preserve">
+    <value>编辑密钥</value>
+  </data>
+    <data name="AddKey" xml:space="preserve">
+  <value>添加密钥</value>
+  </data>
+    <data name="UseProxy" xml:space="preserve">
+  <value>使用代理</value>
+  </data>
+    <data name="EnableThinking" xml:space="preserve">
+  <value>启用思考</value>
+  </data>
+    <data name="FetchModels" xml:space="preserve">
+  <value>获取模型</value>
+  </data>
+    <data name="FetchingModels" xml:space="preserve">
+  <value>获取中...</value>
+  </data>
+    <data name="ModelApiUrlRequired" xml:space="preserve">
+  <value>请输入 API 地址。</value>
+  </data>
+    <data name="NoModelsFound" xml:space="preserve">
+  <value>供应商没有返回模型。</value>
+  </data>
+    <data name="FetchModelsFailed" xml:space="preserve">
+  <value>获取模型失败：{0}</value>
+  </data>
+    <data name="TestConnection" xml:space="preserve">
+  <value>测试连接</value>
+  </data>
+    <data name="Testing" xml:space="preserve">
+  <value>测试中...</value>
+  </data>
+    <data name="ConnectionSuccess" xml:space="preserve">
+  <value>连接成功!</value>
+  </data>
+    <data name="ConnectionFailed" xml:space="preserve">
+  <value>连接失败</value>
+  </data>
+    <data name="TargetLang" xml:space="preserve">
+        <value>目标语言</value>
+    </data>
+    <data name="SourceLang" xml:space="preserve">
+        <value>原始语言</value>
+    </data>
+    <data name="Prompts" xml:space="preserve">
+        <value>提示词</value>
+    </data>
+    <data name="AddPrompt" xml:space="preserve">
+        <value>添加提示词</value>
+    </data>
+    <data name="EditPrompt" xml:space="preserve">
+        <value>编辑提示词</value>
+    </data>
+    <data name="PromptName" xml:space="preserve">
+        <value>名称</value>
+    </data>
+    <data name="PromptContent" xml:space="preserve">
+        <value>内容</value>
+    </data>
+    <data name="SetAsDefault" xml:space="preserve">
+        <value>设为默认</value>
+    </data>
+    <data name="DefaultPrompt" xml:space="preserve">
+        <value>默认</value>
+    </data>
+    <data name="ConfirmDeletePrompt" xml:space="preserve">
+        <value>确定要删除此提示词吗？</value>
+    </data>
+    <data name="CannotDeleteLastPrompt" xml:space="preserve">
+        <value>不能删除最后一个提示词。</value>
+    </data>
+    <data name="CannotDeleteDefaultPrompt" xml:space="preserve">
+        <value>不能删除默认提示词。请先将其他提示词设为默认。</value>
+    </data>
+    <data name="PromptParametersHint" xml:space="preserve">
+        <value>支持参数: [SourceLang](源语言), [TargetLang](目标语言), [源语言], [目标语言]</value>
+    </data>
+    <data name="ResultAutoCloseDelay" xml:space="preserve">
+        <value>自动关闭延迟</value>
+    </data>
+    <data name="ResultSettings" xml:space="preserve">
+        <value>结果窗口设置</value>
+    </data>
+    <data name="FontSize" xml:space="preserve">
+        <value>字体大小</value>
+    </data>
+    <data name="EnableAutoReadDelay" xml:space="preserve">
+        <value>自动计算延迟</value>
+    </data>
+    <data name="MsPerChar" xml:space="preserve">
+        <value>毫秒/字</value>
+    </data>
+    <data name="LanguageChanged" xml:space="preserve">
+        <value>语言已更改</value>
+    </data>
+    <data name="RestartToTakeEffect" xml:space="preserve">
+        <value>请重启应用以生效</value>
+    </data>
+    <data name="InputSettings" xml:space="preserve">
+        <value>输入窗口设置</value>
+    </data>
+    <data name="TransparencyLevel" xml:space="preserve">
+        <value>透明度级别</value>
+    </data>
+    <data name="BackgroundColor" xml:space="preserve">
+        <value>背景颜色</value>
+    </data>
+    <data name="FontColor" xml:space="preserve">
+        <value>字体颜色</value>
+    </data>
+    <data name="ThemeName" xml:space="preserve">
+        <value>主题名称</value>
+    </data>
+    <data name="PrimaryColor" xml:space="preserve">
+        <value>主色调</value>
+    </data>
+    <data name="AccentColor" xml:space="preserve">
+        <value>强调色</value>
+    </data>
+    <data name="WindowBackgroundColor" xml:space="preserve">
+        <value>窗口背景颜色</value>
+    </data>
+    <data name="KeySendDelay" xml:space="preserve">
+        <value>按键发送延迟</value>
+    </data>
+    <data name="InputDeliveryMode" xml:space="preserve">
+        <value>文本投递模式</value>
+    </data>
+    <data name="DeliveryMode_Type" xml:space="preserve">
+        <value>模拟按键 (Type)</value>
+    </data>
+    <data name="DeliveryMode_Paste" xml:space="preserve">
+        <value>剪贴板粘贴 (Paste)</value>
+    </data>
+    <data name="DeliveryMode_Message" xml:space="preserve">
+        <value>消息投递 (Compatibility)</value>
+    </data>
+    <data name="EnableTray" xml:space="preserve">
+        <value>启用系统托盘</value>
+    </data>
+    <data name="CloseToTray" xml:space="preserve">
+        <value>关闭时最小化到托盘</value>
+    </data>
+    <data name="TrayExit" xml:space="preserve">
+        <value>退出</value>
+    </data>
+    <data name="TrayShow" xml:space="preserve">
+        <value>显示</value>
+    </data>
+    <data name="CloseToTrayPromptTitle" xml:space="preserve">
+        <value>关闭操作</value>
+    </data>
+    <data name="CloseToTrayPromptMessage" xml:space="preserve">
+        <value>您希望最小化到托盘还是直接退出程序？</value>
+    </data>
+    <data name="RememberMyChoice" xml:space="preserve">
+        <value>记住我的选择</value>
+    </data>
+    <data name="MinimizeToTray" xml:space="preserve">
+        <value>最小化到托盘</value>
+    </data>
+    <data name="ExitApp" xml:space="preserve">
+        <value>退出程序</value>
+    </data>
+    <data name="Option_Ask" xml:space="preserve">
+        <value>每次询问</value>
+    </data>
+    <data name="Option_Exit" xml:space="preserve">
+        <value>退出程序</value>
+    </data>
+    <data name="Option_Minimize" xml:space="preserve">
+        <value>最小化到托盘</value>
+    </data>
+    <data name="ClosingBehavior" xml:space="preserve">
+        <value>退出方式</value>
+    </data>
+    <data name="NewVersionAvailable" xml:space="preserve">
+        <value>发现新版本</value>
+    </data>
+    <data name="NewVersionContent" xml:space="preserve">
+        <value>发现新版本 {0}！</value>
+    </data>
+    <data name="ViewRelease" xml:space="preserve">
+        <value>查看更新</value>
+    </data>
+    <data name="Dismiss" xml:space="preserve">
+        <value>忽略</value>
+    </data>
+    <data name="Update" xml:space="preserve">
+        <value>现在更新</value>
+    </data>
+    <data name="Later" xml:space="preserve">
+        <value>稍后</value>
+    </data>
+    <data name="Updating" xml:space="preserve">
+        <value>更新中...</value>
+    </data>
+    <data name="UpdateFailed" xml:space="preserve">
+        <value>更新失败</value>
+    </data>
+    <data name="CheckNetwork" xml:space="preserve">
+        <value>下载失败，请检查网络设置或代理。</value>
+    </data>
+    <data name="Speech_Refresh" xml:space="preserve">
+        <value>刷新</value>
+    </data>
+    <data name="Speech_AllSystemAudio" xml:space="preserve">
+        <value>全部 (系统声音)</value>
+    </data>
+    <data name="Speech_SelectedAppsCount" xml:space="preserve">
+        <value>已选择 {0} 个应用</value>
+    </data>
+    <data name="Speech_NotSupported" xml:space="preserve">
+        <value>此功能仅支持 Windows 系统。</value>
+    </data>
+    <data name="Speech_EnableTranslation" xml:space="preserve">
+        <value>启用翻译</value>
+    </data>
+    <data name="Speech_RealTimePreview" xml:space="preserve">
+        <value>实时预览</value>
+    </data>
+    <data name="Speech_RealTimePreviewTip" xml:space="preserve">
+        <value>启用以翻译部分结果。禁用以仅翻译确认的句子。</value>
+    </data>
+    <data name="Speech_AudioSource" xml:space="preserve">
+        <value>音频源</value>
+    </data>
+    <data name="Speech_SelectSourceTitle" xml:space="preserve">
+        <value>选择音频源</value>
+    </data>
+    <data name="Speech_Start" xml:space="preserve">
+        <value>开始识别</value>
+    </data>
+    <data name="Speech_Stop" xml:space="preserve">
+        <value>停止识别</value>
+    </data>
+    <data name="Speech_Recognized" xml:space="preserve">
+        <value>已识别</value>
+    </data>
+    <data name="Speech_Translated" xml:space="preserve">
+        <value>已翻译</value>
+    </data>
+    <data name="Page_SpeechRecognition" xml:space="preserve">
+        <value>语音识别</value>
+    </data>
+    <data name="Tab_Recognition" xml:space="preserve">
+        <value>识别</value>
+    </data>
+    <data name="FloatingWindow" xml:space="preserve">
+        <value>字幕悬浮窗</value>
+    </data>
+    <data name="FloatingWindow_Config" xml:space="preserve">
+        <value>悬浮窗配置</value>
+    </data>
+    <data name="FloatingWindow_Open" xml:space="preserve">
+        <value>开启悬浮窗</value>
+    </data>
+    <data name="FloatingWindow_Close" xml:space="preserve">
+        <value>关闭悬浮窗</value>
+    </data>
+    <data name="FloatingWindow_Lock" xml:space="preserve">
+        <value>锁定窗口</value>
+    </data>
+    <data name="FloatingWindow_Unlock" xml:space="preserve">
+        <value>解锁窗口 (鼠标穿透)</value>
+    </data>
+    <data name="Subtitle_Primary" xml:space="preserve">
+        <value>主字幕 (主要)</value>
+    </data>
+    <data name="Subtitle_Secondary" xml:space="preserve">
+        <value>副字幕 (辅助)</value>
+    </data>
+    <data name="Subtitle_Source_Original" xml:space="preserve">
+        <value>原文</value>
+    </data>
+    <data name="Subtitle_Source_Translated" xml:space="preserve">
+        <value>译文</value>
+    </data>
+    <data name="Subtitle_Source_None" xml:space="preserve">
+        <value>无</value>
+    </data>
+    <data name="Window_Appearance" xml:space="preserve">
+        <value>窗口外观</value>
+    </data>
+    <data name="Window_Background" xml:space="preserve">
+        <value>窗口背景</value>
+    </data>
+    <data name="Subtitle_Background" xml:space="preserve">
+        <value>字幕背景</value>
+    </data>
+    <data name="Window_Opacity" xml:space="preserve">
+        <value>不透明度</value>
+    </data>
+    <data name="Window_Orientation" xml:space="preserve">
+        <value>方向</value>
+    </data>
+    <data name="FontFamily" xml:space="preserve">
+        <value>字体</value>
+    </data>
+    <data name="Screenshot_Hint" xml:space="preserve">
+        <value>请框选需要翻译的区域。右键或ESC取消。</value>
+    </data>
+    <data name="Confirm" xml:space="preserve">
+        <value>确认</value>
+    </data>
+    <data name="Reset" xml:space="preserve">
+        <value>重置</value>
+    </data>
+    <data name="ScreenshotMode" xml:space="preserve">
+        <value>截图模式</value>
+    </data>
+    <data name="ScreenshotMode_Quick" xml:space="preserve">
+        <value>快速截图 (无确认)</value>
+    </data>
+    <data name="ScreenshotMode_Precise" xml:space="preserve">
+        <value>精准截图 (工具栏)</value>
+    </data>
+    <data name="Copy" xml:space="preserve">
+        <value>复制</value>
+    </data>
+    <data name="Copied" xml:space="preserve">
+        <value>已复制</value>
+    </data>
+    <data name="CopyOriginal" xml:space="preserve">
+        <value>复制原文</value>
+    </data>
+    <data name="CopyTranslated" xml:space="preserve">
+        <value>复制译文</value>
+    </data>
+    <data name="CopyBilingual" xml:space="preserve">
+        <value>复制双语</value>
+    </data>
+    <data name="ImageTranslate" xml:space="preserve">
+        <value>图片翻译</value>
+    </data>
+    <data name="InputToTranslate" xml:space="preserve">
+        <value>请输入需要翻译的文字</value>
+    </data>
+    <data name="Speech_MaxHistory" xml:space="preserve">
+        <value>最大行数</value>
+    </data>
+    <data name="Speech_MaxSentencesPerLine" xml:space="preserve">
+        <value>每行句数</value>
+    </data>
+    <data name="Speech_DisplayMode_Segmented" xml:space="preserve">
+        <value>分割式</value>
+    </data>
+    <data name="Speech_DisplayMode_AutoScroll" xml:space="preserve">
+        <value>自动滚动</value>
+    </data>
+    <data name="Speech_DisplayMode" xml:space="preserve">
+        <value>显示模式</value>
+    </data>
+    <data name="FixedAreas" xml:space="preserve">
+        <value>固定区域</value>
+    </data>
+    <data name="FixedArea_Hint" xml:space="preserve">
+        <value>请框选固定区域。</value>
+    </data>
+    <data name="NoFixedAreas" xml:space="preserve">
+        <value>暂无固定区域。</value>
+    </data>
+    <data name="AddFixedArea" xml:space="preserve">
+        <value>添加固定区域</value>
+    </data>
+    <data name="Close" xml:space="preserve">
+        <value>关闭</value>
+    </data>
+    <data name="Name" xml:space="preserve">
+        <value>名称</value>
+    </data>
+    <data name="Area" xml:space="preserve">
+        <value>区域</value>
+    </data>
+    <data name="ReselectArea" xml:space="preserve">
+        <value>重新框选</value>
+    </data>
+    <data name="Select" xml:space="preserve">
+        <value>选取</value>
+    </data>
+    <data name="FixedAreaSettings" xml:space="preserve">
+        <value>固定区域设置</value>
+    </data>
+    <data name="SelectionTranslation" xml:space="preserve">
+        <value>划词工具栏</value>
+    </data>
+    <data name="EnableSelectionTranslation" xml:space="preserve">
+        <value>启用划词工具栏</value>
+    </data>
+    <data name="SelectionShortcutToolbarTip" xml:space="preserve">
+        <value>启用后，按下快捷键将显示设置中已配置的划词工具栏；关闭时直接翻译选中的文本。</value>
+    </data>
+    <data name="SelectionTriggerMode" xml:space="preserve">
+        <value>取词方式</value>
+    </data>
+    <data name="SelectionTriggerModeDoubleClick" xml:space="preserve">
+        <value>双击选中</value>
+    </data>
+    <data name="SelectionTriggerModeDragSelection" xml:space="preserve">
+        <value>长按选中</value>
+    </data>
+    <data name="SelectionTriggerModeAll" xml:space="preserve">
+        <value>全部</value>
+    </data>
+    <data name="SelectionTranslate_Title" xml:space="preserve">
+        <value>划词翻译</value>
+    </data>
+    <data name="SelectionTranslate_SourceLabel" xml:space="preserve">
+        <value>原文</value>
+    </data>
+    <data name="SelectionTranslate_SourcePlaceholderText" xml:space="preserve">
+        <value>选中的文字将显示在这里...</value>
+    </data>
+    <data name="SelectionTranslate_ResultLabel" xml:space="preserve">
+        <value>译文</value>
+    </data>
+    <data name="SelectionTranslate_AutoDetect" xml:space="preserve">
+        <value>自动检测</value>
+    </data>
+    <data name="SelectionTranslate_Language_Chinese" xml:space="preserve">
+        <value>中文</value>
+    </data>
+    <data name="SelectionTranslate_CopyTooltip" xml:space="preserve">
+        <value>复制译文</value>
+    </data>
+    <data name="SelectionTranslate_TranslateButton" xml:space="preserve">
+        <value>翻译</value>
+    </data>
+    <data name="SelectionTranslate_ImplementationPending" xml:space="preserve">
+        <value>[翻译功能待实现] 原文: </value>
+    </data>
+    <data name="SelectionTranslate_Failed" xml:space="preserve">
+        <value>翻译失败: </value>
+    </data>
+  <data name="Tips" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="Examples" xml:space="preserve">
+    <value>例句</value>
+  </data>
+  <data name="Manifest" xml:space="preserve">
+    <value>应用清单</value>
+  </data>
+    <data name="LatestVersion" xml:space="preserve">
+        <value>最新版本</value>
+    </data>
+    <data name="CurrentVersion" xml:space="preserve">
+        <value>当前版本</value>
+    </data>
+    <data name="Tts_Configuration" xml:space="preserve">
+        <value>TTS 语音配置</value>
+    </data>
+    <data name="Tts_Provider" xml:space="preserve">
+        <value>提供商:</value>
+    </data>
+    <data name="Tts_NoVoicesConfigured" xml:space="preserve">
+        <value>未配置语音。点击“添加”为语言配置语音。</value>
+    </data>
+    <data name="Tts_AddVoiceMapping" xml:space="preserve">
+        <value>添加语音映射</value>
+    </data>
+    <data name="Tts_PreviewVoice" xml:space="preserve">
+        <value>试听语音</value>
+    </data>
+    <data name="Tts_PreviewInputPrompt" xml:space="preserve">
+        <value>输入试听文本:</value>
+    </data>
+    <data name="Tts_PreviewDefaultText" xml:space="preserve">
+        <value>Hello, this is a distinct voice preview.</value>
+    </data>
+    <data name="Tts_Play" xml:space="preserve">
+        <value>播放</value>
+    </data>
+    <data name="Tts_EditVoiceMapping" xml:space="preserve">
+        <value>编辑语音映射</value>
+    </data>
+    <data name="Tts_ErrorOpeningDialog" xml:space="preserve">
+        <value>打开对话框错误</value>
+    </data>
+    <data name="Tts_Voice" xml:space="preserve">
+        <value>语音</value>
+    </data>
+    <data name="Tts_SearchVoices" xml:space="preserve">
+        <value>搜索语音...</value>
+    </data>
+    <data name="Loading" xml:space="preserve">
+        <value>加载中...</value>
+    </data>
+    <data name="Tts" xml:space="preserve">
+        <value>语音合成 (TTS)</value>
+    </data>
+    <data name="TranslationEngineInfo" xml:space="preserve">
+        <value>大模型翻译速度略慢，但是翻译质量更好，并且支持音标、例句、提示等功能。
+机器翻译不支持音标、例句、提示等，并且翻译质量略差，优点是翻译速度很快。</value>
+    </data>
+    <data name="Speech_ClearHistory" xml:space="preserve">
+        <value>清空历史</value>
+    </data>
+    <data name="Speech_AutoClear" xml:space="preserve">
+        <value>自动清空(秒)</value>
+    </data>
+  <data name="Speech_Translating" xml:space="preserve">
+    <value>翻译中...</value>
+  </data>
+  <data name="ResultWindowMode" xml:space="preserve">
+    <value>结果窗口模式</value>
+  </data>
+  <data name="ResultWindowMode_Classic" xml:space="preserve">
+    <value>经典</value>
+  </data>
+  <data name="ResultWindowMode_Dictionary" xml:space="preserve">
+    <value>词典</value>
+  </data>
+  <data name="ReadAloudMode" xml:space="preserve">
+    <value>朗读设置</value>
+  </data>
+  <data name="ReadAloudMode_None" xml:space="preserve">
+    <value>不朗读</value>
+  </data>
+  <data name="ReadAloudMode_Source" xml:space="preserve">
+    <value>原文</value>
+  </data>
+  <data name="ReadAloudMode_Target" xml:space="preserve">
+    <value>译文</value>
+  </data>
+  <data name="ReadAloudMode_Both" xml:space="preserve">
+    <value>双语</value>
+  </data>
+  <data name="ReverseTranslateLanguage" xml:space="preserve">
+    <value>反向翻译(输入)</value>
+  </data>
+  <data name="ReverseTranslateLanguageTip" xml:space="preserve">
+    <value>输入翻译时交换源语言和目标语言（例如当源语言设置成英语但你输入的是中文时）。</value>
+  </data>
+    <data name="TypingFollowConfigTooltip" xml:space="preserve">
+        <value>开启后，源语言和目标语言将跟随全局配置。</value>
+    </data>
+  <data name="TextAssist" xml:space="preserve"><value>翻译 / 纠正</value></data>
+  <data name="TextAssistSubtitle" xml:space="preserve"><value>流式翻译文本，或实时完善你的表达。</value></data>
+  <data name="TextAssistTranslate" xml:space="preserve"><value>翻译</value></data>
+  <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
+  <data name="TextAssistPolish" xml:space="preserve"><value>润色</value></data>
+  <data name="TextAssistSummary" xml:space="preserve"><value>总结</value></data>
+  <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
+  <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
+  <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>
+  <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
+  <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
+  <data name="TextAssistIssues" xml:space="preserve"><value>错误与修改建议</value></data>
+  <data name="TextAssistCorrectedResult" xml:space="preserve"><value>修改结果</value></data>
+  <data name="TextAssistAnnotatedOriginal" xml:space="preserve"><value>原文中的错误</value></data>
+  <data name="TextAssistShortcuts" xml:space="preserve"><value>翻译与纠正快捷键</value></data>
+  <data name="AddTextAssistShortcut" xml:space="preserve"><value>添加翻译/纠正快捷键</value></data>
+  <data name="TextAssistCategoryGrammar" xml:space="preserve"><value>语法</value></data>
+  <data name="TextAssistCategorySpelling" xml:space="preserve"><value>拼写</value></data>
+  <data name="TextAssistCategoryWordChoice" xml:space="preserve"><value>用词</value></data>
+  <data name="TextAssistCategoryStyle" xml:space="preserve"><value>表达风格</value></data>
+  <data name="TextAssistDetailedExplanation" xml:space="preserve"><value>详解注释</value></data>
+  <data name="TextAssistDetailedExplanationTip" xml:space="preserve"><value>显示词义、搭配、重要词、生僻词和用法提示，仅支持 AI 翻译。</value></data>
+  <data name="TextAssistAnnotations" xml:space="preserve"><value>详解注释</value></data>
+  <data name="TextAssistAnnotationImportantWord" xml:space="preserve"><value>重要单词</value></data>
+  <data name="TextAssistAnnotationUncommonWord" xml:space="preserve"><value>生僻词</value></data>
+  <data name="TextAssistAnnotationCollocation" xml:space="preserve"><value>搭配</value></data>
+  <data name="TextAssistAnnotationUsageTip" xml:space="preserve"><value>用法提示</value></data>
+  <data name="TextAssistRelatedTerms" xml:space="preserve"><value>相关词</value></data>
+    <data name="ExpandSettings" xml:space="preserve"><value>展开设置</value></data>
+    <data name="CollapseSettings" xml:space="preserve"><value>收起设置</value></data>
+    <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译</value></data>
+    <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正</value></data>
+    <data name="ReadSelectedText" xml:space="preserve"><value>读取选中文本</value></data>
+    <data name="OcrModels" xml:space="preserve"><value>OCR 模型</value></data>
+    <data name="OcrUseProxy" xml:space="preserve"><value>下载模型时使用代理</value></data>
+    <data name="DownloadOcrModels" xml:space="preserve"><value>下载 OCR 模型</value></data>
+    <data name="DownloadOcrModel" xml:space="preserve"><value>下载</value></data>
+    <data name="RetryOcrModel" xml:space="preserve"><value>重试</value></data>
+    <data name="OcrModelDownloaded" xml:space="preserve"><value>已下载</value></data>
+    <data name="OcrModelDownloading" xml:space="preserve"><value>下载中</value></data>
+    <data name="OcrModelNotDownloaded" xml:space="preserve"><value>未下载</value></data>
+    <data name="ShowMoreOcrModels" xml:space="preserve"><value>显示更多 OCR 模型</value></data>
+    <data name="ShowLessOcrModels" xml:space="preserve"><value>收起 OCR 模型</value></data>
+    <data name="OcrModelRequiredTitle" xml:space="preserve"><value>需要 OCR 模型</value></data>
+    <data name="OcrModelRequiredMessage" xml:space="preserve"><value>请先在设置中下载 OCR 模型包，再使用截图 OCR。</value></data>
+    <data name="OcrModelDownloadTitle" xml:space="preserve"><value>OCR 模型</value></data>
+    <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR 模型下载完成。</value></data>
+    <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR 模型下载失败</value></data>
+  <data name="Retry" xml:space="preserve"><value>重试</value></data>
+  <data name="Tts_ConfigureVoices" xml:space="preserve"><value>配置语音</value></data>
+</root>

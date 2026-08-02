@@ -1,6 +1,7 @@
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Speech;
 using EasyChat.Infrastructure.Windows.Capture;
 using EasyChat.Infrastructure.Windows.Audio;
 using EasyChat.Infrastructure.Windows.ImageTranslation;
@@ -28,6 +29,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IGlobalHotkeys, WindowsGlobalHotkeys>();
         services.AddSingleton<IWindowFocus, WindowsWindowFocus>();
         services.AddSingleton<IWindowInputTransparency, WindowsWindowInputTransparency>();
+        services.AddSingleton<WindowsOwnedWindowBehavior>();
         services.AddSingleton<IGlobalPointerMonitor, WindowsGlobalPointerMonitor>();
         services.AddSingleton<IPointerPosition, WindowsPointerPosition>();
         services.AddSingleton<IKeyboardState, WindowsKeyboardState>();
@@ -40,6 +42,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
         services.AddSingleton<IProcessCatalog, WindowsProcessCatalog>();
         services.AddSingleton<ISpeechRecognitionEngine, WindowsSpeechRecognitionEngine>();
+        services.AddSingleton<ISpeechRecognitionModelCatalog, WindowsSpeechRecognitionModelCatalog>();
         services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
         services.AddSingleton<WindowsPaddleOcr>();

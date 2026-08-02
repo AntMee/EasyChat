@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EasyChat.ViewModels.Pages"
+             xmlns:views="using:EasyChat.Views.Pages"
+             xmlns:lang="clr-namespace:EasyChat.Lang"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="EasyChat.Views.Pages.TextAssistView"
+             x:DataType="vm:TextAssistViewModel">
+    <Grid Margin="25" RowDefinitions="Auto,*" RowSpacing="16">
+        <StackPanel Spacing="3">
+            <TextBlock Text="{x:Static lang:Resources.TextAssistTranslate}" FontSize="28" FontWeight="Bold" />
+            <TextBlock Text="{x:Static lang:Resources.TextAssistSubtitle}" Opacity="0.65" />
+        </StackPanel>
+        <views:TextAssistTranslationView Grid.Row="1" DataContext="{Binding Translation}" />
+    </Grid>
+</UserControl>

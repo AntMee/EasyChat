@@ -1,0 +1,204 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Threading;
+using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.SelectionTranslation;
+using EasyChat.Contracts.Speech;
+using EasyChat.Contracts.Translation;
+using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Localization;
+using EasyChat.Presentation.Foundation.Platform;
+using EasyChat.ViewModels.Windows;
+using EasyChat.Views.Windows;
+using Microsoft.Extensions.Logging;
+
+namespace EasyChat.Presentation.Features.Translation;
+
+public interface ITranslationWindowCoordinator
+{
+    ValueTask PrewarmAsync(CancellationToken cancellationToken = default);
+
+    ValueTask ShowSentenceAsync(
+        string text,
+        ScreenPoint? anchor = null,
+        bool showCloseButton = true,
+        CancellationToken cancellationToken = default);
+
+    ValueTask ShowDictionaryAsync(
+        string text,
+        string sourceLanguageId,
+        string targetLanguageId,
+        bool centerOnScreen = false,
+        ScreenPoint? anchor = null,
+        CancellationToken cancellationToken = default);
+
+    ValueTask<bool> ContainsAsync(
+        ScreenPoint point,
+        CancellationToken cancellationToken = default);
+
+    ValueTask CloseAsync(CancellationToken cancellationToken = default);
+}
+
+public sealed class TranslationWindowCoordinator(
+    ISelectionTranslationUseCases translation,
+    ITranslationLanguageCatalog languages,
+    ITtsUseCases tts,
+    SettingsSession settings,
+    IPlatformWindowBehavior platformWindowBehavior,
+    ILoggerFactory loggerFactory) : ITranslationWindowCoordinator
+{
+    private TranslationDictionaryWindowView? _current;
+    private TranslationWindowSession? _prewarmed;
+
+    public ValueTask PrewarmAsync(CancellationToken cancellationToken = default) =>
+        OnUiAsync(() =>
+        {
+            _prewarmed ??= CreateWindow();
+        }, cancellationToken);
+
+    public async ValueTask ShowSentenceAsync(
+        string text,
+        ScreenPoint? anchor = null,
+        bool showCloseButton = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        var window = await ShowShellAsync(anchor, centerOnScreen: false, showCloseButton, cancellationToken);
+        await window.ViewModel.InitializeAsync(text);
+    }
+
+    public async ValueTask ShowDictionaryAsync(
+        string text,
+        string sourceLanguageId,
+        string targetLanguageId,
+        bool centerOnScreen = false,
+        ScreenPoint? anchor = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        var window = await ShowShellAsync(anchor, centerOnScreen, showCloseButton: true, cancellationToken);
+        await window.ViewModel.InitializeDictionaryAsync(text, sourceLanguageId, targetLanguageId);
+    }
+
+    public ValueTask<bool> ContainsAsync(
+        ScreenPoint point,
+        CancellationToken cancellationToken = default) =>
+        OnUiAsync(() =>
+        {
+            if (_current?.IsVisible != true)
+                return false;
+            var clientPoint = _current.PointToClient(new PixelPoint(point.X, point.Y));
+            return new Rect(_current.Bounds.Size).Contains(clientPoint);
+        }, cancellationToken);
+
+    public ValueTask CloseAsync(CancellationToken cancellationToken = default) =>
+        OnUiAsync(() =>
+        {
+            _current?.Close();
+            _current = null;
+        }, cancellationToken);
+
+    private async ValueTask<TranslationWindowSession> ShowShellAsync(
+        ScreenPoint? anchor,
+        bool centerOnScreen,
+        bool showCloseButton,
+        CancellationToken cancellationToken)
+    {
+        return await OnUiAsync(() =>
+        {
+            _current?.Close();
+            var prepared = _prewarmed ?? CreateWindow();
+            _prewarmed = null;
+            _current = prepared.View;
+            prepared.ViewModel.ShowCloseButton = showCloseButton;
+            prepared.View.Closed += OnCurrentClosed;
+
+            if (centerOnScreen)
+            {
+                prepared.View.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+            else if (anchor is { } point)
+            {
+                PositionNear(prepared.View, point);
+            }
+
+            prepared.View.Show();
+            return prepared;
+        }, cancellationToken);
+    }
+
+    private TranslationWindowSession CreateWindow()
+    {
+        var viewModel = new TranslationDictionaryWindowViewModel(translation, languages, tts, settings);
+        var view = new TranslationDictionaryWindowView(
+            viewModel,
+            platformWindowBehavior,
+            loggerFactory.CreateLogger<TranslationDictionaryWindowView>());
+        return new TranslationWindowSession(view, viewModel);
+    }
+
+    private void OnCurrentClosed(object? sender, EventArgs args)
+    {
+        if (ReferenceEquals(_current, sender))
+            _current = null;
+        Dispatcher.UIThread.Post(
+            () => _prewarmed ??= CreateWindow(),
+            DispatcherPriority.Background);
+    }
+
+    private static void PositionNear(Window window, ScreenPoint point)
+    {
+        const int width = 450;
+        const int estimatedHeight = 350;
+        const int offset = 20;
+        var left = point.X + offset;
+        var top = point.Y + offset;
+        var screen = window.Screens.ScreenFromPoint(new PixelPoint(point.X, point.Y)) ?? window.Screens.Primary;
+        if (screen is not null)
+        {
+            var area = screen.WorkingArea;
+            if (left + width > area.Right)
+                left = point.X - width - offset >= area.X
+                    ? point.X - width - offset
+                    : area.Right - width - 10;
+            if (top + estimatedHeight > area.Bottom)
+                top = point.Y - estimatedHeight - offset >= area.Y
+                    ? point.Y - estimatedHeight - offset
+                    : area.Bottom - estimatedHeight - 10;
+            left = Math.Max(left, area.X);
+            top = Math.Max(top, area.Y);
+        }
+        window.Position = new PixelPoint(left, top);
+    }
+
+    private static async ValueTask OnUiAsync(
+        Action action,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            action();
+            return;
+        }
+        await Dispatcher.UIThread.InvokeAsync(action, DispatcherPriority.Normal, cancellationToken);
+    }
+
+    private static async ValueTask<T> OnUiAsync<T>(
+        Func<T> action,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Dispatcher.UIThread.CheckAccess())
+            return action();
+        return await Dispatcher.UIThread.InvokeAsync(action, DispatcherPriority.Normal, cancellationToken);
+    }
+
+    private sealed record TranslationWindowSession(
+        TranslationDictionaryWindowView View,
+        TranslationDictionaryWindowViewModel ViewModel);
+}

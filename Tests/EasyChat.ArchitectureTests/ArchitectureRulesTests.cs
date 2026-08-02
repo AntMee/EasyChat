@@ -49,7 +49,10 @@ public sealed class ArchitectureRulesTests
             ["EasyChat.Presentation.Shared"] = Set(),
             ["EasyChat.Presentation"] = Set("EasyChat.Contracts", "EasyChat.Presentation.Shared"),
             ["EasyChat.Desktop"] = Set("EasyChat.Application", "EasyChat.Contracts", "EasyChat.Infrastructure", "EasyChat.Presentation"),
-            ["EasyChat.Desktop.Windows"] = Set("EasyChat.Desktop", "EasyChat.Infrastructure.Windows")
+            ["EasyChat.Desktop.Windows"] = Set(
+                "EasyChat.Desktop",
+                "EasyChat.Infrastructure.Windows",
+                "EasyChat.Presentation")
         };
 
         foreach (var project in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories))

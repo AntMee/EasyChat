@@ -1,3 +1,4 @@
+using EasyChat.Application.Capture;
 using EasyChat.Application.ImageTranslation;
 using EasyChat.Application.Input;
 using EasyChat.Application.Ocr;
@@ -9,6 +10,7 @@ using EasyChat.Application.Shell;
 using EasyChat.Application.Speech;
 using EasyChat.Application.Translation;
 using EasyChat.Application.TextAssist;
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Input;
 using EasyChat.Contracts.Ocr;
@@ -41,10 +43,12 @@ public static class EasyChatApplicationServiceCollectionExtensions
         services.AddSingleton<ITextAssistUseCases, TextAssistUseCases>();
         services.AddSingleton<ITtsUseCases, TtsUseCases>();
         services.AddSingleton<ISpeechRecognitionUseCases, SpeechRecognitionUseCases>();
+        services.AddSingleton<IScreenshotUseCases, ScreenshotUseCases>();
         services.AddSingleton<IOcrRecognitionUseCases, OcrRecognitionUseCases>();
         services.AddSingleton<IOcrModelUseCases, OcrModelUseCases>();
         services.AddSingleton<IImageTranslationUseCases, ImageTranslationUseCases>();
         services.AddSingleton<IInputDeliveryUseCases, InputDeliveryUseCases>();
+        services.AddSingleton<IInputTranslationUseCases, InputTranslationUseCases>();
         services.AddSingleton<ISelectedTextUseCases, SelectedTextUseCases>();
         services.AddSingleton<ISelectionInteractionUseCases, SelectionInteractionCoordinator>();
         services.AddSingleton<IShortcutUseCases, ShortcutCoordinator>();

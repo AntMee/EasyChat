@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Material.Icons" Version="3.0.3-nightly.0.2" />
+    <PackageReference Include="Material.Icons.Avalonia" Version="3.0.3-nightly.0.2" />
   </ItemGroup>
 </Project>
-
