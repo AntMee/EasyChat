@@ -1,12 +1,20 @@
 using EasyChat.Application.DependencyInjection;
+using EasyChat.Application.ImageTranslation;
+using EasyChat.Application.Input;
+using EasyChat.Application.Ocr;
 using EasyChat.Application.Settings;
 using EasyChat.Application.Shell;
 using EasyChat.Application.Translation;
+using EasyChat.Contracts.ImageTranslation;
+using EasyChat.Contracts.Input;
+using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Shell;
 using EasyChat.Contracts.Translation;
 using EasyChat.Infrastructure.DependencyInjection;
 using EasyChat.Infrastructure.Translation;
+using EasyChat.Infrastructure.Windows.DependencyInjection;
+using EasyChat.Presentation.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,16 +25,19 @@ namespace EasyChat.AcceptanceTests;
 public sealed class CompositionRegistrationTests
 {
     [TestMethod]
-    public async Task BatchTwoModules_BuildAndResolveToOwnedImplementations()
+    public async Task CurrentModules_BuildAndResolveToOwnedImplementations()
     {
         var services = new ServiceCollection();
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.AddSingleton<ILogger<LoggingTranslationFailureSink>>(
             NullLogger<LoggingTranslationFailureSink>.Instance);
+        services.AddLogging();
         services.AddEasyChatInfrastructure(Path.Combine(
             Path.GetTempPath(),
             "EasyChat.RefactorV2.Acceptance",
             "Configuration"));
+        services.AddEasyChatWindowsInfrastructure();
+        services.AddEasyChatPresentation();
         services.AddEasyChatApplication(new TranslationMessages("request failed"));
 
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
@@ -41,5 +52,13 @@ public sealed class CompositionRegistrationTests
             provider.GetRequiredService<ITranslationUseCases>());
         Assert.IsInstanceOfType<ShellLifecycle>(
             provider.GetRequiredService<IShellLifecycle>());
+        Assert.IsInstanceOfType<OcrRecognitionUseCases>(
+            provider.GetRequiredService<IOcrRecognitionUseCases>());
+        Assert.IsInstanceOfType<OcrModelUseCases>(
+            provider.GetRequiredService<IOcrModelUseCases>());
+        Assert.IsInstanceOfType<ImageTranslationUseCases>(
+            provider.GetRequiredService<IImageTranslationUseCases>());
+        Assert.IsInstanceOfType<InputDeliveryUseCases>(
+            provider.GetRequiredService<IInputDeliveryUseCases>());
     }
 }
