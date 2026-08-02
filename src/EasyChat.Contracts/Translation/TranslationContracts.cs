@@ -13,7 +13,14 @@ public sealed record TranslationLanguage(
     string Id,
     string EnglishName,
     string? NativeName = null,
-    IReadOnlyDictionary<string, string>? ProviderCodes = null);
+    IReadOnlyDictionary<string, string>? ProviderCodes = null,
+    string? Icon = null);
+
+public interface ITranslationLanguageCatalog
+{
+    IReadOnlyList<TranslationLanguage> All { get; }
+    TranslationLanguage Get(string id);
+}
 
 /// <summary>
 /// Optional provider selection carried by a translation request. When null,

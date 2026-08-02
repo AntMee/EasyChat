@@ -11,7 +11,9 @@ public sealed class WindowsPlatformCapabilities : IPlatformCapabilities
             PlatformCapability.GlobalHotkeys,
             PlatformCapability.TextDelivery,
             PlatformCapability.Clipboard,
-            PlatformCapability.WindowActivation
+            PlatformCapability.WindowActivation,
+            PlatformCapability.GlobalPointerMonitoring,
+            PlatformCapability.SelectedTextCapture
         };
 
     public ValueTask<CapabilityStatus> GetStatusAsync(

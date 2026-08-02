@@ -125,7 +125,7 @@ internal sealed class OpenAiChatClient(ChatClient client) : IOpenAiChatClient
         CancellationToken cancellationToken)
     {
         var messages = CreateMessages(request);
-        var options = CreateChatOptions(enableThinking);
+        var options = CreateChatOptions(enableThinking, request);
         ChatCompletion completion = await _client.CompleteChatAsync(
             messages,
             options,
@@ -142,7 +142,7 @@ internal sealed class OpenAiChatClient(ChatClient client) : IOpenAiChatClient
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var messages = CreateMessages(request);
-        var options = CreateChatOptions(enableThinking);
+        var options = CreateChatOptions(enableThinking, request);
 
 #pragma warning disable OPENAI001
         await foreach (var update in _client.CompleteChatStreamingAsync(
@@ -163,15 +163,25 @@ internal sealed class OpenAiChatClient(ChatClient client) : IOpenAiChatClient
             new UserChatMessage(request.UserText)
         ];
 
-    internal static ChatCompletionOptions CreateChatOptions(bool enableThinking)
+    internal static ChatCompletionOptions CreateChatOptions(
+        bool enableThinking,
+        ChatTranslationProviderRequest? request = null)
     {
-        var options = new ChatCompletionOptions();
+        var options = new ChatCompletionOptions
+        {
+            Temperature = request?.Temperature,
+            MaxOutputTokenCount = request?.MaxOutputTokenCount
+        };
 #pragma warning disable OPENAI001, SCME0001
         options.Patch.Set(
             "$.thinking"u8,
             BinaryData.FromString(CreateThinkingPatchJson(enableThinking)));
 
         if (enableThinking)
+            options.ReasoningEffortLevel = ChatReasoningEffortLevel.High;
+        if (request?.ReasoningEffort == ChatReasoningEffort.Low)
+            options.ReasoningEffortLevel = ChatReasoningEffortLevel.Low;
+        else if (request?.ReasoningEffort == ChatReasoningEffort.High)
             options.ReasoningEffortLevel = ChatReasoningEffortLevel.High;
 #pragma warning restore OPENAI001, SCME0001
         return options;

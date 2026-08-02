@@ -25,12 +25,16 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IGlobalHotkeys, WindowsGlobalHotkeys>();
         services.AddSingleton<IWindowFocus, WindowsWindowFocus>();
         services.AddSingleton<IWindowInputTransparency, WindowsWindowInputTransparency>();
+        services.AddSingleton<IGlobalPointerMonitor, WindowsGlobalPointerMonitor>();
+        services.AddSingleton<IPointerPosition, WindowsPointerPosition>();
+        services.AddSingleton<IKeyboardState, WindowsKeyboardState>();
         services.AddSingleton<ITextSelection, WindowsTextSelection>();
         services.AddSingleton<WindowsClipboardSnapshots>();
         services.AddSingleton<IClipboardSnapshots>(provider =>
             provider.GetRequiredService<WindowsClipboardSnapshots>());
         services.AddSingleton<IClipboardText, WindowsClipboardText>();
         services.AddSingleton<ITextDelivery, WindowsTextDelivery>();
+        services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
         services.AddSingleton<WindowsPaddleOcr>();
         services.AddSingleton<IOcrRecognizer>(provider =>
