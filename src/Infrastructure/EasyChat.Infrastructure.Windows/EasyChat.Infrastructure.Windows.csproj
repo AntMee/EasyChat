@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\Contracts\EasyChat.Contracts\EasyChat.Contracts.csproj" />
-    <ProjectReference Include="..\..\Shared\EasyChat.Shared\EasyChat.Shared.csproj" />
+    <ProjectReference Include="..\..\EasyChat.Contracts\EasyChat.Contracts.csproj" />
+    <ProjectReference Include="..\..\EasyChat.Shared\EasyChat.Shared.csproj" />
   </ItemGroup>
 </Project>
-

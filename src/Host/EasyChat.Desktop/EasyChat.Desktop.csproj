@@ -4,10 +4,9 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Application\EasyChat.Application\EasyChat.Application.csproj" />
-    <ProjectReference Include="..\..\Contracts\EasyChat.Contracts\EasyChat.Contracts.csproj" />
+    <ProjectReference Include="..\..\EasyChat.Application\EasyChat.Application.csproj" />
+    <ProjectReference Include="..\..\EasyChat.Contracts\EasyChat.Contracts.csproj" />
     <ProjectReference Include="..\..\Infrastructure\EasyChat.Infrastructure\EasyChat.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Presentation\EasyChat.Presentation\EasyChat.Presentation.csproj" />
   </ItemGroup>
 </Project>
-

@@ -12,10 +12,10 @@ public sealed class ArchitectureRulesTests
         var root = FindRepositoryRoot();
         string[] expected =
         [
-            "src/Shared/EasyChat.Shared/EasyChat.Shared.csproj",
-            "src/Domain/EasyChat.Domain/EasyChat.Domain.csproj",
-            "src/Contracts/EasyChat.Contracts/EasyChat.Contracts.csproj",
-            "src/Application/EasyChat.Application/EasyChat.Application.csproj",
+            "src/EasyChat.Shared/EasyChat.Shared.csproj",
+            "src/EasyChat.Domain/EasyChat.Domain.csproj",
+            "src/EasyChat.Contracts/EasyChat.Contracts.csproj",
+            "src/EasyChat.Application/EasyChat.Application.csproj",
             "src/Infrastructure/EasyChat.Infrastructure/EasyChat.Infrastructure.csproj",
             "src/Infrastructure/EasyChat.Infrastructure.Windows/EasyChat.Infrastructure.Windows.csproj",
             "src/Presentation/EasyChat.Presentation.Shared/EasyChat.Presentation.Shared.csproj",
@@ -75,12 +75,12 @@ public sealed class ArchitectureRulesTests
         ];
 
         foreach (var layer in layers)
-        foreach (var file in SourceFiles(Path.Combine(root, "src", layer)))
-        {
-            var source = File.ReadAllText(file);
-            foreach (var token in forbidden)
-                Assert.DoesNotContain(token, source, Path.GetRelativePath(root, file));
-        }
+            foreach (var file in SourceFiles(Path.Combine(root, "src", $"EasyChat.{layer}")))
+            {
+                var source = File.ReadAllText(file);
+                foreach (var token in forbidden)
+                    Assert.DoesNotContain(token, source, Path.GetRelativePath(root, file));
+            }
     }
 
     [TestMethod]

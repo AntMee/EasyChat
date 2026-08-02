@@ -3,8 +3,7 @@
   <ItemGroup><PackageReference Include="MSTest" Version="4.0.1" /></ItemGroup>
   <ItemGroup><Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" /></ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Contracts\EasyChat.Contracts\EasyChat.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\EasyChat.Contracts\EasyChat.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Host\EasyChat.Desktop.Windows\EasyChat.Desktop.Windows.csproj" />
   </ItemGroup>
 </Project>
-

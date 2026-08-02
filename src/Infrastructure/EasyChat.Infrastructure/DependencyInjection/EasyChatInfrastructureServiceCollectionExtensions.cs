@@ -1,0 +1,40 @@
+using EasyChat.Contracts.Settings.Persistence;
+using EasyChat.Contracts.Translation;
+using EasyChat.Infrastructure.Settings.Persistence;
+using EasyChat.Infrastructure.Translation;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace EasyChat.Infrastructure.DependencyInjection;
+
+public static class EasyChatInfrastructureServiceCollectionExtensions
+{
+    public static IServiceCollection AddEasyChatInfrastructure(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        var configurationDirectory = Path.Combine(
+            AppContext.BaseDirectory,
+#if DEBUG
+            "Configuration"
+#else
+            "..",
+            "Configuration"
+#endif
+        );
+        return services.AddEasyChatInfrastructure(configurationDirectory);
+    }
+
+    public static IServiceCollection AddEasyChatInfrastructure(
+        this IServiceCollection services,
+        string configurationDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrWhiteSpace(configurationDirectory);
+
+        var fullConfigurationDirectory = Path.GetFullPath(configurationDirectory);
+        services.AddSingleton<ISettingsPersistenceGateway>(
+            _ => new JsonSettingsPersistenceGateway(fullConfigurationDirectory));
+        services.AddSingleton<ITranslationProviderFactory, TranslationProviderFactory>();
+        services.AddSingleton<ITranslationFailureSink, LoggingTranslationFailureSink>();
+        return services;
+    }
+}
