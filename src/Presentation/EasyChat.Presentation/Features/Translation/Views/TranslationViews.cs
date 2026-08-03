@@ -20,6 +20,7 @@ namespace EasyChat.Presentation.Features.Translation.Views
         {
             InitializeComponent();
             _contentScrollViewer = this.FindControl<ScrollViewer>("ContentScrollViewer");
+            PointerPressed += OnSurfacePointerPressed;
         }
 
         public TranslationDictionaryWindowView(
@@ -53,7 +54,7 @@ namespace EasyChat.Presentation.Features.Translation.Views
                 Close();
         }
 
-        private void OnHeaderPointerPressed(object? sender, PointerPressedEventArgs e)
+        private void OnSurfacePointerPressed(object? sender, PointerPressedEventArgs e)
         {
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
                 BeginMoveDrag(e);
@@ -95,6 +96,7 @@ namespace EasyChat.Presentation.Features.Translation.Views
             if (_contentScrollViewer is not null)
                 _contentScrollViewer.MaxHeight = double.PositiveInfinity;
             BeginResizeDrag(WindowEdge.SouthEast, e);
+            e.Handled = true;
         }
 
         private static string FormatCopyText(TranslationDictionaryWindowViewModel viewModel)

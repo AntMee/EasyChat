@@ -168,7 +168,11 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
         private IPlatformWindowBehavior? _platformWindowBehavior;
         private ILogger<TextAssistResultWindowView>? _logger;
 
-        public TextAssistResultWindowView() => InitializeComponent();
+        public TextAssistResultWindowView()
+        {
+            InitializeComponent();
+            PointerPressed += OnSurfacePointerPressed;
+        }
 
         public TextAssistResultWindowView(
             TextAssistResultWindowViewModel viewModel,
@@ -218,7 +222,7 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
 
         private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();
 
-        private void OnHeaderPointerPressed(object? sender, PointerPressedEventArgs e)
+        private void OnSurfacePointerPressed(object? sender, PointerPressedEventArgs e)
         {
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
         }
@@ -228,7 +232,10 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
             if (sender is Control { Tag: string edgeName }
                 && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
                 && Enum.TryParse<WindowEdge>(edgeName, out var edge))
+            {
                 BeginResizeDrag(edge, e);
+                e.Handled = true;
+            }
         }
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
