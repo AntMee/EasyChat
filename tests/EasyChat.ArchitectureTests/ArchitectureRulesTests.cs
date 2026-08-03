@@ -40,7 +40,7 @@ public sealed class ArchitectureRulesTests
         var root = FindRepositoryRoot();
 
         var projects = Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(Path.Combine(root, "Tests"), "*.csproj", SearchOption.AllDirectories));
+            .Concat(Directory.EnumerateFiles(Path.Combine(root, "tests"), "*.csproj", SearchOption.AllDirectories));
 
         foreach (var project in projects)
         {

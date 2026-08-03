@@ -31,21 +31,21 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Desktop", "src\Hos
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Desktop.Windows", "src\Host\EasyChat.Desktop.Windows\EasyChat.Desktop.Windows.csproj", "{2185A269-E344-4B97-9A33-57B04C4424F2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Domain.Tests", "Tests\EasyChat.Domain.Tests\EasyChat.Domain.Tests.csproj", "{30BD05C0-DC44-4190-A349-96854C6B66FC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Domain.Tests", "tests\EasyChat.Domain.Tests\EasyChat.Domain.Tests.csproj", "{30BD05C0-DC44-4190-A349-96854C6B66FC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Application.Tests", "Tests\EasyChat.Application.Tests\EasyChat.Application.Tests.csproj", "{16045F26-2FA5-4644-8CCF-EA0B7C91BB22}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Application.Tests", "tests\EasyChat.Application.Tests\EasyChat.Application.Tests.csproj", "{16045F26-2FA5-4644-8CCF-EA0B7C91BB22}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Infrastructure.Tests", "Tests\EasyChat.Infrastructure.Tests\EasyChat.Infrastructure.Tests.csproj", "{D48F23EB-6A1D-4EC1-8E16-1297E69C4C95}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Infrastructure.Tests", "tests\EasyChat.Infrastructure.Tests\EasyChat.Infrastructure.Tests.csproj", "{D48F23EB-6A1D-4EC1-8E16-1297E69C4C95}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Infrastructure.Windows.Tests", "Tests\EasyChat.Infrastructure.Windows.Tests\EasyChat.Infrastructure.Windows.Tests.csproj", "{437B8234-F985-470C-B009-92AD4A8BAD7A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Infrastructure.Windows.Tests", "tests\EasyChat.Infrastructure.Windows.Tests\EasyChat.Infrastructure.Windows.Tests.csproj", "{437B8234-F985-470C-B009-92AD4A8BAD7A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Presentation.Tests", "Tests\EasyChat.Presentation.Tests\EasyChat.Presentation.Tests.csproj", "{6E629838-5F5F-48DD-A6D9-DD94C2A557BC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.Presentation.Tests", "tests\EasyChat.Presentation.Tests\EasyChat.Presentation.Tests.csproj", "{6E629838-5F5F-48DD-A6D9-DD94C2A557BC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.ArchitectureTests", "Tests\EasyChat.ArchitectureTests\EasyChat.ArchitectureTests.csproj", "{DCBA2848-27D4-4E64-9028-2358FEB4E404}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.ArchitectureTests", "tests\EasyChat.ArchitectureTests\EasyChat.ArchitectureTests.csproj", "{DCBA2848-27D4-4E64-9028-2358FEB4E404}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.AcceptanceTests", "Tests\EasyChat.AcceptanceTests\EasyChat.AcceptanceTests.csproj", "{1CF036E7-A371-4EA1-9BBA-7717240CA893}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyChat.AcceptanceTests", "tests\EasyChat.AcceptanceTests\EasyChat.AcceptanceTests.csproj", "{1CF036E7-A371-4EA1-9BBA-7717240CA893}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
