@@ -1228,6 +1228,24 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("Model", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Select a model.
+        /// </summary>
+        public static string SelectModelPlaceholder {
+            get {
+                return ResourceManager.GetString("SelectModelPlaceholder", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The model "{0}" is not in the fetched model list. Save it anyway?.
+        /// </summary>
+        public static string ModelNotInListConfirmation {
+            get {
+                return ResourceManager.GetString("ModelNotInListConfirmation", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to API URL is required..

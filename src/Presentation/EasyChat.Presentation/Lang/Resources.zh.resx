@@ -123,6 +123,12 @@
     <data name="Model" xml:space="preserve">
         <value>模型</value>
     </data>
+    <data name="SelectModelPlaceholder" xml:space="preserve">
+        <value>请选择模型</value>
+    </data>
+    <data name="ModelNotInListConfirmation" xml:space="preserve">
+        <value>模型“{0}”不在已获取的模型列表中，仍要保存吗？</value>
+    </data>
     <data name="DeepL" xml:space="preserve">
         <value>DeepL</value>
     </data>

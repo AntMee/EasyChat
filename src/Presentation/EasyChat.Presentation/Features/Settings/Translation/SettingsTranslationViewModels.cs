@@ -15,8 +15,12 @@ namespace EasyChat.Presentation.Features.Settings.Translation
         private readonly ISukiDialog _dialog;
         private readonly IAiModelCatalogTransport _catalog;
         private readonly CustomAiModelState? _existing;
+        private CancellationTokenSource? _scheduledModelFetch;
+        private CancellationTokenSource? _activeModelFetch;
         private bool _isFetchingModels;
+        private bool _isModelConfirmationRequired;
         private string _fetchModelsError = string.Empty;
+        private string _modelConfirmationMessage = string.Empty;
         private AiModelType _selectedModelType = AiModelType.OpenAi;
         private string _name = string.Empty;
         private string _apiUrl = string.Empty;
@@ -46,8 +50,6 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                 _model = existing.Model;
                 _useProxy = existing.UseProxy;
                 _enableThinking = existing.EnableThinking;
-                if (!string.IsNullOrWhiteSpace(_model))
-                    AvailableModels.Add(_model);
             }
 
             var canSave = this.WhenAnyValue(
@@ -59,10 +61,11 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                     !string.IsNullOrWhiteSpace(url) &&
                     !string.IsNullOrWhiteSpace(model) &&
                     (type != AiModelType.Custom || !string.IsNullOrWhiteSpace(name)));
-            SaveCommand = ReactiveCommand.Create(Save, canSave);
+            SaveCommand = ReactiveCommand.Create(RequestSave, canSave);
+            ConfirmSaveCommand = ReactiveCommand.Create(Save, canSave);
             CancelCommand = ReactiveCommand.Create(Cancel);
             FetchModelsCommand = ReactiveCommand.CreateFromTask(
-                FetchModelsAsync,
+                FetchModelsManuallyAsync,
                 this.WhenAnyValue(
                     viewModel => viewModel.ApiUrl,
                     viewModel => viewModel.IsFetchingModels,
@@ -81,8 +84,10 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                 if (_selectedModelType == value)
                     return;
                 this.RaiseAndSetIfChanged(ref _selectedModelType, value);
+                CancelModelFetches();
                 UpdateDefaults(value);
                 AvailableModels.Clear();
+                ResetModelConfirmation();
                 this.RaisePropertyChanged(nameof(DisplayName));
             }
         }
@@ -98,20 +103,79 @@ namespace EasyChat.Presentation.Features.Settings.Translation
         };
 
         public string Name { get => _name; set => this.RaiseAndSetIfChanged(ref _name, value); }
-        public string ApiUrl { get => _apiUrl; set => this.RaiseAndSetIfChanged(ref _apiUrl, value); }
-        public string ApiKey { get => _apiKey; set => this.RaiseAndSetIfChanged(ref _apiKey, value); }
-        public string Model { get => _model; set => this.RaiseAndSetIfChanged(ref _model, value); }
+        public string ApiUrl
+        {
+            get => _apiUrl;
+            set
+            {
+                if (string.Equals(_apiUrl, value, StringComparison.Ordinal))
+                    return;
+                this.RaiseAndSetIfChanged(ref _apiUrl, value);
+                OnCatalogCredentialsChanged(scheduleFetch: false);
+            }
+        }
+        public string ApiKey
+        {
+            get => _apiKey;
+            set
+            {
+                if (string.Equals(_apiKey, value, StringComparison.Ordinal))
+                    return;
+                this.RaiseAndSetIfChanged(ref _apiKey, value);
+                OnCatalogCredentialsChanged(scheduleFetch: true);
+            }
+        }
+        public string Model
+        {
+            get => _model;
+            set
+            {
+                if (string.Equals(_model, value, StringComparison.Ordinal))
+                    return;
+                this.RaiseAndSetIfChanged(ref _model, value);
+                ResetModelConfirmation();
+            }
+        }
         public bool UseProxy { get => _useProxy; set => this.RaiseAndSetIfChanged(ref _useProxy, value); }
         public bool EnableThinking { get => _enableThinking; set => this.RaiseAndSetIfChanged(ref _enableThinking, value); }
         public bool IsFetchingModels { get => _isFetchingModels; private set => this.RaiseAndSetIfChanged(ref _isFetchingModels, value); }
         public string FetchModelsError { get => _fetchModelsError; private set => this.RaiseAndSetIfChanged(ref _fetchModelsError, value); }
+        public bool IsModelConfirmationRequired
+        {
+            get => _isModelConfirmationRequired;
+            private set
+            {
+                this.RaiseAndSetIfChanged(ref _isModelConfirmationRequired, value);
+                this.RaisePropertyChanged(nameof(IsModelConfirmationNotRequired));
+            }
+        }
+        public bool IsModelConfirmationNotRequired => !IsModelConfirmationRequired;
+        public string ModelConfirmationMessage
+        {
+            get => _modelConfirmationMessage;
+            private set => this.RaiseAndSetIfChanged(ref _modelConfirmationMessage, value);
+        }
         public ReactiveCommand<Unit, Unit> SaveCommand { get; }
+        public ReactiveCommand<Unit, Unit> ConfirmSaveCommand { get; }
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
         public ReactiveCommand<Unit, Unit> FetchModelsCommand { get; }
         public Action<CustomAiModelSettings?>? OnClose { get; init; }
 
+        private void RequestSave()
+        {
+            if (AvailableModels.Contains(Model, StringComparer.OrdinalIgnoreCase))
+            {
+                Save();
+                return;
+            }
+
+            ModelConfirmationMessage = string.Format(Resources.ModelNotInListConfirmation, Model);
+            IsModelConfirmationRequired = true;
+        }
+
         private void Save()
         {
+            CancelModelFetches();
             var keys = _existing?.ApiKeys.ToList() ?? [];
             if (keys.Count == 0)
                 keys.Add(ApiKey);
@@ -131,13 +195,26 @@ namespace EasyChat.Presentation.Features.Settings.Translation
 
         private void Cancel()
         {
+            CancelModelFetches();
             OnClose?.Invoke(null);
             _dialog.Dismiss();
         }
 
-        private async Task FetchModelsAsync()
+        private Task FetchModelsManuallyAsync()
         {
-            FetchModelsError = string.Empty;
+            CancelScheduledModelFetch();
+            return FetchModelsAsync(showErrors: true);
+        }
+
+        private async Task FetchModelsAsync(
+            bool showErrors,
+            CancellationToken cancellationToken = default)
+        {
+            _activeModelFetch?.Cancel();
+            var fetch = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _activeModelFetch = fetch;
+            if (showErrors)
+                FetchModelsError = string.Empty;
             IsFetchingModels = true;
             try
             {
@@ -147,23 +224,89 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                     AiModelType.Claude => AiModelCatalogProvider.Claude,
                     _ => AiModelCatalogProvider.OpenAiCompatible
                 };
-                var models = await _catalog.FetchModelsAsync(new AiModelCatalogRequest(ApiUrl, ApiKey, provider));
+                var models = await _catalog.FetchModelsAsync(
+                    new AiModelCatalogRequest(ApiUrl, ApiKey, provider),
+                    fetch.Token);
+                fetch.Token.ThrowIfCancellationRequested();
                 AvailableModels.Clear();
                 foreach (var availableModel in models)
                     AvailableModels.Add(availableModel);
-                if (models.Count == 0)
+                if (models.Count == 0 && showErrors)
                     FetchModelsError = Resources.NoModelsFound;
-                else if (string.IsNullOrWhiteSpace(Model) || !models.Contains(Model, StringComparer.OrdinalIgnoreCase))
+                else if (models.Count > 0 && string.IsNullOrWhiteSpace(Model))
                     Model = models[0];
+                ResetModelConfirmation();
+            }
+            catch (OperationCanceledException) when (fetch.IsCancellationRequested)
+            {
             }
             catch (Exception exception)
             {
-                FetchModelsError = string.Format(Resources.FetchModelsFailed, exception.Message);
+                if (showErrors)
+                    FetchModelsError = string.Format(Resources.FetchModelsFailed, exception.Message);
             }
             finally
             {
-                IsFetchingModels = false;
+                if (ReferenceEquals(_activeModelFetch, fetch))
+                {
+                    _activeModelFetch = null;
+                    IsFetchingModels = false;
+                }
+                fetch.Dispose();
             }
+        }
+
+        private void OnCatalogCredentialsChanged(bool scheduleFetch)
+        {
+            AvailableModels.Clear();
+            FetchModelsError = string.Empty;
+            ResetModelConfirmation();
+            _activeModelFetch?.Cancel();
+            CancelScheduledModelFetch();
+            if (!scheduleFetch || string.IsNullOrWhiteSpace(ApiKey) || string.IsNullOrWhiteSpace(ApiUrl))
+                return;
+
+            var cancellation = new CancellationTokenSource();
+            _scheduledModelFetch = cancellation;
+            _ = FetchModelsAfterDelayAsync(cancellation);
+        }
+
+        private async Task FetchModelsAfterDelayAsync(CancellationTokenSource cancellation)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(600), cancellation.Token);
+                await FetchModelsAsync(showErrors: false, cancellation.Token);
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+            }
+            finally
+            {
+                if (ReferenceEquals(_scheduledModelFetch, cancellation))
+                    _scheduledModelFetch = null;
+                cancellation.Dispose();
+            }
+        }
+
+        private void ResetModelConfirmation()
+        {
+            IsModelConfirmationRequired = false;
+            ModelConfirmationMessage = string.Empty;
+        }
+
+        private void CancelScheduledModelFetch()
+        {
+            _scheduledModelFetch?.Cancel();
+            _scheduledModelFetch = null;
+        }
+
+        private void CancelModelFetches()
+        {
+            CancelScheduledModelFetch();
+            _activeModelFetch?.Cancel();
+            _activeModelFetch = null;
+            IsFetchingModels = false;
         }
 
         private void UpdateDefaults(AiModelType type)

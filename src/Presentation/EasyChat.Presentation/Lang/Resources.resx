@@ -131,6 +131,12 @@
     <data name="Model" xml:space="preserve">
         <value>Model</value>
     </data>
+    <data name="SelectModelPlaceholder" xml:space="preserve">
+        <value>Select a model</value>
+    </data>
+    <data name="ModelNotInListConfirmation" xml:space="preserve">
+        <value>The model &quot;{0}&quot; is not in the fetched model list. Save it anyway?</value>
+    </data>
     <data name="Baidu" xml:space="preserve">
         <value>Baidu</value>
     </data>
