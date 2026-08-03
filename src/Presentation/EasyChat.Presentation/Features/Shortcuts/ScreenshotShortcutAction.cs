@@ -46,7 +46,7 @@ public sealed class ScreenshotShortcutAction(
                 return;
 
             var frame = AvaloniaImageFrames.ToImageFrame(selection.Image);
-            _ = ProcessAsync(frame, selection.Action);
+            _ = ProcessAsync(frame, selection.Action, selection.CompletionPoint);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -60,7 +60,8 @@ public sealed class ScreenshotShortcutAction(
 
     private async Task ProcessAsync(
         ImageFrame image,
-        CaptureOverlayAction action)
+        CaptureOverlayAction action,
+        PhysicalScreenPoint completionPoint)
     {
         CancellationTokenSource? imageCancellation = null;
         try
@@ -82,11 +83,11 @@ public sealed class ScreenshotShortcutAction(
                 cancellationToken);
             if (action == CaptureOverlayAction.CopyImageTranslated)
             {
-                await ProcessImageAsync(image, recognition, cancellationToken);
+                await ProcessImageAsync(image, recognition, completionPoint, cancellationToken);
                 return;
             }
 
-            await ProcessTextAsync(recognition.Text, action);
+            await ProcessTextAsync(recognition.Text, action, completionPoint);
         }
         catch (OperationCanceledException) when (imageCancellation?.IsCancellationRequested == true)
         {
@@ -116,7 +117,10 @@ public sealed class ScreenshotShortcutAction(
         }
     }
 
-    private async Task ProcessTextAsync(string text, CaptureOverlayAction action)
+    private async Task ProcessTextAsync(
+        string text,
+        CaptureOverlayAction action,
+        PhysicalScreenPoint completionPoint)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -129,11 +133,11 @@ public sealed class ScreenshotShortcutAction(
 
         if (_settings.Result.ScreenshotResultMode == ResultWindowMode.Dictionary)
         {
-            await _results.ShowDictionaryAsync(text);
+            await _results.ShowDictionaryAsync(text, completionPoint);
             return;
         }
 
-        var window = await _results.OpenClassicAsync();
+        var window = await _results.OpenClassicAsync(completionPoint);
         var translation = new StringBuilder();
         try
         {
@@ -188,6 +192,7 @@ public sealed class ScreenshotShortcutAction(
     private async Task ProcessImageAsync(
         ImageFrame image,
         OcrRecognitionResult recognition,
+        PhysicalScreenPoint completionPoint,
         CancellationToken cancellationToken)
     {
         if (recognition.Regions.Count == 0)
@@ -208,7 +213,11 @@ public sealed class ScreenshotShortcutAction(
             return;
         }
 
-        await _results.ShowImageAsync(result.Image, result.Warnings, cancellationToken);
+        await _results.ShowImageAsync(
+            result.Image,
+            result.Warnings,
+            completionPoint,
+            cancellationToken);
     }
 
     private async Task ReadAloudAsync(string sourceText, string targetText)

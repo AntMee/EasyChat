@@ -24,23 +24,22 @@ public sealed class ScreenshotResultSession(ResultView view)
 public sealed class ScreenshotResultCoordinator(
     SettingsSession settings,
     ITranslationWindowCoordinator translationWindow,
-    IPointerPosition pointer,
     IClipboardText clipboard,
     ISukiToastManager toasts,
     ILoggerFactory loggerFactory)
 {
     private readonly SettingsSession _settings = settings;
     private readonly ITranslationWindowCoordinator _translationWindow = translationWindow;
-    private readonly IPointerPosition _pointer = pointer;
     private readonly IClipboardText _clipboard = clipboard;
     private readonly ISukiToastManager _toasts = toasts;
     private readonly ILoggerFactory _loggerFactory = loggerFactory;
 
     public ValueTask<ScreenshotResultSession> OpenClassicAsync(
+        PhysicalScreenPoint completionPoint,
         CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>
         {
-            var view = new ResultView(_settings);
+            var view = new ResultView(_settings, completionPoint);
             var session = new ScreenshotResultSession(view);
             session.ObserveLifetime();
             view.ShowLoading();
@@ -50,16 +49,18 @@ public sealed class ScreenshotResultCoordinator(
 
     public ValueTask ShowDictionaryAsync(
         string text,
+        PhysicalScreenPoint completionPoint,
         CancellationToken cancellationToken = default) =>
         _translationWindow.ShowSentenceAsync(
             text,
-            _pointer.GetCurrent(),
+            completionPoint,
             showCloseButton: true,
             cancellationToken);
 
     public ValueTask ShowImageAsync(
         ImageFrame image,
         IReadOnlyList<string> warnings,
+        PhysicalScreenPoint completionPoint,
         CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>
         {
@@ -67,6 +68,7 @@ public sealed class ScreenshotResultCoordinator(
             new ImageTranslationResultWindow(
                 bitmap,
                 warnings,
+                completionPoint,
                 _loggerFactory.CreateLogger<ImageTranslationResultWindow>()).Show();
         }, cancellationToken);
 

@@ -1,9 +1,9 @@
-using System.Diagnostics.CodeAnalysis;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Settings.State;
 
 namespace EasyChat.Presentation.Features.Capture.Views;
@@ -14,17 +14,24 @@ public partial class ResultView : Window
 
     public ResultView() => InitializeComponent();
 
-    public ResultView(SettingsSession settings)
+    public ResultView(
+        SettingsSession settings,
+        PhysicalScreenPoint completionPoint)
     {
         InitializeComponent();
         ApplyConfiguration(settings.Result);
         ShowLoading();
         IsVisible = false;
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        _screen = Screens.ScreenFromPoint(
+            new PixelPoint(completionPoint.X, completionPoint.Y)) ?? Screens.Primary;
+        if (_screen is not null)
+        {
+            TextBlockResult.MaxWidth = _screen.Bounds.Width / _screen.Scaling * 0.8;
+            Position = new PixelPoint(_screen.Bounds.X, _screen.Bounds.Y);
+        }
         Loaded += (_, _) =>
         {
-            _screen = GetScreen();
-            if (_screen is not null)
-                TextBlockResult.MaxWidth = _screen.Bounds.Width / _screen.Scaling * 0.8;
             Dispatcher.UIThread.Post(() =>
             {
                 ReCenterPosition();
@@ -98,15 +105,16 @@ public partial class ResultView : Window
         }
     }
 
-    private Screen? GetScreen() => Screens.All.FirstOrDefault(screen =>
-        screen.Bounds.Contains(new PixelPoint(Position.X, Position.Y))) ?? Screens.Primary;
-
-    [SuppressMessage("ReSharper", "PossibleLossOfFraction")]
     private void ReCenterPosition()
     {
         if (_screen is null)
             return;
-        var x = _screen.Bounds.Width / _screen.Scaling / 2 - Width / 2;
-        Position = new PixelPoint((int)x, -5);
+
+        var logicalWidth = Bounds.Width > 0 ? Bounds.Width : Width;
+        Position = ScreenshotResultPlacement.CenterHorizontallyAtTop(
+            _screen.Bounds,
+            _screen.Scaling,
+            logicalWidth,
+            topOffsetDip: -5);
     }
 }

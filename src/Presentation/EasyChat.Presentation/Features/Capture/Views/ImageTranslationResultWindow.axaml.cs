@@ -1,9 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Shared.Feedback;
 using Microsoft.Extensions.Logging;
 using SukiUI.Controls;
@@ -20,12 +22,14 @@ public partial class ImageTranslationResultWindow : SukiWindow
     public ImageTranslationResultWindow(
         Bitmap bitmap,
         IReadOnlyList<string> warnings,
+        PhysicalScreenPoint completionPoint,
         ILogger<ImageTranslationResultWindow> logger)
     {
         InitializeComponent();
         _bitmap = bitmap;
         _logger = logger;
         TranslatedImage.Source = bitmap;
+        PositionOnScreen(completionPoint);
 
         var visibleWarnings = warnings
             .Where(warning => !string.IsNullOrWhiteSpace(warning))
@@ -85,4 +89,29 @@ public partial class ImageTranslationResultWindow : SukiWindow
     }
 
     private void Close_OnClick(object? sender, RoutedEventArgs e) => Close();
+
+    private void PositionOnScreen(PhysicalScreenPoint completionPoint)
+    {
+        var screen = Screens.ScreenFromPoint(
+            new PixelPoint(completionPoint.X, completionPoint.Y)) ?? Screens.Primary;
+        if (screen is null)
+            return;
+
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        var fitted = ScreenshotResultPlacement.FitLogicalSize(
+            screen.WorkingArea,
+            screen.Scaling,
+            Width,
+            Height,
+            marginDip: 16);
+        MinWidth = Math.Min(MinWidth, fitted.Width);
+        MinHeight = Math.Min(MinHeight, fitted.Height);
+        Width = fitted.Width;
+        Height = fitted.Height;
+        Position = ScreenshotResultPlacement.Center(
+            screen.WorkingArea,
+            screen.Scaling,
+            fitted.Width,
+            fitted.Height);
+    }
 }

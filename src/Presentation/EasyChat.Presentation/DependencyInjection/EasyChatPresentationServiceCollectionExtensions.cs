@@ -31,6 +31,7 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddSingleton<SettingsSession>();
         services.AddSingleton<PageNavigation>();
         services.AddSingleton<TranslationLanguageOptions>();
+        services.AddSingleton<CaptureOverlayCoordinator>();
         services.AddSingleton<IScreenRegionPicker, AvaloniaScreenRegionPicker>();
         services.AddSingleton<ScreenshotCaptureCoordinator>();
         services.AddSingleton<ScreenshotResultCoordinator>();
