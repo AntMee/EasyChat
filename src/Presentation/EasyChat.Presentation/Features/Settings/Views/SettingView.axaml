@@ -1,0 +1,80 @@
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.SettingView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
+             xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
+             xmlns:objectModel="clr-namespace:System.Collections.ObjectModel;assembly=System.ObjectModel"
+             xmlns:settings="clr-namespace:EasyChat.Presentation.Features.Settings.Views"
+             x:DataType="viewModels:SettingViewModel"
+             mc:Ignorable="d">
+
+    <Panel>
+        <!-- Loading overlay - shown initially -->
+        <Grid x:Name="LoadingOverlay" IsVisible="True">
+            <!-- Dark semi-transparent background -->
+            <Border Background="#80000000" />
+            <StackPanel Spacing="15" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <suki:Loading Width="50" Height="50" />
+                <TextBlock Text="{x:Static lang:Resources.Loading}" 
+                           HorizontalAlignment="Center" 
+                           Opacity="0.7" />
+            </StackPanel>
+        </Grid>
+        
+        <!-- Settings content - hidden initially, shown after lazy load -->
+        <ScrollViewer x:Name="SettingsContent" IsVisible="False">
+            <suki:SettingsLayout>
+                <suki:SettingsLayout.Items>
+                    <objectModel:ObservableCollection x:TypeArguments="suki:SettingsLayoutItem">
+                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.General}">
+                            <suki:SettingsLayoutItem.Content>
+                                <settings:GeneralSettingsView DataContext="{Binding}" />
+                            </suki:SettingsLayoutItem.Content>
+                        </suki:SettingsLayoutItem>
+
+                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.Translation}">
+                            <suki:SettingsLayoutItem.Content>
+                                <settings:TranslationSettingsView DataContext="{Binding}" />
+                            </suki:SettingsLayoutItem.Content>
+                        </suki:SettingsLayoutItem>
+
+                        <suki:SettingsLayoutItem Header="划词工具栏">
+                            <suki:SettingsLayoutItem.Content>
+                                <settings:SelectionTranslationSettingsView DataContext="{Binding}" />
+                            </suki:SettingsLayoutItem.Content>
+                        </suki:SettingsLayoutItem>
+
+                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.Tts}">
+                            <suki:SettingsLayoutItem.Content>
+                                <settings:TtsSettingsView DataContext="{Binding}" />
+                            </suki:SettingsLayoutItem.Content>
+                        </suki:SettingsLayoutItem>
+
+                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.ScreenshotMode}">
+                            <suki:SettingsLayoutItem.Content>
+                                <settings:ScreenshotSettingsView DataContext="{Binding}" />
+                            </suki:SettingsLayoutItem.Content>
+                        </suki:SettingsLayoutItem>
+                        
+                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.ResultSettings}">
+                            <suki:SettingsLayoutItem.Content>
+                                <settings:ResultSettingsView DataContext="{Binding}" />
+                            </suki:SettingsLayoutItem.Content>
+                        </suki:SettingsLayoutItem>
+                        
+                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.InputSettings}">
+                            <suki:SettingsLayoutItem.Content>
+                                <settings:InputSettingsView DataContext="{Binding}" />
+                            </suki:SettingsLayoutItem.Content>
+                        </suki:SettingsLayoutItem>
+
+                    </objectModel:ObservableCollection>
+                </suki:SettingsLayout.Items>
+            </suki:SettingsLayout>
+        </ScrollViewer>
+    </Panel>
+
+</UserControl>

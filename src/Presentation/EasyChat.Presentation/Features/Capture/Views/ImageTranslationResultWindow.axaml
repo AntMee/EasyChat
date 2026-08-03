@@ -1,0 +1,118 @@
+<suki:SukiWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:suki="https://github.com/kikipoulet/SukiUI"
+                 xmlns:icon="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+                 xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+                 x:Class="EasyChat.Presentation.Features.Capture.Views.ImageTranslationResultWindow"
+                 Title="{x:Static lang:Resources.ImageTranslate}"
+                 Icon="avares://EasyChat.Desktop/Assets/easychat-logo.ico"
+                 Width="1100"
+                 Height="760"
+                 MinWidth="560"
+                 MinHeight="420"
+                 WindowStartupLocation="CenterScreen"
+                 Background="{DynamicResource SukiBackground}"
+                 Foreground="{DynamicResource SukiText}"
+                 IsTitleBarVisible="True">
+
+    <suki:SukiWindow.LogoContent>
+        <icon:MaterialIcon Kind="ImageText"
+                           Width="20"
+                           Height="20"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource SukiPrimaryColor}" />
+    </suki:SukiWindow.LogoContent>
+
+    <Grid RowDefinitions="*,Auto,Auto"
+          Background="{DynamicResource SukiBackground}">
+        <Border Grid.Row="0"
+                Margin="16,12,16,0"
+                Background="#181A1B"
+                BorderBrush="{DynamicResource SukiBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                ClipToBounds="True">
+            <Image x:Name="TranslatedImage"
+                   Margin="16"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch" />
+        </Border>
+
+        <Border x:Name="WarningPanel"
+                Grid.Row="1"
+                Margin="16,10,16,0"
+                Padding="12,9"
+                Background="{DynamicResource SukiCardBackground}"
+                BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                IsVisible="False">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <icon:MaterialIcon Kind="AlertCircleOutline"
+                                   Width="18"
+                                   Height="18"
+                                   VerticalAlignment="Top"
+                                   Foreground="{DynamicResource SukiPrimaryColor}" />
+                <TextBlock x:Name="WarningText"
+                           Grid.Column="1"
+                           MaxLines="3"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource SukiLowText}" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Margin="0,12,0,0"
+                Padding="16,10"
+                Background="{DynamicResource SukiCardBackground}"
+                BorderBrush="{DynamicResource SukiBorderBrush}"
+                BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource SukiLowText}"
+                           Text="PNG" />
+
+                <Button Grid.Column="1"
+                        Classes="Flat"
+                        MinWidth="104"
+                        Height="36"
+                        Padding="12,0"
+                        Click="Copy_OnClick"
+                        ToolTip.Tip="{x:Static lang:Resources.Copy}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <icon:MaterialIcon Kind="ContentCopy" Width="18" Height="18" />
+                        <TextBlock VerticalAlignment="Center" Text="{x:Static lang:Resources.Copy}" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="2"
+                        Classes="Flat Primary"
+                        MinWidth="104"
+                        Height="36"
+                        Padding="12,0"
+                        Click="Save_OnClick"
+                        ToolTip.Tip="{x:Static lang:Resources.Save}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <icon:MaterialIcon Kind="ContentSave" Width="18" Height="18" />
+                        <TextBlock VerticalAlignment="Center" Text="{x:Static lang:Resources.Save}" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="3"
+                        Classes="Flat"
+                        Width="36"
+                        Height="36"
+                        Padding="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Click="Close_OnClick"
+                        ToolTip.Tip="{x:Static lang:Resources.Close}">
+                    <icon:MaterialIcon Kind="Close" Width="18" Height="18" />
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</suki:SukiWindow>

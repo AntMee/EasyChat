@@ -1,0 +1,55 @@
+<suki:SukiWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:suki="https://github.com/kikipoulet/SukiUI"
+                 xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+                 xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
+                 xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
+                 x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistActionWindowView"
+                 x:DataType="vm:TextAssistResultWindowViewModel"
+                 Width="820" Height="520" WindowStartupLocation="CenterScreen" Title="{Binding Title}"
+                 Foreground="{DynamicResource SukiText}">
+    <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+            <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
+                <icons:MaterialIcon Kind="{Binding WindowIcon}" Width="24" Height="24"
+                                    Foreground="{DynamicResource SukiPrimaryColor}" />
+                <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="Bold" />
+            </StackPanel>
+            <ComboBox Grid.Column="1" Width="180" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedSourceLanguage}" IsVisible="{Binding ShowLanguageSelector}">
+                <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="7">
+                    <Panel Width="22" Height="16">
+                        <icons:MaterialIcon Kind="FlagOutline" Opacity="0.65"
+                                            IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasNoIcon}}" />
+                        <Image Width="22" Height="16"
+                               IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
+                               Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
+                    </Panel>
+                        <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center" />
+                </StackPanel></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="2" Classes="Basic" Command="{Binding RetryCommand}"><icons:MaterialIcon Kind="Refresh" /></Button>
+        </Grid>
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="14">
+            <TextBox Text="{Binding SourceText, Mode=TwoWay}" AcceptsReturn="True" TextWrapping="Wrap" PlaceholderText="Enter text..." />
+            <Border Grid.Column="1" Padding="12" Background="{DynamicResource SukiCardBackground}" CornerRadius="8">
+                <Grid>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" IsVisible="{Binding !IsBusy}">
+                        <StackPanel Spacing="16">
+                            <TextBlock Text="{Binding Result}" TextWrapping="Wrap" />
+                            <StackPanel Spacing="8" IsVisible="{Binding HasPolishExplanations}">
+                                <StackPanel Orientation="Horizontal" Spacing="7"><icons:MaterialIcon Kind="BookOpenVariant" Foreground="{DynamicResource SukiPrimaryColor}" /><TextBlock Text="{Binding PolishExplanationTitle}" FontWeight="SemiBold" /></StackPanel>
+                                <ItemsControl ItemsSource="{Binding PolishExplanations}"><ItemsControl.ItemTemplate><DataTemplate>
+                                    <Border Padding="10" Margin="0,0,0,7" CornerRadius="6" Background="{DynamicResource SukiBackground}" BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
+                                        <StackPanel Spacing="4"><TextBlock Text="{Binding Category}" FontWeight="SemiBold" Foreground="{DynamicResource SukiPrimaryColor}" /><TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" /><TextBlock Text="{Binding Revised}" TextWrapping="Wrap" Opacity="0.7" IsVisible="{Binding HasRevised}" /></StackPanel>
+                                    </Border>
+                                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <suki:Loading IsVisible="{Binding IsBusy}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+        <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Foreground="IndianRed" TextWrapping="Wrap" />
+    </Grid>
+</suki:SukiWindow>

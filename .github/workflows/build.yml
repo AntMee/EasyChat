@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: windows-latest
     name: Build and Test
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,17 +28,20 @@ jobs:
         shell: bash
         run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
+      - name: Run tests
+        run: dotnet test ./EasyChat.sln -c Release
+
       - name: Restore online OCR dependencies
-        run: dotnet restore ./EasyChat/EasyChat.csproj -r win-x64 -p:UseBundledOcrModels=false
+        run: dotnet restore ./src/Host/EasyChat.Desktop.Windows/EasyChat.Desktop.Windows.csproj -r win-x64 -p:UseBundledOcrModels=false
 
       - name: Publish EasyChat (online OCR models)
-        run: dotnet publish ./EasyChat/EasyChat.csproj -c Release -r win-x64 --self-contained false --no-restore -p:UseBundledOcrModels=false -o ./publish-online
+        run: dotnet publish ./src/Host/EasyChat.Desktop.Windows/EasyChat.Desktop.Windows.csproj -c Release -r win-x64 --self-contained false --no-restore -p:UseBundledOcrModels=false -o ./publish-online
 
       - name: Restore bundled OCR dependencies
-        run: dotnet restore ./EasyChat/EasyChat.csproj -r win-x64 -p:UseBundledOcrModels=true
+        run: dotnet restore ./src/Host/EasyChat.Desktop.Windows/EasyChat.Desktop.Windows.csproj -r win-x64 -p:UseBundledOcrModels=true
 
       - name: Publish EasyChat (bundled OCR models)
-        run: dotnet publish ./EasyChat/EasyChat.csproj -c Release -r win-x64 --self-contained false --no-restore -p:UseBundledOcrModels=true -o ./publish-bundled
+        run: dotnet publish ./src/Host/EasyChat.Desktop.Windows/EasyChat.Desktop.Windows.csproj -c Release -r win-x64 --self-contained false --no-restore -p:UseBundledOcrModels=true -o ./publish-bundled
 
       - name: Compress Online Build
         run: Compress-Archive -Path ./publish-online/* -DestinationPath ./EasyChat-Build-Online-${{ steps.vars.outputs.SHORT_SHA }}.zip
