@@ -118,6 +118,64 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
+    public async Task ShortcutRemarks_RoundTripAndRemainCompatibleWithPreviousFiles()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            var changed = initial.Value with
+            {
+                Shortcut = new ShortcutSettings(
+                [
+                    new ShortcutEntrySettings(
+                        "InputTranslate",
+                        null,
+                        "Ctrl + Enter",
+                        true,
+                        "Translate and send")
+                ])
+            };
+
+            var write = await gateway.WriteAsync(SettingsSection.Shortcut, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.AreEqual("Translate and send", reread.Value.Shortcut.Entries.Single().Remark);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "Shortcut.json")),
+                "\"Remark\": \"Translate and send\"");
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "Shortcut.json"),
+                """
+                {
+                  "Entries": [
+                    {
+                      "ActionType": "Screenshot",
+                      "Parameter": null,
+                      "KeyCombination": "Ctrl + F8",
+                      "IsEnabled": true
+                    }
+                  ]
+                }
+                """);
+
+            var previous = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(previous.IsSuccess, previous.Error.Message);
+            Assert.IsNull(previous.Value.Shortcut.Entries.Single().Remark);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
     public async Task WriteAsync_ReplacesOnlyTheSelectedFileWithoutLeavingTemporaryFiles()
     {
         var directory = CreateTemporaryDirectory();

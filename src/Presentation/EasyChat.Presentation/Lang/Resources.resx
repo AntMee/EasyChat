@@ -275,6 +275,12 @@
     <data name="ActionType" xml:space="preserve">
     <value>Action Type</value>
   </data>
+    <data name="ShortcutRemark" xml:space="preserve">
+    <value>Remark (optional)</value>
+  </data>
+    <data name="ShortcutRemarkPlaceholder" xml:space="preserve">
+    <value>Describe what makes this shortcut distinct</value>
+  </data>
     <data name="Action_ScreenshotTranslate" xml:space="preserve">
     <value>Screenshot Translate</value>
   </data>

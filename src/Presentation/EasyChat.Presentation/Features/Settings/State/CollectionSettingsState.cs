@@ -95,6 +95,7 @@ public sealed class ShortcutEntryState : LiveSettingsSection
     private ShortcutParameterState? _parameter;
     private string _keyCombination;
     private bool _isEnabled;
+    private string? _remark;
 
     public ShortcutEntryState(
         ShortcutEntrySettings value,
@@ -105,18 +106,56 @@ public sealed class ShortcutEntryState : LiveSettingsSection
         _parameter = value.Parameter is null ? null : new ShortcutParameterState(value.Parameter);
         _keyCombination = value.KeyCombination;
         _isEnabled = value.IsEnabled;
+        _remark = value.Remark;
     }
 
-    public string ActionType { get => _actionType; set => Set(ref _actionType, value); }
-    public ShortcutParameterState? Parameter { get => _parameter; set => Set(ref _parameter, value); }
+    public string ActionType
+    {
+        get => _actionType;
+        set
+        {
+            if (Set(ref _actionType, value))
+            {
+                this.RaisePropertyChanged(nameof(ActionDisplayText));
+                this.RaisePropertyChanged(nameof(DisplayTitle));
+            }
+        }
+    }
+    public ShortcutParameterState? Parameter
+    {
+        get => _parameter;
+        set
+        {
+            if (Set(ref _parameter, value))
+                this.RaisePropertyChanged(nameof(ParameterDisplayText));
+        }
+    }
     public string KeyCombination { get => _keyCombination; set => Set(ref _keyCombination, value); }
     public bool IsEnabled { get => _isEnabled; set => Set(ref _isEnabled, value); }
-    public string DisplayText => ShortcutActionCatalog.GetDisplayName(ActionType);
+    public string? Remark
+    {
+        get => _remark;
+        set
+        {
+            if (Set(ref _remark, value))
+            {
+                this.RaisePropertyChanged(nameof(DisplayTitle));
+                this.RaisePropertyChanged(nameof(HasRemark));
+            }
+        }
+    }
+    public string ActionDisplayText => ShortcutActionCatalog.GetDisplayName(ActionType);
+    public string DisplayTitle => HasRemark ? Remark!.Trim() : ActionDisplayText;
+    public bool HasRemark => !string.IsNullOrWhiteSpace(Remark);
     public string ParameterDisplayText => Parameter?.Value
         ?? (Parameter is null ? string.Empty : FormatParameter(Parameter));
 
     public ShortcutEntrySettings ToContract() => new(
-        ActionType, Parameter?.ToContract(), KeyCombination, IsEnabled);
+        ActionType,
+        Parameter?.ToContract(),
+        KeyCombination,
+        IsEnabled,
+        HasRemark ? Remark!.Trim() : null);
 
     private static string FormatParameter(ShortcutParameterState parameter)
     {

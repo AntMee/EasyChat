@@ -251,14 +251,16 @@ internal static class SettingsPersistenceMapper
         source.ActionType,
         source.Parameter is null ? null : ToContract(source.Parameter),
         source.KeyCombination,
-        source.IsEnabled);
+        source.IsEnabled,
+        source.Remark);
 
     private static ShortcutEntrySettingsDto ToDto(ShortcutEntrySettings source) => new()
     {
         ActionType = source.ActionType,
         Parameter = source.Parameter is null ? null : ToDto(source.Parameter),
         KeyCombination = source.KeyCombination,
-        IsEnabled = source.IsEnabled
+        IsEnabled = source.IsEnabled,
+        Remark = source.Remark
     };
 
     private static ShortcutParameterSettings ToContract(ShortcutParameterSettingsDto source) => new(

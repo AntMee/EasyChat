@@ -261,6 +261,12 @@
     <data name="ActionType" xml:space="preserve">
     <value>动作类型</value>
   </data>
+    <data name="ShortcutRemark" xml:space="preserve">
+    <value>备注（可选）</value>
+  </data>
+    <data name="ShortcutRemarkPlaceholder" xml:space="preserve">
+    <value>说明这个快捷键的用途</value>
+  </data>
     <data name="Action_ScreenshotTranslate" xml:space="preserve">
     <value>截图翻译</value>
   </data>

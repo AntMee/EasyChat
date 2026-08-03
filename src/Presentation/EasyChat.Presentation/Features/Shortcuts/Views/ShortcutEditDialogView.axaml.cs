@@ -37,7 +37,7 @@ public partial class ShortcutEditDialogView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        Focus();
+        Dispatcher.UIThread.Post(() => Focus(), DispatcherPriority.Input);
     }
 
     private void OnSelectionToolbarInfoPointerEntered(object? sender, PointerEventArgs e)
@@ -69,7 +69,10 @@ public partial class ShortcutEditDialogView : UserControl
             return;
         }
         if (e.Key == Key.Tab && viewModel.IsRecording)
+        {
+            viewModel.StopRecording();
             return;
+        }
 
         var combination = new StringBuilder();
         var control = e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.Key is Key.LeftCtrl or Key.RightCtrl;

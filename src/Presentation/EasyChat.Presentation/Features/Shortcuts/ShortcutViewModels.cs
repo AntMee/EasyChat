@@ -170,6 +170,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
         private bool _readSelectedText;
         private bool _showSelectionToolbar;
         private TextAssistShortcutMode _textAssistMode;
+        private string _remark = string.Empty;
 
         public ShortcutEditDialogViewModel(
             ISukiDialog dialog,
@@ -206,14 +207,10 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
             ToggleRecordingCommand = ReactiveCommand.Create(() =>
             {
-                RecordingPreview = string.Empty;
-                IsRecording = !IsRecording;
-                IsRecordingBeforeInputKey = false;
-                IsRecordingAfterInputKey = false;
                 if (IsRecording)
-                    KeyCombination = string.Empty;
-                else if (string.IsNullOrEmpty(KeyCombination))
-                    KeyCombination = _existing?.KeyCombination ?? string.Empty;
+                    StopRecording();
+                else
+                    BeginPrimaryRecording();
             });
             ToggleBeforeInputKeyRecordingCommand = ReactiveCommand.Create(() => StartInputKeyRecording(true));
             ToggleAfterInputKeyRecordingCommand = ReactiveCommand.Create(() => StartInputKeyRecording(false));
@@ -232,6 +229,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
                          : !string.IsNullOrWhiteSpace(parameter))));
             SaveCommand = ReactiveCommand.Create(Save, canSave);
             CancelCommand = ReactiveCommand.Create(Cancel);
+            BeginPrimaryRecording();
         }
 
         public sealed record EngineOption(string Name, string Id, bool IsMachine);
@@ -248,6 +246,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
         public bool IsModeSelectableTextAssistAction => false;
         public bool IsSelectionTranslateAction => SelectedAction.ActionType == "SelectionTranslate";
         public bool IsInputTranslateAction => SelectedAction.ActionType == "InputTranslate";
+        public string Remark { get => _remark; set => this.RaiseAndSetIfChanged(ref _remark, value); }
         public string SelectionToolbarOptionText => Resources.SelectionTranslation;
         public string SelectionToolbarOptionTip => Resources.ResourceManager.GetString("SelectionShortcutToolbarTip", Resources.Culture)
                                                    ?? "Show the configured selection toolbar instead of translating immediately.";
@@ -318,8 +317,10 @@ namespace EasyChat.Presentation.Features.Shortcuts
             {
                 this.RaiseAndSetIfChanged(ref _isRecording, value);
                 this.RaisePropertyChanged(nameof(DisplayedKeyCombination));
+                this.RaisePropertyChanged(nameof(IsNotRecording));
             }
         }
+        public bool IsNotRecording => !IsRecording;
         public bool IsRecordingBeforeInputKey
         {
             get => _isRecordingBeforeInputKey;
@@ -382,6 +383,14 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
         public void PreviewRecordedKeyCombination(string combination) => RecordingPreview = combination;
 
+        public void BeginPrimaryRecording()
+        {
+            RecordingPreview = string.Empty;
+            IsRecordingBeforeInputKey = false;
+            IsRecordingAfterInputKey = false;
+            IsRecording = true;
+        }
+
         public void SetRecordedKeyCombination(string combination)
         {
             if (IsRecordingBeforeInputKey)
@@ -414,6 +423,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
             if (entry is null)
                 return;
             KeyCombination = entry.KeyCombination;
+            Remark = entry.Remark ?? string.Empty;
             Parameter = entry.Parameter?.Value ?? string.Empty;
             ReadSelectedText = IsTextAssistAction && (entry.Parameter?.ReadSelectedText ?? true);
             InputTranslateBeforeKey = entry.Parameter?.InputTranslateBeforeKey ?? string.Empty;
@@ -484,7 +494,8 @@ namespace EasyChat.Presentation.Features.Shortcuts
                     ? parameter
                     : null,
                 KeyCombination,
-                _existing?.IsEnabled ?? true));
+                _existing?.IsEnabled ?? true,
+                NullIfEmpty(Remark)?.Trim()));
             _dialog.Dismiss();
         }
 

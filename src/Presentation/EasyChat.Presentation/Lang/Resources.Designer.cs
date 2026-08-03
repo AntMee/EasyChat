@@ -238,6 +238,24 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("ActionType", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remark (optional).
+        /// </summary>
+        public static string ShortcutRemark {
+            get {
+                return ResourceManager.GetString("ShortcutRemark", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Describe what makes this shortcut distinct.
+        /// </summary>
+        public static string ShortcutRemarkPlaceholder {
+            get {
+                return ResourceManager.GetString("ShortcutRemarkPlaceholder", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Add.

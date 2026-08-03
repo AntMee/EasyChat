@@ -159,7 +159,8 @@ public sealed record ShortcutEntrySettings(
     string ActionType,
     ShortcutParameterSettings? Parameter,
     string KeyCombination,
-    bool IsEnabled);
+    bool IsEnabled,
+    string? Remark = null);
 
 public sealed record ShortcutParameterSettings(
     string Engine,

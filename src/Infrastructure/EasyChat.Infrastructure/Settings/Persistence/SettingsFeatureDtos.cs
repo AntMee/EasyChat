@@ -71,6 +71,9 @@ internal sealed class ShortcutEntrySettingsDto
 
     [JsonProperty]
     public bool IsEnabled { get; set; } = true;
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? Remark { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]

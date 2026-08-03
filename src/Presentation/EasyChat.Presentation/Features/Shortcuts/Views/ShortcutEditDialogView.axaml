@@ -26,6 +26,13 @@
             </ComboBox>
         </StackPanel>
 
+        <StackPanel Spacing="8">
+            <TextBlock Text="{x:Static lang:Resources.ShortcutRemark}" FontWeight="SemiBold" />
+            <TextBox Text="{Binding Remark, Mode=TwoWay}"
+                     MaxLength="100"
+                     PlaceholderText="{x:Static lang:Resources.ShortcutRemarkPlaceholder}" />
+        </StackPanel>
+
         <!-- Parameter Input (Standard) -->
         <StackPanel Spacing="10" IsVisible="{Binding SelectedAction.RequiresParameter}">
             
@@ -296,6 +303,7 @@
                 </Border>
             </Button>
             <TextBlock Text="{x:Static lang:Resources.ClickToRecord}"
+                       IsVisible="{Binding IsNotRecording}"
                        FontSize="12"
                        Opacity="0.6"
                        HorizontalAlignment="Center" />
