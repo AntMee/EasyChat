@@ -18,6 +18,9 @@
     <ProjectReference Include="..\EasyChat.Presentation.Shared\EasyChat.Presentation.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="EasyChat.Presentation.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Update="Lang\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

@@ -89,9 +89,7 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
                 if (failure is not null)
                     throw new InvalidOperationException("Windows audio capture failed.", failure);
 
-                var mixed = MixFrame(buffers, format);
-                if (!mixed.IsEmpty)
-                    yield return mixed;
+                yield return MixFrame(buffers, format);
             }
         }
         finally
@@ -142,7 +140,6 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
         var output = new byte[bytesPerFrame];
         var sourceFrame = new byte[bytesPerFrame];
         var sums = new int[bytesPerFrame / 2];
-        var hasAudio = false;
 
         foreach (var source in sources)
         {
@@ -150,13 +147,9 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
             var read = source.Read(sourceFrame);
             if (read == 0)
                 continue;
-            hasAudio = true;
             for (var offset = 0; offset + 1 < read; offset += 2)
                 sums[offset / 2] += BitConverter.ToInt16(sourceFrame, offset);
         }
-
-        if (!hasAudio)
-            return ReadOnlyMemory<byte>.Empty;
 
         for (var sample = 0; sample < sums.Length; sample++)
         {

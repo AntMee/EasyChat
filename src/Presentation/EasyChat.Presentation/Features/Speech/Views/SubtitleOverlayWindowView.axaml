@@ -90,9 +90,15 @@
                     <DataTemplate>
                         <!-- Subtitle Background Pill -->
                         <Border Background="{Binding $parent[Window].((vm:SpeechRecognitionViewModel)DataContext).SubtitleBackgroundColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}"
-                                CornerRadius="4"
-                                Padding="8,4"
-                                Margin="0,2">
+                                 CornerRadius="4"
+                                 Padding="8,4"
+                                 Margin="0,2"
+                                 Opacity="{Binding Opacity}">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                </Transitions>
+                            </Border.Transitions>
                             <StackPanel>
                                 <!-- Primary Subtitle -->
                                 <Grid ColumnDefinitions="*, Auto">

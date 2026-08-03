@@ -16,6 +16,10 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
     private readonly ITranslationUseCases _translation;
     private readonly ITranslationLanguageCatalog _languages;
     private readonly ILogger<SpeechRecognitionUseCases> _logger;
+    private readonly TimeProvider _timeProvider;
+    private readonly SemaphoreSlim _subtitleAiTranslationGate = new(1, 1);
+    private readonly SemaphoreSlim _subtitleMachineTranslationGate = new(1, 1);
+    private long _nextSubtitleId;
 
     public SpeechRecognitionUseCases(
         ISpeechRecognitionEngine engine,
@@ -24,6 +28,25 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
         ITranslationUseCases translation,
         ITranslationLanguageCatalog languages,
         ILogger<SpeechRecognitionUseCases> logger)
+        : this(
+            engine,
+            platformAccess,
+            settings,
+            translation,
+            languages,
+            logger,
+            TimeProvider.System)
+    {
+    }
+
+    internal SpeechRecognitionUseCases(
+        ISpeechRecognitionEngine engine,
+        IPlatformAccessUseCases platformAccess,
+        ISettingsUseCases settings,
+        ITranslationUseCases translation,
+        ITranslationLanguageCatalog languages,
+        ILogger<SpeechRecognitionUseCases> logger,
+        TimeProvider timeProvider)
     {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _platformAccess = platformAccess ?? throw new ArgumentNullException(nameof(platformAccess));
@@ -31,6 +54,7 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
         _translation = translation ?? throw new ArgumentNullException(nameof(translation));
         _languages = languages ?? throw new ArgumentNullException(nameof(languages));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async IAsyncEnumerable<SpeechSessionEvent> RecognizeAsync(
@@ -92,57 +116,27 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
         CancellationToken cancellationToken)
     {
         SpeechRecognitionSettings GetSettings() => _settings.Current.SpeechRecognition;
-        SubtitleTimeline? timeline = null;
-        SubtitleTranslationCoordinator? translator = null;
         void Publish(SpeechSessionEvent item) => writer.TryWrite(item);
         try
         {
-            timeline = new SubtitleTimeline(GetSettings, Publish);
-            translator = new SubtitleTranslationCoordinator(
+            var coordinator = new SubtitleSessionCoordinator(
                 GetSettings,
                 _translation,
                 _languages,
-                timeline.Publish,
                 _logger,
-                cancellationToken);
-            await foreach (var item in _engine.RecognizeAsync(
-                               new SpeechRecognitionOptions(
-                                   command.ModelPath,
-                                   command.Language,
-                                   command.Sources.Select(source => source.Token).ToArray()),
-                               cancellationToken).ConfigureAwait(false))
-            {
-                switch (item.Kind)
-                {
-                    case SpeechRecognitionEventKind.Started:
-                        timeline.Reset();
-                        Publish(new SpeechSessionStartedEvent());
-                        break;
-                    case SpeechRecognitionEventKind.Partial:
-                        await timeline.ApplyPartialAsync(
-                            item.Text ?? string.Empty,
-                            translator.QueueAsync).ConfigureAwait(false);
-                        break;
-                    case SpeechRecognitionEventKind.Final:
-                        await timeline.ApplyFinalAsync(
-                            item.Text ?? string.Empty,
-                            translator.QueueAsync,
-                            cancellationToken).ConfigureAwait(false);
-                        break;
-                    case SpeechRecognitionEventKind.Error:
-                        Publish(new SpeechSessionErrorEvent(item.Text ?? string.Empty));
-                        break;
-                    case SpeechRecognitionEventKind.Stopped:
-                        await timeline.CompleteAsync(translator.QueueAsync).ConfigureAwait(false);
-                        await translator.CompleteAsync().ConfigureAwait(false);
-                        Publish(new SpeechSessionStoppedEvent());
-                        return;
-                }
-            }
-
-            await timeline.CompleteAsync(translator.QueueAsync).ConfigureAwait(false);
-            await translator.CompleteAsync().ConfigureAwait(false);
-            Publish(new SpeechSessionStoppedEvent());
+                _timeProvider,
+                () => Interlocked.Increment(ref _nextSubtitleId),
+                Publish,
+                _subtitleAiTranslationGate,
+                _subtitleMachineTranslationGate);
+            await coordinator.RunAsync(
+                _engine.RecognizeAsync(
+                    new SpeechRecognitionOptions(
+                        command.ModelPath,
+                        command.Language,
+                        command.Sources.Select(source => source.Token).ToArray()),
+                    cancellationToken),
+                cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

@@ -46,8 +46,40 @@ public sealed class WindowsPcmAudioCaptureTests
         Assert.IsEmpty(factory.ProcessIds);
     }
 
+    [TestMethod]
+    public async Task SilentSessionProducesFixedFramesAndLaterAudioIsPreserved()
+    {
+        var factory = new FakeSessionFactory(emitSystemAudioOnStart: false);
+        var capture = new WindowsPcmAudioCapture(factory);
+        await using var frames = capture.CaptureAsync(
+                [],
+                PcmAudioFormat.SpeechRecognition)
+            .GetAsyncEnumerator();
+
+        Assert.IsTrue(await frames.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)));
+        Assert.AreEqual(640, frames.Current.Length);
+        Assert.IsTrue(frames.Current.Span.SequenceEqual(new byte[640]));
+
+        Assert.IsTrue(await frames.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)));
+        Assert.AreEqual(640, frames.Current.Length);
+        Assert.IsTrue(frames.Current.Span.SequenceEqual(new byte[640]));
+
+        factory.Sessions.Single().Emit(1234);
+
+        Assert.IsTrue(await frames.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)));
+        Assert.AreEqual(640, frames.Current.Length);
+        Assert.AreEqual(1234, BitConverter.ToInt16(frames.Current.Span[..2]));
+    }
+
     private sealed class FakeSessionFactory : IWindowsPcmCaptureSessionFactory
     {
+        private readonly bool _emitSystemAudioOnStart;
+
+        public FakeSessionFactory(bool emitSystemAudioOnStart = true)
+        {
+            _emitSystemAudioOnStart = emitSystemAudioOnStart;
+        }
+
         public List<int> ProcessIds { get; } = [];
         public List<FakeSession> Sessions { get; } = [];
         public int SystemOutputCount { get; private set; }
@@ -55,7 +87,7 @@ public sealed class WindowsPcmAudioCaptureTests
         public IWindowsPcmCaptureSession CreateSystemOutput(PcmAudioFormat format)
         {
             SystemOutputCount++;
-            return Add(new FakeSession(1000));
+            return Add(new FakeSession(1000, _emitSystemAudioOnStart));
         }
 
         public IWindowsPcmCaptureSession CreateProcess(int processId, PcmAudioFormat format)
@@ -71,7 +103,7 @@ public sealed class WindowsPcmAudioCaptureTests
         }
     }
 
-    private sealed class FakeSession(short sample) : IWindowsPcmCaptureSession
+    private sealed class FakeSession(short sample, bool emitAudioOnStart = true) : IWindowsPcmCaptureSession
     {
         public event Action<ReadOnlyMemory<byte>>? DataAvailable;
         public event Action<Exception>? Failed
@@ -84,14 +116,20 @@ public sealed class WindowsPcmAudioCaptureTests
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            if (emitAudioOnStart)
+                Emit(sample);
+            return Task.CompletedTask;
+        }
+
+        public void Emit(short value)
+        {
             var frame = new byte[640];
             for (var offset = 0; offset < frame.Length; offset += 2)
             {
-                frame[offset] = (byte)sample;
-                frame[offset + 1] = (byte)(sample >> 8);
+                frame[offset] = (byte)value;
+                frame[offset + 1] = (byte)(value >> 8);
             }
             DataAvailable?.Invoke(frame);
-            return Task.CompletedTask;
         }
 
         public Task StopAsync()

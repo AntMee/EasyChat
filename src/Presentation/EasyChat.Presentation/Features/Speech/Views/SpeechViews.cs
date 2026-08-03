@@ -98,7 +98,7 @@ namespace EasyChat.Presentation.Features.Speech.Views
             _subscriptions.Add(viewModel.WhenAnyValue(model => model.FloatingDisplayMode)
                 .Subscribe(mode =>
                 {
-                    if (mode == FloatingDisplayMode.AutoScroll)
+                    if (UsesAutoScroll(mode))
                         TriggerAutoScroll();
                 }));
             foreach (var item in viewModel.FloatingSubtitles)
@@ -177,13 +177,14 @@ namespace EasyChat.Presentation.Features.Speech.Views
                 foreach (SpeechSubtitleItemViewModel item in eventArgs.OldItems)
                     item.PropertyChanged -= OnSubtitlePropertyChanged;
             }
-            if (_viewModel?.FloatingDisplayMode == FloatingDisplayMode.AutoScroll)
+            if (_viewModel is not null && UsesAutoScroll(_viewModel.FloatingDisplayMode))
                 TriggerAutoScroll();
         }
 
         private void OnSubtitlePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
         {
-            if (_viewModel?.FloatingDisplayMode == FloatingDisplayMode.AutoScroll
+            if (_viewModel is not null
+                && UsesAutoScroll(_viewModel.FloatingDisplayMode)
                 && eventArgs.PropertyName is nameof(SpeechSubtitleItemViewModel.OriginalText)
                     or nameof(SpeechSubtitleItemViewModel.DisplayTranslatedText)
                     or nameof(SpeechSubtitleItemViewModel.TranslatedText))
@@ -199,6 +200,9 @@ namespace EasyChat.Presentation.Features.Speech.Views
                 () => SubtitlesScrollViewer.ScrollToEnd(),
                 DispatcherPriority.Background);
         }
+
+        internal static bool UsesAutoScroll(FloatingDisplayMode mode) =>
+            mode == FloatingDisplayMode.AutoScroll;
 
         private void StartHitTestTimer()
         {
