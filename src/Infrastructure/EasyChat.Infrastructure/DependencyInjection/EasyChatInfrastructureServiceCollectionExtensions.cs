@@ -8,6 +8,7 @@ using EasyChat.Infrastructure.AiModels;
 using EasyChat.Infrastructure.Settings.Persistence;
 using EasyChat.Infrastructure.Speech;
 using EasyChat.Infrastructure.Speech.EdgeTts;
+using EasyChat.Infrastructure.Speech.Recognition;
 using EasyChat.Infrastructure.Translation;
 using EasyChat.Infrastructure.Updates;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +50,8 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
         var assetsDirectory = Path.Combine(AppContext.BaseDirectory, "Assets");
         services.AddSingleton<ITtsSynthesisProvider>(_ => new EdgeTtsProvider(assetsDirectory));
         services.AddSingleton<ITtsOutputWriter, FileTtsOutputWriter>();
+        services.AddSingleton<ISpeechRecognitionEngine, MicroAsrSpeechRecognitionEngine>();
+        services.AddSingleton<ISpeechRecognitionModelCatalog, MicroAsrSpeechRecognitionModelCatalog>();
         return services;
     }
 }

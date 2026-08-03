@@ -18,7 +18,7 @@
     <ProjectReference Include="..\..\Presentation\EasyChat.Presentation\EasyChat.Presentation.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Lib\**">
+    <Content Include="Models\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

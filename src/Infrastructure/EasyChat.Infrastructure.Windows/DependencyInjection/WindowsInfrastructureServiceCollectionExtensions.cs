@@ -1,7 +1,6 @@
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
-using EasyChat.Contracts.Speech;
 using EasyChat.Infrastructure.Windows.Capture;
 using EasyChat.Infrastructure.Windows.Audio;
 using EasyChat.Infrastructure.Windows.ImageTranslation;
@@ -41,8 +40,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<ITextDelivery, WindowsTextDelivery>();
         services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
         services.AddSingleton<IAudioCaptureSourceCatalog, WindowsAudioCaptureSourceCatalog>();
-        services.AddSingleton<ISpeechRecognitionEngine, WindowsSpeechRecognitionEngine>();
-        services.AddSingleton<ISpeechRecognitionModelCatalog, WindowsSpeechRecognitionModelCatalog>();
+        services.AddSingleton<IPcmAudioCapture, WindowsPcmAudioCapture>();
         services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
         services.AddSingleton<WindowsPaddleOcr>();
