@@ -141,6 +141,23 @@ public sealed class ArchitectureRulesTests
     }
 
     [TestMethod]
+    public void PresentationStack_DoesNotUseTheAvalonia11ReactiveUiAdapter()
+    {
+        var root = FindRepositoryRoot();
+
+        foreach (var project in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories))
+        {
+            var document = XDocument.Load(project);
+            Assert.IsFalse(document.Descendants("PackageReference").Any(node =>
+                string.Equals(node.Attribute("Include")?.Value, "Avalonia.ReactiveUI", StringComparison.OrdinalIgnoreCase)),
+                Path.GetRelativePath(root, project));
+        }
+
+        foreach (var file in SourceFiles(Path.Combine(root, "src")))
+            Assert.DoesNotContain(".UseReactiveUI(", File.ReadAllText(file), Path.GetRelativePath(root, file));
+    }
+
+    [TestMethod]
     public void WindowsHost_PreservesProductIdentity()
     {
         var root = FindRepositoryRoot();

@@ -1,6 +1,5 @@
 using System.Globalization;
 using Avalonia;
-using Avalonia.ReactiveUI;
 using EasyChat.Application.DependencyInjection;
 using EasyChat.Contracts.Shell;
 using EasyChat.Contracts.Translation;
@@ -93,6 +92,5 @@ internal static class Program
         AppBuilder.Configure(() => new App(services))
             .UsePlatformDetect()
             .WithInterFont()
-            .LogToTrace()
-            .UseReactiveUI();
+            .LogToTrace();
 }

@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -16,6 +17,7 @@ using Material.Icons;
 using Material.Icons.Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ReactiveUI;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 
@@ -33,6 +35,9 @@ public sealed partial class App(IServiceProvider services) : Avalonia.Applicatio
 
     public override void OnFrameworkInitializationCompleted()
     {
+        if (SynchronizationContext.Current is { } synchronizationContext)
+            RxApp.MainThreadScheduler = new SynchronizationContextScheduler(synchronizationContext);
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             _desktop = desktop;
