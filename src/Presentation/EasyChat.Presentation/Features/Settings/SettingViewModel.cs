@@ -10,7 +10,6 @@ using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
@@ -419,7 +418,9 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private static LanguageSettings ToSettingsLanguage(TranslationLanguage language)
     {
         var localized = language.NativeName ?? language.EnglishName;
-        var display = LanguageDisplayNames.ForUi(localized, language.EnglishName);
+        var display = language.NativeName is { Length: > 0 } && language.NativeName != language.EnglishName
+            ? $"{language.NativeName} ({language.EnglishName})"
+            : language.EnglishName;
         return new LanguageSettings(
             language.Id,
             localized,

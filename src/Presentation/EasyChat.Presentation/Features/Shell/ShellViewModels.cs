@@ -222,6 +222,13 @@ namespace EasyChat.Presentation.Features.Shell
             GeneralConfig = settings.General;
             ConfiguredModels = settings.AiModel.ConfiguredModels;
             AvailableLanguages = languages.All;
+            GeneralConfig.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(LiveGeneralSettings.SourceLanguage))
+                    this.RaisePropertyChanged(nameof(SelectedSourceLanguage));
+                else if (args.PropertyName == nameof(LiveGeneralSettings.TargetLanguage))
+                    this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
+            };
             _ = CheckForUpdateAsync();
         }
 
@@ -229,8 +236,32 @@ namespace EasyChat.Presentation.Features.Shell
         public ObservableCollection<CustomAiModelState> ConfiguredModels { get; }
         public IReadOnlyList<string> MachineTransProviders { get; } = ["Baidu", "Tencent", "Google", "DeepL"];
         public IReadOnlyList<LanguageSettings> AvailableLanguages { get; }
+        public LanguageSettings SelectedSourceLanguage
+        {
+            get => ResolveLanguage(GeneralConfig.SourceLanguage.Id);
+            set
+            {
+                if (value is not null && value.Id != GeneralConfig.SourceLanguage.Id)
+                    GeneralConfig.SourceLanguage = value;
+            }
+        }
+
+        public LanguageSettings SelectedTargetLanguage
+        {
+            get => ResolveLanguage(GeneralConfig.TargetLanguage.Id);
+            set
+            {
+                if (value is not null && value.Id != GeneralConfig.TargetLanguage.Id)
+                    GeneralConfig.TargetLanguage = value;
+            }
+        }
+
         public string CurrentVersion => _updates.CurrentVersion;
         public string LatestVersion { get => _latestVersion; private set => this.RaiseAndSetIfChanged(ref _latestVersion, value); }
+
+        private LanguageSettings ResolveLanguage(string id) =>
+            AvailableLanguages.FirstOrDefault(language => language.Id == id)
+            ?? AvailableLanguages[0];
 
         private async Task CheckForUpdateAsync()
         {

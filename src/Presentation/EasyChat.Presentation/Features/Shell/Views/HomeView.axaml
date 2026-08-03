@@ -138,7 +138,7 @@
                             </StackPanel>
                             <ComboBox Grid.Column="1" 
                                       ItemsSource="{Binding AvailableLanguages}"
-                                      SelectedItem="{Binding GeneralConfig.SourceLanguage}"
+                                      SelectedItem="{Binding SelectedSourceLanguage}"
                                       HorizontalAlignment="Left" MinWidth="200"
                                       Classes="Outline">
                                 <ComboBox.ItemTemplate>
@@ -162,7 +162,7 @@
                             </StackPanel>
                             <ComboBox Grid.Column="1" 
                                       ItemsSource="{Binding AvailableLanguages}"
-                                      SelectedItem="{Binding GeneralConfig.TargetLanguage}"
+                                      SelectedItem="{Binding SelectedTargetLanguage}"
                                       HorizontalAlignment="Left" MinWidth="200"
                                       Classes="Outline">
                                 <ComboBox.ItemTemplate>
