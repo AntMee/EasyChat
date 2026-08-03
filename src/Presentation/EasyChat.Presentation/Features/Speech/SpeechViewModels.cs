@@ -63,6 +63,7 @@ public sealed class SpeechSubtitleItemViewModel : ReactiveObject
     private string _translatedText = string.Empty;
     private string _displayTranslatedText = string.Empty;
     private bool _isTranslating;
+    private double _opacity = 1;
 
     public SpeechSubtitleItemViewModel(SpeechSubtitleLine subtitle)
     {
@@ -73,6 +74,7 @@ public sealed class SpeechSubtitleItemViewModel : ReactiveObject
 
     public long Id { get; }
     public TimeSpan Timestamp { get; }
+    public double Opacity { get => _opacity; private set => this.RaiseAndSetIfChanged(ref _opacity, value); }
     public string OriginalText { get => _originalText; private set => this.RaiseAndSetIfChanged(ref _originalText, value); }
     public string TranslatedText { get => _translatedText; private set => this.RaiseAndSetIfChanged(ref _translatedText, value); }
     public bool IsTranslating
@@ -102,10 +104,88 @@ public sealed class SpeechSubtitleItemViewModel : ReactiveObject
         DisplayTranslatedText = subtitle.DisplayTranslatedText;
         IsTranslating = subtitle.IsTranslating;
     }
+
+    internal void BeginFadeOut() => Opacity = 0;
+
+    internal void StopLoading() => IsTranslating = false;
+}
+
+internal sealed class SpeechSubtitleProjection
+{
+    private readonly HashSet<long> _removedFloatingSubtitleIds = [];
+    private readonly HashSet<long> _retractedSubtitleIds = [];
+
+    public ObservableCollection<SpeechSubtitleItemViewModel> SubtitleItems { get; } = [];
+    public ObservableCollection<SpeechSubtitleItemViewModel> FloatingSubtitles { get; } = [];
+
+    public SpeechSubtitleItemViewModel? Update(SpeechSubtitleLine subtitle)
+    {
+        if (string.IsNullOrEmpty(subtitle.OriginalText))
+        {
+            _retractedSubtitleIds.Add(subtitle.Id);
+            var retracted = SubtitleItems.FirstOrDefault(line => line.Id == subtitle.Id)
+                            ?? FloatingSubtitles.FirstOrDefault(line => line.Id == subtitle.Id);
+            if (retracted is not null)
+                SubtitleItems.Remove(retracted);
+            return retracted;
+        }
+
+        if (_retractedSubtitleIds.Contains(subtitle.Id))
+            return null;
+
+        var item = SubtitleItems.FirstOrDefault(line => line.Id == subtitle.Id);
+        if (item is null)
+        {
+            item = new SpeechSubtitleItemViewModel(subtitle);
+            SubtitleItems.Add(item);
+        }
+        else
+        {
+            item.Update(subtitle);
+        }
+
+        if (!_removedFloatingSubtitleIds.Contains(subtitle.Id)
+            && !FloatingSubtitles.Contains(item))
+        {
+            FloatingSubtitles.Add(item);
+        }
+
+        return item;
+    }
+
+    public SpeechSubtitleItemViewModel? BeginFloatingRemoval(long subtitleId)
+    {
+        if (!_removedFloatingSubtitleIds.Add(subtitleId))
+            return null;
+
+        var item = FloatingSubtitles.FirstOrDefault(line => line.Id == subtitleId);
+        item?.BeginFadeOut();
+        return item;
+    }
+
+    public void CompleteFloatingRemoval(SpeechSubtitleItemViewModel item)
+    {
+        if (_removedFloatingSubtitleIds.Contains(item.Id))
+            FloatingSubtitles.Remove(item);
+    }
+
+    public void Clear()
+    {
+        SubtitleItems.Clear();
+        FloatingSubtitles.Clear();
+    }
+
+    public void StopLoading()
+    {
+        foreach (var item in SubtitleItems)
+            item.StopLoading();
+    }
 }
 
 public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDisposable
 {
+    private static readonly TimeSpan FloatingSubtitleFadeDuration = TimeSpan.FromMilliseconds(200);
+
     private readonly SettingsSession _settings;
     private readonly ISpeechRecognitionUseCases _speech;
     private readonly ISpeechRecognitionModelCatalog _models;
@@ -115,7 +195,8 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     private readonly TranslationLanguageOptions _languages;
     private readonly SubtitleWindowCoordinator _subtitleWindow;
     private readonly ILogger<SpeechRecognitionViewModel> _logger;
-    private readonly DispatcherTimer _autoClearTimer = new();
+    private readonly SpeechSubtitleProjection _subtitleProjection = new();
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
     private CancellationTokenSource? _recognitionCancellation;
     private Task? _recognitionTask;
     private SpeechEngineOption? _selectedEngineOption;
@@ -157,8 +238,8 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         AvailableFonts = new ObservableCollection<string>(
             FontManager.Current.SystemFonts.Select(font => font.Name).Order(StringComparer.CurrentCulture));
         AudioSources = [];
-        SubtitleItems = [];
-        FloatingSubtitles = [];
+        SubtitleItems = _subtitleProjection.SubtitleItems;
+        FloatingSubtitles = _subtitleProjection.FloatingSubtitles;
 
         LoadEngineOptions();
         _selectedEngineOption = EngineOptions.FirstOrDefault(option =>
@@ -191,8 +272,6 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             SecondaryFontSize = Math.Max(10, SecondaryFontSize - 2);
         });
 
-        _autoClearTimer.Tick += (_, _) => ClearHistory();
-        UpdateAutoClearTimer();
         _subtitleWindow.VisibilityChanged += OnSubtitleWindowVisibilityChanged;
         _models.ModelsChanged += OnModelsChanged;
         _settings.AiModel.ConfiguredModels.CollectionChanged += (_, _) => LoadEngineOptions();
@@ -290,7 +369,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
     public bool IsTranslationEnabled { get => _settings.SpeechRecognition.IsTranslationEnabled; set => Set(value, _settings.SpeechRecognition.IsTranslationEnabled, next => _settings.SpeechRecognition.IsTranslationEnabled = next); }
     public bool IsRealTimePreviewEnabled { get => _settings.SpeechRecognition.IsRealTimePreviewEnabled; set => Set(value, _settings.SpeechRecognition.IsRealTimePreviewEnabled, next => _settings.SpeechRecognition.IsRealTimePreviewEnabled = next); }
-    public int AutoClearInterval { get => _settings.SpeechRecognition.AutoClearInterval; set { Set(value, _settings.SpeechRecognition.AutoClearInterval, next => _settings.SpeechRecognition.AutoClearInterval = next); UpdateAutoClearTimer(); } }
+    public int AutoClearInterval { get => _settings.SpeechRecognition.AutoClearInterval; set => Set(value, _settings.SpeechRecognition.AutoClearInterval, next => _settings.SpeechRecognition.AutoClearInterval = next); }
     public int MaxSentencesPerLine { get => _settings.SpeechRecognition.MaxSentencesPerLine; set => Set(value, _settings.SpeechRecognition.MaxSentencesPerLine, next => _settings.SpeechRecognition.MaxSentencesPerLine = next); }
     public FloatingDisplayMode FloatingDisplayMode { get => _settings.SpeechRecognition.FloatingDisplayMode; set { Set(value, _settings.SpeechRecognition.FloatingDisplayMode, next => _settings.SpeechRecognition.FloatingDisplayMode = next); this.RaisePropertyChanged(nameof(IsSegmentedMode)); } }
     public bool IsSegmentedMode => FloatingDisplayMode == FloatingDisplayMode.Segmented;
@@ -336,7 +415,8 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     {
         _recognitionCancellation?.Cancel();
         _recognitionCancellation?.Dispose();
-        _autoClearTimer.Stop();
+        _lifetimeCancellation.Cancel();
+        _lifetimeCancellation.Dispose();
         _subtitleWindow.VisibilityChanged -= OnSubtitleWindowVisibilityChanged;
         _models.ModelsChanged -= OnModelsChanged;
         _subtitleWindow.Close();
@@ -398,7 +478,16 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         if (SelectedRecognitionModel is null)
             return;
 
-        _recognitionCancellation?.Dispose();
+        if (_recognitionCancellation is not null)
+        {
+            _recognitionCancellation.Cancel();
+            if (_recognitionTask is not null)
+            {
+                try { await _recognitionTask; }
+                catch (OperationCanceledException) { }
+            }
+            _recognitionCancellation.Dispose();
+        }
         _recognitionCancellation = new CancellationTokenSource();
         var command = new SpeechRecognitionCommand(
             SelectedRecognitionModel.Id,
@@ -434,6 +523,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
+                _subtitleProjection.StopLoading();
                 IsRecording = false;
                 IsBusy = false;
             });
@@ -450,12 +540,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
                 break;
             case SpeechSubtitleChangedEvent changed:
                 UpdateSubtitle(changed.Subtitle);
-                RestartAutoClearTimer();
                 break;
             case SpeechFloatingSubtitleRemovedEvent removed:
-                var floating = FloatingSubtitles.FirstOrDefault(line => line.Id == removed.SubtitleId);
-                if (floating is not null)
-                    FloatingSubtitles.Remove(floating);
+                BeginFloatingSubtitleRemoval(removed.SubtitleId);
                 break;
             case SpeechSessionErrorEvent error:
                 AddError(error.Message);
@@ -469,19 +556,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
     private void UpdateSubtitle(SpeechSubtitleLine subtitle)
     {
-        var item = SubtitleItems.FirstOrDefault(line => line.Id == subtitle.Id);
-        if (item is null)
-        {
-            item = new SpeechSubtitleItemViewModel(subtitle);
-            SubtitleItems.Add(item);
-        }
-        else
-        {
-            item.Update(subtitle);
-        }
-
-        if (!FloatingSubtitles.Contains(item))
-            FloatingSubtitles.Add(item);
+        _subtitleProjection.Update(subtitle);
     }
 
     private void AddError(string message)
@@ -494,9 +569,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             string.Empty,
             false,
             false);
-        var item = new SpeechSubtitleItemViewModel(line);
-        SubtitleItems.Add(item);
-        FloatingSubtitles.Add(item);
+        _subtitleProjection.Update(line);
     }
 
     private async Task RefreshSourcesAsync(CancellationToken cancellationToken = default)
@@ -604,24 +677,31 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
     private void ClearHistory()
     {
-        _autoClearTimer.Stop();
-        SubtitleItems.Clear();
-        FloatingSubtitles.Clear();
+        _subtitleProjection.Clear();
     }
 
-    private void UpdateAutoClearTimer()
+    private void BeginFloatingSubtitleRemoval(long subtitleId)
     {
-        _autoClearTimer.Stop();
-        if (AutoClearInterval > 0)
-            _autoClearTimer.Interval = TimeSpan.FromSeconds(AutoClearInterval);
+        var item = _subtitleProjection.BeginFloatingRemoval(subtitleId);
+        if (item is not null)
+            _ = CompleteFloatingSubtitleRemovalAsync(item, _lifetimeCancellation.Token);
     }
 
-    private void RestartAutoClearTimer()
+    private async Task CompleteFloatingSubtitleRemovalAsync(
+        SpeechSubtitleItemViewModel item,
+        CancellationToken cancellationToken)
     {
-        if (AutoClearInterval <= 0)
-            return;
-        _autoClearTimer.Stop();
-        _autoClearTimer.Start();
+        try
+        {
+            await Task.Delay(FloatingSubtitleFadeDuration, cancellationToken);
+            await Dispatcher.UIThread.InvokeAsync(
+                () => _subtitleProjection.CompleteFloatingRemoval(item),
+                DispatcherPriority.Normal,
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
     }
 
     private void Set<T>(T value, T current, Action<T> apply, [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)

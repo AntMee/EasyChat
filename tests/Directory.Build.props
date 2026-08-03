@@ -1,5 +1,8 @@
 <Project>
   <Import Project="..\Directory.Build.props" />
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)MSTestSettings.cs" Link="MSTestSettings.cs" />
   </ItemGroup>

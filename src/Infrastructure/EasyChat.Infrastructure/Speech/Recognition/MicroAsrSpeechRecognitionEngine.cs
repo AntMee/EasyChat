@@ -59,14 +59,9 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
             yield break;
         }
 
-        var events = Channel.CreateUnbounded<SpeechRecognitionEvent>(
-            new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                AllowSynchronousContinuations = false
-            });
+        var events = new RecognitionEventBuffer();
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var eventLifetime = new CancellationTokenSource();
         void OnResult(MicroAsrResult result)
         {
             var item = result.Kind switch
@@ -83,17 +78,29 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
                 _ => null
             };
             if (item is not null)
-                events.Writer.TryWrite(item);
+            {
+                if (item.Kind == SpeechRecognitionEventKind.Partial)
+                    events.TryWritePartial(item);
+                else
+                    events.TryWriteReliable(item, eventLifetime.Token);
+            }
             if (result.Kind == MicroAsrResultKind.Error)
                 lifetime.Cancel();
         }
 
         recognizer!.ResultAvailable += OnResult;
-        var pump = PumpAudioAsync(recognizer, options.Sources, events.Writer, lifetime.Token);
-        yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Started);
+        var pump = Task.Run(
+            () => PumpAudioAsync(
+                recognizer,
+                options.Sources,
+                events,
+                lifetime.Token,
+                eventLifetime.Token),
+            CancellationToken.None);
         try
         {
-            await foreach (var item in events.Reader.ReadAllAsync(cancellationToken)
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Started);
+            await foreach (var item in events.ReadAllAsync(CancellationToken.None)
                                .ConfigureAwait(false))
             {
                 yield return item;
@@ -101,17 +108,30 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
         }
         finally
         {
+            eventLifetime.Cancel();
             lifetime.Cancel();
             try
             {
-                await pump.ConfigureAwait(false);
+                try
+                {
+                    await pump.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
+                {
+                }
             }
-            catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
+            finally
             {
+                recognizer.ResultAvailable -= OnResult;
+                try
+                {
+                    await recognizer.DisposeAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    _sessionGate.Release();
+                }
             }
-            recognizer.ResultAvailable -= OnResult;
-            await recognizer.DisposeAsync().ConfigureAwait(false);
-            _sessionGate.Release();
         }
     }
 
@@ -127,34 +147,52 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
     private async Task PumpAudioAsync(
         IMicroAsrRecognizer recognizer,
         IReadOnlyList<AudioCaptureSourceToken> sources,
-        ChannelWriter<SpeechRecognitionEvent> writer,
-        CancellationToken cancellationToken)
+        RecognitionEventBuffer events,
+        CancellationToken captureCancellationToken,
+        CancellationToken eventCancellationToken)
     {
+        Exception? failure = null;
         try
         {
             await foreach (var pcm in _audioCapture.CaptureAsync(
                                sources,
                                PcmAudioFormat.SpeechRecognition,
-                               cancellationToken).ConfigureAwait(false))
+                               captureCancellationToken).ConfigureAwait(false))
             {
-                await recognizer.WriteAsync(pcm, cancellationToken).ConfigureAwait(false);
+                await recognizer.WriteAsync(pcm, captureCancellationToken).ConfigureAwait(false);
             }
-
-            await recognizer.CompleteAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (captureCancellationToken.IsCancellationRequested)
         {
         }
         catch (Exception exception)
         {
-            writer.TryWrite(new SpeechRecognitionEvent(
-                SpeechRecognitionEventKind.Error,
-                exception.Message));
+            failure = exception;
         }
         finally
         {
-            writer.TryWrite(new SpeechRecognitionEvent(SpeechRecognitionEventKind.Stopped));
-            writer.TryComplete();
+            try
+            {
+                try
+                {
+                    await recognizer.CompleteAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    failure ??= exception;
+                }
+
+                if (failure is not null)
+                {
+                    events.TryWriteReliable(new SpeechRecognitionEvent(
+                        SpeechRecognitionEventKind.Error,
+                        failure.Message), eventCancellationToken);
+                }
+            }
+            finally
+            {
+                events.CompleteWithStopped();
+            }
         }
     }
 
@@ -171,5 +209,146 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
         if (!candidate.StartsWith(root, pathComparison))
             throw new ArgumentException("The speech model must be inside the model library.", nameof(modelPath));
         return candidate;
+    }
+
+    private sealed class RecognitionEventBuffer
+    {
+        private const int Capacity = 32;
+        private const int ProducerCapacity = Capacity - 1;
+        private readonly object _sync = new();
+        private readonly LinkedList<SpeechRecognitionEvent> _pending = [];
+        private readonly Channel<byte> _signal = Channel.CreateBounded<byte>(
+            new BoundedChannelOptions(1)
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = BoundedChannelFullMode.DropWrite,
+                AllowSynchronousContinuations = false
+            });
+        private bool _completed;
+
+        public bool TryWritePartial(SpeechRecognitionEvent item)
+        {
+            lock (_sync)
+            {
+                if (_completed)
+                    return false;
+
+                if (_pending.Last?.Value.Kind == SpeechRecognitionEventKind.Partial)
+                {
+                    _pending.Last.Value = item;
+                    return true;
+                }
+
+                if (_pending.Count >= ProducerCapacity)
+                {
+                    var stalePartial = FindOldestPartial();
+                    if (stalePartial is null)
+                        return false;
+                    _pending.Remove(stalePartial);
+                }
+
+                _pending.AddLast(item);
+            }
+
+            _signal.Writer.TryWrite(0);
+            return true;
+        }
+
+        public bool TryWriteReliable(
+            SpeechRecognitionEvent item,
+            CancellationToken cancellationToken)
+        {
+            using var registration = cancellationToken.UnsafeRegister(
+                static state => ((RecognitionEventBuffer)state!).PulseWriters(),
+                this);
+
+            lock (_sync)
+            {
+                while (!_completed && _pending.Count >= ProducerCapacity)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        return false;
+
+                    var stalePartial = FindOldestPartial();
+                    if (stalePartial is not null)
+                    {
+                        _pending.Remove(stalePartial);
+                        break;
+                    }
+
+                    Monitor.Wait(_sync);
+                }
+
+                if (_completed || cancellationToken.IsCancellationRequested)
+                    return false;
+
+                _pending.AddLast(item);
+            }
+
+            _signal.Writer.TryWrite(0);
+            return true;
+        }
+
+        public void CompleteWithStopped()
+        {
+            lock (_sync)
+            {
+                if (_completed)
+                    return;
+
+                _completed = true;
+                _pending.AddLast(new SpeechRecognitionEvent(SpeechRecognitionEventKind.Stopped));
+                Monitor.PulseAll(_sync);
+            }
+
+            _signal.Writer.TryWrite(0);
+        }
+
+        public async IAsyncEnumerable<SpeechRecognitionEvent> ReadAllAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                SpeechRecognitionEvent? item = null;
+                bool completed;
+                lock (_sync)
+                {
+                    if (_pending.First is not null)
+                    {
+                        item = _pending.First.Value;
+                        _pending.RemoveFirst();
+                        Monitor.PulseAll(_sync);
+                    }
+                    completed = _completed;
+                }
+
+                if (item is not null)
+                {
+                    yield return item;
+                    continue;
+                }
+                if (completed)
+                    yield break;
+
+                await _signal.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private LinkedListNode<SpeechRecognitionEvent>? FindOldestPartial()
+        {
+            for (var node = _pending.First; node is not null; node = node.Next)
+            {
+                if (node.Value.Kind == SpeechRecognitionEventKind.Partial)
+                    return node;
+            }
+            return null;
+        }
+
+        private void PulseWriters()
+        {
+            lock (_sync)
+                Monitor.PulseAll(_sync);
+        }
     }
 }

@@ -44,6 +44,235 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
     }
 
     [TestMethod]
+    public async Task BackloggedPartialsAreCoalescedWithoutCrossingFinals()
+    {
+        var recognizer = new BurstRecognizer(
+        [
+            new MicroAsrResult(MicroAsrResultKind.Partial, "draft-1"),
+            new MicroAsrResult(MicroAsrResultKind.Partial, "draft-2"),
+            new MicroAsrResult(MicroAsrResultKind.Partial, "draft-3"),
+            new MicroAsrResult(MicroAsrResultKind.Final, "final-1"),
+            new MicroAsrResult(MicroAsrResultKind.Partial, "next-1"),
+            new MicroAsrResult(MicroAsrResultKind.Partial, "next-2"),
+            new MicroAsrResult(MicroAsrResultKind.Final, "final-2")
+        ]);
+        await using var engine = CreateEngine(recognizer);
+        await using var events = engine.RecognizeAsync(CreateOptions()).GetAsyncEnumerator();
+
+        Assert.IsTrue(await events.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Started, events.Current.Kind);
+        await recognizer.PublishedAll.WaitAsync(TimeSpan.FromSeconds(1));
+
+        var remaining = new List<SpeechRecognitionEvent>();
+        while (await events.MoveNextAsync())
+            remaining.Add(events.Current);
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                SpeechRecognitionEventKind.Partial,
+                SpeechRecognitionEventKind.Final,
+                SpeechRecognitionEventKind.Partial,
+                SpeechRecognitionEventKind.Final,
+                SpeechRecognitionEventKind.Stopped
+            },
+            remaining.Select(item => item.Kind).ToArray());
+        CollectionAssert.AreEqual(
+            new[] { "draft-3", "final-1", "next-2", "final-2", null },
+            remaining.Select(item => item.Text).ToArray());
+    }
+
+    [TestMethod]
+    public async Task ControlEventsRemainOrderedWhenTheBoundedBufferIsFull()
+    {
+        const int resultCount = 64;
+        var recognizer = new BurstRecognizer(
+            Enumerable.Range(0, resultCount)
+                .Select(index => new MicroAsrResult(MicroAsrResultKind.Final, $"final-{index}"))
+                .ToArray(),
+            signalBeforeIndex: 31);
+        await using var engine = CreateEngine(recognizer);
+        await using var events = engine.RecognizeAsync(CreateOptions()).GetAsyncEnumerator();
+
+        Assert.IsTrue(await events.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Started, events.Current.Kind);
+        await recognizer.BeforeSignaledResult.WaitAsync(TimeSpan.FromSeconds(1));
+
+        var finals = new List<string?>();
+        SpeechRecognitionEventKind lastKind = default;
+        while (await events.MoveNextAsync())
+        {
+            lastKind = events.Current.Kind;
+            if (lastKind == SpeechRecognitionEventKind.Final)
+                finals.Add(events.Current.Text);
+        }
+
+        CollectionAssert.AreEqual(
+            Enumerable.Range(0, resultCount).Select(index => $"final-{index}").ToArray(),
+            finals.ToArray());
+        Assert.AreEqual(SpeechRecognitionEventKind.Stopped, lastKind);
+    }
+
+    [TestMethod]
+    public async Task ErrorAndStoppedArePreservedWhenTheBoundedBufferIsFull()
+    {
+        var results = Enumerable.Range(0, 31)
+            .Select(index => new MicroAsrResult(MicroAsrResultKind.Final, $"final-{index}"))
+            .Append(new MicroAsrResult(
+                MicroAsrResultKind.Error,
+                string.Empty,
+                new InvalidOperationException("recognizer failed")))
+            .ToArray();
+        var recognizer = new BurstRecognizer(results, signalBeforeIndex: 31);
+        await using var engine = CreateEngine(recognizer);
+        await using var events = engine.RecognizeAsync(CreateOptions()).GetAsyncEnumerator();
+
+        Assert.IsTrue(await events.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Started, events.Current.Kind);
+        await recognizer.BeforeSignaledResult.WaitAsync(TimeSpan.FromSeconds(1));
+
+        var remaining = new List<SpeechRecognitionEvent>();
+        while (await events.MoveNextAsync())
+            remaining.Add(events.Current);
+
+        Assert.HasCount(33, remaining);
+        CollectionAssert.AreEqual(
+            Enumerable.Range(0, 31).Select(index => $"final-{index}").ToArray(),
+            remaining.Take(31).Select(item => item.Text).ToArray());
+        Assert.AreEqual(SpeechRecognitionEventKind.Error, remaining[^2].Kind);
+        Assert.AreEqual("recognizer failed", remaining[^2].Text);
+        Assert.AreEqual(SpeechRecognitionEventKind.Stopped, remaining[^1].Kind);
+    }
+
+    [TestMethod]
+    public async Task StoppingConsumptionUnblocksAFullReliableWriter()
+    {
+        var recognizer = new BurstRecognizer(
+            Enumerable.Range(0, 64)
+                .Select(index => new MicroAsrResult(MicroAsrResultKind.Final, $"final-{index}"))
+                .ToArray(),
+            signalBeforeIndex: 31);
+        await using var engine = CreateEngine(recognizer);
+        await using var events = engine.RecognizeAsync(CreateOptions()).GetAsyncEnumerator();
+
+        Assert.IsTrue(await events.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Started, events.Current.Kind);
+        await recognizer.BeforeSignaledResult.WaitAsync(TimeSpan.FromSeconds(1));
+
+        await events.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1));
+
+        Assert.IsTrue(recognizer.Disposed);
+    }
+
+    [TestMethod]
+    public async Task CancellationDrainsTheRecognizerBeforePublishingStopped()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var recognizer = new CompletingRecognizer();
+        await using var engine = CreateEngine(recognizer, new BlockingPcmCapture());
+        await using var events = engine.RecognizeAsync(
+                CreateOptions(),
+                cancellation.Token)
+            .GetAsyncEnumerator();
+
+        Assert.IsTrue(await events.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Started, events.Current.Kind);
+        Assert.IsTrue(await events.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Partial, events.Current.Kind);
+        cancellation.Cancel();
+
+        var remaining = new List<SpeechRecognitionEvent>();
+        while (await events.MoveNextAsync())
+            remaining.Add(events.Current);
+
+        CollectionAssert.AreEqual(
+            new[] { SpeechRecognitionEventKind.Final, SpeechRecognitionEventKind.Stopped },
+            remaining.Select(item => item.Kind).ToArray());
+        Assert.AreEqual("flushed final", remaining[0].Text);
+        Assert.IsTrue(recognizer.Completed);
+    }
+
+    [TestMethod]
+    public async Task CaptureAndCompletionFailuresStillPublishErrorThenStopped()
+    {
+        var recognizer = new ThrowingCompleteRecognizer("completion failed");
+        await using var engine = CreateEngine(
+            recognizer,
+            new ThrowingPcmCapture("capture failed"));
+
+        var events = await CollectAsync(engine.RecognizeAsync(CreateOptions()))
+            .WaitAsync(TimeSpan.FromSeconds(1));
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                SpeechRecognitionEventKind.Started,
+                SpeechRecognitionEventKind.Error,
+                SpeechRecognitionEventKind.Stopped
+            },
+            events.Select(item => item.Kind).ToArray());
+        Assert.AreEqual("capture failed", events[1].Text);
+        Assert.IsTrue(recognizer.CompletionAttempted);
+    }
+
+    [TestMethod]
+    public async Task CancellationCompletionFailureIsReportedBeforeStopped()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var recognizer = new ThrowingCompleteRecognizer("flush failed");
+        await using var engine = CreateEngine(recognizer, new BlockingPcmCapture());
+        await using var events = engine.RecognizeAsync(
+                CreateOptions(),
+                cancellation.Token)
+            .GetAsyncEnumerator();
+
+        Assert.IsTrue(await events.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Started, events.Current.Kind);
+        cancellation.Cancel();
+
+        var remaining = new List<SpeechRecognitionEvent>();
+        while (await events.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)))
+            remaining.Add(events.Current);
+
+        CollectionAssert.AreEqual(
+            new[] { SpeechRecognitionEventKind.Error, SpeechRecognitionEventKind.Stopped },
+            remaining.Select(item => item.Kind).ToArray());
+        Assert.AreEqual("flush failed", remaining[0].Text);
+    }
+
+    [TestMethod]
+    public async Task DisposeFailureDoesNotLeakTheSessionGate()
+    {
+        var factory = new SequenceRecognizerFactory(
+            new ThrowingDisposeRecognizer("dispose failed"),
+            new FakeRecognizer());
+        await using var engine = new MicroAsrSpeechRecognitionEngine(
+            new FakePcmCapture(),
+            factory,
+            Path.Combine(Path.GetTempPath(), "easychat-microasr-tests", "models"));
+
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await foreach (var _ in engine.RecognizeAsync(CreateOptions()))
+            {
+            }
+        });
+
+        Assert.AreEqual("dispose failed", failure.Message);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var secondEvents = await CollectAsync(engine.RecognizeAsync(CreateOptions(), timeout.Token));
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                SpeechRecognitionEventKind.Started,
+                SpeechRecognitionEventKind.Partial,
+                SpeechRecognitionEventKind.Final,
+                SpeechRecognitionEventKind.Stopped
+            },
+            secondEvents.Select(item => item.Kind).ToArray());
+    }
+
+    [TestMethod]
     public async Task ModelCreationFailureIsReportedAsErrorThenStopped()
     {
         var factory = new FakeRecognizerFactory(new InvalidDataException("bad model"));
@@ -87,6 +316,26 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
         Assert.IsTrue(string.IsNullOrEmpty(factory.ModelDirectory));
     }
 
+    private static MicroAsrSpeechRecognitionEngine CreateEngine(
+        IMicroAsrRecognizer recognizer,
+        IPcmAudioCapture? capture = null) =>
+        new(
+            capture ?? new FakePcmCapture(),
+            new FakeRecognizerFactory(recognizer),
+            Path.Combine(Path.GetTempPath(), "easychat-microasr-tests", "models"));
+
+    private static SpeechRecognitionOptions CreateOptions() =>
+        new("en-US", "en-US", []);
+
+    private static async Task<List<SpeechRecognitionEvent>> CollectAsync(
+        IAsyncEnumerable<SpeechRecognitionEvent> source)
+    {
+        var events = new List<SpeechRecognitionEvent>();
+        await foreach (var item in source)
+            events.Add(item);
+        return events;
+    }
+
     private sealed class FakePcmCapture : IPcmAudioCapture
     {
         public IReadOnlyList<AudioCaptureSourceToken> Sources { get; private set; } = [];
@@ -102,6 +351,31 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
             yield return new byte[] { 1, 0, 2, 0 };
+        }
+    }
+
+    private sealed class BlockingPcmCapture : IPcmAudioCapture
+    {
+        public async IAsyncEnumerable<ReadOnlyMemory<byte>> CaptureAsync(
+            IReadOnlyList<AudioCaptureSourceToken> sources,
+            PcmAudioFormat format,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return new byte[] { 1, 0, 2, 0 };
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
+    }
+
+    private sealed class ThrowingPcmCapture(string message) : IPcmAudioCapture
+    {
+        public async IAsyncEnumerable<ReadOnlyMemory<byte>> CaptureAsync(
+            IReadOnlyList<AudioCaptureSourceToken> sources,
+            PcmAudioFormat format,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return new byte[] { 1, 0, 2, 0 };
+            await Task.Yield();
+            throw new InvalidOperationException(message);
         }
     }
 
@@ -153,6 +427,130 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
             Completed = true;
             return Task.CompletedTask;
         }
+
+        public ValueTask DisposeAsync()
+        {
+            Disposed = true;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class SequenceRecognizerFactory(
+        params IMicroAsrRecognizer[] recognizers) : IMicroAsrRecognizerFactory
+    {
+        private int _next;
+
+        public IMicroAsrRecognizer Create(string modelDirectory) =>
+            recognizers[_next++];
+    }
+
+    private sealed class CompletingRecognizer : IMicroAsrRecognizer
+    {
+        public event Action<MicroAsrResult>? ResultAvailable;
+        public bool Completed { get; private set; }
+
+        public ValueTask WriteAsync(
+            ReadOnlyMemory<byte> pcm16,
+            CancellationToken cancellationToken = default)
+        {
+            ResultAvailable?.Invoke(new MicroAsrResult(MicroAsrResultKind.Partial, "draft"));
+            return ValueTask.CompletedTask;
+        }
+
+        public Task CompleteAsync(CancellationToken cancellationToken = default)
+        {
+            Completed = true;
+            ResultAvailable?.Invoke(new MicroAsrResult(MicroAsrResultKind.Final, "flushed final"));
+            return Task.CompletedTask;
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class ThrowingCompleteRecognizer(string message) : IMicroAsrRecognizer
+    {
+        public event Action<MicroAsrResult>? ResultAvailable
+        {
+            add { }
+            remove { }
+        }
+        public bool CompletionAttempted { get; private set; }
+
+        public ValueTask WriteAsync(
+            ReadOnlyMemory<byte> pcm16,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.CompletedTask;
+
+        public Task CompleteAsync(CancellationToken cancellationToken = default)
+        {
+            CompletionAttempted = true;
+            throw new InvalidOperationException(message);
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class ThrowingDisposeRecognizer(string message) : IMicroAsrRecognizer
+    {
+        public event Action<MicroAsrResult>? ResultAvailable
+        {
+            add { }
+            remove { }
+        }
+
+        public ValueTask WriteAsync(
+            ReadOnlyMemory<byte> pcm16,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.CompletedTask;
+
+        public Task CompleteAsync(CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public ValueTask DisposeAsync() =>
+            ValueTask.FromException(new InvalidOperationException(message));
+    }
+
+    private sealed class BurstRecognizer : IMicroAsrRecognizer
+    {
+        private readonly IReadOnlyList<MicroAsrResult> _results;
+        private readonly int? _signalBeforeIndex;
+        private readonly TaskCompletionSource _publishedAll = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _beforeSignaledResult = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public BurstRecognizer(
+            IReadOnlyList<MicroAsrResult> results,
+            int? signalBeforeIndex = null)
+        {
+            _results = results;
+            _signalBeforeIndex = signalBeforeIndex;
+            if (signalBeforeIndex is null)
+                _beforeSignaledResult.TrySetResult();
+        }
+
+        public event Action<MicroAsrResult>? ResultAvailable;
+        public Task PublishedAll => _publishedAll.Task;
+        public Task BeforeSignaledResult => _beforeSignaledResult.Task;
+        public bool Disposed { get; private set; }
+
+        public ValueTask WriteAsync(
+            ReadOnlyMemory<byte> pcm16,
+            CancellationToken cancellationToken = default)
+        {
+            for (var index = 0; index < _results.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (_signalBeforeIndex == index)
+                    _beforeSignaledResult.TrySetResult();
+                ResultAvailable?.Invoke(_results[index]);
+            }
+            _publishedAll.TrySetResult();
+            return ValueTask.CompletedTask;
+        }
+
+        public Task CompleteAsync(CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
 
         public ValueTask DisposeAsync()
         {
