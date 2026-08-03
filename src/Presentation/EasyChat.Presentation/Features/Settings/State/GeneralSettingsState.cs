@@ -16,7 +16,7 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
     private string? _usingAiModelId;
     private string? _usingMachineTransId;
     private string? _usingMachineTrans;
-    private string _baseTheme;
+    private ThemeMode _baseTheme;
     private string? _colorTheme;
     private string? _customThemePrimaryColor;
     private string? _customThemeAccentColor;
@@ -54,7 +54,7 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
     public string? UsingAiModelId { get => _usingAiModelId; set => Set(ref _usingAiModelId, value); }
     public string? UsingMachineTransId { get => _usingMachineTransId; set => Set(ref _usingMachineTransId, value); }
     public string? UsingMachineTrans { get => _usingMachineTrans; set => Set(ref _usingMachineTrans, value); }
-    public string BaseTheme { get => _baseTheme; set => Set(ref _baseTheme, value); }
+    public ThemeMode BaseTheme { get => _baseTheme; set => Set(ref _baseTheme, value); }
     public string? ColorTheme { get => _colorTheme; set => Set(ref _colorTheme, value); }
     public string? CustomThemePrimaryColor { get => _customThemePrimaryColor; set => Set(ref _customThemePrimaryColor, value); }
     public string? CustomThemeAccentColor { get => _customThemeAccentColor; set => Set(ref _customThemeAccentColor, value); }

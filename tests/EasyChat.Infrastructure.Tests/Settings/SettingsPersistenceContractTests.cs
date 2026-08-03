@@ -48,9 +48,13 @@ public sealed class SettingsPersistenceContractTests
             Assert.AreEqual("zh-Hans", result.Value.General.TargetLanguage.Id);
             Assert.AreEqual("AiModel", result.Value.General.TranslationEngine);
             Assert.AreEqual("OpenAI", result.Value.General.AiModel);
+            Assert.AreEqual(ThemeMode.System, result.Value.General.BaseTheme);
             Assert.AreEqual(5000, result.Value.Result.AutoCloseDelay);
             Assert.AreEqual(InputDeliveryMode.Paste, result.Value.Input.DeliveryMode);
             Assert.AreEqual("EdgeTTS", result.Value.Tts.Provider);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
+                "\"BaseTheme\": \"Default\"");
         }
         finally
         {
@@ -83,7 +87,54 @@ public sealed class SettingsPersistenceContractTests
             Assert.AreEqual("English", result.Value.General.DisplayLanguage);
             Assert.AreEqual("AiModel", result.Value.General.TranslationEngine);
             Assert.AreEqual("OpenAI", result.Value.General.AiModel);
-            Assert.AreEqual("Light", result.Value.General.BaseTheme);
+            Assert.AreEqual(ThemeMode.System, result.Value.General.BaseTheme);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task ReadAllAsync_PreservesPreviousExplicitThemeChoices()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            Assert.IsTrue((await gateway.ReadAllAsync()).IsSuccess);
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "General.json"),
+                """
+                {
+                  "BaseTheme": "Light"
+                }
+                """);
+            var light = await gateway.ReadAllAsync();
+            Assert.IsTrue(light.IsSuccess, light.Error.Message);
+            Assert.AreEqual(ThemeMode.Light, light.Value.General.BaseTheme);
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "General.json"),
+                """
+                {
+                  "BaseTheme": "Dark"
+                }
+                """);
+            var dark = await gateway.ReadAllAsync();
+            Assert.IsTrue(dark.IsSuccess, dark.Error.Message);
+            Assert.AreEqual(ThemeMode.Dark, dark.Value.General.BaseTheme);
+
+            var useSystem = dark.Value with
+            {
+                General = dark.Value.General with { BaseTheme = ThemeMode.System }
+            };
+            var write = await gateway.WriteAsync(SettingsSection.General, useSystem);
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
+                "\"BaseTheme\": \"Default\"");
         }
         finally
         {

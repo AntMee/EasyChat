@@ -30,6 +30,9 @@
     <data name="DarkMode" xml:space="preserve">
         <value>黑暗</value>
     </data>
+    <data name="FollowSystemMode" xml:space="preserve">
+        <value>跟随系统</value>
+    </data>
     <data name="Home" xml:space="preserve">
         <value>主页</value>
     </data>

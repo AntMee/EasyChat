@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
+using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
 using EasyChat.Contracts.Platform;
@@ -34,7 +35,8 @@ namespace EasyChat.Presentation.Features.Shell
         private readonly SettingsSession _settings;
         private readonly IExternalUriLauncher _uriLauncher;
         private NavigationPageViewModel? _activePage;
-        private ThemeVariant _baseTheme;
+        private ThemeMode _baseThemeMode;
+        private bool _isApplyingBaseTheme;
         private bool _isFullScreen;
 
         public MainWindowViewModel(
@@ -55,17 +57,13 @@ namespace EasyChat.Presentation.Features.Shell
 
             _theme = SukiTheme.GetInstance();
             Themes = _theme.ColorThemes;
-            _baseTheme = settings.General.BaseTheme.Equals(
-                nameof(ThemeVariant.Dark),
-                StringComparison.OrdinalIgnoreCase)
-                ? ThemeVariant.Dark
-                : ThemeVariant.Light;
+            _baseThemeMode = settings.General.BaseTheme;
             _isFullScreen = settings.General.FullScreen;
             settings.General.TitleBarVisible = !_isFullScreen;
-            _theme.ChangeBaseTheme(_baseTheme);
+            ApplyBaseTheme(_baseThemeMode);
             RestoreColorTheme();
 
-            ToggleBaseThemeCommand = ReactiveCommand.Create(_theme.SwitchBaseTheme);
+            ChangeBaseThemeCommand = ReactiveCommand.Create<ThemeMode>(ChangeBaseTheme);
             ChangeThemeCommand = ReactiveCommand.Create<SukiColorTheme>(_theme.ChangeColorTheme);
             CreateCustomThemeCommand = ReactiveCommand.Create(CreateCustomTheme);
             ToggleFullScreenCommand = ReactiveCommand.Create(ToggleFullScreen);
@@ -107,16 +105,39 @@ namespace EasyChat.Presentation.Features.Shell
             private set => this.RaiseAndSetIfChanged(ref _isFullScreen, value);
         }
 
-        public ThemeVariant BaseTheme
+        public ThemeMode BaseThemeMode
         {
-            get => _baseTheme;
-            private set => this.RaiseAndSetIfChanged(ref _baseTheme, value);
+            get => _baseThemeMode;
+            private set
+            {
+                if (_baseThemeMode == value)
+                    return;
+                this.RaiseAndSetIfChanged(ref _baseThemeMode, value);
+                this.RaisePropertyChanged(nameof(IsSystemThemeMode));
+                this.RaisePropertyChanged(nameof(IsLightThemeMode));
+                this.RaisePropertyChanged(nameof(IsDarkThemeMode));
+                this.RaisePropertyChanged(nameof(ThemeToggleIcon));
+                this.RaisePropertyChanged(nameof(CurrentThemeModeName));
+            }
         }
 
-        public MaterialIconKind ThemeToggleIcon =>
-            BaseTheme == ThemeVariant.Dark ? MaterialIconKind.WeatherSunny : MaterialIconKind.WeatherNight;
+        public bool IsSystemThemeMode => BaseThemeMode == ThemeMode.System;
+        public bool IsLightThemeMode => BaseThemeMode == ThemeMode.Light;
+        public bool IsDarkThemeMode => BaseThemeMode == ThemeMode.Dark;
+        public MaterialIconKind ThemeToggleIcon => BaseThemeMode switch
+        {
+            ThemeMode.Light => MaterialIconKind.WeatherSunny,
+            ThemeMode.Dark => MaterialIconKind.WeatherNight,
+            _ => MaterialIconKind.ThemeLightDark
+        };
+        public string CurrentThemeModeName => BaseThemeMode switch
+        {
+            ThemeMode.Light => Resources.LightMode,
+            ThemeMode.Dark => Resources.DarkMode,
+            _ => Resources.FollowSystemMode
+        };
 
-        public ReactiveCommand<Unit, Unit> ToggleBaseThemeCommand { get; }
+        public ReactiveCommand<ThemeMode, Unit> ChangeBaseThemeCommand { get; }
         public ReactiveCommand<SukiColorTheme, Unit> ChangeThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> CreateCustomThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleFullScreenCommand { get; }
@@ -164,21 +185,64 @@ namespace EasyChat.Presentation.Features.Shell
                 ActivePage = page;
         }
 
-        private void OnBaseThemeChanged(ThemeVariant variant)
+        private void ChangeBaseTheme(ThemeMode mode)
         {
-            BaseTheme = variant;
-            _settings.General.BaseTheme = variant == ThemeVariant.Dark
-                ? nameof(ThemeVariant.Dark)
-                : nameof(ThemeVariant.Light);
-            this.RaisePropertyChanged(nameof(ThemeToggleIcon));
+            if (BaseThemeMode == mode)
+                return;
+
+            BaseThemeMode = mode;
+            _settings.General.BaseTheme = mode;
+            ApplyBaseTheme(mode);
             ToastManager.CreateSimpleInfoToast()
                 .WithTitle(Resources.ThemeChangedTitle)
-                .WithContent($"{Resources.ThemeChangedContent} {variant}.")
+                .WithContent($"{Resources.ThemeChangedContent} {CurrentThemeModeName}.")
                 .Queue();
+        }
+
+        private void ApplyBaseTheme(ThemeMode mode)
+        {
+            var application = Application.Current
+                ?? throw new InvalidOperationException("Avalonia application is not initialized.");
+            var activeColorTheme = _theme.ActiveColorTheme;
+
+            _isApplyingBaseTheme = true;
+            try
+            {
+                application.RequestedThemeVariant = mode switch
+                {
+                    ThemeMode.Light => ThemeVariant.Light,
+                    ThemeMode.Dark => ThemeVariant.Dark,
+                    _ => ThemeVariant.Default
+                };
+                if (activeColorTheme is not null)
+                    _theme.ChangeColorTheme(activeColorTheme);
+            }
+            finally
+            {
+                _isApplyingBaseTheme = false;
+            }
+        }
+
+        private void OnBaseThemeChanged(ThemeVariant _)
+        {
+            if (_isApplyingBaseTheme || _theme.ActiveColorTheme is not { } activeColorTheme)
+                return;
+
+            _isApplyingBaseTheme = true;
+            try
+            {
+                _theme.ChangeColorTheme(activeColorTheme);
+            }
+            finally
+            {
+                _isApplyingBaseTheme = false;
+            }
         }
 
         private void OnColorThemeChanged(SukiColorTheme theme)
         {
+            if (_isApplyingBaseTheme)
+                return;
             _settings.General.ColorTheme = theme.DisplayName;
             ToastManager.CreateSimpleInfoToast()
                 .WithTitle(Resources.ColorChangedTitle)

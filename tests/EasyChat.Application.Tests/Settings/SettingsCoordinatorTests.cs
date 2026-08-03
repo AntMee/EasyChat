@@ -213,7 +213,7 @@ internal static class SettingsTestData
                 null,
                 null,
                 null,
-                "Light",
+                ThemeMode.Light,
                 null,
                 null,
                 null,

@@ -91,7 +91,7 @@ internal static class SettingsPersistenceMapper
         source.UsingAiModelId,
         source.UsingMachineTransId,
         source.UsingMachineTrans,
-        source.BaseTheme,
+        ToThemeMode(source.BaseTheme),
         source.ColorTheme,
         source.CustomThemePrimaryColor,
         source.CustomThemeAccentColor,
@@ -110,12 +110,28 @@ internal static class SettingsPersistenceMapper
         UsingAiModelId = source.AiModelId,
         UsingMachineTransId = source.MachineTranslationId,
         UsingMachineTrans = source.MachineTranslation,
-        BaseTheme = source.BaseTheme,
+        BaseTheme = ToPersistenceValue(source.BaseTheme),
         ColorTheme = source.ColorTheme,
         CustomThemePrimaryColor = source.CustomThemePrimaryColor,
         CustomThemeAccentColor = source.CustomThemeAccentColor,
         TitleBarVisible = source.TitleBarVisible,
         FullScreen = source.FullScreen
+    };
+
+    private static ThemeMode ToThemeMode(string? value)
+    {
+        if (string.Equals(value, "Light", StringComparison.OrdinalIgnoreCase))
+            return ThemeMode.Light;
+        if (string.Equals(value, "Dark", StringComparison.OrdinalIgnoreCase))
+            return ThemeMode.Dark;
+        return ThemeMode.System;
+    }
+
+    private static string ToPersistenceValue(ThemeMode value) => value switch
+    {
+        ThemeMode.Light => "Light",
+        ThemeMode.Dark => "Dark",
+        _ => "Default"
     };
 
     private static AiModelSettings ToContract(AiModelSettingsDto source) => new(

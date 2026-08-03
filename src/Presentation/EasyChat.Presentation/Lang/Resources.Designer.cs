@@ -670,6 +670,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("DarkMode", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Follow system.
+        /// </summary>
+        public static string FollowSystemMode {
+            get {
+                return ResourceManager.GetString("FollowSystemMode", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to DeepL.

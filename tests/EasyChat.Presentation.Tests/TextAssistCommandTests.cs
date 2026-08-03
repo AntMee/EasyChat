@@ -50,7 +50,7 @@ public sealed class TextAssistCommandTests
         return new SettingsBundle(
             new GeneralSettings(
                 source, target, null, target, ClosingBehavior.Ask, TranslationEngineNames.AiModel,
-                null, null, null, null, "Light", null, null, null, true, false),
+                null, null, null, null, ThemeMode.Light, null, null, null, true, false),
             new AiModelSettings([]),
             new MachineTranslationSettings(
                 new BaiduTranslationSettings(false, "baidu", []),

@@ -88,6 +88,13 @@ public sealed record LanguageSettings(
     string DisplayName,
     IReadOnlyDictionary<string, string> ProviderCodes);
 
+public enum ThemeMode
+{
+    System = 0,
+    Light = 1,
+    Dark = 2
+}
+
 public sealed record GeneralSettings(
     LanguageSettings SourceLanguage,
     LanguageSettings TargetLanguage,
@@ -99,7 +106,7 @@ public sealed record GeneralSettings(
     string? AiModelId,
     string? MachineTranslationId,
     string? MachineTranslation,
-    string BaseTheme,
+    ThemeMode BaseTheme,
     string? ColorTheme,
     string? CustomThemePrimaryColor,
     string? CustomThemeAccentColor,

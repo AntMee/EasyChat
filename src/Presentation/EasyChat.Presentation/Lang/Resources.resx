@@ -38,6 +38,9 @@
     <data name="DarkMode" xml:space="preserve">
         <value>Dark</value>
     </data>
+    <data name="FollowSystemMode" xml:space="preserve">
+        <value>Follow system</value>
+    </data>
     <data name="Home" xml:space="preserve">
         <value>Home</value>
     </data>

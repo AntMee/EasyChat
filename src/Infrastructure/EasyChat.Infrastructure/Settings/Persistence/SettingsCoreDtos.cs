@@ -49,7 +49,7 @@ internal sealed class GeneralSettingsDto
     private string? _displayLanguage;
     private string? _transEngine = "AiModel";
     private string? _usingAiModel = "OpenAI";
-    private string _baseTheme = "Light";
+    private string _baseTheme = "Default";
 
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
     public LanguageSettingsDto SourceLanguage { get; set; } =
@@ -118,8 +118,8 @@ internal sealed class GeneralSettingsDto
     [JsonProperty]
     public string BaseTheme
     {
-        get => _baseTheme ?? "Light";
-        set => _baseTheme = value ?? "Light";
+        get => _baseTheme ?? "Default";
+        set => _baseTheme = value ?? "Default";
     }
 
     [JsonProperty]
