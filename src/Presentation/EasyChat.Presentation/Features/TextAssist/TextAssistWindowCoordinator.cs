@@ -52,16 +52,16 @@ public sealed class TextAssistWindowCoordinator(
         bool correction,
         CancellationToken cancellationToken = default)
     {
-        var window = await OnUiAsync(() =>
+        var initialization = await OnUiAsync(() =>
         {
             _editor?.Close();
             var viewModel = new TextAssistViewModel(settings, languages, textAssist, dictionary, tts, loggerFactory);
             _editor = new TextAssistWindowView(viewModel);
             _editor.Closed += (_, _) => _editor = null;
             _editor.Show();
-            return _editor;
+            return _editor.InitializeAsync(text, correction);
         }, cancellationToken);
-        await window.InitializeAsync(text, correction);
+        await initialization;
     }
 
     public ValueTask<bool> CloseEditorIfOpenAsync(CancellationToken cancellationToken = default) =>

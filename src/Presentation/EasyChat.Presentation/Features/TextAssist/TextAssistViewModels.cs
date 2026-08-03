@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Reactive;
+using System.Reactive.Threading.Tasks;
 using System.Text;
 using Avalonia.Threading;
 using EasyChat.Contracts.Settings;
@@ -184,7 +185,7 @@ namespace EasyChat.Presentation.Features.TextAssist
                 ? config.CorrectionConfigurationExpanded
                 : config.TranslationConfigurationExpanded;
 
-            RunCommand = ReactiveCommand.CreateFromTask(ExecuteAsync, this.WhenAnyValue(value => value.IsBusy, busy => !busy));
+            RunCommand = ReactiveCommand.CreateFromTask(ExecuteAsync);
             CancelCommand = ReactiveCommand.Create(Cancel);
             ToggleConfigurationCommand = ReactiveCommand.Create(() => { IsConfigurationExpanded = !IsConfigurationExpanded; });
         }
@@ -311,7 +312,7 @@ namespace EasyChat.Presentation.Features.TextAssist
                 DetailedExplanation: operation == TextAssistOperation.Translation && IsAiProvider && _settings.TextAssist.DetailedExplanation);
         }
 
-        public Task RunNowAsync() => ExecuteAsync();
+        public Task RunNowAsync() => RunCommand.Execute().ToTask();
         public void CancelCurrent() => _request?.Cancel();
         protected abstract Task RunCoreAsync(CancellationToken cancellationToken);
 
