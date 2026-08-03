@@ -1,8 +1,10 @@
 using System.Text;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Foundation.Platform;
 using EasyChat.Presentation.Shared.Feedback;
@@ -56,8 +58,21 @@ namespace EasyChat.Presentation.Features.Translation.Views
 
         private void OnSurfacePointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+                && !IsInteractivePointerSource(e.Source))
                 BeginMoveDrag(e);
+        }
+
+        private static bool IsInteractivePointerSource(object? source)
+        {
+            if (source is not Visual visual)
+                return false;
+            if (visual is InputElement { Focusable: true })
+                return true;
+            return visual.GetVisualAncestors()
+                .TakeWhile(ancestor => ancestor is not Window)
+                .OfType<InputElement>()
+                .Any(element => element.Focusable);
         }
 
         private async void OnCopyClick(object? sender, RoutedEventArgs e)

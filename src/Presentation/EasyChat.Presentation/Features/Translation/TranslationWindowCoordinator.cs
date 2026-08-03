@@ -35,6 +35,8 @@ public interface ITranslationWindowCoordinator
         PhysicalScreenPoint point,
         CancellationToken cancellationToken = default);
 
+    ValueTask<bool> IsVisibleAsync(CancellationToken cancellationToken = default);
+
     ValueTask CloseAsync(CancellationToken cancellationToken = default);
 }
 
@@ -93,6 +95,9 @@ public sealed class TranslationWindowCoordinator(
             var clientPoint = _current.PointToClient(new PixelPoint(point.X, point.Y));
             return new Rect(_current.Bounds.Size).Contains(clientPoint);
         }, cancellationToken);
+
+    public ValueTask<bool> IsVisibleAsync(CancellationToken cancellationToken = default) =>
+        OnUiAsync(() => _current?.IsVisible == true, cancellationToken);
 
     public ValueTask CloseAsync(CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>

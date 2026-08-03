@@ -33,6 +33,9 @@ public sealed class SelectionInteractionSink(
             return new SelectionSurfaceState(true, true);
         if (await textAssist.ContainsResultAsync(point, cancellationToken))
             return new SelectionSurfaceState(true, true);
+        if (await translation.IsVisibleAsync(cancellationToken)
+            || await textAssist.IsResultVisibleAsync(cancellationToken))
+            return new SelectionSurfaceState(false, true);
         return new SelectionSurfaceState(false, false);
     }
 

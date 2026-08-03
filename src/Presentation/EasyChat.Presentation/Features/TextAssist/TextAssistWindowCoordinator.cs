@@ -32,6 +32,8 @@ public interface ITextAssistWindowCoordinator
         PhysicalScreenPoint point,
         CancellationToken cancellationToken = default);
 
+    ValueTask<bool> IsResultVisibleAsync(CancellationToken cancellationToken = default);
+
     ValueTask CloseResultAsync(CancellationToken cancellationToken = default);
 }
 
@@ -107,6 +109,9 @@ public sealed class TextAssistWindowCoordinator(
             var client = _result.PointToClient(new PixelPoint(point.X, point.Y));
             return new Rect(_result.Bounds.Size).Contains(client);
         }, cancellationToken);
+
+    public ValueTask<bool> IsResultVisibleAsync(CancellationToken cancellationToken = default) =>
+        OnUiAsync(() => _result?.IsVisible == true, cancellationToken);
 
     public ValueTask CloseResultAsync(CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>

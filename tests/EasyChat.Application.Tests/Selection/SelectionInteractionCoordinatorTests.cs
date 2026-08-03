@@ -105,6 +105,106 @@ public sealed class SelectionInteractionCoordinatorTests
         await disposal.WaitAsync(TimeSpan.FromSeconds(2));
     }
 
+    [TestMethod]
+    public async Task OpenResultSurface_DismissesAndBlocksDragSelectionThenAllowsNextGesture()
+    {
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink
+        {
+            SurfaceState = new SelectionSurfaceState(false, true),
+            DismissOnExternalPointerPress = true
+        };
+        await using var coordinator = CreateEnabledCoordinator(pointer, selectedText, sink);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var timestamp = DateTimeOffset.UtcNow;
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            timestamp));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            timestamp.AddMilliseconds(30)));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(100, 200),
+            timestamp.AddMilliseconds(600)));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(130, 240),
+            timestamp.AddMilliseconds(630)));
+
+        var capture = await sink.Captured.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(new PhysicalScreenPoint(130, 240), selectedText.Command!.PointerPosition);
+        Assert.AreEqual(new PhysicalScreenPoint(130, 240), capture.SelectedText.PointerPosition);
+        Assert.AreEqual(2, sink.ExternalPointerPressCount);
+        Assert.AreEqual(1, sink.DismissedSurfaceCount);
+    }
+
+    [TestMethod]
+    public async Task OpenResultSurface_DismissesAndBlocksDoubleClickSequenceThenAllowsNextGesture()
+    {
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink
+        {
+            SurfaceState = new SelectionSurfaceState(false, true),
+            DismissOnExternalPointerPress = true
+        };
+        await using var coordinator = CreateEnabledCoordinator(pointer, selectedText, sink);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var timestamp = DateTimeOffset.UtcNow;
+        var point = new PhysicalScreenPoint(10, 20);
+        pointer.Publish(new GlobalPointerEvent(PointerAction.PrimaryPressed, point, timestamp));
+        pointer.Publish(new GlobalPointerEvent(PointerAction.PrimaryReleased, point, timestamp.AddMilliseconds(30)));
+        pointer.Publish(new GlobalPointerEvent(PointerAction.PrimaryDoubleClick, point, timestamp.AddMilliseconds(100)));
+        pointer.Publish(new GlobalPointerEvent(PointerAction.PrimaryPressed, point, timestamp.AddMilliseconds(100)));
+        pointer.Publish(new GlobalPointerEvent(PointerAction.PrimaryReleased, point, timestamp.AddMilliseconds(130)));
+        var nextPoint = new PhysicalScreenPoint(100, 200);
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryDoubleClick,
+            nextPoint,
+            timestamp.AddMilliseconds(700)));
+
+        var capture = await sink.Captured.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(nextPoint, selectedText.Command!.PointerPosition);
+        Assert.AreEqual(nextPoint, capture.SelectedText.PointerPosition);
+        Assert.AreEqual(1, sink.ExternalPointerPressCount);
+        Assert.AreEqual(1, sink.DismissedSurfaceCount);
+    }
+
+    private static SelectionInteractionCoordinator CreateEnabledCoordinator(
+        FakePointerMonitor pointer,
+        FakeSelectedTextUseCases selectedText,
+        FakeSink sink)
+    {
+        var initial = SettingsTestData.CreateBundle();
+        var bundle = initial with
+        {
+            SelectionTranslation = initial.SelectionTranslation with
+            {
+                Enabled = true,
+                TriggerMode = SelectionTriggerMode.All
+            }
+        };
+        return new SelectionInteractionCoordinator(
+            new FakeSettings(bundle),
+            new AvailablePlatformAccess(),
+            pointer,
+            new FakeWindowFocus(),
+            new FakeClipboardSnapshots(),
+            selectedText,
+            new FakeDelay(),
+            NullLogger<SelectionInteractionCoordinator>.Instance);
+    }
+
     private sealed class FakePointerMonitor : IGlobalPointerMonitor
     {
         private Action<GlobalPointerEvent>? _callback;
@@ -198,18 +298,32 @@ public sealed class SelectionInteractionCoordinatorTests
     {
         public TaskCompletionSource<SelectionCapture> Captured { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public SelectionSurfaceState SurfaceState { get; set; }
+        public bool DismissOnExternalPointerPress { get; init; }
+        public int ExternalPointerPressCount { get; private set; }
+        public int DismissedSurfaceCount { get; private set; }
 
         public ValueTask<SelectionSurfaceState> InspectSurfaceAsync(
             PhysicalScreenPoint point,
             CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult(new SelectionSurfaceState(false, false));
+            ValueTask.FromResult(SurfaceState);
 
         public ValueTask OnMonitoringStartedAsync(
             CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
 
         public ValueTask OnExternalPointerPressedAsync(
             PhysicalScreenPoint point,
-            CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+            CancellationToken cancellationToken = default)
+        {
+            ExternalPointerPressCount++;
+            if (DismissOnExternalPointerPress)
+            {
+                if (SurfaceState.BlocksSelectionCapture)
+                    DismissedSurfaceCount++;
+                SurfaceState = default;
+            }
+            return ValueTask.CompletedTask;
+        }
 
         public ValueTask OnSelectionCapturedAsync(
             SelectionCapture capture,

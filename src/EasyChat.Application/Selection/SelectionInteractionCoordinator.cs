@@ -35,6 +35,8 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     private ExternalTargetToken _focusedAtMouseDown;
     private DateTimeOffset _lastDoubleClickTime;
     private PhysicalScreenPoint _lastDoubleClickPoint;
+    private DateTimeOffset _lastBlockedGestureTime;
+    private PhysicalScreenPoint _lastBlockedGesturePoint;
     private long _generation;
     private bool _disposed;
     private Task? _disposeTask;
@@ -266,6 +268,12 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         SelectionTranslationSettings config,
         CancellationToken cancellationToken)
     {
+        if (IsBlockedGestureContinuation(pointerEvent))
+        {
+            _downPoint = null;
+            return;
+        }
+
         _foregroundAtMouseDown = await ReadTargetAsync(
             _windowFocus.GetForegroundTargetAsync(cancellationToken)).ConfigureAwait(false);
         _focusedAtMouseDown = await ReadTargetAsync(
@@ -280,6 +288,14 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         }
 
         await sink.OnExternalPointerPressedAsync(pointerEvent.Position, cancellationToken).ConfigureAwait(false);
+        if (surface.BlocksSelectionCapture)
+        {
+            BlockGesture(pointerEvent);
+            Interlocked.Increment(ref _generation);
+            _downPoint = null;
+            return;
+        }
+
         if (!HandlesDrag(config.TriggerMode))
         {
             if (!IsGuardedDoubleClick(pointerEvent))
@@ -306,7 +322,9 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
 
         var sink = GetSink();
         var surface = await sink.InspectSurfaceAsync(pointerEvent.Position, cancellationToken).ConfigureAwait(false);
-        if (surface.BlocksSelectionCapture || Distance(down, pointerEvent.Position) <= DragThreshold)
+        if (surface.IsPointerOverOwnedSurface
+            || surface.BlocksSelectionCapture
+            || Distance(down, pointerEvent.Position) <= DragThreshold)
             return;
 
         var clipboardToken = await CaptureClipboardTokenAsync(cancellationToken).ConfigureAwait(false);
@@ -328,13 +346,20 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         SelectionTranslationSettings config,
         CancellationToken cancellationToken)
     {
-        if (!HandlesDoubleClick(config.TriggerMode))
+        if (!HandlesDoubleClick(config.TriggerMode) || IsBlockedGestureContinuation(pointerEvent))
             return;
 
         var sink = GetSink();
         var surface = await sink.InspectSurfaceAsync(pointerEvent.Position, cancellationToken).ConfigureAwait(false);
         if (surface.IsPointerOverOwnedSurface)
             return;
+        if (surface.BlocksSelectionCapture)
+        {
+            await sink.OnExternalPointerPressedAsync(pointerEvent.Position, cancellationToken).ConfigureAwait(false);
+            BlockGesture(pointerEvent);
+            Interlocked.Increment(ref _generation);
+            return;
+        }
 
         _lastDoubleClickTime = pointerEvent.Timestamp;
         _lastDoubleClickPoint = pointerEvent.Position;
@@ -425,6 +450,20 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     private bool IsGuardedDoubleClick(GlobalPointerEvent pointerEvent) =>
         pointerEvent.Timestamp - _lastDoubleClickTime < DoubleClickGuard
         && Distance(pointerEvent.Position, _lastDoubleClickPoint) < 40;
+
+    private void BlockGesture(GlobalPointerEvent pointerEvent)
+    {
+        _lastBlockedGestureTime = pointerEvent.Timestamp;
+        _lastBlockedGesturePoint = pointerEvent.Position;
+    }
+
+    private bool IsBlockedGestureContinuation(GlobalPointerEvent pointerEvent)
+    {
+        var elapsed = pointerEvent.Timestamp - _lastBlockedGestureTime;
+        return elapsed >= TimeSpan.Zero
+               && elapsed < DoubleClickGuard
+               && Distance(pointerEvent.Position, _lastBlockedGesturePoint) < 40;
+    }
 
     private static async ValueTask<ExternalTargetToken> ReadTargetAsync(
         ValueTask<Result<ExternalTargetToken>> pending)
