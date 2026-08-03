@@ -54,7 +54,7 @@
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Image Width="20" Height="20" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                    <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center"
                                                Foreground="{DynamicResource SukiText}" />
                                 </StackPanel>
                             </DataTemplate>
@@ -74,7 +74,7 @@
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Image Width="20" Height="20" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                    <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center"
                                                Foreground="{DynamicResource SukiText}" />
                                 </StackPanel>
                             </DataTemplate>

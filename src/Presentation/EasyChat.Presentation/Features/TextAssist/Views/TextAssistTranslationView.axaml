@@ -87,7 +87,7 @@
                         <ComboBox Grid.Row="1" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedSourceLanguage}">
                             <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="6">
                                 <Panel Width="22" Height="16"><avalonia:MaterialIcon Kind="FlagOutline" Opacity="0.65" /><Image Width="22" Height="16" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" /></Panel>
-                                <TextBlock Text="{Binding DisplayName}" />
+                                <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" />
                             </StackPanel></DataTemplate></ComboBox.ItemTemplate>
                         </ComboBox>
                         <Grid Grid.Row="2">
@@ -119,7 +119,7 @@
                         <ComboBox Grid.Row="1" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedTargetLanguage}">
                             <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="6">
                                 <Panel Width="22" Height="16"><avalonia:MaterialIcon Kind="FlagOutline" Opacity="0.65" /><Image Width="22" Height="16" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" /></Panel>
-                                <TextBlock Text="{Binding DisplayName}" />
+                                <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" />
                             </StackPanel></DataTemplate></ComboBox.ItemTemplate>
                         </ComboBox>
                         <Grid Grid.Row="2">

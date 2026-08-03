@@ -75,7 +75,7 @@
                                                      <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14">
                                                          <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}" Stretch="UniformToFill" />
                                                      </Border>
-                                                     <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" Foreground="{DynamicResource SukiText}" />
+                                                     <TextBlock Text="{Binding Converter={x:Static converts:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center" Foreground="{DynamicResource SukiText}" />
                                                  </StackPanel>
                                              </DataTemplate>
                                          </ComboBox.ItemTemplate>

@@ -4,6 +4,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using EasyChat.Contracts.Settings;
+using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Lang;
 using Material.Icons;
 
@@ -97,6 +98,22 @@ public sealed class EngineTypeToBoolConverter(string expected) : IValueConverter
 public static class LanguageFlagConverters
 {
     public static readonly IValueConverter ToIcon = new LanguageFlagToIconConverter();
+}
+
+public static class LanguageSettingsConverters
+{
+    public static readonly IValueConverter ToDisplayName = new LanguageSettingsDisplayNameConverter();
+}
+
+public sealed class LanguageSettingsDisplayNameConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is LanguageSettings language
+            ? LanguageDisplayNames.ForUi(language.ChineseName, language.EnglishName)
+            : null;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
 }
 
 public sealed class LanguageFlagToIconConverter : IValueConverter

@@ -17,7 +17,7 @@
             <ComboBox Grid.Column="1" Width="180" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedSourceLanguage}" IsVisible="{Binding ShowLanguageSelector}">
                 <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="7">
                     <Panel Width="22" Height="16"><icons:MaterialIcon Kind="FlagOutline" Opacity="0.65" /><Image Width="22" Height="16" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" /></Panel>
-                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center" />
                 </StackPanel></DataTemplate></ComboBox.ItemTemplate>
             </ComboBox>
             <Button Grid.Column="2" Classes="Basic" Command="{Binding RetryCommand}"><icons:MaterialIcon Kind="Refresh" /></Button>

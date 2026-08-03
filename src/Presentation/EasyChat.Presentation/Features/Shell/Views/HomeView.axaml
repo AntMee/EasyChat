@@ -145,7 +145,7 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <Image Width="20" Height="20" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                            <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource SukiText}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" Foreground="{DynamicResource SukiText}" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
@@ -169,7 +169,7 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <Image Width="20" Height="20" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                            <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource SukiText}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" Foreground="{DynamicResource SukiText}" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>

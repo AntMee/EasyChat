@@ -22,9 +22,7 @@ public sealed class TranslationLanguageOptions(ITranslationLanguageCatalog catal
             language.EnglishName,
             language.Icon ?? "unknown.png",
             localized,
-            language.NativeName is { Length: > 0 } && language.NativeName != language.EnglishName
-                ? $"{language.NativeName} ({language.EnglishName})"
-                : language.EnglishName,
+            LanguageDisplayNames.ForUi(localized, language.EnglishName),
             language.ProviderCodes ?? new Dictionary<string, string>());
     }
 }

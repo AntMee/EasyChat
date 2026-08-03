@@ -5,6 +5,7 @@ using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using ReactiveUI;
 using SukiUI.Dialogs;
@@ -19,9 +20,7 @@ public sealed class TtsLanguageItem(TtsLanguage value)
     public string EnglishName => Value.EnglishName;
     public string ChineseName => Value.ChineseName;
     public string Icon => Value.Icon;
-    public string DisplayName => string.IsNullOrWhiteSpace(ChineseName)
-        ? EnglishName
-        : $"{EnglishName} ({ChineseName})";
+    public string DisplayName => LanguageDisplayNames.ForUi(ChineseName, EnglishName);
 }
 
 public sealed class ConfiguredVoiceItem
