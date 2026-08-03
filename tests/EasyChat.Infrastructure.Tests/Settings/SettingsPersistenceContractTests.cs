@@ -1,6 +1,8 @@
+using System.Globalization;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Settings.Persistence;
 using EasyChat.Infrastructure.Settings.Persistence;
+using Newtonsoft.Json;
 
 namespace EasyChat.Infrastructure.Tests.Settings;
 
@@ -86,6 +88,32 @@ public sealed class SettingsPersistenceContractTests
         finally
         {
             DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public void GeneralDefaults_FollowSystemUiLanguageWithoutPersistingAnImplicitChoice()
+    {
+        var originalCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = new CultureInfo("en-US");
+            var english = new GeneralSettingsDto();
+            Assert.AreEqual("English", english.DisplayLanguage);
+            Assert.IsFalse(JsonConvert.SerializeObject(english).Contains(
+                "DisplayLanguage",
+                StringComparison.Ordinal));
+
+            CultureInfo.CurrentUICulture = new CultureInfo("zh-CN");
+            var chinese = new GeneralSettingsDto();
+            Assert.AreEqual("Simplified Chinese", chinese.DisplayLanguage);
+            Assert.IsFalse(JsonConvert.SerializeObject(chinese).Contains(
+                "DisplayLanguage",
+                StringComparison.Ordinal));
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = originalCulture;
         }
     }
 

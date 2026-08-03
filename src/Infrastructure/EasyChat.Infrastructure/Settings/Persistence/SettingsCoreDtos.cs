@@ -62,9 +62,11 @@ internal sealed class GeneralSettingsDto
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? DisplayLanguage
     {
-        get => _displayLanguage;
+        get => _displayLanguage ?? GetSystemDisplayLanguage();
         set => _displayLanguage = string.IsNullOrWhiteSpace(value) ? null : value;
     }
+
+    public bool ShouldSerializeDisplayLanguage() => _displayLanguage is not null;
 
     [JsonProperty("Language")]
     private string? PreviousLanguage
@@ -75,6 +77,14 @@ internal sealed class GeneralSettingsDto
                 DisplayLanguage = value;
         }
     }
+
+    private static string GetSystemDisplayLanguage() =>
+        string.Equals(
+            System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+            "zh",
+            StringComparison.OrdinalIgnoreCase)
+            ? "Simplified Chinese"
+            : "English";
 
     [JsonProperty]
     public LanguageSettingsDto? NativeLanguage { get; set; }
