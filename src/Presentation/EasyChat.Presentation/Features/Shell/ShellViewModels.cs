@@ -63,7 +63,7 @@ namespace EasyChat.Presentation.Features.Shell
             ApplyBaseTheme(_baseThemeMode);
             RestoreColorTheme();
 
-            ChangeBaseThemeCommand = ReactiveCommand.Create<ThemeMode>(ChangeBaseTheme);
+            CycleBaseThemeCommand = ReactiveCommand.Create(CycleBaseTheme);
             ChangeThemeCommand = ReactiveCommand.Create<SukiColorTheme>(_theme.ChangeColorTheme);
             CreateCustomThemeCommand = ReactiveCommand.Create(CreateCustomTheme);
             ToggleFullScreenCommand = ReactiveCommand.Create(ToggleFullScreen);
@@ -113,17 +113,11 @@ namespace EasyChat.Presentation.Features.Shell
                 if (_baseThemeMode == value)
                     return;
                 this.RaiseAndSetIfChanged(ref _baseThemeMode, value);
-                this.RaisePropertyChanged(nameof(IsSystemThemeMode));
-                this.RaisePropertyChanged(nameof(IsLightThemeMode));
-                this.RaisePropertyChanged(nameof(IsDarkThemeMode));
                 this.RaisePropertyChanged(nameof(ThemeToggleIcon));
                 this.RaisePropertyChanged(nameof(CurrentThemeModeName));
             }
         }
 
-        public bool IsSystemThemeMode => BaseThemeMode == ThemeMode.System;
-        public bool IsLightThemeMode => BaseThemeMode == ThemeMode.Light;
-        public bool IsDarkThemeMode => BaseThemeMode == ThemeMode.Dark;
         public MaterialIconKind ThemeToggleIcon => BaseThemeMode switch
         {
             ThemeMode.Light => MaterialIconKind.WeatherSunny,
@@ -137,7 +131,7 @@ namespace EasyChat.Presentation.Features.Shell
             _ => Resources.FollowSystemMode
         };
 
-        public ReactiveCommand<ThemeMode, Unit> ChangeBaseThemeCommand { get; }
+        public ReactiveCommand<Unit, Unit> CycleBaseThemeCommand { get; }
         public ReactiveCommand<SukiColorTheme, Unit> ChangeThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> CreateCustomThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleFullScreenCommand { get; }
@@ -184,6 +178,13 @@ namespace EasyChat.Presentation.Features.Shell
             if (page is not null)
                 ActivePage = page;
         }
+
+        private void CycleBaseTheme() => ChangeBaseTheme(BaseThemeMode switch
+        {
+            ThemeMode.System => ThemeMode.Light,
+            ThemeMode.Light => ThemeMode.Dark,
+            _ => ThemeMode.System
+        });
 
         private void ChangeBaseTheme(ThemeMode mode)
         {

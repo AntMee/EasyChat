@@ -1,7 +1,6 @@
 <suki:SukiWindow xmlns="https://github.com/avaloniaui"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:vm="using:EasyChat.Presentation.Features.Shell"
-                 xmlns:settings="using:EasyChat.Contracts.Settings"
                  xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
                  xmlns:suki="https://github.com/kikipoulet/SukiUI"
                  xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
@@ -38,6 +37,7 @@
     <suki:SukiWindow.RightWindowTitleBarControls>
         <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
             <Button Classes="Basic"
+                    Command="{Binding CycleBaseThemeCommand}"
                     ToolTip.Tip="{Binding CurrentThemeModeName}"
                     Width="32"
                     Height="32"
@@ -47,25 +47,6 @@
                 <avalonia:MaterialIcon Kind="{Binding ThemeToggleIcon}"
                                        Width="18"
                                        Height="18" />
-                <Button.Flyout>
-                    <MenuFlyout Placement="BottomEdgeAlignedRight">
-                        <MenuItem Header="{x:Static lang:Resources.FollowSystemMode}"
-                                  ToggleType="Radio"
-                                  IsChecked="{Binding IsSystemThemeMode, Mode=OneWay}"
-                                  Command="{Binding ChangeBaseThemeCommand}"
-                                  CommandParameter="{x:Static settings:ThemeMode.System}" />
-                        <MenuItem Header="{x:Static lang:Resources.LightMode}"
-                                  ToggleType="Radio"
-                                  IsChecked="{Binding IsLightThemeMode, Mode=OneWay}"
-                                  Command="{Binding ChangeBaseThemeCommand}"
-                                  CommandParameter="{x:Static settings:ThemeMode.Light}" />
-                        <MenuItem Header="{x:Static lang:Resources.DarkMode}"
-                                  ToggleType="Radio"
-                                  IsChecked="{Binding IsDarkThemeMode, Mode=OneWay}"
-                                  Command="{Binding ChangeBaseThemeCommand}"
-                                  CommandParameter="{x:Static settings:ThemeMode.Dark}" />
-                    </MenuFlyout>
-                </Button.Flyout>
             </Button>
             <Button Classes="Basic"
                     ToolTip.Tip="{x:Static lang:Resources.Settings}"
