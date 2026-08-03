@@ -194,6 +194,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _autoClearTimer.Tick += (_, _) => ClearHistory();
         UpdateAutoClearTimer();
         _subtitleWindow.VisibilityChanged += OnSubtitleWindowVisibilityChanged;
+        _models.ModelsChanged += OnModelsChanged;
         _settings.AiModel.ConfiguredModels.CollectionChanged += (_, _) => LoadEngineOptions();
     }
 
@@ -318,14 +319,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         if (!IsSupported)
             return;
 
-        var models = await _models.GetModelsAsync(cancellationToken);
-        foreach (var model in models)
-            RecognitionLanguages.Add(model.Id);
-        var configured = _settings.SpeechRecognition.RecognitionLanguage;
-        SelectedRecognitionLanguage = RecognitionLanguages.FirstOrDefault(language => language == configured)
-            ?? RecognitionLanguages.FirstOrDefault(language => language.Contains("zh", StringComparison.OrdinalIgnoreCase))
-            ?? RecognitionLanguages.FirstOrDefault()
-            ?? string.Empty;
+        await RefreshRecognitionLanguagesAsync(cancellationToken);
         await RefreshSourcesAsync(cancellationToken);
     }
 
@@ -343,9 +337,46 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _recognitionCancellation?.Dispose();
         _autoClearTimer.Stop();
         _subtitleWindow.VisibilityChanged -= OnSubtitleWindowVisibilityChanged;
+        _models.ModelsChanged -= OnModelsChanged;
         _subtitleWindow.Close();
         foreach (var source in AudioSources)
             source.Dispose();
+    }
+
+    private void OnModelsChanged(object? sender, EventArgs args)
+    {
+        if (Volatile.Read(ref _initialized) == 0 || !IsSupported)
+            return;
+        Dispatcher.UIThread.Post(() => _ = RefreshRecognitionLanguagesAfterChangeAsync());
+    }
+
+    private async Task RefreshRecognitionLanguagesAfterChangeAsync()
+    {
+        try
+        {
+            await RefreshRecognitionLanguagesAsync();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to refresh speech recognition models.");
+        }
+    }
+
+    private async Task RefreshRecognitionLanguagesAsync(CancellationToken cancellationToken = default)
+    {
+        var models = await _models.GetModelsAsync(cancellationToken);
+        var current = SelectedRecognitionLanguage;
+        RecognitionLanguages.Clear();
+        foreach (var model in models)
+            RecognitionLanguages.Add(model.Id);
+
+        var configured = string.IsNullOrWhiteSpace(current)
+            ? _settings.SpeechRecognition.RecognitionLanguage
+            : current;
+        SelectedRecognitionLanguage = RecognitionLanguages.FirstOrDefault(language => language == configured)
+            ?? RecognitionLanguages.FirstOrDefault(language => language.Contains("zh", StringComparison.OrdinalIgnoreCase))
+            ?? RecognitionLanguages.FirstOrDefault()
+            ?? string.Empty;
     }
 
     private async Task ToggleRecordingAsync()

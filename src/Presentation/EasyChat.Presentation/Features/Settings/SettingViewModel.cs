@@ -5,6 +5,7 @@ using System.Reactive;
 using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using EasyChat.Contracts.Ocr;
+using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
@@ -19,10 +20,15 @@ namespace EasyChat.Presentation.Features.Settings;
 
 public sealed class SettingViewModel : NavigationPageViewModel
 {
+    private static readonly Uri AsrModelDownloadsUri = new(
+        "https://github.com/SwaggyMacro/MicroASR/releases/tag/models-v1");
     private readonly SettingsSession _settings;
     private readonly IOcrModelUseCases _ocr;
     private readonly ITranslationUseCases _translation;
     private readonly ITranslationLanguageCatalog _languages;
+    private readonly ISpeechRecognitionModelCatalog _speechModels;
+    private readonly ISpeechRecognitionModelInstaller _speechModelInstaller;
+    private readonly IExternalUriLauncher _uriLauncher;
     private readonly ISettingsDialogCoordinator _dialogs;
     private readonly ISukiToastManager _toasts;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
@@ -33,6 +39,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private bool _isTestingDeepL;
     private ObservableCollection<ModelCardItem> _modelCardsWithAddButton = [];
     private ObservableCollection<string> _availableFonts = [];
+    private ObservableCollection<SpeechRecognitionModel> _asrModels = [];
+    private bool _isImportingAsrModel;
 
     public SettingViewModel(
         SettingsSession settings,
@@ -40,6 +48,9 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ITtsUseCases tts,
         ITranslationUseCases translation,
         ITranslationLanguageCatalog languages,
+        ISpeechRecognitionModelCatalog speechModels,
+        ISpeechRecognitionModelInstaller speechModelInstaller,
+        IExternalUriLauncher uriLauncher,
         ISettingsDialogCoordinator dialogs,
         ISukiToastManager toasts)
         : base(Resources.Settings, MaterialIconKind.Settings, 1)
@@ -48,6 +59,9 @@ public sealed class SettingViewModel : NavigationPageViewModel
         _ocr = ocr;
         _translation = translation;
         _languages = languages;
+        _speechModels = speechModels;
+        _speechModelInstaller = speechModelInstaller;
+        _uriLauncher = uriLauncher;
         _dialogs = dialogs;
         _toasts = toasts;
 
@@ -73,6 +87,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         EditDeepLKeysCommand = ReactiveCommand.Create(_dialogs.EditDeepLKeys);
         ManageFixedAreasCommand = ReactiveCommand.Create(_dialogs.ManageFixedAreas);
         ConfigureTtsCommand = ReactiveCommand.Create(_dialogs.ConfigureTts);
+        OpenAsrModelDownloadsCommand = ReactiveCommand.Create(OpenAsrModelDownloads);
 
         TestAiModelConnectionCommand = ReactiveCommand.CreateFromTask<CustomAiModelState>(TestAiModelConnectionAsync);
         TestBaiduConnectionCommand = ReactiveCommand.CreateFromTask(() => TestMachineConnectionAsync("Baidu"));
@@ -89,6 +104,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         });
 
         Dispatcher.UIThread.Post(LoadAvailableFonts);
+        Dispatcher.UIThread.Post(() => _ = LoadAsrModelsAsync());
     }
 
     public List<string> DeepLModelTypes { get; } = ["quality_optimized", "prefer_quality_optimized", "latency_optimized"];
@@ -133,6 +149,28 @@ public sealed class SettingViewModel : NavigationPageViewModel
         get => _availableFonts;
         private set => this.RaiseAndSetIfChanged(ref _availableFonts, value);
     }
+    public ObservableCollection<SpeechRecognitionModel> AsrModels
+    {
+        get => _asrModels;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _asrModels, value);
+            this.RaisePropertyChanged(nameof(HasAsrModels));
+            this.RaisePropertyChanged(nameof(HasNoAsrModels));
+        }
+    }
+    public bool HasAsrModels => AsrModels.Count > 0;
+    public bool HasNoAsrModels => !HasAsrModels;
+    public bool IsImportingAsrModel
+    {
+        get => _isImportingAsrModel;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isImportingAsrModel, value);
+            this.RaisePropertyChanged(nameof(CanImportAsrModel));
+        }
+    }
+    public bool CanImportAsrModel => !IsImportingAsrModel;
     public List<string> AiProviders => ConfiguredModels.Select(model => model.Name).ToList();
 
     public LanguageSettings SelectedDisplayLanguage
@@ -263,6 +301,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
 
     public ReactiveCommand<Unit, Unit> ManageFixedAreasCommand { get; }
     public ReactiveCommand<Unit, Unit> ConfigureTtsCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenAsrModelDownloadsCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DownloadOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> CancelOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DeleteOcrModelCommand { get; }
@@ -300,6 +339,72 @@ public sealed class SettingViewModel : NavigationPageViewModel
             Avalonia.Media.FontManager.Current.SystemFonts
                 .Select(font => font.Name)
                 .Order(StringComparer.CurrentCulture));
+    }
+
+    public async Task ImportAsrModelsAsync(
+        string sourcePath,
+        SpeechRecognitionModelImportSourceKind sourceKind)
+    {
+        if (IsImportingAsrModel)
+            return;
+
+        IsImportingAsrModel = true;
+        try
+        {
+            var result = await _speechModelInstaller.ImportAsync(
+                new SpeechRecognitionModelImportRequest(sourcePath, sourceKind));
+            await RefreshAsrModelsAsync();
+
+            if (result.ImportedModels.Count > 0)
+            {
+                ShowToast(
+                    Resources.AsrModels,
+                    string.Format(
+                        Resources.AsrModelsImported,
+                        string.Join(", ", result.ImportedModels.Select(model => model.Id))),
+                    NotificationType.Success);
+            }
+            else
+            {
+                ShowToast(
+                    Resources.AsrModels,
+                    Resources.AsrModelsAlreadyInstalled,
+                    NotificationType.Information);
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowToast(Resources.AsrModelImportFailed, exception.Message, NotificationType.Error);
+        }
+        finally
+        {
+            IsImportingAsrModel = false;
+        }
+    }
+
+    private async Task RefreshAsrModelsAsync()
+    {
+        var models = await _speechModels.GetModelsAsync();
+        AsrModels = new ObservableCollection<SpeechRecognitionModel>(models);
+    }
+
+    private async Task LoadAsrModelsAsync()
+    {
+        try
+        {
+            await RefreshAsrModelsAsync();
+        }
+        catch (Exception exception)
+        {
+            ShowToast(Resources.AsrModels, exception.Message, NotificationType.Error);
+        }
+    }
+
+    private void OpenAsrModelDownloads()
+    {
+        var result = _uriLauncher.Open(AsrModelDownloadsUri);
+        if (result.IsFailure)
+            ShowToast(Resources.AsrModels, result.Error.Message, NotificationType.Error);
     }
 
     private void StartDownloadOcrModel(OcrModelDownloadItemViewModel item) => _ = DownloadOcrModelAsync(item);

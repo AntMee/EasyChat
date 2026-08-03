@@ -920,5 +920,15 @@
     <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR 模型下载完成。</value></data>
     <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR 模型下载失败</value></data>
   <data name="Retry" xml:space="preserve"><value>重试</value></data>
-  <data name="Tts_ConfigureVoices" xml:space="preserve"><value>配置语音</value></data>
+    <data name="Tts_ConfigureVoices" xml:space="preserve"><value>配置语音</value></data>
+    <data name="AsrModels" xml:space="preserve"><value>ASR 模型</value></data>
+    <data name="AsrModelsDescription" xml:space="preserve"><value>可导入模型文件夹、包含多个模型的文件夹，或受支持的模型压缩包。</value></data>
+    <data name="ImportAsrModelFolder" xml:space="preserve"><value>导入文件夹</value></data>
+    <data name="ImportAsrModelArchive" xml:space="preserve"><value>导入压缩包</value></data>
+    <data name="AsrModelArchives" xml:space="preserve"><value>模型压缩包</value></data>
+    <data name="NoAsrModels" xml:space="preserve"><value>尚未安装 ASR 模型。</value></data>
+    <data name="AsrModelsImported" xml:space="preserve"><value>已导入：{0}</value></data>
+    <data name="AsrModelsAlreadyInstalled" xml:space="preserve"><value>所选模型已经安装。</value></data>
+    <data name="AsrModelImportFailed" xml:space="preserve"><value>ASR 模型导入失败</value></data>
+    <data name="DownloadAsrModels" xml:space="preserve"><value>下载模型</value></data>
 </root>

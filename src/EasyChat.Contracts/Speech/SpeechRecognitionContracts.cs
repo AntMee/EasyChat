@@ -12,7 +12,30 @@ public sealed record SpeechRecognitionModel(string Id);
 
 public interface ISpeechRecognitionModelCatalog
 {
+    event EventHandler? ModelsChanged;
+
     ValueTask<IReadOnlyList<SpeechRecognitionModel>> GetModelsAsync(
+        CancellationToken cancellationToken = default);
+}
+
+public enum SpeechRecognitionModelImportSourceKind
+{
+    Directory,
+    Archive
+}
+
+public sealed record SpeechRecognitionModelImportRequest(
+    string SourcePath,
+    SpeechRecognitionModelImportSourceKind SourceKind);
+
+public sealed record SpeechRecognitionModelImportResult(
+    IReadOnlyList<SpeechRecognitionModel> ImportedModels,
+    IReadOnlyList<SpeechRecognitionModel> ExistingModels);
+
+public interface ISpeechRecognitionModelInstaller
+{
+    ValueTask<SpeechRecognitionModelImportResult> ImportAsync(
+        SpeechRecognitionModelImportRequest request,
         CancellationToken cancellationToken = default);
 }
 

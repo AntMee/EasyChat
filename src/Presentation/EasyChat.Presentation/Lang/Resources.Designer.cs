@@ -3073,5 +3073,45 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("WindowBackgroundColor", resourceCulture);
             }
         }
+
+        public static string AsrModels {
+            get { return ResourceManager.GetString("AsrModels", resourceCulture); }
+        }
+
+        public static string AsrModelsDescription {
+            get { return ResourceManager.GetString("AsrModelsDescription", resourceCulture); }
+        }
+
+        public static string ImportAsrModelFolder {
+            get { return ResourceManager.GetString("ImportAsrModelFolder", resourceCulture); }
+        }
+
+        public static string ImportAsrModelArchive {
+            get { return ResourceManager.GetString("ImportAsrModelArchive", resourceCulture); }
+        }
+
+        public static string AsrModelArchives {
+            get { return ResourceManager.GetString("AsrModelArchives", resourceCulture); }
+        }
+
+        public static string NoAsrModels {
+            get { return ResourceManager.GetString("NoAsrModels", resourceCulture); }
+        }
+
+        public static string AsrModelsImported {
+            get { return ResourceManager.GetString("AsrModelsImported", resourceCulture); }
+        }
+
+        public static string AsrModelsAlreadyInstalled {
+            get { return ResourceManager.GetString("AsrModelsAlreadyInstalled", resourceCulture); }
+        }
+
+        public static string AsrModelImportFailed {
+            get { return ResourceManager.GetString("AsrModelImportFailed", resourceCulture); }
+        }
+
+        public static string DownloadAsrModels {
+            get { return ResourceManager.GetString("DownloadAsrModels", resourceCulture); }
+        }
     }
 }

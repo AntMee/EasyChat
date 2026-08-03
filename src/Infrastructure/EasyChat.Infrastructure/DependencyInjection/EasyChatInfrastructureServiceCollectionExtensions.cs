@@ -51,7 +51,10 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
         services.AddSingleton<ITtsSynthesisProvider>(_ => new EdgeTtsProvider(assetsDirectory));
         services.AddSingleton<ITtsOutputWriter, FileTtsOutputWriter>();
         services.AddSingleton<ISpeechRecognitionEngine, MicroAsrSpeechRecognitionEngine>();
-        services.AddSingleton<ISpeechRecognitionModelCatalog, MicroAsrSpeechRecognitionModelCatalog>();
+        services.AddSingleton<MicroAsrSpeechRecognitionModelCatalog>();
+        services.AddSingleton<ISpeechRecognitionModelCatalog>(provider =>
+            provider.GetRequiredService<MicroAsrSpeechRecognitionModelCatalog>());
+        services.AddSingleton<ISpeechRecognitionModelInstaller, MicroAsrSpeechRecognitionModelInstaller>();
         return services;
     }
 }

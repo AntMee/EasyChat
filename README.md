@@ -81,12 +81,10 @@ EasyChat 是一款基于 Avalonia 开发的跨平台即时翻译工具，是继 
 
 ### 实时语音识别使用
 首先需要自行下载识别模型包
-- Google Drive: [https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link](https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link)
-- 夸克网盘: [https://pan.quark.cn/s/e0cb39b4a842](https://pan.quark.cn/s/e0cb39b4a842)
+- GitHub 模型发布页: [models-v1](https://github.com/SwaggyMacro/MicroASR/releases/tag/models-v1)
+- Google Drive: [MicroASR Models](https://drive.google.com/drive/folders/19pmknOmBA07HiVrUQljz1Jh3t3Jy8aDF?usp=sharing)
 
-按需下载模型包后解压在软件安装(运行)目录下找到 `Lib` 文件夹，将文件放入重启软件。
-![放置截图](./docs/screenshot/HowToUse/asr1.png)
-![放置截图](./docs/screenshot/HowToUse/asr2.png)
+下载所需模型后，在软件设置的 `ASR 模型` 中直接导入模型文件夹或压缩包。模型会安装到软件运行目录的 `Models` 文件夹，无需手动复制到旧的 `Lib` 目录。
 
 点击软件主界面左侧的 `语言识别`，选择使用的模型并配置好翻译点击启动开始即可，字幕悬浮窗在 `语音识别`->`字母悬浮窗设置` 中开启。
 

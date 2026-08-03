@@ -82,12 +82,10 @@ This project is built using the modern .NET technology stack, dedicated to futur
 
 First, download the speech recognition model package yourself:
 
-- Google Drive: [https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link](https://drive.google.com/drive/folders/1M46kikXSCeAdM-E_ALdty5j-EjKP9VG9?usp=drive_link)
-- Quark Drive: [https://pan.quark.cn/s/e0cb39b4a842](https://pan.quark.cn/s/e0cb39b4a842)
+- GitHub Models Release: [models-v1](https://github.com/SwaggyMacro/MicroASR/releases/tag/models-v1)
+- Google Drive: [MicroASR Models](https://drive.google.com/drive/folders/19pmknOmBA07HiVrUQljz1Jh3t3Jy8aDF?usp=sharing)
 
-After downloading the model package you need, extract it, locate the `Lib` folder in the software installation (or runtime) directory, place the files there, and restart the software.
-![Model placement](./docs/screenshot/HowToUse/asr1.png)
-![Model placement](./docs/screenshot/HowToUse/asr2.png)
+After downloading a model, open `ASR models` in Settings and import its folder or archive directly. EasyChat installs validated models into the runtime `Models` directory; the old manual `Lib` workflow is no longer used.
 
 Click `Speech Recognition` on the left side of the main window, select the model to use, configure the translation settings, and click Start. Enable the subtitle overlay in `Speech Recognition` -> `Subtitle Overlay Settings`.
 

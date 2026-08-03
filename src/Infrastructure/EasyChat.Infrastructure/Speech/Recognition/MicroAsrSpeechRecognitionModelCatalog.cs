@@ -17,6 +17,12 @@ public sealed class MicroAsrSpeechRecognitionModelCatalog : ISpeechRecognitionMo
         _modelsDirectory = Path.GetFullPath(modelsDirectory);
     }
 
+    public event EventHandler? ModelsChanged;
+
+    internal string ModelsDirectory => _modelsDirectory;
+
+    internal void NotifyModelsChanged() => ModelsChanged?.Invoke(this, EventArgs.Empty);
+
     public async ValueTask<IReadOnlyList<SpeechRecognitionModel>> GetModelsAsync(
         CancellationToken cancellationToken = default) =>
         await Task.Run(() => Discover(cancellationToken), cancellationToken).ConfigureAwait(false);

@@ -2,11 +2,6 @@ using Avalonia.Controls;
 
 namespace EasyChat.Presentation.Features.Settings.Views;
 
-public partial class GeneralSettingsView : UserControl
-{
-    public GeneralSettingsView() => InitializeComponent();
-}
-
 public partial class InputSettingsView : UserControl
 {
     public InputSettingsView() => InitializeComponent();
