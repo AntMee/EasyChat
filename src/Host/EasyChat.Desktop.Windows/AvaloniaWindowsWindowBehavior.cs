@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using EasyChat.Infrastructure.Windows.Input;
 using EasyChat.Presentation.Foundation.Platform;
 
-namespace EasyChat;
+namespace EasyChat.Desktop.Windows;
 
 internal sealed class AvaloniaWindowsWindowBehavior(
     WindowsOwnedWindowBehavior windows) : IPlatformWindowBehavior

@@ -4,7 +4,7 @@
                  xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:lang="clr-namespace:EasyChat.Lang"
                  xmlns:vm="using:EasyChat.ViewModels.Pages"
-                 x:Class="EasyChat.Views.Windows.TextAssistWindowView"
+                 x:Class="EasyChat.Presentation.Features.TextAssist.TextAssistWindowView"
                  x:DataType="vm:TextAssistViewModel"
                  Width="860" Height="480" MinWidth="620" MinHeight="360"
                  CanResize="True"

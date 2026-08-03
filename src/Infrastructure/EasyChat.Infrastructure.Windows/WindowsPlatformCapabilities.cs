@@ -14,7 +14,7 @@ public sealed class WindowsPlatformCapabilities : IPlatformCapabilities
             PlatformCapability.WindowActivation,
             PlatformCapability.GlobalPointerMonitoring,
             PlatformCapability.SelectedTextCapture,
-            PlatformCapability.ProcessEnumeration,
+            PlatformCapability.AudioCaptureSources,
             PlatformCapability.SpeechRecognition,
             PlatformCapability.AudioPlayback
         };

@@ -35,6 +35,7 @@ public sealed class SelectionInteractionCoordinatorTests
         var sink = new FakeSink();
         await using var coordinator = new SelectionInteractionCoordinator(
             settings,
+            new AvailablePlatformAccess(),
             pointer,
             new FakeWindowFocus(),
             new FakeClipboardSnapshots(),
@@ -47,11 +48,11 @@ public sealed class SelectionInteractionCoordinatorTests
         var timestamp = DateTimeOffset.UtcNow;
         pointer.Publish(new GlobalPointerEvent(
             PointerAction.PrimaryPressed,
-            new ScreenPoint(10, 20),
+            new PhysicalScreenPoint(10, 20),
             timestamp));
         pointer.Publish(new GlobalPointerEvent(
             PointerAction.PrimaryReleased,
-            new ScreenPoint(30, 40),
+            new PhysicalScreenPoint(30, 40),
             timestamp.AddMilliseconds(30)));
 
         var capture = await sink.Captured.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -62,7 +63,7 @@ public sealed class SelectionInteractionCoordinatorTests
         Assert.IsTrue(capture.Toolbar.Correction);
         Assert.IsFalse(capture.Toolbar.Polish);
         Assert.IsTrue(capture.Toolbar.Summary);
-        Assert.AreEqual(new ScreenPoint(30, 40), selectedText.Command!.PointerPosition);
+        Assert.AreEqual(new PhysicalScreenPoint(30, 40), selectedText.Command!.PointerPosition);
         Assert.AreEqual("foreground", selectedText.Command.ExpectedForegroundTarget.Value);
         Assert.AreEqual("focused", selectedText.Command.ExpectedFocusedTarget.Value);
         CollectionAssert.Contains(delay.Delays, TimeSpan.FromSeconds(3));
@@ -81,6 +82,7 @@ public sealed class SelectionInteractionCoordinatorTests
         var sink = new BlockingSink();
         var coordinator = new SelectionInteractionCoordinator(
             new FakeSettings(bundle),
+            new AvailablePlatformAccess(),
             pointer,
             new FakeWindowFocus(),
             new FakeClipboardSnapshots(),
@@ -92,7 +94,7 @@ public sealed class SelectionInteractionCoordinatorTests
         await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
         pointer.Publish(new GlobalPointerEvent(
             PointerAction.PrimaryPressed,
-            new ScreenPoint(10, 20),
+            new PhysicalScreenPoint(10, 20),
             DateTimeOffset.UtcNow));
         await sink.InspectStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
@@ -198,7 +200,7 @@ public sealed class SelectionInteractionCoordinatorTests
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public ValueTask<SelectionSurfaceState> InspectSurfaceAsync(
-            ScreenPoint point,
+            PhysicalScreenPoint point,
             CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(new SelectionSurfaceState(false, false));
 
@@ -206,7 +208,7 @@ public sealed class SelectionInteractionCoordinatorTests
             CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
 
         public ValueTask OnExternalPointerPressedAsync(
-            ScreenPoint point,
+            PhysicalScreenPoint point,
             CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
 
         public ValueTask OnSelectionCapturedAsync(
@@ -226,7 +228,7 @@ public sealed class SelectionInteractionCoordinatorTests
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public async ValueTask<SelectionSurfaceState> InspectSurfaceAsync(
-            ScreenPoint point,
+            PhysicalScreenPoint point,
             CancellationToken cancellationToken = default)
         {
             InspectStarted.TrySetResult();
@@ -238,7 +240,7 @@ public sealed class SelectionInteractionCoordinatorTests
             CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
 
         public ValueTask OnExternalPointerPressedAsync(
-            ScreenPoint point,
+            PhysicalScreenPoint point,
             CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
 
         public ValueTask OnSelectionCapturedAsync(

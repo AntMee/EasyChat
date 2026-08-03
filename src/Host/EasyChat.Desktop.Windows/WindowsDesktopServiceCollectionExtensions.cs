@@ -1,7 +1,8 @@
+using EasyChat.Desktop.Windows;
 using EasyChat.Presentation.Foundation.Platform;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasyChat.DependencyInjection;
+namespace EasyChat.Desktop.Windows.DependencyInjection;
 
 public static class WindowsDesktopServiceCollectionExtensions
 {

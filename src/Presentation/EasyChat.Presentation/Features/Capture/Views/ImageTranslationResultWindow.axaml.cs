@@ -8,7 +8,7 @@ using EasyChat.Presentation.Shared.Feedback;
 using Microsoft.Extensions.Logging;
 using SukiUI.Controls;
 
-namespace EasyChat.Views.Windows;
+namespace EasyChat.Presentation.Features.Capture;
 
 public partial class ImageTranslationResultWindow : SukiWindow
 {

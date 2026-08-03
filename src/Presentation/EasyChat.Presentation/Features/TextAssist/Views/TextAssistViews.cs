@@ -10,7 +10,6 @@ using EasyChat.Lang;
 using EasyChat.Presentation.Foundation.Platform;
 using EasyChat.Presentation.Shared.Feedback;
 using EasyChat.ViewModels.Pages;
-using EasyChat.ViewModels.Windows;
 using EasyChat.Views.Pages;
 using Microsoft.Extensions.Logging;
 using SukiUI.Controls;
@@ -95,7 +94,7 @@ namespace EasyChat.Views.Pages
     }
 }
 
-namespace EasyChat.Views.Windows
+namespace EasyChat.Presentation.Features.TextAssist
 {
     public partial class TextAssistWindowView : SukiWindow
     {

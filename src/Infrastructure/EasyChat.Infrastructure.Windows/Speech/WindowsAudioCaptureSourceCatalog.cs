@@ -6,20 +6,41 @@ using System.Runtime.Versioning;
 using System.Text;
 using EasyChat.Contracts.Platform;
 
-namespace EasyChat.Infrastructure.Windows.Processes;
+namespace EasyChat.Infrastructure.Windows.Speech;
 
 [SupportedOSPlatform("windows")]
-public sealed class WindowsProcessCatalog : IProcessCatalog
+public sealed class WindowsAudioCaptureSourceCatalog : IAudioCaptureSourceCatalog
 {
-    public async ValueTask<IReadOnlyList<ProcessDescriptor>> GetProcessesAsync(
-        CancellationToken cancellationToken = default) =>
-        await Task.Run(() => ReadProcesses(cancellationToken), cancellationToken).ConfigureAwait(false);
+    private const string ProcessTokenPrefix = "windows:process:";
+    internal static AudioCaptureSourceToken SystemOutputToken { get; } = new("windows:system-output");
 
-    private static IReadOnlyList<ProcessDescriptor> ReadProcesses(CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<AudioCaptureSourceDescriptor>> GetSourcesAsync(
+        CancellationToken cancellationToken = default) =>
+        await Task.Run(() => ReadSources(cancellationToken), cancellationToken).ConfigureAwait(false);
+
+    public static AudioCaptureSourceToken FromProcessId(int processId) =>
+        new($"{ProcessTokenPrefix}{processId}");
+
+    public static bool TryGetProcessId(AudioCaptureSourceToken token, out int processId)
     {
-        var result = new List<ProcessDescriptor>
+        processId = 0;
+        return token.Value.StartsWith(ProcessTokenPrefix, StringComparison.Ordinal)
+               && int.TryParse(token.Value.AsSpan(ProcessTokenPrefix.Length), out processId)
+               && processId > 0;
+    }
+
+    private static IReadOnlyList<AudioCaptureSourceDescriptor> ReadSources(
+        CancellationToken cancellationToken)
+    {
+        var result = new List<AudioCaptureSourceDescriptor>
         {
-            new(0, "Global", "System Audio", ReadOnlyMemory<byte>.Empty)
+            new(
+                SystemOutputToken,
+                AudioCaptureSourceKind.SystemOutput,
+                "Global",
+                "Global",
+                "System Audio",
+                ReadOnlyMemory<byte>.Empty)
         };
         foreach (var process in Process.GetProcesses())
         {
@@ -30,9 +51,11 @@ public sealed class WindowsProcessCatalog : IProcessCatalog
                 {
                     if (process.Id == 0 || string.IsNullOrEmpty(process.MainWindowTitle))
                         continue;
-                    result.Add(new ProcessDescriptor(
-                        process.Id,
+                    result.Add(new AudioCaptureSourceDescriptor(
+                        FromProcessId(process.Id),
+                        AudioCaptureSourceKind.Application,
                         process.ProcessName,
+                        $"[{process.Id}] {process.ProcessName}",
                         process.MainWindowTitle,
                         ReadIcon(GetProcessPath(process.Id))));
                 }

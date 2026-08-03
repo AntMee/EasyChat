@@ -7,9 +7,9 @@ namespace EasyChat.Infrastructure.Windows.Input;
 [SupportedOSPlatform("windows")]
 public sealed class WindowsPointerPosition : IPointerPosition
 {
-    public ScreenPoint GetCurrent() => GetCursorPos(out var point)
-        ? new ScreenPoint(point.X, point.Y)
-        : new ScreenPoint(0, 0);
+    public PhysicalScreenPoint GetCurrent() => GetCursorPos(out var point)
+        ? new PhysicalScreenPoint(point.X, point.Y)
+        : new PhysicalScreenPoint(0, 0);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint

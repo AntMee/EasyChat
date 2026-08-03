@@ -12,7 +12,7 @@ public enum SelectedTextCaptureMode
 
 public sealed record SelectedTextCaptureCommand(
     SelectedTextCaptureMode Mode = SelectedTextCaptureMode.Automatic,
-    ScreenPoint? PointerPosition = null,
+    PhysicalScreenPoint? PointerPosition = null,
     ExternalTargetToken ExpectedForegroundTarget = default,
     ExternalTargetToken ExpectedFocusedTarget = default);
 
@@ -54,13 +54,13 @@ public readonly record struct SelectionSurfaceState(
 public interface ISelectionInteractionSink
 {
     ValueTask<SelectionSurfaceState> InspectSurfaceAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default);
 
     ValueTask OnMonitoringStartedAsync(CancellationToken cancellationToken = default);
 
     ValueTask OnExternalPointerPressedAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default);
 
     ValueTask OnSelectionCapturedAsync(

@@ -9,7 +9,7 @@ public enum PointerAction
 
 public sealed record GlobalPointerEvent(
     PointerAction Action,
-    ScreenPoint Position,
+    PhysicalScreenPoint Position,
     DateTimeOffset Timestamp);
 
 public interface IPointerMonitorRegistration : IDisposable;
@@ -21,7 +21,7 @@ public interface IGlobalPointerMonitor
 
 public interface IPointerPosition
 {
-    ScreenPoint GetCurrent();
+    PhysicalScreenPoint GetCurrent();
 }
 
 public enum KeyboardKey

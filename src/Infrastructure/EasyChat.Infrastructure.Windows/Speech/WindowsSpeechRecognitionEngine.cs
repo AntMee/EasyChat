@@ -115,11 +115,28 @@ public sealed class WindowsSpeechRecognitionEngine : ISpeechRecognitionEngine, I
         if (!_backend.Initialize(modelPath))
             throw new InvalidOperationException("ASR initialization failed.");
         _backend.SetCallback(_callback!);
-        var processIds = options.ProcessIds.Count == 0 || options.ProcessIds.Contains(0)
-            ? [0]
-            : options.ProcessIds.ToArray();
+        var processIds = ResolveProcessIds(options.Sources);
         _backend.StartLoopbackCapture(processIds);
         _backend.StartRecognition();
+    }
+
+    private static int[] ResolveProcessIds(IReadOnlyList<AudioCaptureSourceToken> sources)
+    {
+        if (sources.Count == 0 || sources.Contains(WindowsAudioCaptureSourceCatalog.SystemOutputToken))
+            return [0];
+
+        var processIds = new int[sources.Count];
+        for (var index = 0; index < sources.Count; index++)
+        {
+            if (!WindowsAudioCaptureSourceCatalog.TryGetProcessId(sources[index], out processIds[index]))
+            {
+                throw new ArgumentException(
+                    $"Audio source '{sources[index].Value}' is not supported by the Windows adapter.",
+                    nameof(sources));
+            }
+        }
+
+        return processIds;
     }
 
     private static void Publish(ChannelWriter<SpeechRecognitionEvent> writer, int type, string text)

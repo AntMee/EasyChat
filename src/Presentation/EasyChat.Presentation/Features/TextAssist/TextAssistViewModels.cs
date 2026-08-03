@@ -676,7 +676,7 @@ namespace EasyChat.ViewModels.Pages
     }
 }
 
-namespace EasyChat.ViewModels.Windows
+namespace EasyChat.Presentation.Features.TextAssist
 {
     using EasyChat.ViewModels.Pages;
 

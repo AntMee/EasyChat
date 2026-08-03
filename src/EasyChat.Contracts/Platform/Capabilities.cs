@@ -11,7 +11,7 @@ public enum PlatformCapability
     Clipboard,
     GlobalPointerMonitoring,
     WindowActivation,
-    ProcessEnumeration,
+    AudioCaptureSources,
     SpeechRecognition,
     AudioPlayback
 }
@@ -32,6 +32,18 @@ public enum PlatformPermission
     SystemAudioCapture
 }
 
+public enum PermissionState
+{
+    Granted,
+    Denied,
+    Unsupported
+}
+
+public sealed record PermissionStatus(
+    PlatformPermission Permission,
+    PermissionState State,
+    string? Reason = null);
+
 public sealed record CapabilityStatus(
     PlatformCapability Capability,
     CapabilityState State,
@@ -40,6 +52,10 @@ public sealed record CapabilityStatus(
 
 public interface IPlatformCapabilities
 {
+    /// <summary>
+    /// Reports current availability without prompting. A permission-gated adapter identifies the
+    /// next permission that must be requested.
+    /// </summary>
     ValueTask<CapabilityStatus> GetStatusAsync(
         PlatformCapability capability,
         CancellationToken cancellationToken = default);
@@ -47,7 +63,22 @@ public interface IPlatformCapabilities
 
 public interface IPlatformPermissionRequester
 {
-    ValueTask<Result<CapabilityStatus>> RequestAsync(
+    /// <summary>
+    /// Checks or requests a platform permission. A granted result does not imply that the related
+    /// capability is effective until <see cref="IPlatformCapabilities"/> is queried again.
+    /// </summary>
+    ValueTask<Result<PermissionStatus>> RequestAsync(
+        PlatformPermission permission,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IPlatformAccessUseCases
+{
+    ValueTask<Result<CapabilityStatus>> EnsureAvailableAsync(
+        PlatformCapability capability,
+        CancellationToken cancellationToken = default);
+
+    ValueTask<Result<PermissionStatus>> EnsurePermissionAsync(
         PlatformPermission permission,
         CancellationToken cancellationToken = default);
 }

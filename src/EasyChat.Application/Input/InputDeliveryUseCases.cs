@@ -7,24 +7,28 @@ namespace EasyChat.Application.Input;
 public sealed class InputDeliveryUseCases : IInputDeliveryUseCases
 {
     private readonly IWindowFocus _windowFocus;
+    private readonly IPlatformAccessUseCases _platformAccess;
     private readonly ITextSelection _textSelection;
     private readonly ITextDelivery _textDelivery;
     private readonly IInputDeliveryDelay _delay;
 
     public InputDeliveryUseCases(
+        IPlatformAccessUseCases platformAccess,
         IWindowFocus windowFocus,
         ITextSelection textSelection,
         ITextDelivery textDelivery)
-        : this(windowFocus, textSelection, textDelivery, new SystemInputDeliveryDelay())
+        : this(platformAccess, windowFocus, textSelection, textDelivery, new SystemInputDeliveryDelay())
     {
     }
 
     internal InputDeliveryUseCases(
+        IPlatformAccessUseCases platformAccess,
         IWindowFocus windowFocus,
         ITextSelection textSelection,
         ITextDelivery textDelivery,
         IInputDeliveryDelay delay)
     {
+        _platformAccess = platformAccess ?? throw new ArgumentNullException(nameof(platformAccess));
         _windowFocus = windowFocus ?? throw new ArgumentNullException(nameof(windowFocus));
         _textSelection = textSelection ?? throw new ArgumentNullException(nameof(textSelection));
         _textDelivery = textDelivery ?? throw new ArgumentNullException(nameof(textDelivery));
@@ -37,6 +41,12 @@ public sealed class InputDeliveryUseCases : IInputDeliveryUseCases
     {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
+
+        var access = await _platformAccess.EnsureAvailableAsync(
+            PlatformCapability.TextDelivery,
+            cancellationToken).ConfigureAwait(false);
+        if (access.IsFailure)
+            return Result.Failure(access.Error);
 
         var focused = await _windowFocus.EnsureFocusedAsync(request.Target, cancellationToken);
         if (focused.IsFailure)

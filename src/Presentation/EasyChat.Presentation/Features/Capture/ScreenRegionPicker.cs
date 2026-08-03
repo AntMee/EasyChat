@@ -12,26 +12,37 @@ namespace EasyChat.Presentation.Features.Capture;
 
 public interface IScreenRegionPicker
 {
-    ValueTask<ScreenRegion?> PickAsync(CancellationToken cancellationToken = default);
+    ValueTask<PhysicalScreenRegion?> PickAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class AvaloniaScreenRegionPicker(
+    IPlatformAccessUseCases platformAccess,
     IScreenCatalog screens,
     IScreenCapture capture,
     ISukiToastManager toasts) : IScreenRegionPicker
 {
+    private readonly IPlatformAccessUseCases _platformAccess = platformAccess;
     private readonly IScreenCatalog _screens = screens;
     private readonly IScreenCapture _capture = capture;
     private readonly ISukiToastManager _toasts = toasts;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public async ValueTask<ScreenRegion?> PickAsync(CancellationToken cancellationToken = default)
+    public async ValueTask<PhysicalScreenRegion?> PickAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken);
         var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
         var previousState = mainWindow?.WindowState ?? WindowState.Normal;
         try
         {
+            var access = await _platformAccess.EnsureAvailableAsync(
+                PlatformCapability.ScreenCapture,
+                cancellationToken);
+            if (access.IsFailure)
+            {
+                ShowError(access.Error.Message);
+                return null;
+            }
+
             if (mainWindow is not null)
             {
                 mainWindow.WindowState = WindowState.Minimized;
@@ -51,7 +62,7 @@ public sealed class AvaloniaScreenRegionPicker(
                 return null;
             }
 
-            var completion = new TaskCompletionSource<ScreenRegion?>(
+            var completion = new TaskCompletionSource<PhysicalScreenRegion?>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
             var overlay = new OverlayWindowView(
                 bounds,
@@ -93,14 +104,14 @@ public sealed class AvaloniaScreenRegionPicker(
         }
     }
 
-    private static ScreenRegion Union(IEnumerable<ScreenRegion> regions)
+    private static PhysicalScreenRegion Union(IEnumerable<PhysicalScreenRegion> regions)
     {
         var all = regions.ToArray();
         var left = all.Min(region => region.X);
         var top = all.Min(region => region.Y);
         var right = all.Max(region => region.X + region.Width);
         var bottom = all.Max(region => region.Y + region.Height);
-        return new ScreenRegion(left, top, right - left, bottom - top);
+        return new PhysicalScreenRegion(left, top, right - left, bottom - top);
     }
 
     private void ShowError(string message) => _toasts.CreateToast()

@@ -11,6 +11,7 @@ namespace EasyChat.Application.Speech;
 public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
 {
     private readonly ISpeechRecognitionEngine _engine;
+    private readonly IPlatformAccessUseCases _platformAccess;
     private readonly ISettingsUseCases _settings;
     private readonly ITranslationUseCases _translation;
     private readonly ITranslationLanguageCatalog _languages;
@@ -18,12 +19,14 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
 
     public SpeechRecognitionUseCases(
         ISpeechRecognitionEngine engine,
+        IPlatformAccessUseCases platformAccess,
         ISettingsUseCases settings,
         ITranslationUseCases translation,
         ITranslationLanguageCatalog languages,
         ILogger<SpeechRecognitionUseCases> logger)
     {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
+        _platformAccess = platformAccess ?? throw new ArgumentNullException(nameof(platformAccess));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _translation = translation ?? throw new ArgumentNullException(nameof(translation));
         _languages = languages ?? throw new ArgumentNullException(nameof(languages));
@@ -35,6 +38,29 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
+        var access = await _platformAccess.EnsureAvailableAsync(
+            PlatformCapability.SpeechRecognition,
+            cancellationToken).ConfigureAwait(false);
+        if (access.IsFailure)
+        {
+            yield return new SpeechSessionErrorEvent(access.Error.Message);
+            yield return new SpeechSessionStoppedEvent();
+            yield break;
+        }
+
+        foreach (var permission in RequiredPermissions(command.Sources))
+        {
+            var permissionAccess = await _platformAccess.EnsurePermissionAsync(
+                permission,
+                cancellationToken).ConfigureAwait(false);
+            if (permissionAccess.IsFailure)
+            {
+                yield return new SpeechSessionErrorEvent(permissionAccess.Error.Message);
+                yield return new SpeechSessionStoppedEvent();
+                yield break;
+            }
+        }
+
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var events = Channel.CreateUnbounded<SpeechSessionEvent>(new UnboundedChannelOptions
         {
@@ -83,7 +109,7 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
                                new SpeechRecognitionOptions(
                                    command.ModelPath,
                                    command.Language,
-                                   command.ProcessIds),
+                                   command.Sources.Select(source => source.Token).ToArray()),
                                cancellationToken).ConfigureAwait(false))
             {
                 switch (item.Kind)
@@ -131,5 +157,17 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
         {
             writer.TryComplete();
         }
+    }
+
+    private static IEnumerable<PlatformPermission> RequiredPermissions(
+        IReadOnlyList<AudioCaptureSourceReference> sources)
+    {
+        if (sources.Count == 0)
+            return [PlatformPermission.SystemAudioCapture];
+
+        return sources.Select(source => source.Kind == AudioCaptureSourceKind.Microphone
+                ? PlatformPermission.Microphone
+                : PlatformPermission.SystemAudioCapture)
+            .Distinct();
     }
 }

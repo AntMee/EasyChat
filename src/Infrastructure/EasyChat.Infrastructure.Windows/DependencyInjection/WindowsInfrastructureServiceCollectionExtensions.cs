@@ -8,7 +8,6 @@ using EasyChat.Infrastructure.Windows.ImageTranslation;
 using EasyChat.Infrastructure.Windows.Hotkeys;
 using EasyChat.Infrastructure.Windows.Input;
 using EasyChat.Infrastructure.Windows.Ocr;
-using EasyChat.Infrastructure.Windows.Processes;
 using EasyChat.Infrastructure.Windows.Speech;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,6 +23,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
                 "The Windows infrastructure module can only be registered on Windows.");
 
         services.AddSingleton<IPlatformCapabilities, WindowsPlatformCapabilities>();
+        services.AddSingleton<IPlatformPermissionRequester, WindowsPlatformPermissionRequester>();
         services.AddSingleton<IScreenCapture, WindowsScreenCapture>();
         services.AddSingleton<IScreenCatalog, WindowsScreenCatalog>();
         services.AddSingleton<IGlobalHotkeys, WindowsGlobalHotkeys>();
@@ -40,7 +40,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IClipboardText, WindowsClipboardText>();
         services.AddSingleton<ITextDelivery, WindowsTextDelivery>();
         services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
-        services.AddSingleton<IProcessCatalog, WindowsProcessCatalog>();
+        services.AddSingleton<IAudioCaptureSourceCatalog, WindowsAudioCaptureSourceCatalog>();
         services.AddSingleton<ISpeechRecognitionEngine, WindowsSpeechRecognitionEngine>();
         services.AddSingleton<ISpeechRecognitionModelCatalog, WindowsSpeechRecognitionModelCatalog>();
         services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();

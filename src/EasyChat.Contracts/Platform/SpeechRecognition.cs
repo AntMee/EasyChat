@@ -3,7 +3,7 @@ namespace EasyChat.Contracts.Platform;
 public sealed record SpeechRecognitionOptions(
     string ModelPath,
     string Language,
-    IReadOnlyList<int> ProcessIds);
+    IReadOnlyList<AudioCaptureSourceToken> Sources);
 
 public enum SpeechRecognitionEventKind
 {

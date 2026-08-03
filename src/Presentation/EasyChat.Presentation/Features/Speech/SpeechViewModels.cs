@@ -20,27 +20,32 @@ namespace EasyChat.ViewModels.Pages;
 
 public sealed record SpeechEngineOption(string Name, string Id, bool IsMachine);
 
-public sealed class SpeechProcessItem : ReactiveObject, IDisposable
+public sealed class SpeechAudioSourceItem : ReactiveObject, IDisposable
 {
     private bool _isSelected;
 
-    public SpeechProcessItem(ProcessDescriptor process, bool isSelected)
+    public SpeechAudioSourceItem(AudioCaptureSourceDescriptor source, bool isSelected)
     {
-        Id = process.ProcessId;
-        Name = process.Name;
-        Title = process.MainWindowTitle ?? string.Empty;
+        Token = source.Token;
+        Kind = source.Kind;
+        Name = source.Name;
+        DisplayName = source.Kind == AudioCaptureSourceKind.SystemOutput
+            ? Resources.Speech_AllSystemAudio
+            : source.DisplayName;
+        Title = source.Description ?? string.Empty;
         _isSelected = isSelected;
-        if (!process.IconPng.IsEmpty)
+        if (!source.IconPng.IsEmpty)
         {
-            using var stream = new MemoryStream(process.IconPng.ToArray());
+            using var stream = new MemoryStream(source.IconPng.ToArray());
             AppIcon = new Bitmap(stream);
         }
     }
 
-    public int Id { get; }
+    public AudioCaptureSourceToken Token { get; }
+    public AudioCaptureSourceKind Kind { get; }
     public string Name { get; }
     public string Title { get; }
-    public string DisplayName => Id == 0 ? Resources.Speech_AllSystemAudio : $"[{Id}] {Name}";
+    public string DisplayName { get; }
     public Bitmap? AppIcon { get; }
     public bool IsSelected
     {
@@ -103,8 +108,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     private readonly SettingsSession _settings;
     private readonly ISpeechRecognitionUseCases _speech;
     private readonly ISpeechRecognitionModelCatalog _models;
-    private readonly IProcessCatalog _processes;
+    private readonly IAudioCaptureSourceCatalog _audioSources;
     private readonly IPlatformCapabilities _capabilities;
+    private readonly IPlatformAccessUseCases _platformAccess;
     private readonly TranslationLanguageOptions _languages;
     private readonly SubtitleWindowCoordinator _subtitleWindow;
     private readonly ILogger<SpeechRecognitionViewModel> _logger;
@@ -114,7 +120,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     private SpeechEngineOption? _selectedEngineOption;
     private LanguageSettings? _selectedTargetLanguage;
     private string _selectedRecognitionLanguage = string.Empty;
-    private string _selectedProcessesSummary = Resources.Speech_AllSystemAudio;
+    private string _selectedSourcesSummary = Resources.Speech_AllSystemAudio;
     private bool _isSupported;
     private bool _isBusy;
     private bool _isRecording;
@@ -126,8 +132,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         SettingsSession settings,
         ISpeechRecognitionUseCases speech,
         ISpeechRecognitionModelCatalog models,
-        IProcessCatalog processes,
+        IAudioCaptureSourceCatalog audioSources,
         IPlatformCapabilities capabilities,
+        IPlatformAccessUseCases platformAccess,
         TranslationLanguageOptions languages,
         SubtitleWindowCoordinator subtitleWindow,
         ILogger<SpeechRecognitionViewModel> logger)
@@ -136,8 +143,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _settings = settings;
         _speech = speech;
         _models = models;
-        _processes = processes;
+        _audioSources = audioSources;
         _capabilities = capabilities;
+        _platformAccess = platformAccess;
         _languages = languages;
         _subtitleWindow = subtitleWindow;
         _logger = logger;
@@ -147,7 +155,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         TargetLanguages = [];
         AvailableFonts = new ObservableCollection<string>(
             FontManager.Current.SystemFonts.Select(font => font.Name).Order(StringComparer.CurrentCulture));
-        Processes = [];
+        AudioSources = [];
         SubtitleItems = [];
         FloatingSubtitles = [];
 
@@ -160,7 +168,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         UpdateTargetLanguages(commitSelection: false);
 
         ToggleRecordingCommand = ReactiveCommand.CreateFromTask(ToggleRecordingAsync);
-        RefreshProcessesCommand = ReactiveCommand.CreateFromTask(RefreshProcessesAsync);
+        RefreshSourcesCommand = ReactiveCommand.CreateFromTask(RefreshSourcesAsync);
         ClearHistoryCommand = ReactiveCommand.Create(ClearHistory);
         ToggleFloatingWindowCommand = ReactiveCommand.Create(ToggleFloatingWindow);
         ToggleLockCommand = ReactiveCommand.Create(() =>
@@ -192,7 +200,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     public ObservableCollection<SpeechEngineOption> EngineOptions { get; }
     public ObservableCollection<LanguageSettings> TargetLanguages { get; }
     public ObservableCollection<string> AvailableFonts { get; }
-    public ObservableCollection<SpeechProcessItem> Processes { get; }
+    public ObservableCollection<SpeechAudioSourceItem> AudioSources { get; }
     public ObservableCollection<SpeechSubtitleItemViewModel> SubtitleItems { get; }
     public ObservableCollection<SpeechSubtitleItemViewModel> FloatingSubtitles { get; }
 
@@ -215,7 +223,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     ];
 
     public ReactiveCommand<Unit, Unit> ToggleRecordingCommand { get; }
-    public ReactiveCommand<Unit, Unit> RefreshProcessesCommand { get; }
+    public ReactiveCommand<Unit, Unit> RefreshSourcesCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearHistoryCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleFloatingWindowCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleLockCommand { get; }
@@ -239,7 +247,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     public string RecordingText => IsRecording ? Resources.Speech_Stop : Resources.Speech_Start;
     public MaterialIconKind RecordingIcon => IsRecording ? MaterialIconKind.MicrophoneOff : MaterialIconKind.Microphone;
     public bool IsFloatingWindowOpen { get => _isFloatingWindowOpen; private set => this.RaiseAndSetIfChanged(ref _isFloatingWindowOpen, value); }
-    public string SelectedProcessesSummary { get => _selectedProcessesSummary; private set => this.RaiseAndSetIfChanged(ref _selectedProcessesSummary, value); }
+    public string SelectedSourcesSummary { get => _selectedSourcesSummary; private set => this.RaiseAndSetIfChanged(ref _selectedSourcesSummary, value); }
     public string SelectedRecognitionLanguage
     {
         get => _selectedRecognitionLanguage;
@@ -305,7 +313,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         var capability = await _capabilities.GetStatusAsync(
             PlatformCapability.SpeechRecognition,
             cancellationToken);
-        IsSupported = capability.State == CapabilityState.Available;
+        IsSupported = capability.State != CapabilityState.Unsupported;
         if (!IsSupported)
             return;
 
@@ -317,7 +325,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             ?? RecognitionLanguages.FirstOrDefault(language => language.Contains("zh", StringComparison.OrdinalIgnoreCase))
             ?? RecognitionLanguages.FirstOrDefault()
             ?? string.Empty;
-        await RefreshProcessesAsync(cancellationToken);
+        await RefreshSourcesAsync(cancellationToken);
     }
 
     public void StoreFloatingWindowBounds(int x, int y, double width, double height)
@@ -335,8 +343,8 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _autoClearTimer.Stop();
         _subtitleWindow.VisibilityChanged -= OnSubtitleWindowVisibilityChanged;
         _subtitleWindow.Close();
-        foreach (var process in Processes)
-            process.Dispose();
+        foreach (var source in AudioSources)
+            source.Dispose();
     }
 
     private async Task ToggleRecordingAsync()
@@ -363,7 +371,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         var command = new SpeechRecognitionCommand(
             SelectedRecognitionLanguage,
             SelectedRecognitionLanguage,
-            Processes.Where(process => process.IsSelected).Select(process => process.Id).ToArray());
+            AudioSources.Where(source => source.IsSelected)
+                .Select(source => new AudioCaptureSourceReference(source.Token, source.Kind))
+                .ToArray());
         IsRecording = true;
         _recognitionTask = ConsumeRecognitionAsync(command, _recognitionCancellation.Token);
     }
@@ -457,40 +467,53 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         FloatingSubtitles.Add(item);
     }
 
-    private async Task RefreshProcessesAsync(CancellationToken cancellationToken = default)
+    private async Task RefreshSourcesAsync(CancellationToken cancellationToken = default)
     {
-        var selected = Processes.Where(process => process.IsSelected)
-            .Select(process => process.Id)
-            .ToHashSet();
-        foreach (var process in Processes)
+        var access = await _platformAccess.EnsureAvailableAsync(
+            PlatformCapability.AudioCaptureSources,
+            cancellationToken);
+        if (access.IsFailure)
         {
-            process.PropertyChanged -= OnProcessPropertyChanged;
-            process.Dispose();
+            _logger.LogWarning(
+                "Audio capture sources are unavailable: {Message}",
+                access.Error.Message);
+            return;
         }
-        Processes.Clear();
 
-        var available = await _processes.GetProcessesAsync(cancellationToken);
+        var selected = AudioSources.Where(source => source.IsSelected)
+            .Select(source => source.Token)
+            .ToHashSet();
+        foreach (var source in AudioSources)
+        {
+            source.PropertyChanged -= OnSourcePropertyChanged;
+            source.Dispose();
+        }
+        AudioSources.Clear();
+
+        var available = await _audioSources.GetSourcesAsync(cancellationToken);
         foreach (var descriptor in available)
         {
-            var item = new SpeechProcessItem(
+            var item = new SpeechAudioSourceItem(
                 descriptor,
-                selected.Count == 0 ? descriptor.ProcessId == 0 : selected.Contains(descriptor.ProcessId));
-            item.PropertyChanged += OnProcessPropertyChanged;
-            Processes.Add(item);
+                selected.Count == 0
+                    ? descriptor.Kind == AudioCaptureSourceKind.SystemOutput
+                    : selected.Contains(descriptor.Token));
+            item.PropertyChanged += OnSourcePropertyChanged;
+            AudioSources.Add(item);
         }
-        UpdateProcessSummary();
+        UpdateSourceSummary();
     }
 
-    private void OnProcessPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    private void OnSourcePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
-        if (eventArgs.PropertyName == nameof(SpeechProcessItem.IsSelected))
-            UpdateProcessSummary();
+        if (eventArgs.PropertyName == nameof(SpeechAudioSourceItem.IsSelected))
+            UpdateSourceSummary();
     }
 
-    private void UpdateProcessSummary()
+    private void UpdateSourceSummary()
     {
-        var selected = Processes.Where(process => process.IsSelected).ToArray();
-        SelectedProcessesSummary = selected.Length switch
+        var selected = AudioSources.Where(source => source.IsSelected).ToArray();
+        SelectedSourcesSummary = selected.Length switch
         {
             0 => Resources.Speech_AllSystemAudio,
             1 => selected[0].Name,

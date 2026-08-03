@@ -1,11 +1,12 @@
 using System.Text.Json.Serialization;
+using EasyChat.Contracts.Platform;
 
 namespace EasyChat.Contracts.Speech;
 
 public sealed record SpeechRecognitionCommand(
     string ModelPath,
     string Language,
-    IReadOnlyList<int> ProcessIds);
+    IReadOnlyList<AudioCaptureSourceReference> Sources);
 
 public sealed record SpeechRecognitionModel(string Id);
 

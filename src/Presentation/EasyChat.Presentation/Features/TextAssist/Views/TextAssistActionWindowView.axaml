@@ -3,8 +3,8 @@
                  xmlns:suki="https://github.com/kikipoulet/SukiUI"
                  xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:converters="clr-namespace:EasyChat.Converters"
-                 xmlns:vm="using:EasyChat.ViewModels.Windows"
-                 x:Class="EasyChat.Views.Windows.TextAssistActionWindowView"
+                 xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
+                 x:Class="EasyChat.Presentation.Features.TextAssist.TextAssistActionWindowView"
                  x:DataType="vm:TextAssistResultWindowViewModel"
                  Width="820" Height="520" WindowStartupLocation="CenterScreen" Title="{Binding Title}">
     <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="12">

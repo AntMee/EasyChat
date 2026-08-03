@@ -12,9 +12,11 @@ public sealed record ScreenshotSelection(Bitmap Image, CaptureOverlayAction Acti
 }
 
 public sealed class ScreenshotCaptureCoordinator(
+    IPlatformAccessUseCases platformAccess,
     IScreenCatalog screens,
     IScreenCapture capture)
 {
+    private readonly IPlatformAccessUseCases _platformAccess = platformAccess;
     private readonly IScreenCatalog _screens = screens;
     private readonly IScreenCapture _capture = capture;
 
@@ -22,6 +24,12 @@ public sealed class ScreenshotCaptureCoordinator(
         string? mode,
         CancellationToken cancellationToken = default)
     {
+        var access = await _platformAccess.EnsureAvailableAsync(
+            PlatformCapability.ScreenCapture,
+            cancellationToken).ConfigureAwait(false);
+        if (access.IsFailure)
+            throw new InvalidOperationException(access.Error.Message);
+
         var availableScreens = await _screens.GetScreensAsync(cancellationToken)
             .ConfigureAwait(false);
         if (availableScreens.Count == 0)
@@ -60,14 +68,14 @@ public sealed class ScreenshotCaptureCoordinator(
         return await completion.Task.ConfigureAwait(false);
     }
 
-    private static ScreenRegion Union(IEnumerable<ScreenRegion> regions)
+    private static PhysicalScreenRegion Union(IEnumerable<PhysicalScreenRegion> regions)
     {
         var all = regions.ToArray();
         var left = all.Min(region => region.X);
         var top = all.Min(region => region.Y);
         var right = all.Max(region => region.X + region.Width);
         var bottom = all.Max(region => region.Y + region.Height);
-        return new ScreenRegion(left, top, right - left, bottom - top);
+        return new PhysicalScreenRegion(left, top, right - left, bottom - top);
     }
 
     private static async ValueTask<T> OnUiAsync<T>(

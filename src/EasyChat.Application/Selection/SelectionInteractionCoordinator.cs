@@ -15,6 +15,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     private static readonly TimeSpan DoubleClickGuard = TimeSpan.FromMilliseconds(500);
 
     private readonly ISettingsUseCases _settings;
+    private readonly IPlatformAccessUseCases _platformAccess;
     private readonly IGlobalPointerMonitor _pointerMonitor;
     private readonly IWindowFocus _windowFocus;
     private readonly IClipboardSnapshots _clipboardSnapshots;
@@ -29,29 +30,31 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     private CancellationTokenSource? _lifetime;
     private IPointerMonitorRegistration? _registration;
     private ISelectionInteractionSink? _sink;
-    private ScreenPoint? _downPoint;
+    private PhysicalScreenPoint? _downPoint;
     private ExternalTargetToken _foregroundAtMouseDown;
     private ExternalTargetToken _focusedAtMouseDown;
     private DateTimeOffset _lastDoubleClickTime;
-    private ScreenPoint _lastDoubleClickPoint;
+    private PhysicalScreenPoint _lastDoubleClickPoint;
     private long _generation;
     private bool _disposed;
     private Task? _disposeTask;
 
     public SelectionInteractionCoordinator(
         ISettingsUseCases settings,
+        IPlatformAccessUseCases platformAccess,
         IGlobalPointerMonitor pointerMonitor,
         IWindowFocus windowFocus,
         IClipboardSnapshots clipboardSnapshots,
         ISelectedTextUseCases selectedText,
         ILogger<SelectionInteractionCoordinator> logger)
-        : this(settings, pointerMonitor, windowFocus, clipboardSnapshots, selectedText,
+        : this(settings, platformAccess, pointerMonitor, windowFocus, clipboardSnapshots, selectedText,
             new SystemSelectionDelay(), logger)
     {
     }
 
     internal SelectionInteractionCoordinator(
         ISettingsUseCases settings,
+        IPlatformAccessUseCases platformAccess,
         IGlobalPointerMonitor pointerMonitor,
         IWindowFocus windowFocus,
         IClipboardSnapshots clipboardSnapshots,
@@ -60,6 +63,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         ILogger<SelectionInteractionCoordinator> logger)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _platformAccess = platformAccess ?? throw new ArgumentNullException(nameof(platformAccess));
         _pointerMonitor = pointerMonitor ?? throw new ArgumentNullException(nameof(pointerMonitor));
         _windowFocus = windowFocus ?? throw new ArgumentNullException(nameof(windowFocus));
         _clipboardSnapshots = clipboardSnapshots ?? throw new ArgumentNullException(nameof(clipboardSnapshots));
@@ -133,7 +137,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         {
             await _delay.WaitAsync(StartupDelay, cancellationToken).ConfigureAwait(false);
             if (_settings.Current.SelectionTranslation.Enabled)
-                EnableMonitoring(cancellationToken);
+                await EnableMonitoringAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -151,7 +155,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
 
         if (args.Current.SelectionTranslation.Enabled)
         {
-            EnableMonitoring(_lifetime?.Token ?? CancellationToken.None);
+            Track(EnableMonitoringAsync(_lifetime?.Token ?? CancellationToken.None));
         }
         else
         {
@@ -165,8 +169,19 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         }
     }
 
-    private void EnableMonitoring(CancellationToken cancellationToken)
+    private async Task EnableMonitoringAsync(CancellationToken cancellationToken)
     {
+        var access = await _platformAccess.EnsureAvailableAsync(
+            PlatformCapability.GlobalPointerMonitoring,
+            cancellationToken).ConfigureAwait(false);
+        if (access.IsFailure)
+        {
+            _logger.LogWarning(
+                "Selection monitoring is unavailable: {Message}",
+                access.Error.Message);
+            return;
+        }
+
         ISelectionInteractionSink? sink;
         lock (_lifecycle)
         {
@@ -339,7 +354,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
 
     private async Task CaptureAfterDelayAsync(
         SelectionGesture gesture,
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         ExternalTargetToken foreground,
         ExternalTargetToken focused,
         IClipboardChangeToken? clipboardToken,
@@ -424,7 +439,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     private static bool HandlesDoubleClick(SelectionTriggerMode mode) =>
         mode is SelectionTriggerMode.DoubleClick or SelectionTriggerMode.All;
 
-    private static double Distance(ScreenPoint left, ScreenPoint right)
+    private static double Distance(PhysicalScreenPoint left, PhysicalScreenPoint right)
     {
         var x = right.X - left.X;
         var y = right.Y - left.Y;

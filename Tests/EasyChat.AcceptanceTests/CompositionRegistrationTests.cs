@@ -20,7 +20,7 @@ using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.TextAssist;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Platform;
-using EasyChat.DependencyInjection;
+using EasyChat.Desktop.Windows.DependencyInjection;
 using EasyChat.Infrastructure.DependencyInjection;
 using EasyChat.Infrastructure.Translation;
 using EasyChat.Infrastructure.Windows.DependencyInjection;
@@ -87,7 +87,7 @@ public sealed class CompositionRegistrationTests
             provider.GetRequiredService<ISpeechRecognitionUseCases>());
         Assert.IsNotNull(provider.GetRequiredService<IGlobalPointerMonitor>());
         Assert.IsNotNull(provider.GetRequiredService<ISelectedTextCapture>());
-        Assert.IsNotNull(provider.GetRequiredService<IProcessCatalog>());
+        Assert.IsNotNull(provider.GetRequiredService<IAudioCaptureSourceCatalog>());
         Assert.IsNotNull(provider.GetRequiredService<ISpeechRecognitionEngine>());
         Assert.IsNotNull(provider.GetRequiredService<IAudioPlaybackQueue>());
     }

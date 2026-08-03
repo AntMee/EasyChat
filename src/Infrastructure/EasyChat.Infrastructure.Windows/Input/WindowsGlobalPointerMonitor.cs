@@ -181,7 +181,7 @@ public sealed class WindowsGlobalPointerMonitor : IGlobalPointerMonitor, IDispos
 
         var pointerEvent = new GlobalPointerEvent(
             action,
-            new ScreenPoint(point.X, point.Y),
+            new PhysicalScreenPoint(point.X, point.Y),
             DateTimeOffset.UtcNow);
         foreach (var callback in callbacks)
         {

@@ -93,14 +93,14 @@
                                                         <!-- Header -->
                                                         <Grid ColumnDefinitions="*, Auto" Margin="12,10" Background="Transparent">
                                                             <TextBlock Text="{x:Static lang:Resources.Speech_SelectSourceTitle}" FontWeight="SemiBold" VerticalAlignment="Center" Opacity="0.8"/>
-                                                            <Button Grid.Column="1" Command="{Binding RefreshProcessesCommand}" Classes="Basic" Padding="4" Height="28" Width="28" ToolTip.Tip="{x:Static lang:Resources.Speech_Refresh}">
+                                                            <Button Grid.Column="1" Command="{Binding RefreshSourcesCommand}" Classes="Basic" Padding="4" Height="28" Width="28" ToolTip.Tip="{x:Static lang:Resources.Speech_Refresh}">
                                                                 <avalonia:MaterialIcon Kind="Refresh" Width="16" Height="16"/>
                                                             </Button>
                                                         </Grid>
                                                         
-                                                        <!-- Process List -->
+                                                        <!-- Audio sources -->
                                                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="400">
-                                                            <ItemsControl ItemsSource="{Binding Processes}" Margin="5">
+                                                            <ItemsControl ItemsSource="{Binding AudioSources}" Margin="5">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <CheckBox IsChecked="{Binding IsSelected}" HorizontalAlignment="Stretch" Margin="0,2" Padding="8,6" Background="Transparent" CornerRadius="4">
@@ -119,7 +119,7 @@
                                         </Button.Flyout>
                                         <!-- Button Content mimicking ComboBox -->
                                         <Grid ColumnDefinitions="*, Auto" Width="160" Margin="10,0">
-                                            <TextBlock Text="{Binding SelectedProcessesSummary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{DynamicResource SukiText}"/>
+                                            <TextBlock Text="{Binding SelectedSourcesSummary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{DynamicResource SukiText}"/>
                                             <avalonia:MaterialIcon Grid.Column="1" Kind="ChevronDown" Width="16" Height="16" Opacity="0.6" Margin="5,0,0,0" Foreground="{DynamicResource SukiText}"/>
                                         </Grid>
                                     </Button>

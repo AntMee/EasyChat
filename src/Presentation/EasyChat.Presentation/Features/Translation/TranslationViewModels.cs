@@ -10,7 +10,7 @@ using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.Translation.Models;
 using ReactiveUI;
 
-namespace EasyChat.ViewModels.Windows;
+namespace EasyChat.Presentation.Features.Translation;
 
 public sealed class TranslationDictionaryWindowViewModel : EasyChat.ViewModels.ViewModelBase
 {

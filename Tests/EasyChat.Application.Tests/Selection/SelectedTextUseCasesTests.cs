@@ -14,6 +14,7 @@ public sealed class SelectedTextUseCasesTests
         var sequence = new List<string>();
         var capture = new FakeCapture(sequence);
         var useCases = new SelectedTextUseCases(
+            new AvailablePlatformAccess(),
             capture,
             new FakeSelection(sequence, new TextSelectionRange(true, 2, 5)),
             new FakeDelivery(sequence),
@@ -22,7 +23,7 @@ public sealed class SelectedTextUseCasesTests
 
         var result = await useCases.CaptureAsync(new SelectedTextCaptureCommand(
             SelectedTextCaptureMode.All,
-            new ScreenPoint(12, 34),
+            new PhysicalScreenPoint(12, 34),
             new ExternalTargetToken("foreground"),
             new ExternalTargetToken("focused")));
 
@@ -30,7 +31,7 @@ public sealed class SelectedTextUseCasesTests
         Assert.IsNotNull(capture.Request);
         Assert.IsTrue(capture.Request.CopyOnly);
         Assert.IsFalse(capture.Request.CaptureAll);
-        Assert.AreEqual(new ScreenPoint(12, 34), capture.Request.PointerPosition);
+        Assert.AreEqual(new PhysicalScreenPoint(12, 34), capture.Request.PointerPosition);
         CollectionAssert.AreEqual(
             new[] { "select-all", "key:Ctrl + A", "delay:50", "capture" },
             sequence);
@@ -41,6 +42,7 @@ public sealed class SelectedTextUseCasesTests
     {
         var sequence = new List<string>();
         var useCases = new SelectedTextUseCases(
+            new AvailablePlatformAccess(),
             new FakeCapture(sequence),
             new FakeSelection(sequence, new TextSelectionRange(true, 0, 1)),
             new FakeDelivery(sequence),

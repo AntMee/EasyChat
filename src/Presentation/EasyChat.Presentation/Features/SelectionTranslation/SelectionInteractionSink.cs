@@ -7,7 +7,6 @@ using EasyChat.Contracts.TextAssist;
 using EasyChat.Presentation.Features.TextAssist;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Platform;
-using EasyChat.Views.Windows;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.SelectionTranslation;
@@ -24,7 +23,7 @@ public sealed class SelectionInteractionSink(
     private SelectionCapture? _capture;
 
     public async ValueTask<SelectionSurfaceState> InspectSurfaceAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default)
     {
         var overToolbar = await OnUiAsync(() => Contains(_toolbar, point), cancellationToken);
@@ -53,7 +52,7 @@ public sealed class SelectionInteractionSink(
     }
 
     public async ValueTask OnExternalPointerPressedAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default)
     {
         await OnUiAsync(() => _toolbar?.Hide(), cancellationToken);
@@ -121,14 +120,14 @@ public sealed class SelectionInteractionSink(
         }
     }
 
-    private static bool Contains(Window? window, ScreenPoint point)
+    private static bool Contains(Window? window, PhysicalScreenPoint point)
     {
         if (window?.IsVisible != true) return false;
         var client = window.PointToClient(new PixelPoint(point.X, point.Y));
         return new Rect(window.Bounds.Size).Contains(client);
     }
 
-    private static void PositionToolbar(Window window, ScreenPoint point)
+    private static void PositionToolbar(Window window, PhysicalScreenPoint point)
     {
         var screen = window.Screens.ScreenFromPoint(new PixelPoint(point.X, point.Y)) ?? window.Screens.Primary;
         if (screen is null)

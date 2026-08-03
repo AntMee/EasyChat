@@ -158,6 +158,75 @@ public sealed class ArchitectureRulesTests
     }
 
     [TestMethod]
+    public void PlatformExtensionBoundaries_RemainIsolated()
+    {
+        var root = FindRepositoryRoot();
+        var windowsInfrastructure = Path.Combine(
+            root,
+            "src",
+            "Infrastructure",
+            "EasyChat.Infrastructure.Windows");
+        foreach (var file in SourceFiles(windowsInfrastructure))
+        {
+            var source = File.ReadAllText(file);
+            Assert.DoesNotContain("Avalonia", source, Path.GetRelativePath(root, file));
+            Assert.DoesNotContain("EasyChat.Presentation", source, Path.GetRelativePath(root, file));
+        }
+
+        var sharedDesktop = Path.Combine(root, "src", "Host", "EasyChat.Desktop");
+        foreach (var file in SourceFiles(sharedDesktop))
+        {
+            var source = File.ReadAllText(file);
+            Assert.DoesNotContain("Infrastructure.Windows", source, Path.GetRelativePath(root, file));
+            Assert.DoesNotContain("OperatingSystem.IsWindows", source, Path.GetRelativePath(root, file));
+        }
+
+        var appSource = File.ReadAllText(Path.Combine(sharedDesktop, "App.axaml.cs"));
+        Assert.DoesNotContain("IServiceProvider", appSource);
+        Assert.DoesNotContain("GetRequiredService", appSource);
+        Assert.DoesNotContain("GetService(", appSource);
+
+        var windowsProgram = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "Host",
+            "EasyChat.Desktop.Windows",
+            "Program.cs"));
+        StringAssert.Contains(windowsProgram, "DesktopApplication.Run");
+        Assert.DoesNotContain("AddEasyChatInfrastructure", windowsProgram);
+        Assert.DoesNotContain("AddEasyChatApplication", windowsProgram);
+        Assert.DoesNotContain("AddEasyChatPresentation", windowsProgram);
+
+        var presentation = Path.Combine(root, "src", "Presentation", "EasyChat.Presentation");
+        foreach (var file in Directory.EnumerateFiles(presentation, "*", SearchOption.AllDirectories)
+                     .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+                                    || path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase)))
+        {
+            var source = File.ReadAllText(file);
+            Assert.DoesNotContain("EasyChat.ViewModels.Windows", source, Path.GetRelativePath(root, file));
+            Assert.DoesNotContain("EasyChat.Views.Windows", source, Path.GetRelativePath(root, file));
+        }
+
+        var speechContract = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "EasyChat.Contracts",
+            "Platform",
+            "SpeechRecognition.cs"));
+        StringAssert.Contains(speechContract, "AudioCaptureSourceToken");
+        Assert.DoesNotContain("ProcessId", speechContract);
+
+        var audioSourceContract = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "EasyChat.Contracts",
+            "Platform",
+            "AudioCaptureSources.cs"));
+        Assert.DoesNotContain("ProcessId", audioSourceContract);
+        StringAssert.Contains(audioSourceContract, "opaque");
+    }
+
+    [TestMethod]
     public void WindowsHost_PreservesProductIdentity()
     {
         var root = FindRepositoryRoot();

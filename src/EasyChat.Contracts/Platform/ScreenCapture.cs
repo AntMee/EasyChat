@@ -12,7 +12,7 @@ public enum ScreenCaptureTarget
 public sealed record ScreenCaptureRequest(
     ScreenCaptureTarget Target,
     ScreenId? Screen = null,
-    ScreenRegion? Region = null);
+    PhysicalScreenRegion? Region = null);
 
 public interface IScreenCapture
 {

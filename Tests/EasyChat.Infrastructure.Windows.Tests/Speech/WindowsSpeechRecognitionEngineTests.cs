@@ -37,6 +37,25 @@ public sealed class WindowsSpeechRecognitionEngineTests
         Assert.IsTrue(worker.AllCallsDispatched);
     }
 
+    [TestMethod]
+    public async Task ApplicationSourceTokens_AreDecodedOnlyByTheWindowsAdapter()
+    {
+        var backend = new FakeBackend();
+        using var engine = new WindowsSpeechRecognitionEngine(
+            backend,
+            new FakeWorker(),
+            @"C:\models");
+
+        await foreach (var _ in engine.RecognizeAsync(new SpeechRecognitionOptions(
+                           "en",
+                           "en",
+                           [WindowsAudioCaptureSourceCatalog.FromProcessId(42)])))
+        {
+        }
+
+        CollectionAssert.AreEqual(new[] { 42 }, backend.ProcessIds);
+    }
+
     private sealed class FakeWorker : IWindowsAsrWorker
     {
         public bool IsExecuting { get; private set; }

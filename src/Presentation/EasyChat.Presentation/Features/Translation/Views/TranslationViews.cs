@@ -6,10 +6,9 @@ using Avalonia.Interactivity;
 using EasyChat.Lang;
 using EasyChat.Presentation.Foundation.Platform;
 using EasyChat.Presentation.Shared.Feedback;
-using EasyChat.ViewModels.Windows;
 using Microsoft.Extensions.Logging;
 
-namespace EasyChat.Views.Windows
+namespace EasyChat.Presentation.Features.Translation
 {
     public partial class TranslationDictionaryWindowView : Window
     {

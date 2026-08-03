@@ -10,8 +10,8 @@ public sealed class WindowsScreenCaptureTests
 {
     private static readonly WindowsScreenSnapshot[] Screens =
     [
-        new("display-left", new ScreenRegion(-1920, 0, 1920, 1080), 96, 96, false),
-        new("display-primary", new ScreenRegion(0, 0, 2560, 1440), 120, 120, true)
+        new("display-left", new PhysicalScreenRegion(-1920, 0, 1920, 1080), 96, 96, false),
+        new("display-primary", new PhysicalScreenRegion(0, 0, 2560, 1440), 120, 120, true)
     ];
 
     [TestMethod]
@@ -38,7 +38,7 @@ public sealed class WindowsScreenCaptureTests
             new ScreenId("-1920")));
         Assert.AreEqual(Screens[0].Bounds, backend.CapturedRegion);
 
-        var region = new ScreenRegion(-25, 31, 4, 3);
+        var region = new PhysicalScreenRegion(-25, 31, 4, 3);
         await capture.CaptureAsync(new ScreenCaptureRequest(
             ScreenCaptureTarget.Region,
             Region: region));
@@ -62,7 +62,7 @@ public sealed class WindowsScreenCaptureTests
         IReadOnlyList<WindowsScreenSnapshot> screens,
         byte[] pixels) : IWindowsScreenBackend
     {
-        public ScreenRegion? CapturedRegion { get; private set; }
+        public PhysicalScreenRegion? CapturedRegion { get; private set; }
 
         public IReadOnlyList<WindowsScreenSnapshot> GetScreens(CancellationToken cancellationToken)
         {
@@ -71,7 +71,7 @@ public sealed class WindowsScreenCaptureTests
         }
 
         public WindowsCapturedFrame Capture(
-            ScreenRegion region,
+            PhysicalScreenRegion region,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();

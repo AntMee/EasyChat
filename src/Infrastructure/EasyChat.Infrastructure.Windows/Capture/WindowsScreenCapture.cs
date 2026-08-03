@@ -60,7 +60,7 @@ public sealed class WindowsScreenCapture : IScreenCapture
             captured.Pixels));
     }
 
-    private ScreenRegion ResolveRegion(
+    private PhysicalScreenRegion ResolveRegion(
         ScreenCaptureRequest request,
         CancellationToken cancellationToken)
     {
@@ -112,7 +112,7 @@ public sealed class WindowsScreenCapture : IScreenCapture
                int.TryParse(value.AsSpan(prefix.Length), out index);
     }
 
-    private static string FormatBounds(ScreenRegion bounds) =>
+    private static string FormatBounds(PhysicalScreenRegion bounds) =>
         $"{bounds.X},{bounds.Y},{bounds.Width},{bounds.Height}";
 }
 
@@ -153,7 +153,7 @@ public sealed class WindowsScreenCatalog : IScreenCatalog
 
 internal sealed record WindowsScreenSnapshot(
     string Id,
-    ScreenRegion Bounds,
+    PhysicalScreenRegion Bounds,
     double DpiX,
     double DpiY,
     bool IsPrimary);
@@ -170,7 +170,7 @@ internal interface IWindowsScreenBackend
 {
     IReadOnlyList<WindowsScreenSnapshot> GetScreens(CancellationToken cancellationToken);
 
-    WindowsCapturedFrame Capture(ScreenRegion region, CancellationToken cancellationToken);
+    WindowsCapturedFrame Capture(PhysicalScreenRegion region, CancellationToken cancellationToken);
 }
 
 [SupportedOSPlatform("windows")]
@@ -202,7 +202,7 @@ internal sealed class GdiWindowsScreenBackend : IWindowsScreenBackend
                 return true;
 
             var (dpiX, dpiY) = GetMonitorDpi(monitor);
-            var bounds = new ScreenRegion(
+            var bounds = new PhysicalScreenRegion(
                 info.Monitor.Left,
                 info.Monitor.Top,
                 info.Monitor.Right - info.Monitor.Left,
@@ -228,7 +228,7 @@ internal sealed class GdiWindowsScreenBackend : IWindowsScreenBackend
     }
 
     public WindowsCapturedFrame Capture(
-        ScreenRegion region,
+        PhysicalScreenRegion region,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

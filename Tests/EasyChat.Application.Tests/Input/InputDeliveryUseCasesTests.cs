@@ -14,6 +14,7 @@ public sealed class InputDeliveryUseCasesTests
         var sequence = new List<string>();
         var delivery = new FakeTextDelivery(sequence);
         var useCases = new InputDeliveryUseCases(
+            new AvailablePlatformAccess(),
             new FakeWindowFocus(sequence),
             new FakeTextSelection(sequence, new TextSelectionRange(true, 2, 7)),
             delivery,
@@ -51,6 +52,7 @@ public sealed class InputDeliveryUseCasesTests
     {
         var sequence = new List<string>();
         var useCases = new InputDeliveryUseCases(
+            new AvailablePlatformAccess(),
             new FakeWindowFocus(sequence, Result.Failure(
                 new Error("window.focus-failed", "not focused"))),
             new FakeTextSelection(sequence, new TextSelectionRange(true, 0, 1)),

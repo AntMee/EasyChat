@@ -3,7 +3,7 @@ using EasyChat.Shared.Results;
 namespace EasyChat.Contracts.Platform;
 
 public sealed record SelectionCaptureRequest(
-    ScreenPoint? PointerPosition = null,
+    PhysicalScreenPoint? PointerPosition = null,
     ExternalTargetToken ExpectedForegroundTarget = default,
     ExternalTargetToken ExpectedFocusedTarget = default,
     bool CopyOnly = false,
@@ -15,7 +15,7 @@ public sealed record SelectedText(
     string Text,
     ExternalTargetToken SourceTarget,
     string CaptureMethod,
-    ScreenPoint? PointerPosition = null);
+    PhysicalScreenPoint? PointerPosition = null);
 
 public interface ISelectedTextCapture
 {

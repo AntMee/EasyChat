@@ -45,7 +45,7 @@ internal enum ResizeHandle
 public partial class OverlayWindowView : Window
 {
     private readonly Bitmap? _capturedImage;
-    private readonly ScreenRegion _bounds;
+    private readonly PhysicalScreenRegion _bounds;
     private readonly bool _precise;
     private readonly bool _regionOnly;
     private readonly Rectangle? _selectionRectangle;
@@ -65,7 +65,7 @@ public partial class OverlayWindowView : Window
     public OverlayWindowView() => InitializeComponent();
 
     public OverlayWindowView(
-        ScreenRegion bounds,
+        PhysicalScreenRegion bounds,
         Bitmap capturedImage,
         bool precise,
         bool regionOnly = false)
@@ -109,7 +109,7 @@ public partial class OverlayWindowView : Window
     }
 
     public event Action<Bitmap, CaptureOverlayAction>? SelectionCompleted;
-    public event Action<ScreenRegion>? RegionSelected;
+    public event Action<PhysicalScreenRegion>? RegionSelected;
     public event Action? SelectionCanceled;
 
     protected override void OnOpened(EventArgs e)
@@ -383,7 +383,7 @@ public partial class OverlayWindowView : Window
         _copyMenuBorder!.IsVisible = false;
         var selection = CurrentSelection();
         var scaling = RenderScaling;
-        var local = new ScreenRegion(
+        var local = new PhysicalScreenRegion(
             (int)(selection.X * scaling),
             (int)(selection.Y * scaling),
             (int)(selection.Width * scaling),
@@ -397,7 +397,7 @@ public partial class OverlayWindowView : Window
         _completed = true;
         if (_regionOnly)
         {
-            RegionSelected?.Invoke(new ScreenRegion(
+            RegionSelected?.Invoke(new PhysicalScreenRegion(
                 _bounds.X + local.X,
                 _bounds.Y + local.Y,
                 local.Width,

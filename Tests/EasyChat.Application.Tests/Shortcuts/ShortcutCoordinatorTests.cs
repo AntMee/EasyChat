@@ -26,6 +26,7 @@ public sealed class ShortcutCoordinatorTests
         var action = new FakeShortcutAction();
         await using var coordinator = new ShortcutCoordinator(
             new FakeSettingsUseCases(bundle),
+            new AvailablePlatformAccess(),
             hotkeys,
             [action]);
 

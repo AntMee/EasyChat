@@ -27,6 +27,7 @@ public sealed class SpeechRecognitionUseCasesTests
         });
         var useCases = new SpeechRecognitionUseCases(
             new FakeEngine(),
+            new AvailablePlatformAccess(),
             settings,
             new UnusedTranslationUseCases(),
             new BuiltInTranslationLanguageCatalog(),
@@ -34,7 +35,12 @@ public sealed class SpeechRecognitionUseCasesTests
 
         var events = new List<SpeechSessionEvent>();
         await foreach (var item in useCases.RecognizeAsync(
-                           new SpeechRecognitionCommand("en", "en", [0])))
+                           new SpeechRecognitionCommand(
+                               "en",
+                               "en",
+                               [new AudioCaptureSourceReference(
+                                   new AudioCaptureSourceToken("test:system-output"),
+                                   AudioCaptureSourceKind.SystemOutput)])))
         {
             events.Add(item);
         }

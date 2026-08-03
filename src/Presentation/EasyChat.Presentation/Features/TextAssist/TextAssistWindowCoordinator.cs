@@ -9,8 +9,6 @@ using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Platform;
 using EasyChat.ViewModels.Pages;
-using EasyChat.ViewModels.Windows;
-using EasyChat.Views.Windows;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.TextAssist;
@@ -27,11 +25,11 @@ public interface ITextAssistWindowCoordinator
     ValueTask ShowResultAsync(
         string text,
         TextAssistOperation operation,
-        ScreenPoint anchor,
+        PhysicalScreenPoint anchor,
         CancellationToken cancellationToken = default);
 
     ValueTask<bool> ContainsResultAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default);
 
     ValueTask CloseResultAsync(CancellationToken cancellationToken = default);
@@ -80,7 +78,7 @@ public sealed class TextAssistWindowCoordinator(
     public async ValueTask ShowResultAsync(
         string text,
         TextAssistOperation operation,
-        ScreenPoint anchor,
+        PhysicalScreenPoint anchor,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
@@ -101,7 +99,7 @@ public sealed class TextAssistWindowCoordinator(
     }
 
     public ValueTask<bool> ContainsResultAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>
         {
@@ -117,7 +115,7 @@ public sealed class TextAssistWindowCoordinator(
             _result = null;
         }, cancellationToken);
 
-    private static void PositionNear(Window window, ScreenPoint point)
+    private static void PositionNear(Window window, PhysicalScreenPoint point)
     {
         var screen = window.Screens.ScreenFromPoint(new PixelPoint(point.X, point.Y)) ?? window.Screens.Primary;
         if (screen is null)

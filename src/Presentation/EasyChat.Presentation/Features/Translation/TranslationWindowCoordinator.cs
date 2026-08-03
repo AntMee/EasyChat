@@ -8,8 +8,6 @@ using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Platform;
-using EasyChat.ViewModels.Windows;
-using EasyChat.Views.Windows;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.Translation;
@@ -20,7 +18,7 @@ public interface ITranslationWindowCoordinator
 
     ValueTask ShowSentenceAsync(
         string text,
-        ScreenPoint? anchor = null,
+        PhysicalScreenPoint? anchor = null,
         bool showCloseButton = true,
         CancellationToken cancellationToken = default);
 
@@ -29,11 +27,11 @@ public interface ITranslationWindowCoordinator
         string sourceLanguageId,
         string targetLanguageId,
         bool centerOnScreen = false,
-        ScreenPoint? anchor = null,
+        PhysicalScreenPoint? anchor = null,
         CancellationToken cancellationToken = default);
 
     ValueTask<bool> ContainsAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default);
 
     ValueTask CloseAsync(CancellationToken cancellationToken = default);
@@ -58,7 +56,7 @@ public sealed class TranslationWindowCoordinator(
 
     public async ValueTask ShowSentenceAsync(
         string text,
-        ScreenPoint? anchor = null,
+        PhysicalScreenPoint? anchor = null,
         bool showCloseButton = true,
         CancellationToken cancellationToken = default)
     {
@@ -74,7 +72,7 @@ public sealed class TranslationWindowCoordinator(
         string sourceLanguageId,
         string targetLanguageId,
         bool centerOnScreen = false,
-        ScreenPoint? anchor = null,
+        PhysicalScreenPoint? anchor = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -85,7 +83,7 @@ public sealed class TranslationWindowCoordinator(
     }
 
     public ValueTask<bool> ContainsAsync(
-        ScreenPoint point,
+        PhysicalScreenPoint point,
         CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>
         {
@@ -103,7 +101,7 @@ public sealed class TranslationWindowCoordinator(
         }, cancellationToken);
 
     private async ValueTask<TranslationWindowSession> ShowShellAsync(
-        ScreenPoint? anchor,
+        PhysicalScreenPoint? anchor,
         bool centerOnScreen,
         bool showCloseButton,
         CancellationToken cancellationToken)
@@ -150,7 +148,7 @@ public sealed class TranslationWindowCoordinator(
             DispatcherPriority.Background);
     }
 
-    private static void PositionNear(Window window, ScreenPoint point)
+    private static void PositionNear(Window window, PhysicalScreenPoint point)
     {
         const int width = 450;
         const int estimatedHeight = 350;

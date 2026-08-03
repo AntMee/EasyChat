@@ -3,7 +3,7 @@
                  xmlns:suki="https://github.com/kikipoulet/SukiUI"
                  xmlns:icon="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:lang="clr-namespace:EasyChat.Lang"
-                 x:Class="EasyChat.Views.Windows.ImageTranslationResultWindow"
+                 x:Class="EasyChat.Presentation.Features.Capture.ImageTranslationResultWindow"
                  Title="{x:Static lang:Resources.ImageTranslate}"
                  Icon="avares://EasyChat.Desktop/Assets/easychat-logo.ico"
                  Width="1100"

@@ -8,6 +8,7 @@ namespace EasyChat.Application.Shortcuts;
 public sealed class ShortcutCoordinator : IShortcutUseCases
 {
     private readonly ISettingsUseCases _settings;
+    private readonly IPlatformAccessUseCases _platformAccess;
     private readonly IGlobalHotkeys _hotkeys;
     private readonly IReadOnlyDictionary<string, ActionState> _actions;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
@@ -17,10 +18,12 @@ public sealed class ShortcutCoordinator : IShortcutUseCases
 
     public ShortcutCoordinator(
         ISettingsUseCases settings,
+        IPlatformAccessUseCases platformAccess,
         IGlobalHotkeys hotkeys,
         IEnumerable<IShortcutAction> actions)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _platformAccess = platformAccess ?? throw new ArgumentNullException(nameof(platformAccess));
         _hotkeys = hotkeys ?? throw new ArgumentNullException(nameof(hotkeys));
         ArgumentNullException.ThrowIfNull(actions);
         _actions = actions.ToDictionary(
@@ -51,6 +54,18 @@ public sealed class ShortcutCoordinator : IShortcutUseCases
                 .Where(entry => entry.IsEnabled && !string.IsNullOrWhiteSpace(entry.KeyCombination))
                 .ToArray();
             var issues = new List<ShortcutRegistrationIssue>();
+
+            var access = await _platformAccess.EnsureAvailableAsync(
+                PlatformCapability.GlobalHotkeys,
+                cancellationToken).ConfigureAwait(false);
+            if (access.IsFailure)
+            {
+                issues.Add(new ShortcutRegistrationIssue(
+                    "GlobalHotkeys",
+                    string.Empty,
+                    access.Error));
+                return new ShortcutRegistrationReport(entries.Length, 0, issues);
+            }
 
             foreach (var entry in entries)
             {
@@ -104,15 +119,21 @@ public sealed class ShortcutCoordinator : IShortcutUseCases
         }
     }
 
-    public ValueTask<Result> ProbeAsync(
+    public async ValueTask<Result> ProbeAsync(
         string keyCombination,
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
+        var access = await _platformAccess.EnsureAvailableAsync(
+            PlatformCapability.GlobalHotkeys,
+            cancellationToken).ConfigureAwait(false);
+        if (access.IsFailure)
+            return Result.Failure(access.Error);
+
         var gesture = ShortcutGestureParser.Parse(keyCombination);
         return gesture.IsFailure
-            ? ValueTask.FromResult(Result.Failure(gesture.Error))
-            : _hotkeys.ProbeAsync(gesture.Value, cancellationToken);
+            ? Result.Failure(gesture.Error)
+            : await _hotkeys.ProbeAsync(gesture.Value, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()

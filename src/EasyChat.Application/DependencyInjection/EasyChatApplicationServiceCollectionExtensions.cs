@@ -2,6 +2,7 @@ using EasyChat.Application.Capture;
 using EasyChat.Application.ImageTranslation;
 using EasyChat.Application.Input;
 using EasyChat.Application.Ocr;
+using EasyChat.Application.Platform;
 using EasyChat.Application.Settings;
 using EasyChat.Application.Selection;
 using EasyChat.Application.SelectionTranslation;
@@ -14,6 +15,7 @@ using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Input;
 using EasyChat.Contracts.Ocr;
+using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Selection;
 using EasyChat.Contracts.SelectionTranslation;
@@ -36,6 +38,7 @@ public static class EasyChatApplicationServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(translationMessages);
 
         services.AddSingleton(translationMessages);
+        services.AddSingleton<IPlatformAccessUseCases, PlatformAccessUseCases>();
         services.AddSingleton<ISettingsUseCases, SettingsCoordinator>();
         services.AddSingleton<ITranslationLanguageCatalog, BuiltInTranslationLanguageCatalog>();
         services.AddSingleton<ITranslationUseCases, TranslationUseCases>();

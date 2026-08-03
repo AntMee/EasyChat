@@ -17,27 +17,31 @@ public sealed class SelectedTextUseCases : ISelectedTextUseCases
     ];
 
     private readonly ISelectedTextCapture _capture;
+    private readonly IPlatformAccessUseCases _platformAccess;
     private readonly ITextSelection _textSelection;
     private readonly ITextDelivery _textDelivery;
     private readonly IKeyboardState _keyboardState;
     private readonly ISelectionDelay _delay;
 
     public SelectedTextUseCases(
+        IPlatformAccessUseCases platformAccess,
         ISelectedTextCapture capture,
         ITextSelection textSelection,
         ITextDelivery textDelivery,
         IKeyboardState keyboardState)
-        : this(capture, textSelection, textDelivery, keyboardState, new SystemSelectionDelay())
+        : this(platformAccess, capture, textSelection, textDelivery, keyboardState, new SystemSelectionDelay())
     {
     }
 
     internal SelectedTextUseCases(
+        IPlatformAccessUseCases platformAccess,
         ISelectedTextCapture capture,
         ITextSelection textSelection,
         ITextDelivery textDelivery,
         IKeyboardState keyboardState,
         ISelectionDelay delay)
     {
+        _platformAccess = platformAccess ?? throw new ArgumentNullException(nameof(platformAccess));
         _capture = capture ?? throw new ArgumentNullException(nameof(capture));
         _textSelection = textSelection ?? throw new ArgumentNullException(nameof(textSelection));
         _textDelivery = textDelivery ?? throw new ArgumentNullException(nameof(textDelivery));
@@ -50,6 +54,12 @@ public sealed class SelectedTextUseCases : ISelectedTextUseCases
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
+        var access = await _platformAccess.EnsureAvailableAsync(
+            PlatformCapability.SelectedTextCapture,
+            cancellationToken).ConfigureAwait(false);
+        if (access.IsFailure)
+            return Result<SelectedText>.Failure(access.Error);
+
         if (!await WaitForCaptureKeysReleasedAsync(cancellationToken).ConfigureAwait(false))
         {
             return Result<SelectedText>.Failure(new Error(

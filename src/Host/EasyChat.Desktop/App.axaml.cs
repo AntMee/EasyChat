@@ -4,29 +4,23 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
-using EasyChat.Contracts.Selection;
 using EasyChat.Contracts.Settings;
-using EasyChat.Contracts.Shell;
-using EasyChat.Contracts.Shortcuts;
-using EasyChat.Contracts.Updates;
-using EasyChat.Lang;
-using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.ViewModels;
 using EasyChat.Views;
 using Material.Icons;
 using Material.Icons.Avalonia;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using ReactiveUI;
-using SukiUI.Dialogs;
 using SukiUI.Toasts;
 
 namespace EasyChat;
 
-public sealed partial class App(IServiceProvider services) : Avalonia.Application
+public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalonia.Application
 {
-    private readonly IServiceProvider _services = services;
-    private readonly ILogger<App> _logger = services.GetRequiredService<ILogger<App>>();
+    public App()
+        : this(null!) =>
+        throw new InvalidOperationException(
+            "App must be created by DesktopApplication with explicit dependencies.");
+
+    private DesktopUiContext? _ui;
     private TrayIcon? _trayIcon;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private MainWindow? _mainWindow;
@@ -40,41 +34,18 @@ public sealed partial class App(IServiceProvider services) : Avalonia.Applicatio
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var ui = createUiContext();
+            _ui = ui;
             _desktop = desktop;
-            var settings = _services.GetRequiredService<SettingsSession>();
-            var viewModel = _services.GetRequiredService<MainWindowViewModel>();
-            _mainWindow = new MainWindow(
-                viewModel,
-                settings,
-                _services.GetRequiredService<ISukiDialogManager>());
+            _mainWindow = new MainWindow(ui.MainWindowViewModel, ui.Settings, ui.Dialogs);
             desktop.MainWindow = _mainWindow;
             desktop.Exit += OnExit;
-            settings.Changed += OnSettingsChanged;
-            UpdateTrayIcon(settings.General.ClosingBehavior);
-            StartInteractiveServices();
+            ui.Settings.Changed += OnSettingsChanged;
+            UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
+            ui.Interactions.Start();
             _ = CheckForUpdatesAsync();
         }
         base.OnFrameworkInitializationCompleted();
-    }
-
-    private async void StartInteractiveServices()
-    {
-        try
-        {
-            _services.GetRequiredService<ISelectionInteractionUseCases>()
-                .Start(_services.GetRequiredService<ISelectionInteractionSink>());
-            var report = await _services.GetRequiredService<IShortcutUseCases>().StartAsync();
-            foreach (var issue in report.Issues)
-                _logger.LogWarning(
-                    "Unable to register shortcut {Action} ({Gesture}): {Message}",
-                    issue.ActionType,
-                    issue.KeyCombination,
-                    issue.Error.Message);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogError(exception, "Unable to start interactive desktop services.");
-        }
     }
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs args)
@@ -147,30 +118,29 @@ public sealed partial class App(IServiceProvider services) : Avalonia.Applicatio
 
     private async Task CheckForUpdatesAsync()
     {
-        var updates = _services.GetRequiredService<IApplicationUpdateService>();
-        var result = await updates.CheckAsync();
+        var ui = RequireUi();
+        var result = await ui.Updates.CheckAsync();
         if (result.IsFailure || !result.Value.IsUpdateAvailable) return;
-        _services.GetRequiredService<ISukiToastManager>()
+        ui.Toasts
             .CreateToast()
             .WithTitle(EasyChat.Lang.Resources.NewVersionAvailable)
             .WithContent(string.Format(EasyChat.Lang.Resources.NewVersionContent, result.Value.LatestVersion))
             .WithActionButton(EasyChat.Lang.Resources.Later, _ => { }, true)
-            .WithActionButton(EasyChat.Lang.Resources.Update, toast => { _ = DownloadUpdateAsync(updates); }, true)
+            .WithActionButton(EasyChat.Lang.Resources.Update, toast => { _ = DownloadUpdateAsync(ui); }, true)
             .Queue();
     }
 
-    private async Task DownloadUpdateAsync(IApplicationUpdateService updates)
+    private static async Task DownloadUpdateAsync(DesktopUiContext ui)
     {
         var progress = new ProgressBar { Value = 0, ShowProgressText = true };
-        var toasts = _services.GetRequiredService<ISukiToastManager>();
-        var toast = toasts.CreateToast()
+        var toast = ui.Toasts.CreateToast()
             .WithTitle(EasyChat.Lang.Resources.Updating)
             .WithContent(progress)
             .Queue();
-        var result = await updates.DownloadAndRestartAsync(new Progress<int>(value => progress.Value = value));
-        toasts.Dismiss(toast);
+        var result = await ui.Updates.DownloadAndRestartAsync(new Progress<int>(value => progress.Value = value));
+        ui.Toasts.Dismiss(toast);
         if (result.IsFailure)
-            toasts.CreateToast()
+            ui.Toasts.CreateToast()
                 .WithTitle(EasyChat.Lang.Resources.UpdateFailed)
                 .WithContent(EasyChat.Lang.Resources.CheckNetwork)
                 .Dismiss().After(TimeSpan.FromSeconds(5))
@@ -180,25 +150,14 @@ public sealed partial class App(IServiceProvider services) : Avalonia.Applicatio
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs args)
     {
         RemoveTrayIcon();
-        var settings = _services.GetRequiredService<SettingsSession>();
-        settings.Changed -= OnSettingsChanged;
-        try
+        if (_ui is { } ui)
         {
-            _services.GetRequiredService<ISelectionInteractionUseCases>().Stop();
-            _services.GetRequiredService<IShortcutUseCases>().DisposeAsync().AsTask().GetAwaiter().GetResult();
-            _services.GetRequiredService<ISelectionInteractionUseCases>().DisposeAsync().AsTask().GetAwaiter().GetResult();
-            _services.GetRequiredService<IShellLifecycle>().StopAsync().AsTask().GetAwaiter().GetResult();
-        }
-        catch (Exception exception)
-        {
-            _logger.LogError(exception, "Desktop shutdown cleanup failed.");
-        }
-        finally
-        {
-            if (_services is IAsyncDisposable asyncDisposable)
-                asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
-            else if (_services is IDisposable disposable)
-                disposable.Dispose();
+            ui.Settings.Changed -= OnSettingsChanged;
+            ui.Interactions.Stop();
+            _ui = null;
         }
     }
+
+    private DesktopUiContext RequireUi() =>
+        _ui ?? throw new InvalidOperationException("Desktop UI has not been initialized.");
 }

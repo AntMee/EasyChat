@@ -1,9 +1,27 @@
 using System.Runtime.CompilerServices;
+using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using EasyChat.Shared.Results;
 
 namespace EasyChat.Application.Tests;
+
+internal sealed class AvailablePlatformAccess : IPlatformAccessUseCases
+{
+    public ValueTask<Result<CapabilityStatus>> EnsureAvailableAsync(
+        PlatformCapability capability,
+        CancellationToken cancellationToken = default) =>
+        ValueTask.FromResult(Result<CapabilityStatus>.Success(new CapabilityStatus(
+            capability,
+            CapabilityState.Available)));
+
+    public ValueTask<Result<PermissionStatus>> EnsurePermissionAsync(
+        PlatformPermission permission,
+        CancellationToken cancellationToken = default) =>
+        ValueTask.FromResult(Result<PermissionStatus>.Success(new PermissionStatus(
+            permission,
+            PermissionState.Granted)));
+}
 
 internal sealed class MutableSettingsUseCases(SettingsBundle current) : ISettingsUseCases
 {
