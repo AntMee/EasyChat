@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace EasyChat.Presentation.Features.Settings.Prompts;
+namespace EasyChat.Presentation.Features.Settings.Prompts.Views;
 
 public partial class PromptView : UserControl
 {

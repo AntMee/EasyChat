@@ -1,6 +1,7 @@
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings;
+using EasyChat.Presentation.Features.Settings.Prompts;
 using EasyChat.Presentation.Features.Input;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.TextAssist;

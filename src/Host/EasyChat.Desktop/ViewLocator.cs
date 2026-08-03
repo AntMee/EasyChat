@@ -13,10 +13,7 @@ public sealed class ViewLocator : IDataTemplate
         if (data is null)
             return null;
 
-        var viewModelType = data.GetType();
-        var viewName = viewModelType.Namespace is null
-            ? null
-            : $"{viewModelType.Namespace}.Views.{viewModelType.Name.Replace("ViewModel", "View", StringComparison.Ordinal)}";
+        var viewName = ViewTypeConvention.GetViewTypeName(data.GetType());
         var viewType = viewName is null
             ? null
             : typeof(Presentation.AssemblyMarker).Assembly.GetType(viewName);

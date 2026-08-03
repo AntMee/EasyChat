@@ -1,11 +1,11 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Settings.Prompts.PromptEditDialogView"
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Prompts.Views.PromptEditDialogView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
-             xmlns:dialogs="clr-namespace:EasyChat.Presentation.Features.Settings;assembly=EasyChat.Presentation"
+             xmlns:dialogs="clr-namespace:EasyChat.Presentation.Features.Settings.Prompts;assembly=EasyChat.Presentation"
              x:DataType="dialogs:PromptEditDialogViewModel"
              mc:Ignorable="d"
              Width="600">
