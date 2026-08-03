@@ -5,7 +5,9 @@ using MicroASR;
 
 namespace EasyChat.Infrastructure.Speech.Recognition;
 
-public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognitionModelInstaller
+public sealed class MicroAsrSpeechRecognitionModelInstaller :
+    ISpeechRecognitionModelInstaller,
+    ISpeechRecognitionModelRemover
 {
     private readonly string _modelsDirectory;
     private readonly Action? _modelsChanged;
@@ -35,7 +37,11 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.SourcePath);
+        ArgumentNullException.ThrowIfNull(request.SourcePaths);
+        if (request.SourcePaths.Count == 0)
+            throw new ArgumentException("At least one model source is required.", nameof(request));
+        foreach (var sourcePath in request.SourcePaths)
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         await _importGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -49,12 +55,39 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
         }
     }
 
+    public async ValueTask<bool> DeleteAsync(
+        string modelId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
+        await _importGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var deleted = await Task.Run(() => Delete(modelId, cancellationToken), cancellationToken)
+                .ConfigureAwait(false);
+            if (deleted)
+                _modelsChanged?.Invoke();
+            return deleted;
+        }
+        finally
+        {
+            _importGate.Release();
+        }
+    }
+
     private SpeechRecognitionModelImportResult Import(
         SpeechRecognitionModelImportRequest request,
         CancellationToken cancellationToken)
     {
-        var sourcePath = Path.GetFullPath(request.SourcePath);
-        ValidateSource(sourcePath, request.SourceKind);
+        var pathComparer = OperatingSystem.IsWindows()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+        var sourcePaths = request.SourcePaths
+            .Select(Path.GetFullPath)
+            .Distinct(pathComparer)
+            .ToArray();
+        foreach (var sourcePath in sourcePaths)
+            ValidateSource(sourcePath, request.SourceKind);
 
         var modelsParent = Directory.GetParent(_modelsDirectory)?.FullName
                            ?? throw new InvalidOperationException("The model library has no parent directory.");
@@ -66,19 +99,39 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
 
         try
         {
-            var scanRoot = request.SourceKind switch
+            var scanRoots = sourcePaths.Select((sourcePath, index) => request.SourceKind switch
             {
                 SpeechRecognitionModelImportSourceKind.Directory => sourcePath,
                 SpeechRecognitionModelImportSourceKind.Archive => ExtractArchive(
                     sourcePath,
-                    Path.Combine(stagingRoot, GetArchiveDirectoryName(sourcePath)),
+                    Path.Combine(
+                        stagingRoot,
+                        $"archive-{index}",
+                        GetArchiveDirectoryName(sourcePath)),
                     cancellationToken),
                 _ => throw new ArgumentOutOfRangeException(nameof(request.SourceKind))
-            };
+            }).ToArray();
 
-            var packages = DiscoverPackages(scanRoot, cancellationToken);
-            if (packages.Count == 0)
+            var sharedVadPath = FindSharedVad(scanRoots) ?? FindSharedVad([_modelsDirectory]);
+            var validationErrors = new List<Exception>();
+            var packages = scanRoots
+                .SelectMany(scanRoot => DiscoverPackages(
+                    scanRoot,
+                    sharedVadPath,
+                    validationErrors,
+                    cancellationToken))
+                .DistinctBy(package => package.Directory, pathComparer)
+                .ToArray();
+            if (packages.Length == 0)
+            {
+                if (validationErrors.Count > 0)
+                {
+                    throw new InvalidDataException(
+                        $"No compatible MicroASR model was found. {validationErrors[0].Message}",
+                        validationErrors[0]);
+                }
                 throw new InvalidDataException("No compatible MicroASR model was found in the selected source.");
+            }
 
             var result = InstallPackages(packages, stagingRoot, cancellationToken);
             if (result.ImportedModels.Count > 0)
@@ -91,6 +144,20 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
         }
     }
 
+    private bool Delete(string modelId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var id = ValidateModelIdentifier(modelId);
+        var targetDirectory = Path.Combine(_modelsDirectory, id);
+        if (!Directory.Exists(targetDirectory))
+            return false;
+        if (!SpeechModelPackage.IsSupported(targetDirectory))
+            throw new IOException($"The installed model directory '{id}' is incomplete or invalid.");
+
+        Directory.Delete(targetDirectory, recursive: true);
+        return true;
+    }
+
     private SpeechRecognitionModelImportResult InstallPackages(
         IReadOnlyList<SpeechModelPackage> packages,
         string stagingRoot,
@@ -100,23 +167,33 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
         var preparedRoot = Path.Combine(stagingRoot, "prepared");
         Directory.CreateDirectory(preparedRoot);
         var imported = new List<SpeechRecognitionModel>();
-        var existing = new List<SpeechRecognitionModel>();
+        var skipped = new List<SpeechRecognitionModel>();
         var prepared = new List<(string Id, string Directory)>();
         var identifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var skippedIdentifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void AddSkipped(string id)
+        {
+            if (skippedIdentifiers.Add(id))
+                skipped.Add(new SpeechRecognitionModel(id));
+        }
 
         foreach (var package in packages.OrderBy(item => item.Locale, StringComparer.OrdinalIgnoreCase))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var id = ValidateModelIdentifier(package.Locale);
             if (!identifiers.Add(id))
-                throw new InvalidDataException($"More than one imported model uses the identifier '{id}'.");
+            {
+                AddSkipped(id);
+                continue;
+            }
 
             var targetDirectory = Path.Combine(_modelsDirectory, id);
             if (Directory.Exists(targetDirectory))
             {
                 if (!SpeechModelPackage.IsSupported(targetDirectory))
                     throw new IOException($"The existing model directory '{id}' is incomplete or invalid.");
-                existing.Add(new SpeechRecognitionModel(id));
+                AddSkipped(id);
                 continue;
             }
             if (File.Exists(targetDirectory))
@@ -154,15 +231,19 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
             throw;
         }
 
-        return new SpeechRecognitionModelImportResult(imported, existing);
+        return new SpeechRecognitionModelImportResult(imported, skipped);
     }
 
     private static IReadOnlyList<SpeechModelPackage> DiscoverPackages(
         string scanRoot,
+        string? fallbackVadPath,
+        ICollection<Exception> validationErrors,
         CancellationToken cancellationToken)
     {
-        if (TryLoadPackage(scanRoot, out var selectedPackage))
+        if (TryLoadPackage(scanRoot, fallbackVadPath, out var selectedPackage, out var validationError))
             return [selectedPackage!];
+        if (validationError is not null)
+            validationErrors.Add(validationError);
 
         var options = new EnumerationOptions
         {
@@ -175,17 +256,31 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
         foreach (var directory in Directory.EnumerateDirectories(scanRoot, "*", options))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (TryLoadPackage(directory, out var package))
+            if (TryLoadPackage(directory, fallbackVadPath, out var package, out validationError))
                 packages.Add(package!);
+            else if (validationError is not null)
+                validationErrors.Add(validationError);
         }
         return packages;
     }
 
-    private static bool TryLoadPackage(string directory, out SpeechModelPackage? package)
+    private static bool TryLoadPackage(
+        string directory,
+        string? fallbackVadPath,
+        out SpeechModelPackage? package,
+        out Exception? validationError)
     {
+        validationError = null;
+        if (!File.Exists(Path.Combine(directory, "model_onnx_quant.config")) ||
+            !File.Exists(Path.Combine(directory, "sr.ini")))
+        {
+            package = null;
+            return false;
+        }
+
         try
         {
-            package = SpeechModelPackage.Load(directory);
+            package = SpeechModelPackage.Load(directory, fallbackVadPath);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
@@ -193,8 +288,41 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller : ISpeechRecognition
                                            InvalidOperationException or ArgumentException)
         {
             package = null;
+            validationError = exception;
             return false;
         }
+    }
+
+    private static string? FindSharedVad(IEnumerable<string> searchRoots)
+    {
+        foreach (var searchRoot in searchRoots)
+        {
+            if (!Directory.Exists(searchRoot))
+                continue;
+
+            var direct = Path.Combine(searchRoot, "svad.quantized.onnx");
+            if (File.Exists(direct))
+                return direct;
+
+            // Upstream places the shared, locale-neutral VAD only in the en-US model archive.
+            var english = Path.Combine(searchRoot, "en-US", "svad.quantized.onnx");
+            if (File.Exists(english))
+                return english;
+
+            var shared = Directory.EnumerateFiles(
+                    searchRoot,
+                    "svad.quantized.onnx",
+                    new EnumerationOptions
+                    {
+                        RecurseSubdirectories = true,
+                        IgnoreInaccessible = true,
+                        AttributesToSkip = FileAttributes.ReparsePoint
+                    })
+                .FirstOrDefault();
+            if (shared is not null)
+                return shared;
+        }
+        return null;
     }
 
     private static string ExtractArchive(

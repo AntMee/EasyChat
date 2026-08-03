@@ -43,6 +43,15 @@ public sealed class SukiSettingsDialogCoordinator(
         .WithActionButton(Resources.Cancel, _ => { }, true, string.Empty)
         .TryShow();
 
+    public void ConfirmDeleteAsrModel(SpeechRecognitionModel model, Action onConfirmed) =>
+        _dialogs.CreateDialog()
+            .WithTitle(Resources.ConfirmDeletion)
+            .WithContent(string.Format(Resources.ConfirmDeleteAsrModel, model.Id))
+            .OfType(NotificationType.Warning)
+            .WithActionButton(Resources.Delete, _ => onConfirmed(), true, "Flat", "Danger")
+            .WithActionButton(Resources.Cancel, _ => { }, true, string.Empty)
+            .TryShow();
+
     public void EditAiModelKeys(CustomAiModelState model) => ShowStringKeys(
         $"{model.Name} API Keys",
         model.ApiKeys,

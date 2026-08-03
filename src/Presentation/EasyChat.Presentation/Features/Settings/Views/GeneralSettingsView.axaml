@@ -199,10 +199,25 @@
                               IsVisible="{Binding HasAsrModels}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="speech:SpeechRecognitionModel">
-                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0 3">
-                                <avalonia:MaterialIcon Kind="Folder" Width="18" Height="18" />
-                                <TextBlock Text="{Binding Id}" VerticalAlignment="Center" />
-                            </StackPanel>
+                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,3" MinHeight="36">
+                                <Border Width="24" Height="16" CornerRadius="2" ClipToBounds="True"
+                                        VerticalAlignment="Center">
+                                    <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
+                                           Stretch="UniformToFill" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Converter={x:Static converts:SpeechRecognitionModelConverters.ToDisplayName}}" />
+                                    <TextBlock Text="{Binding Id}" FontSize="11"
+                                               Foreground="{DynamicResource SukiLowText}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Classes="Basic Danger" Width="32" Height="32" Padding="4"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DeleteAsrModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsEnabled="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).CanImportAsrModel}"
+                                        ToolTip.Tip="{x:Static lang:Resources.Delete}">
+                                    <avalonia:MaterialIcon Kind="Delete" Width="18" Height="18" />
+                                </Button>
+                            </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

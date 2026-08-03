@@ -947,13 +947,17 @@
   <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR models downloaded successfully.</value></data>
   <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR model download failed</value></data>
   <data name="AsrModels" xml:space="preserve"><value>ASR models</value></data>
-  <data name="AsrModelsDescription" xml:space="preserve"><value>Import a model folder, a folder containing models, or a supported model archive.</value></data>
-  <data name="ImportAsrModelFolder" xml:space="preserve"><value>Import folder</value></data>
-  <data name="ImportAsrModelArchive" xml:space="preserve"><value>Import archive</value></data>
+  <data name="AsrModelsDescription" xml:space="preserve"><value>Import one or more model folders, folders containing models, or supported model archives.</value></data>
+  <data name="ImportAsrModelFolder" xml:space="preserve"><value>Import folders</value></data>
+  <data name="ImportAsrModelArchive" xml:space="preserve"><value>Import archives</value></data>
   <data name="AsrModelArchives" xml:space="preserve"><value>Model archives</value></data>
   <data name="NoAsrModels" xml:space="preserve"><value>No ASR models installed.</value></data>
   <data name="AsrModelsImported" xml:space="preserve"><value>Imported: {0}</value></data>
+  <data name="AsrModelsSkipped" xml:space="preserve"><value>Skipped (already installed or duplicated): {0}</value></data>
   <data name="AsrModelsAlreadyInstalled" xml:space="preserve"><value>The selected models are already installed.</value></data>
   <data name="AsrModelImportFailed" xml:space="preserve"><value>ASR model import failed</value></data>
+  <data name="ConfirmDeleteAsrModel" xml:space="preserve"><value>Delete the ASR model '{0}'? This cannot be undone.</value></data>
+  <data name="AsrModelDeleted" xml:space="preserve"><value>Deleted: {0}</value></data>
+  <data name="AsrModelDeleteFailed" xml:space="preserve"><value>ASR model deletion failed</value></data>
   <data name="DownloadAsrModels" xml:space="preserve"><value>Download models</value></data>
 </root>

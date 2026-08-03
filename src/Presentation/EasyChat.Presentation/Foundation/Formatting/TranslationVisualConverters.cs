@@ -4,6 +4,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using EasyChat.Contracts.Settings;
+using EasyChat.Contracts.Speech;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Lang;
 using Material.Icons;
@@ -105,6 +106,22 @@ public static class LanguageFlagConverters
 public static class LanguageSettingsConverters
 {
     public static readonly IValueConverter ToDisplayName = new LanguageSettingsDisplayNameConverter();
+}
+
+public static class SpeechRecognitionModelConverters
+{
+    public static readonly IValueConverter ToDisplayName = new SpeechRecognitionModelDisplayNameConverter();
+}
+
+public sealed class SpeechRecognitionModelDisplayNameConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is SpeechRecognitionModel model
+            ? LanguageDisplayNames.ForUi(model.ChineseName, model.EnglishName)
+            : null;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
 }
 
 public sealed class LanguageSettingsDisplayNameConverter : IValueConverter

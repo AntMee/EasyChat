@@ -14,7 +14,8 @@ public sealed class SpeechModelPackage
         string? punctuationRulesPath,
         int languageIndex,
         int languageCount,
-        float vadThreshold)
+        float vadThreshold,
+        string? locale)
     {
         Directory = directory;
         EncoderPath = encoderPath;
@@ -26,10 +27,11 @@ public sealed class SpeechModelPackage
         LanguageIndex = languageIndex;
         LanguageCount = languageCount;
         VadThreshold = vadThreshold;
+        Locale = string.IsNullOrWhiteSpace(locale) ? Path.GetFileName(directory) : locale;
     }
 
     public string Directory { get; }
-    public string Locale => Path.GetFileName(Directory);
+    public string Locale { get; }
     public string EncoderPath { get; }
     public string PredictorPath { get; }
     public string JointPath { get; }
@@ -40,9 +42,9 @@ public sealed class SpeechModelPackage
     public int LanguageCount { get; }
     public float VadThreshold { get; }
 
-    public static SpeechModelPackage Load(string modelDirectory)
+    public static SpeechModelPackage Load(string modelDirectory, string? fallbackVadPath = null)
     {
-        string directory = Path.GetFullPath(modelDirectory);
+        string directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(modelDirectory));
         string modelConfigPath = Path.Combine(directory, "model_onnx_quant.config");
         string speechConfigPath = Path.Combine(directory, "sr.ini");
         if (!File.Exists(modelConfigPath))
@@ -62,15 +64,16 @@ public sealed class SpeechModelPackage
         string predictor = ResolveRequired(directory, model, "ModelPredictor");
         string joint = ResolveRequired(directory, model, "ModelJoint");
         string tokens = ResolveRequired(directory, speech, "token-path");
-        string vad = ResolveVad(directory, speech);
+        string vad = ResolveVad(directory, speech, fallbackVadPath);
         string? punctuationRules = ResolveOptional(directory, speech, "punctuation-path");
         punctuationRules ??= System.IO.Directory.EnumerateFiles(
             directory, "*_explicitPuncRules.txt", SearchOption.TopDirectoryOnly).SingleOrDefault();
         (int languageIndex, int languageCount) = ReadLanguage(model);
         float threshold = ReadFloat(speech, "vad-threshold", 0.4f);
+        speech.TryGetValue("output-locale", out string? locale);
         return new SpeechModelPackage(
             directory, encoder, predictor, joint, tokens, vad, punctuationRules,
-            languageIndex, languageCount, threshold);
+            languageIndex, languageCount, threshold, locale);
     }
 
     public static bool IsSupported(string modelDirectory)
@@ -110,7 +113,10 @@ public sealed class SpeechModelPackage
         return packages;
     }
 
-    private static string ResolveVad(string directory, IReadOnlyDictionary<string, string> speech)
+    private static string ResolveVad(
+        string directory,
+        IReadOnlyDictionary<string, string> speech,
+        string? fallbackVadPath)
     {
         if (speech.TryGetValue("vad-model-path", out string? configured))
         {
@@ -122,6 +128,7 @@ public sealed class SpeechModelPackage
         string? libraryDirectory = System.IO.Directory.GetParent(directory)?.FullName;
         if (libraryDirectory is not null)
         {
+            // MicroASR models-v1 ships one locale-neutral VAD in en-US for every locale to share.
             string english = Path.Combine(libraryDirectory, "en-US", "svad.quantized.onnx");
             if (File.Exists(english))
                 return english;
@@ -129,6 +136,13 @@ public sealed class SpeechModelPackage
                 libraryDirectory, "svad.quantized.onnx", SearchOption.AllDirectories).FirstOrDefault();
             if (shared is not null)
                 return shared;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackVadPath))
+        {
+            string fallback = Path.GetFullPath(fallbackVadPath);
+            if (File.Exists(fallback))
+                return fallback;
         }
 
         throw new FileNotFoundException("No compatible neural VAD model was found.", directory);
@@ -212,4 +226,3 @@ public sealed class SpeechModelPackage
         return (index, candidates.Length);
     }
 }
-

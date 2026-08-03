@@ -19,12 +19,16 @@ public partial class GeneralSettingsView : UserControl
         var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = LangResources.ImportAsrModelFolder,
-            AllowMultiple = false
+            AllowMultiple = true
         });
-        if (folders.Count == 1 && folders[0].Path.IsFile)
+        var paths = folders
+            .Where(folder => folder.Path.IsFile)
+            .Select(folder => folder.Path.LocalPath)
+            .ToArray();
+        if (paths.Length > 0)
         {
             await viewModel.ImportAsrModelsAsync(
-                folders[0].Path.LocalPath,
+                paths,
                 SpeechRecognitionModelImportSourceKind.Directory);
         }
     }
@@ -38,7 +42,7 @@ public partial class GeneralSettingsView : UserControl
         var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = LangResources.ImportAsrModelArchive,
-            AllowMultiple = false,
+            AllowMultiple = true,
             FileTypeFilter =
             [
                 new FilePickerFileType(LangResources.AsrModelArchives)
@@ -47,10 +51,14 @@ public partial class GeneralSettingsView : UserControl
                 }
             ]
         });
-        if (files.Count == 1 && files[0].Path.IsFile)
+        var paths = files
+            .Where(file => file.Path.IsFile)
+            .Select(file => file.Path.LocalPath)
+            .ToArray();
+        if (paths.Length > 0)
         {
             await viewModel.ImportAsrModelsAsync(
-                files[0].Path.LocalPath,
+                paths,
                 SpeechRecognitionModelImportSourceKind.Archive);
         }
     }

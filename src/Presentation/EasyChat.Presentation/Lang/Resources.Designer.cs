@@ -3147,12 +3147,28 @@ namespace EasyChat.Presentation.Lang {
             get { return ResourceManager.GetString("AsrModelsImported", resourceCulture); }
         }
 
+        public static string AsrModelsSkipped {
+            get { return ResourceManager.GetString("AsrModelsSkipped", resourceCulture); }
+        }
+
         public static string AsrModelsAlreadyInstalled {
             get { return ResourceManager.GetString("AsrModelsAlreadyInstalled", resourceCulture); }
         }
 
         public static string AsrModelImportFailed {
             get { return ResourceManager.GetString("AsrModelImportFailed", resourceCulture); }
+        }
+
+        public static string ConfirmDeleteAsrModel {
+            get { return ResourceManager.GetString("ConfirmDeleteAsrModel", resourceCulture); }
+        }
+
+        public static string AsrModelDeleted {
+            get { return ResourceManager.GetString("AsrModelDeleted", resourceCulture); }
+        }
+
+        public static string AsrModelDeleteFailed {
+            get { return ResourceManager.GetString("AsrModelDeleteFailed", resourceCulture); }
         }
 
         public static string DownloadAsrModels {

@@ -8,7 +8,33 @@ public sealed record SpeechRecognitionCommand(
     string Language,
     IReadOnlyList<AudioCaptureSourceReference> Sources);
 
-public sealed record SpeechRecognitionModel(string Id);
+public sealed record SpeechRecognitionModel
+{
+    public SpeechRecognitionModel(string id)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        Id = id;
+        (ChineseName, EnglishName, Icon) = id.ToLowerInvariant() switch
+        {
+            "da-dk" => ("丹麦语", "Danish", "dk.png"),
+            "de-de" => ("德语", "German", "de.png"),
+            "en-us" => ("英语（美国）", "English (United States)", "us.png"),
+            "es-es" => ("西班牙语（西班牙）", "Spanish (Spain)", "es.png"),
+            "fr-fr" => ("法语（法国）", "French (France)", "fr.png"),
+            "it-it" => ("意大利语", "Italian", "it.png"),
+            "ja-jp" => ("日语", "Japanese", "jp.png"),
+            "ko-kr" => ("韩语", "Korean", "kr.png"),
+            "pt-br" => ("葡萄牙语（巴西）", "Portuguese (Brazil)", "br.png"),
+            "zh-cn" => ("中文（简体）", "Chinese (Simplified)", "cn.png"),
+            _ => (id, id, "unknown.png")
+        };
+    }
+
+    public string Id { get; }
+    public string ChineseName { get; }
+    public string EnglishName { get; }
+    public string Icon { get; }
+}
 
 public interface ISpeechRecognitionModelCatalog
 {
@@ -25,17 +51,32 @@ public enum SpeechRecognitionModelImportSourceKind
 }
 
 public sealed record SpeechRecognitionModelImportRequest(
-    string SourcePath,
-    SpeechRecognitionModelImportSourceKind SourceKind);
+    IReadOnlyList<string> SourcePaths,
+    SpeechRecognitionModelImportSourceKind SourceKind)
+{
+    public SpeechRecognitionModelImportRequest(
+        string sourcePath,
+        SpeechRecognitionModelImportSourceKind sourceKind)
+        : this([sourcePath], sourceKind)
+    {
+    }
+}
 
 public sealed record SpeechRecognitionModelImportResult(
     IReadOnlyList<SpeechRecognitionModel> ImportedModels,
-    IReadOnlyList<SpeechRecognitionModel> ExistingModels);
+    IReadOnlyList<SpeechRecognitionModel> SkippedModels);
 
 public interface ISpeechRecognitionModelInstaller
 {
     ValueTask<SpeechRecognitionModelImportResult> ImportAsync(
         SpeechRecognitionModelImportRequest request,
+        CancellationToken cancellationToken = default);
+}
+
+public interface ISpeechRecognitionModelRemover
+{
+    ValueTask<bool> DeleteAsync(
+        string modelId,
         CancellationToken cancellationToken = default);
 }
 

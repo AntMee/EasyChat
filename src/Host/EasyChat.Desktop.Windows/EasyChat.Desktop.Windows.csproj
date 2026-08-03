@@ -17,10 +17,4 @@
     <ProjectReference Include="..\..\Infrastructure\EasyChat.Infrastructure.Windows\EasyChat.Infrastructure.Windows.csproj" />
     <ProjectReference Include="..\..\Presentation\EasyChat.Presentation\EasyChat.Presentation.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="Models\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
 </Project>

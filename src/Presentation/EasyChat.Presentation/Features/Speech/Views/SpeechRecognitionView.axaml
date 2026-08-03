@@ -36,7 +36,21 @@
                                 <!-- Recognition Language -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,20,0" VerticalAlignment="Center">
                                     <TextBlock Text="{x:Static lang:Resources.Language}" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold"/>
-                                    <ComboBox ItemsSource="{Binding RecognitionLanguages}" SelectedItem="{Binding SelectedRecognitionLanguage}" MinWidth="120"/>
+                                    <ComboBox ItemsSource="{Binding RecognitionLanguages}" SelectedItem="{Binding SelectedRecognitionModel}"
+                                              MinWidth="210" Foreground="{DynamicResource SukiText}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14">
+                                                        <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
+                                                               Stretch="UniformToFill" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Converter={x:Static converts:SpeechRecognitionModelConverters.ToDisplayName}}"
+                                                               VerticalAlignment="Center" Foreground="{DynamicResource SukiText}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </StackPanel>
                 
                                 <!-- Translation Toggle -->

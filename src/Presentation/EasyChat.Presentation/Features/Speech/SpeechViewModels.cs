@@ -120,7 +120,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     private Task? _recognitionTask;
     private SpeechEngineOption? _selectedEngineOption;
     private LanguageSettings? _selectedTargetLanguage;
-    private string _selectedRecognitionLanguage = string.Empty;
+    private SpeechRecognitionModel? _selectedRecognitionModel;
     private string _selectedSourcesSummary = Resources.Speech_AllSystemAudio;
     private bool _isSupported;
     private bool _isBusy;
@@ -198,7 +198,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _settings.AiModel.ConfiguredModels.CollectionChanged += (_, _) => LoadEngineOptions();
     }
 
-    public ObservableCollection<string> RecognitionLanguages { get; }
+    public ObservableCollection<SpeechRecognitionModel> RecognitionLanguages { get; }
     public ObservableCollection<SpeechEngineOption> EngineOptions { get; }
     public ObservableCollection<LanguageSettings> TargetLanguages { get; }
     public ObservableCollection<string> AvailableFonts { get; }
@@ -250,14 +250,15 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     public MaterialIconKind RecordingIcon => IsRecording ? MaterialIconKind.MicrophoneOff : MaterialIconKind.Microphone;
     public bool IsFloatingWindowOpen { get => _isFloatingWindowOpen; private set => this.RaiseAndSetIfChanged(ref _isFloatingWindowOpen, value); }
     public string SelectedSourcesSummary { get => _selectedSourcesSummary; private set => this.RaiseAndSetIfChanged(ref _selectedSourcesSummary, value); }
-    public string SelectedRecognitionLanguage
+    public SpeechRecognitionModel? SelectedRecognitionModel
     {
-        get => _selectedRecognitionLanguage;
+        get => _selectedRecognitionModel;
         set
         {
-            if (_selectedRecognitionLanguage == value) return;
-            this.RaiseAndSetIfChanged(ref _selectedRecognitionLanguage, value);
-            _settings.SpeechRecognition.RecognitionLanguage = value;
+            if (ReferenceEquals(_selectedRecognitionModel, value)) return;
+            this.RaiseAndSetIfChanged(ref _selectedRecognitionModel, value);
+            if (value is not null)
+                _settings.SpeechRecognition.RecognitionLanguage = value.Id;
         }
     }
     public SpeechEngineOption? SelectedEngineOption
@@ -365,18 +366,17 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     private async Task RefreshRecognitionLanguagesAsync(CancellationToken cancellationToken = default)
     {
         var models = await _models.GetModelsAsync(cancellationToken);
-        var current = SelectedRecognitionLanguage;
+        var current = SelectedRecognitionModel?.Id;
         RecognitionLanguages.Clear();
         foreach (var model in models)
-            RecognitionLanguages.Add(model.Id);
+            RecognitionLanguages.Add(model);
 
         var configured = string.IsNullOrWhiteSpace(current)
             ? _settings.SpeechRecognition.RecognitionLanguage
             : current;
-        SelectedRecognitionLanguage = RecognitionLanguages.FirstOrDefault(language => language == configured)
-            ?? RecognitionLanguages.FirstOrDefault(language => language.Contains("zh", StringComparison.OrdinalIgnoreCase))
-            ?? RecognitionLanguages.FirstOrDefault()
-            ?? string.Empty;
+        SelectedRecognitionModel = RecognitionLanguages.FirstOrDefault(model => model.Id == configured)
+            ?? RecognitionLanguages.FirstOrDefault(model => model.Id.Contains("zh", StringComparison.OrdinalIgnoreCase))
+            ?? RecognitionLanguages.FirstOrDefault();
     }
 
     private async Task ToggleRecordingAsync()
@@ -395,14 +395,14 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             IsBusy = false;
             return;
         }
-        if (string.IsNullOrWhiteSpace(SelectedRecognitionLanguage))
+        if (SelectedRecognitionModel is null)
             return;
 
         _recognitionCancellation?.Dispose();
         _recognitionCancellation = new CancellationTokenSource();
         var command = new SpeechRecognitionCommand(
-            SelectedRecognitionLanguage,
-            SelectedRecognitionLanguage,
+            SelectedRecognitionModel.Id,
+            SelectedRecognitionModel.Id,
             AudioSources.Where(source => source.IsSelected)
                 .Select(source => new AudioCaptureSourceReference(source.Token, source.Kind))
                 .ToArray());

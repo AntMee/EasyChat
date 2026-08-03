@@ -28,6 +28,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly ITranslationLanguageCatalog _languages;
     private readonly ISpeechRecognitionModelCatalog _speechModels;
     private readonly ISpeechRecognitionModelInstaller _speechModelInstaller;
+    private readonly ISpeechRecognitionModelRemover _speechModelRemover;
     private readonly IExternalUriLauncher _uriLauncher;
     private readonly ISettingsDialogCoordinator _dialogs;
     private readonly ISukiToastManager _toasts;
@@ -50,6 +51,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ITranslationLanguageCatalog languages,
         ISpeechRecognitionModelCatalog speechModels,
         ISpeechRecognitionModelInstaller speechModelInstaller,
+        ISpeechRecognitionModelRemover speechModelRemover,
         IExternalUriLauncher uriLauncher,
         ISettingsDialogCoordinator dialogs,
         ISukiToastManager toasts)
@@ -61,6 +63,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         _languages = languages;
         _speechModels = speechModels;
         _speechModelInstaller = speechModelInstaller;
+        _speechModelRemover = speechModelRemover;
         _uriLauncher = uriLauncher;
         _dialogs = dialogs;
         _toasts = toasts;
@@ -88,6 +91,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ManageFixedAreasCommand = ReactiveCommand.Create(_dialogs.ManageFixedAreas);
         ConfigureTtsCommand = ReactiveCommand.Create(_dialogs.ConfigureTts);
         OpenAsrModelDownloadsCommand = ReactiveCommand.Create(OpenAsrModelDownloads);
+        DeleteAsrModelCommand = ReactiveCommand.Create<SpeechRecognitionModel>(ConfirmDeleteAsrModel);
 
         TestAiModelConnectionCommand = ReactiveCommand.CreateFromTask<CustomAiModelState>(TestAiModelConnectionAsync);
         TestBaiduConnectionCommand = ReactiveCommand.CreateFromTask(() => TestMachineConnectionAsync("Baidu"));
@@ -302,6 +306,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ReactiveCommand<Unit, Unit> ManageFixedAreasCommand { get; }
     public ReactiveCommand<Unit, Unit> ConfigureTtsCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenAsrModelDownloadsCommand { get; }
+    public ReactiveCommand<SpeechRecognitionModel, Unit> DeleteAsrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DownloadOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> CancelOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DeleteOcrModelCommand { get; }
@@ -342,7 +347,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     }
 
     public async Task ImportAsrModelsAsync(
-        string sourcePath,
+        IReadOnlyList<string> sourcePaths,
         SpeechRecognitionModelImportSourceKind sourceKind)
     {
         if (IsImportingAsrModel)
@@ -352,29 +357,59 @@ public sealed class SettingViewModel : NavigationPageViewModel
         try
         {
             var result = await _speechModelInstaller.ImportAsync(
-                new SpeechRecognitionModelImportRequest(sourcePath, sourceKind));
+                new SpeechRecognitionModelImportRequest(sourcePaths, sourceKind));
             await RefreshAsrModelsAsync();
 
+            var messages = new List<string>();
             if (result.ImportedModels.Count > 0)
-            {
-                ShowToast(
-                    Resources.AsrModels,
-                    string.Format(
-                        Resources.AsrModelsImported,
-                        string.Join(", ", result.ImportedModels.Select(model => model.Id))),
-                    NotificationType.Success);
-            }
-            else
-            {
-                ShowToast(
-                    Resources.AsrModels,
-                    Resources.AsrModelsAlreadyInstalled,
-                    NotificationType.Information);
-            }
+                messages.Add(string.Format(
+                    Resources.AsrModelsImported,
+                    string.Join(", ", result.ImportedModels.Select(model => model.Id))));
+            if (result.SkippedModels.Count > 0)
+                messages.Add(string.Format(
+                    Resources.AsrModelsSkipped,
+                    string.Join(", ", result.SkippedModels.Select(model => model.Id))));
+
+            ShowToast(
+                Resources.AsrModels,
+                string.Join(Environment.NewLine, messages),
+                result.SkippedModels.Count > 0
+                    ? NotificationType.Information
+                    : NotificationType.Success);
         }
         catch (Exception exception)
         {
             ShowToast(Resources.AsrModelImportFailed, exception.Message, NotificationType.Error);
+        }
+        finally
+        {
+            IsImportingAsrModel = false;
+        }
+    }
+
+    private void ConfirmDeleteAsrModel(SpeechRecognitionModel model) =>
+        _dialogs.ConfirmDeleteAsrModel(model, () => _ = DeleteAsrModelAsync(model));
+
+    private async Task DeleteAsrModelAsync(SpeechRecognitionModel model)
+    {
+        if (IsImportingAsrModel)
+            return;
+
+        IsImportingAsrModel = true;
+        try
+        {
+            if (await _speechModelRemover.DeleteAsync(model.Id))
+            {
+                await RefreshAsrModelsAsync();
+                ShowToast(
+                    Resources.AsrModels,
+                    string.Format(Resources.AsrModelDeleted, model.Id),
+                    NotificationType.Success);
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowToast(Resources.AsrModelDeleteFailed, exception.Message, NotificationType.Error);
         }
         finally
         {
@@ -564,4 +599,5 @@ public interface ISettingsDialogCoordinator
     void EditDeepLKeys();
     void ManageFixedAreas();
     void ConfigureTts();
+    void ConfirmDeleteAsrModel(SpeechRecognitionModel model, Action onConfirmed);
 }
