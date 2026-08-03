@@ -160,6 +160,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
         private LanguageSettings? _selectedTargetLang;
         private string _parameter = string.Empty;
         private string _keyCombination = string.Empty;
+        private string _recordingPreview = string.Empty;
         private bool _isRecording;
         private bool _isRecordingBeforeInputKey;
         private bool _isRecordingAfterInputKey;
@@ -205,6 +206,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
             ToggleRecordingCommand = ReactiveCommand.Create(() =>
             {
+                RecordingPreview = string.Empty;
                 IsRecording = !IsRecording;
                 IsRecordingBeforeInputKey = false;
                 IsRecordingAfterInputKey = false;
@@ -280,22 +282,86 @@ namespace EasyChat.Presentation.Features.Shortcuts
         public LanguageSettings? SelectedSourceLang { get => _selectedSourceLang; set => this.RaiseAndSetIfChanged(ref _selectedSourceLang, value); }
         public LanguageSettings? SelectedTargetLang { get => _selectedTargetLang; set => this.RaiseAndSetIfChanged(ref _selectedTargetLang, value); }
         public string Parameter { get => _parameter; set => this.RaiseAndSetIfChanged(ref _parameter, value); }
-        public string KeyCombination { get => _keyCombination; set => this.RaiseAndSetIfChanged(ref _keyCombination, value); }
-        public bool IsRecording { get => _isRecording; set => this.RaiseAndSetIfChanged(ref _isRecording, value); }
+        public string KeyCombination
+        {
+            get => _keyCombination;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _keyCombination, value);
+                this.RaisePropertyChanged(nameof(DisplayedKeyCombination));
+            }
+        }
+        public string RecordingPreview
+        {
+            get => _recordingPreview;
+            private set
+            {
+                this.RaiseAndSetIfChanged(ref _recordingPreview, value);
+                this.RaisePropertyChanged(nameof(DisplayedKeyCombination));
+                this.RaisePropertyChanged(nameof(DisplayedBeforeInputKey));
+                this.RaisePropertyChanged(nameof(DisplayedAfterInputKey));
+                this.RaisePropertyChanged(nameof(IsBeforeInputRecordingPromptVisible));
+                this.RaisePropertyChanged(nameof(IsAfterInputRecordingPromptVisible));
+            }
+        }
+        public string DisplayedKeyCombination => IsRecording ? RecordingPreview : KeyCombination;
+        public string DisplayedBeforeInputKey => IsRecordingBeforeInputKey ? RecordingPreview : InputTranslateBeforeKey;
+        public string DisplayedAfterInputKey => IsRecordingAfterInputKey ? RecordingPreview : InputTranslateAfterKey;
+        public bool IsBeforeInputRecordingPromptVisible =>
+            IsRecordingBeforeInputKey && string.IsNullOrEmpty(RecordingPreview);
+        public bool IsAfterInputRecordingPromptVisible =>
+            IsRecordingAfterInputKey && string.IsNullOrEmpty(RecordingPreview);
+        public bool IsRecording
+        {
+            get => _isRecording;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isRecording, value);
+                this.RaisePropertyChanged(nameof(DisplayedKeyCombination));
+            }
+        }
         public bool IsRecordingBeforeInputKey
         {
             get => _isRecordingBeforeInputKey;
-            set { this.RaiseAndSetIfChanged(ref _isRecordingBeforeInputKey, value); this.RaisePropertyChanged(nameof(IsNotRecordingBeforeInputKey)); }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isRecordingBeforeInputKey, value);
+                this.RaisePropertyChanged(nameof(IsNotRecordingBeforeInputKey));
+                this.RaisePropertyChanged(nameof(DisplayedBeforeInputKey));
+                this.RaisePropertyChanged(nameof(IsBeforeInputRecordingPromptVisible));
+            }
         }
         public bool IsNotRecordingBeforeInputKey => !IsRecordingBeforeInputKey;
         public bool IsRecordingAfterInputKey
         {
             get => _isRecordingAfterInputKey;
-            set { this.RaiseAndSetIfChanged(ref _isRecordingAfterInputKey, value); this.RaisePropertyChanged(nameof(IsNotRecordingAfterInputKey)); }
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _isRecordingAfterInputKey, value);
+                this.RaisePropertyChanged(nameof(IsNotRecordingAfterInputKey));
+                this.RaisePropertyChanged(nameof(DisplayedAfterInputKey));
+                this.RaisePropertyChanged(nameof(IsAfterInputRecordingPromptVisible));
+            }
         }
         public bool IsNotRecordingAfterInputKey => !IsRecordingAfterInputKey;
-        public string InputTranslateBeforeKey { get => _inputTranslateBeforeKey; set => this.RaiseAndSetIfChanged(ref _inputTranslateBeforeKey, value); }
-        public string InputTranslateAfterKey { get => _inputTranslateAfterKey; set => this.RaiseAndSetIfChanged(ref _inputTranslateAfterKey, value); }
+        public string InputTranslateBeforeKey
+        {
+            get => _inputTranslateBeforeKey;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _inputTranslateBeforeKey, value);
+                this.RaisePropertyChanged(nameof(DisplayedBeforeInputKey));
+            }
+        }
+        public string InputTranslateAfterKey
+        {
+            get => _inputTranslateAfterKey;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _inputTranslateAfterKey, value);
+                this.RaisePropertyChanged(nameof(DisplayedAfterInputKey));
+            }
+        }
         public bool ReplaceCurrentInput { get => _replaceCurrentInput; set => this.RaiseAndSetIfChanged(ref _replaceCurrentInput, value); }
         public bool ReadSelectedText { get => _readSelectedText; set => this.RaiseAndSetIfChanged(ref _readSelectedText, value); }
         public bool ShowSelectionToolbar { get => _showSelectionToolbar; set => this.RaiseAndSetIfChanged(ref _showSelectionToolbar, value); }
@@ -314,6 +380,8 @@ namespace EasyChat.Presentation.Features.Shortcuts
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
         public Action<ShortcutEntrySettings?>? OnClose { get; init; }
 
+        public void PreviewRecordedKeyCombination(string combination) => RecordingPreview = combination;
+
         public void SetRecordedKeyCombination(string combination)
         {
             if (IsRecordingBeforeInputKey)
@@ -330,10 +398,12 @@ namespace EasyChat.Presentation.Features.Shortcuts
             IsRecording = false;
             IsRecordingBeforeInputKey = false;
             IsRecordingAfterInputKey = false;
+            RecordingPreview = string.Empty;
         }
 
         private void StartInputKeyRecording(bool before)
         {
+            RecordingPreview = string.Empty;
             IsRecording = false;
             IsRecordingBeforeInputKey = before;
             IsRecordingAfterInputKey = !before;

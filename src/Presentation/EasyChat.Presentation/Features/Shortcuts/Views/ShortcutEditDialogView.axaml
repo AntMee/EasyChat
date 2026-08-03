@@ -193,12 +193,12 @@
                         BorderThickness="1"
                         ToolTip.Tip="{x:Static lang:Resources.RecordShortcut}">
                     <Grid ColumnDefinitions="*,Auto">
-                        <controls:KeySequenceDisplay KeyCombination="{Binding InputTranslateBeforeKey}"
-                                                     IsVisible="{Binding IsNotRecordingBeforeInputKey}"
+                        <controls:KeySequenceDisplay KeyCombination="{Binding DisplayedBeforeInputKey}"
+                                                     IsVisible="{Binding DisplayedBeforeInputKey, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                                      HorizontalAlignment="Center" />
                         <TextBlock Grid.Column="0"
                                    Text="{x:Static lang:Resources.RecordingShortcut}"
-                                   IsVisible="{Binding IsRecordingBeforeInputKey}"
+                                   IsVisible="{Binding IsBeforeInputRecordingPromptVisible}"
                                    Foreground="{DynamicResource SukiPrimaryColor}"
                                    HorizontalAlignment="Center" />
                         <avalonia:MaterialIcon Grid.Column="1" Kind="Keyboard" Opacity="0.5" />
@@ -230,12 +230,12 @@
                         BorderThickness="1"
                         ToolTip.Tip="{x:Static lang:Resources.RecordShortcut}">
                     <Grid ColumnDefinitions="*,Auto">
-                        <controls:KeySequenceDisplay KeyCombination="{Binding InputTranslateAfterKey}"
-                                                     IsVisible="{Binding IsNotRecordingAfterInputKey}"
+                        <controls:KeySequenceDisplay KeyCombination="{Binding DisplayedAfterInputKey}"
+                                                     IsVisible="{Binding DisplayedAfterInputKey, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                                      HorizontalAlignment="Center" />
                         <TextBlock Grid.Column="0"
                                    Text="{x:Static lang:Resources.RecordingShortcut}"
-                                   IsVisible="{Binding IsRecordingAfterInputKey}"
+                                   IsVisible="{Binding IsAfterInputRecordingPromptVisible}"
                                    Foreground="{DynamicResource SukiPrimaryColor}"
                                    HorizontalAlignment="Center" />
                         <avalonia:MaterialIcon Grid.Column="1" Kind="Keyboard" Opacity="0.5" />
@@ -278,12 +278,12 @@
                         Padding="15">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <!-- Show KeyCombination if not recording OR if we have valid text -->
-                            <controls:KeySequenceDisplay KeyCombination="{Binding KeyCombination}"
-                                                         IsVisible="{Binding KeyCombination, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            <!-- Show the in-progress chord immediately as each key is pressed. -->
+                            <controls:KeySequenceDisplay KeyCombination="{Binding DisplayedKeyCombination}"
+                                                         IsVisible="{Binding DisplayedKeyCombination, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                                          HorizontalAlignment="Center" />
                             <TextBlock Text="{x:Static lang:Resources.RecordingShortcut}"
-                                       IsVisible="{Binding KeyCombination, Converter={x:Static StringConverters.IsNullOrEmpty}}"
+                                       IsVisible="{Binding DisplayedKeyCombination, Converter={x:Static StringConverters.IsNullOrEmpty}}"
                                        Foreground="{DynamicResource SukiPrimaryColor}"
                                        FontSize="16"
                                        HorizontalAlignment="Center" />
