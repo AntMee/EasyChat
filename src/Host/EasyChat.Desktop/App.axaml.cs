@@ -5,13 +5,13 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using EasyChat.Contracts.Settings;
-using EasyChat.Views;
+using EasyChat.Presentation.Features.Shell.Views;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using ReactiveUI;
 using SukiUI.Toasts;
 
-namespace EasyChat;
+namespace EasyChat.Desktop;
 
 public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalonia.Application
 {
@@ -69,7 +69,7 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
         _trayIcon = new TrayIcon
         {
             Icon = new WindowIcon(stream),
-            ToolTipText = EasyChat.Lang.Resources.AppName,
+            ToolTipText = EasyChat.Presentation.Lang.Resources.AppName,
             Menu = CreateTrayMenu()
         };
         _trayIcon.Clicked += OnTrayShow;
@@ -82,11 +82,11 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
     private NativeMenu CreateTrayMenu()
     {
         var menu = new NativeMenu();
-        var show = new NativeMenuItem(EasyChat.Lang.Resources.TrayShow);
+        var show = new NativeMenuItem(EasyChat.Presentation.Lang.Resources.TrayShow);
         show.Click += OnTrayShow;
         menu.Items.Add(show);
         menu.Items.Add(new NativeMenuItemSeparator());
-        var exit = new NativeMenuItem(EasyChat.Lang.Resources.TrayExit);
+        var exit = new NativeMenuItem(EasyChat.Presentation.Lang.Resources.TrayExit);
         exit.Click += OnTrayExit;
         menu.Items.Add(exit);
         return menu;
@@ -123,10 +123,10 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
         if (result.IsFailure || !result.Value.IsUpdateAvailable) return;
         ui.Toasts
             .CreateToast()
-            .WithTitle(EasyChat.Lang.Resources.NewVersionAvailable)
-            .WithContent(string.Format(EasyChat.Lang.Resources.NewVersionContent, result.Value.LatestVersion))
-            .WithActionButton(EasyChat.Lang.Resources.Later, _ => { }, true)
-            .WithActionButton(EasyChat.Lang.Resources.Update, toast => { _ = DownloadUpdateAsync(ui); }, true)
+            .WithTitle(EasyChat.Presentation.Lang.Resources.NewVersionAvailable)
+            .WithContent(string.Format(EasyChat.Presentation.Lang.Resources.NewVersionContent, result.Value.LatestVersion))
+            .WithActionButton(EasyChat.Presentation.Lang.Resources.Later, _ => { }, true)
+            .WithActionButton(EasyChat.Presentation.Lang.Resources.Update, toast => { _ = DownloadUpdateAsync(ui); }, true)
             .Queue();
     }
 
@@ -134,15 +134,15 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
     {
         var progress = new ProgressBar { Value = 0, ShowProgressText = true };
         var toast = ui.Toasts.CreateToast()
-            .WithTitle(EasyChat.Lang.Resources.Updating)
+            .WithTitle(EasyChat.Presentation.Lang.Resources.Updating)
             .WithContent(progress)
             .Queue();
         var result = await ui.Updates.DownloadAndRestartAsync(new Progress<int>(value => progress.Value = value));
         ui.Toasts.Dismiss(toast);
         if (result.IsFailure)
             ui.Toasts.CreateToast()
-                .WithTitle(EasyChat.Lang.Resources.UpdateFailed)
-                .WithContent(EasyChat.Lang.Resources.CheckNetwork)
+                .WithTitle(EasyChat.Presentation.Lang.Resources.UpdateFailed)
+                .WithContent(EasyChat.Presentation.Lang.Resources.CheckNetwork)
                 .Dismiss().After(TimeSpan.FromSeconds(5))
                 .Queue();
     }

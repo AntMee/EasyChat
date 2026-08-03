@@ -10,7 +10,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using EasyChat.Presentation.Features.Translation.Models;
 
-namespace EasyChat.Controls;
+namespace EasyChat.Presentation.Features.Translation.Controls;
 
 /// <summary>
 /// A high-performance control for displaying text tokens with interactive hover effects.

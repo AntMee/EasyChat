@@ -5,16 +5,16 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using EasyChat.Controls;
-using EasyChat.Lang;
+using EasyChat.Presentation.Features.TextAssist.Controls;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Foundation.Platform;
 using EasyChat.Presentation.Shared.Feedback;
-using EasyChat.ViewModels.Pages;
-using EasyChat.Views.Pages;
+using EasyChat.Presentation.Features.TextAssist;
+using EasyChat.Presentation.Features.TextAssist.Views;
 using Microsoft.Extensions.Logging;
 using SukiUI.Controls;
 
-namespace EasyChat.Views.Pages
+namespace EasyChat.Presentation.Features.TextAssist.Views
 {
     public partial class TextAssistView : UserControl
     {
@@ -43,7 +43,7 @@ namespace EasyChat.Views.Pages
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
             if (clipboard is null) return;
             await clipboard.SetTextAsync(viewModel.TranslationResult);
-            CopyFeedback.Show(sender as Control, EasyChat.Lang.Resources.Copied);
+            CopyFeedback.Show(sender as Control, EasyChat.Presentation.Lang.Resources.Copied);
         }
     }
 
@@ -79,7 +79,7 @@ namespace EasyChat.Views.Pages
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
             if (clipboard is null) return;
             await clipboard.SetTextAsync(variant.Text);
-            CopyFeedback.Show(sender as Control, EasyChat.Lang.Resources.Copied);
+            CopyFeedback.Show(sender as Control, EasyChat.Presentation.Lang.Resources.Copied);
         }
 
         private void PositionHint(Border hint, PointerEventArgs e)
@@ -94,7 +94,7 @@ namespace EasyChat.Views.Pages
     }
 }
 
-namespace EasyChat.Presentation.Features.TextAssist
+namespace EasyChat.Presentation.Features.TextAssist.Views
 {
     public partial class TextAssistWindowView : SukiWindow
     {
@@ -213,7 +213,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
             if (clipboard is null) return;
             await clipboard.SetTextAsync(_viewModel.CopyText);
-            CopyFeedback.Show(sender as Control, EasyChat.Lang.Resources.Copied);
+            CopyFeedback.Show(sender as Control, EasyChat.Presentation.Lang.Resources.Copied);
         }
 
         private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();

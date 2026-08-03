@@ -5,7 +5,7 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.ImageTranslation;
-using EasyChat.Views.Overlay;
+using EasyChat.Presentation.Features.Capture.Views;
 using SukiUI.Toasts;
 
 namespace EasyChat.Presentation.Features.Capture;

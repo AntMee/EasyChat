@@ -1,10 +1,10 @@
 using EasyChat.Contracts.Updates;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.ViewModels;
+using EasyChat.Presentation.Features.Shell;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 
-namespace EasyChat;
+namespace EasyChat.Desktop;
 
 public sealed record DesktopUiContext(
     SettingsSession Settings,

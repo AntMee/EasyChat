@@ -6,7 +6,7 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using EasyChat.Presentation.Features.Settings.State;
 
-namespace EasyChat.Views.Result;
+namespace EasyChat.Presentation.Features.Capture.Views;
 
 public partial class ResultView : Window
 {

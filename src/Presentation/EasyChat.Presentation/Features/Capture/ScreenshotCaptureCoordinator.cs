@@ -2,7 +2,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.ImageTranslation;
-using EasyChat.Views.Overlay;
+using EasyChat.Presentation.Features.Capture.Views;
 
 namespace EasyChat.Presentation.Features.Capture;
 

@@ -1,12 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:EasyChat.ViewModels.Pages"
-             xmlns:textAssist="using:EasyChat.ViewModels.Pages"
-             xmlns:lang="clr-namespace:EasyChat.Lang"
-             xmlns:converters="clr-namespace:EasyChat.Converters"
+             xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
+             xmlns:textAssist="using:EasyChat.Presentation.Features.TextAssist"
+             xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+             xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             x:Class="EasyChat.Views.Pages.TextAssistTranslationView"
+             x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistTranslationView"
              x:Name="TranslationView"
              x:DataType="vm:TextAssistTranslationViewModel">
     <UserControl.Styles>

@@ -4,7 +4,7 @@ using Avalonia.Threading;
 using EasyChat.Contracts.SelectionTranslation;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.Translation.Models;
@@ -12,7 +12,7 @@ using ReactiveUI;
 
 namespace EasyChat.Presentation.Features.Translation;
 
-public sealed class TranslationDictionaryWindowViewModel : EasyChat.ViewModels.ViewModelBase
+public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation.Foundation.Navigation.ViewModelBase
 {
     private readonly ISelectionTranslationUseCases _translation;
     private readonly ITranslationLanguageCatalog _languages;

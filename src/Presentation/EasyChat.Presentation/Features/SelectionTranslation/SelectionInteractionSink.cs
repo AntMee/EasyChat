@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Selection;
 using EasyChat.Contracts.TextAssist;
+using EasyChat.Presentation.Features.SelectionTranslation.Views;
 using EasyChat.Presentation.Features.TextAssist;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Platform;

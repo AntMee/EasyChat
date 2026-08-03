@@ -1,13 +1,14 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
 using EasyChat.Contracts.Settings;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Navigation;
 using ReactiveUI;
 using SukiUI.Dialogs;
 
-namespace EasyChat.ViewModels.Dialogs;
+namespace EasyChat.Presentation.Features.Capture;
 
 public sealed class FixedAreaEditDialogViewModel : ViewModelBase
 {

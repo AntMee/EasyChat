@@ -4,9 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using EasyChat.ViewModels.Dialogs;
+using EasyChat.Presentation.Features.Shortcuts;
 
-namespace EasyChat.Views.Pages
+namespace EasyChat.Presentation.Features.Shortcuts.Views
 {
     public partial class ShortcutView : UserControl
     {
@@ -14,7 +14,7 @@ namespace EasyChat.Views.Pages
     }
 }
 
-namespace EasyChat.Views.Dialogs
+namespace EasyChat.Presentation.Features.Shortcuts.Views
 {
     public partial class ShortcutEditDialogView : UserControl
     {

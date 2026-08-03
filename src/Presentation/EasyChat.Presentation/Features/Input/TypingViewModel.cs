@@ -6,7 +6,7 @@ using EasyChat.Presentation.Foundation.Localization;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 
-namespace EasyChat.ViewModels.Typing;
+namespace EasyChat.Presentation.Features.Input;
 
 public sealed class TypingViewModel : ReactiveObject, IDisposable
 {

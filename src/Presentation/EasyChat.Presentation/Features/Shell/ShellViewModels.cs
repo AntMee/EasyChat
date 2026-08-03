@@ -6,10 +6,11 @@ using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.Updates;
-using EasyChat.Controls.CustomTheme;
-using EasyChat.Lang;
+using EasyChat.Presentation.Features.Settings;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
+using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
 using SukiUI;
@@ -17,7 +18,7 @@ using SukiUI.Dialogs;
 using SukiUI.Models;
 using SukiUI.Toasts;
 
-namespace EasyChat.ViewModels
+namespace EasyChat.Presentation.Features.Shell
 {
     public sealed class PageNavigation
     {
@@ -203,7 +204,7 @@ namespace EasyChat.ViewModels
     }
 }
 
-namespace EasyChat.ViewModels.Pages
+namespace EasyChat.Presentation.Features.Shell
 {
     public sealed class HomeViewModel : NavigationPageViewModel
     {
@@ -243,9 +244,9 @@ namespace EasyChat.ViewModels.Pages
     }
 }
 
-namespace EasyChat.ViewModels.Dialogs
+namespace EasyChat.Presentation.Features.Shell
 {
-    public sealed class CloseBehaviorDialogViewModel : EasyChat.ViewModels.ViewModelBase
+    public sealed class CloseBehaviorDialogViewModel : ViewModelBase
     {
         private readonly ISukiDialog _dialog;
         private readonly LiveGeneralSettings _settings;

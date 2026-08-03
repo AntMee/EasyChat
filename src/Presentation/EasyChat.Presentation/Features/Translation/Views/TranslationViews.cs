@@ -3,12 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Foundation.Platform;
 using EasyChat.Presentation.Shared.Feedback;
 using Microsoft.Extensions.Logging;
 
-namespace EasyChat.Presentation.Features.Translation
+namespace EasyChat.Presentation.Features.Translation.Views
 {
     public partial class TranslationDictionaryWindowView : Window
     {
@@ -75,7 +75,7 @@ namespace EasyChat.Presentation.Features.Translation
                     return;
 
                 await clipboard.SetTextAsync(text);
-                CopyFeedback.Show(sender as Control, EasyChat.Lang.Resources.Copied);
+                CopyFeedback.Show(sender as Control, EasyChat.Presentation.Lang.Resources.Copied);
                 _logger?.LogDebug("Copied translation result to clipboard.");
             }
             catch (Exception exception)

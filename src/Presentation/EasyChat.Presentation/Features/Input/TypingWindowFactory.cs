@@ -4,8 +4,8 @@ using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
-using EasyChat.ViewModels.Typing;
-using EasyChat.Views.Typing;
+using EasyChat.Presentation.Features.Input;
+using EasyChat.Presentation.Features.Input.Views;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.Input;

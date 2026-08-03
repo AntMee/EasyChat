@@ -7,7 +7,7 @@ using Material.Icons.Avalonia;
 using Microsoft.Extensions.Logging;
 using SukiUI.Controls;
 
-namespace EasyChat.Presentation.Features.SelectionTranslation;
+namespace EasyChat.Presentation.Features.SelectionTranslation.Views;
 
 public partial class SelectionIconWindowView : Window
 {

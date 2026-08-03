@@ -9,11 +9,11 @@ using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Foundation.Platform;
-using EasyChat.ViewModels.Pages;
+using EasyChat.Presentation.Features.Speech;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 
-namespace EasyChat.Views.Pages
+namespace EasyChat.Presentation.Features.Speech.Views
 {
     public partial class SpeechRecognitionView : UserControl
     {
@@ -39,7 +39,7 @@ namespace EasyChat.Views.Pages
     }
 }
 
-namespace EasyChat.Views.Speech
+namespace EasyChat.Presentation.Features.Speech.Views
 {
     public partial class SubtitleOverlayWindowView : Window
     {
@@ -266,7 +266,7 @@ namespace EasyChat.Views.Speech
     }
 }
 
-namespace EasyChat.Views.Dialogs
+namespace EasyChat.Presentation.Features.Speech.Views
 {
     public partial class TtsEditVoiceDialogView : UserControl
     {

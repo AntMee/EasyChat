@@ -4,15 +4,16 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Media;
 using EasyChat.Contracts.AiModels;
 using EasyChat.Contracts.Settings;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
 using SukiUI;
 using SukiUI.Dialogs;
 using SukiUI.Models;
 
-namespace EasyChat.ViewModels.Pages
+namespace EasyChat.Presentation.Features.Settings
 {
     public sealed class PromptViewModel : NavigationPageViewModel
     {
@@ -39,7 +40,7 @@ namespace EasyChat.ViewModels.Pages
         private void ShowEditor(PromptEntryState? entry)
         {
             _dialogs.CreateDialog()
-                .WithViewModel(dialog => new EasyChat.ViewModels.Dialogs.PromptEditDialogViewModel(dialog, entry)
+                .WithViewModel(dialog => new EasyChat.Presentation.Features.Settings.PromptEditDialogViewModel(dialog, entry)
                 {
                     OnClose = result =>
                     {
@@ -96,9 +97,9 @@ namespace EasyChat.ViewModels.Pages
     }
 }
 
-namespace EasyChat.ViewModels.AiModels
+namespace EasyChat.Presentation.Features.Settings
 {
-    public sealed class AiModelEditDialogViewModel : EasyChat.ViewModels.ViewModelBase
+    public sealed class AiModelEditDialogViewModel : EasyChat.Presentation.Foundation.Navigation.ViewModelBase
     {
         private readonly ISukiDialog _dialog;
         private readonly IAiModelCatalogTransport _catalog;
@@ -268,7 +269,7 @@ namespace EasyChat.ViewModels.AiModels
     }
 }
 
-namespace EasyChat.ViewModels.Dialogs
+namespace EasyChat.Presentation.Features.Settings
 {
     public enum KeyListType
     {
@@ -390,9 +391,9 @@ namespace EasyChat.ViewModels.Dialogs
     }
 }
 
-namespace EasyChat.Controls.CustomTheme
+namespace EasyChat.Presentation.Features.Settings
 {
-    public sealed class CustomThemeDialogViewModel : EasyChat.ViewModels.ViewModelBase
+    public sealed class CustomThemeDialogViewModel : EasyChat.Presentation.Foundation.Navigation.ViewModelBase
     {
         private readonly SukiTheme _theme;
         private readonly ISukiDialog _dialog;

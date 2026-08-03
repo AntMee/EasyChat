@@ -1,13 +1,13 @@
-<UserControl x:Class="EasyChat.Views.Pages.SpeechRecognitionView"
+<UserControl x:Class="EasyChat.Presentation.Features.Speech.Views.SpeechRecognitionView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:EasyChat.ViewModels.Pages;assembly=EasyChat.Presentation"
+             xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Speech;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
-             xmlns:converts="clr-namespace:EasyChat.Converters;assembly=EasyChat.Presentation"
-             xmlns:lang="clr-namespace:EasyChat.Lang;assembly=EasyChat.Presentation"
+             xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
+             xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
              x:DataType="vm:SpeechRecognitionViewModel">
 

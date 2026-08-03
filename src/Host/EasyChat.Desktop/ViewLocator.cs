@@ -1,8 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using EasyChat.ViewModels;
+using EasyChat.Presentation.Foundation.Navigation;
 
-namespace EasyChat;
+namespace EasyChat.Desktop;
 
 public sealed class ViewLocator : IDataTemplate
 {
@@ -13,7 +13,10 @@ public sealed class ViewLocator : IDataTemplate
         if (data is null)
             return null;
 
-        var viewName = data.GetType().FullName?.Replace("ViewModel", "View", StringComparison.Ordinal);
+        var viewModelType = data.GetType();
+        var viewName = viewModelType.Namespace is null
+            ? null
+            : $"{viewModelType.Namespace}.Views.{viewModelType.Name.Replace("ViewModel", "View", StringComparison.Ordinal)}";
         var viewType = viewName is null
             ? null
             : typeof(Presentation.AssemblyMarker).Assembly.GetType(viewName);

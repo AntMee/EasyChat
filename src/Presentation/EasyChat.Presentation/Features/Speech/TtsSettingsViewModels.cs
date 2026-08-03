@@ -3,13 +3,14 @@ using System.Reactive;
 using System.Reactive.Linq;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Navigation;
 using ReactiveUI;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 
-namespace EasyChat.ViewModels.Dialogs;
+namespace EasyChat.Presentation.Features.Speech;
 
 public sealed class TtsLanguageItem(TtsLanguage value)
 {

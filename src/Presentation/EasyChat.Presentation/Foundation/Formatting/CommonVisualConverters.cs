@@ -5,10 +5,10 @@ using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using EasyChat.Contracts.Settings;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using Material.Icons;
 
-namespace EasyChat.Converters;
+namespace EasyChat.Presentation.Foundation.Formatting;
 
 public sealed class BoolToColorConverter : IMultiValueConverter
 {

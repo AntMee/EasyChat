@@ -5,9 +5,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
-using EasyChat.ViewModels.Pages;
+using EasyChat.Presentation.Features.TextAssist;
 
-namespace EasyChat.Controls;
+namespace EasyChat.Presentation.Features.TextAssist.Controls;
 
 public sealed class CorrectionAnnotationLayer : Control
 {

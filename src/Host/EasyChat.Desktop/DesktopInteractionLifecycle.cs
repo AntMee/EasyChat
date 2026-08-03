@@ -2,7 +2,7 @@ using EasyChat.Contracts.Selection;
 using EasyChat.Contracts.Shortcuts;
 using Microsoft.Extensions.Logging;
 
-namespace EasyChat;
+namespace EasyChat.Desktop;
 
 public sealed class DesktopInteractionLifecycle(
     ISelectionInteractionUseCases selection,

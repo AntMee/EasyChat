@@ -1,7 +1,7 @@
 using Material.Icons;
 using ReactiveUI;
 
-namespace EasyChat.ViewModels;
+namespace EasyChat.Presentation.Foundation.Navigation;
 
 public abstract class ViewModelBase : ReactiveObject;
 

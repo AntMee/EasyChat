@@ -4,10 +4,10 @@ using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using EasyChat.Contracts.Settings;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using Material.Icons;
 
-namespace EasyChat.Converters;
+namespace EasyChat.Presentation.Foundation.Formatting;
 
 public static class AiModelTypeConverters
 {

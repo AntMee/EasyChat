@@ -3,9 +3,10 @@ using System.Reactive;
 using Avalonia.Controls.Notifications;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
+using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
 using SukiUI.Dialogs;
@@ -14,7 +15,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
 {
     public static class ShortcutActionCatalog
     {
-        public static IReadOnlyList<EasyChat.ViewModels.Dialogs.ShortcutActionOption> All { get; } =
+        public static IReadOnlyList<EasyChat.Presentation.Features.Shortcuts.ShortcutActionOption> All { get; } =
         [
             new("Screenshot", "Action_ScreenshotTranslate"),
             new("InputTranslate", "Action_InputTranslate"),
@@ -28,14 +29,14 @@ namespace EasyChat.Presentation.Features.Shortcuts
             new("SwitchEngineSourceTarget", "Action_SwitchEngineSourceTarget", true, "Hint_SwitchConfig")
         ];
 
-        public static EasyChat.ViewModels.Dialogs.ShortcutActionOption? Get(string actionType) =>
+        public static EasyChat.Presentation.Features.Shortcuts.ShortcutActionOption? Get(string actionType) =>
             All.FirstOrDefault(action => action.ActionType == actionType);
 
         public static string GetDisplayName(string actionType) => Get(actionType)?.DisplayName ?? actionType;
     }
 }
 
-namespace EasyChat.ViewModels.Pages
+namespace EasyChat.Presentation.Features.Shortcuts
 {
     using EasyChat.Presentation.Features.Shortcuts;
 
@@ -116,7 +117,7 @@ namespace EasyChat.ViewModels.Pages
         private void ShowEditor(ShortcutEntryState? entry, IReadOnlyList<string> allowed, string defaultAction)
         {
             _dialogs.CreateDialog()
-                .WithViewModel(dialog => new EasyChat.ViewModels.Dialogs.ShortcutEditDialogViewModel(
+                .WithViewModel(dialog => new EasyChat.Presentation.Features.Shortcuts.ShortcutEditDialogViewModel(
                     dialog, _settings, _languages, allowed, entry, defaultAction)
                 {
                     OnClose = result =>
@@ -143,7 +144,7 @@ namespace EasyChat.ViewModels.Pages
     }
 }
 
-namespace EasyChat.ViewModels.Dialogs
+namespace EasyChat.Presentation.Features.Shortcuts
 {
     using EasyChat.Presentation.Features.Shortcuts;
 

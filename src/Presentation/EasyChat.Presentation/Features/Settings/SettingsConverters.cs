@@ -1,9 +1,9 @@
 using System.Globalization;
 using Avalonia.Data.Converters;
 using EasyChat.Contracts.Settings;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 
-namespace EasyChat.Converters;
+namespace EasyChat.Presentation.Features.Settings;
 
 public sealed class DeliveryModeToBoolConverter : IValueConverter
 {

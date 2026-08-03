@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <RootNamespace>EasyChat.Presentation</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.0" />
@@ -20,10 +21,10 @@
     <EmbeddedResource Update="Lang\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <LogicalName>EasyChat.Lang.Resources.resources</LogicalName>
+      <LogicalName>EasyChat.Presentation.Lang.Resources.resources</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Update="Lang\Resources.zh.resx">
-      <LogicalName>EasyChat.Lang.Resources.zh.resources</LogicalName>
+      <LogicalName>EasyChat.Presentation.Lang.Resources.zh.resources</LogicalName>
     </EmbeddedResource>
     <Compile Update="Lang\Resources.Designer.cs">
       <DesignTime>True</DesignTime>

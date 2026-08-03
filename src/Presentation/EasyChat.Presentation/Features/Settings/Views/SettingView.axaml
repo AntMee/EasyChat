@@ -1,13 +1,13 @@
-﻿<UserControl x:Class="EasyChat.Views.Pages.SettingView"
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.SettingView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
-             xmlns:viewModels="clr-namespace:EasyChat.ViewModels.Pages"
-             xmlns:lang="clr-namespace:EasyChat.Lang;assembly=EasyChat.Presentation"
+             xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
+             xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:objectModel="clr-namespace:System.Collections.ObjectModel;assembly=System.ObjectModel"
-             xmlns:settings="clr-namespace:EasyChat.Views.Pages.Settings"
+             xmlns:settings="clr-namespace:EasyChat.Presentation.Features.Settings.Views"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
 

@@ -1,4 +1,4 @@
-using EasyChat;
+using EasyChat.Desktop;
 using EasyChat.Desktop.Windows.DependencyInjection;
 using EasyChat.Infrastructure.Windows.DependencyInjection;
 using EasyChat.Infrastructure.Windows.Input;

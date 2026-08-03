@@ -8,13 +8,14 @@ using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
 using SukiUI.Toasts;
 
-namespace EasyChat.ViewModels.Pages;
+namespace EasyChat.Presentation.Features.Settings;
 
 public sealed class SettingViewModel : NavigationPageViewModel
 {

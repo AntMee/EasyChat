@@ -2,12 +2,10 @@ using Avalonia.Controls.Notifications;
 using EasyChat.Contracts.AiModels;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.ViewModels.AiModels;
-using EasyChat.ViewModels.Dialogs;
-using EasyChat.ViewModels.Pages;
+using EasyChat.Presentation.Features.Speech;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 

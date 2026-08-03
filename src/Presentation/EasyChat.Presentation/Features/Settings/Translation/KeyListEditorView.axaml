@@ -2,13 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:EasyChat.ViewModels.Dialogs"
+             xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Settings"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:theme="https://github.com/kikipoulet/SukiUI"
-             xmlns:lang="clr-namespace:EasyChat.Lang"
+             xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
-             x:Class="EasyChat.Views.Dialogs.KeyListEditorView"
+             x:Class="EasyChat.Presentation.Features.Settings.Translation.KeyListEditorView"
              x:DataType="vm:KeyListEditorViewModel">
 
     <StackPanel Spacing="20" MinWidth="450">

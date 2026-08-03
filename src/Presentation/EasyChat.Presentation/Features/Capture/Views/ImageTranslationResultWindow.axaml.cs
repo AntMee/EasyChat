@@ -8,7 +8,7 @@ using EasyChat.Presentation.Shared.Feedback;
 using Microsoft.Extensions.Logging;
 using SukiUI.Controls;
 
-namespace EasyChat.Presentation.Features.Capture;
+namespace EasyChat.Presentation.Features.Capture.Views;
 
 public partial class ImageTranslationResultWindow : SukiWindow
 {
@@ -52,7 +52,7 @@ public partial class ImageTranslationResultWindow : SukiWindow
             if (clipboard is null || _bitmap is null)
                 return;
             await clipboard.SetValueAsync(DataFormat.Bitmap, _bitmap);
-            CopyFeedback.Show(sender as Control, EasyChat.Lang.Resources.Copied);
+            CopyFeedback.Show(sender as Control, EasyChat.Presentation.Lang.Resources.Copied);
         }
         catch (Exception exception)
         {

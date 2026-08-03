@@ -2,9 +2,9 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:suki="https://github.com/kikipoulet/SukiUI"
                  xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-                 xmlns:converters="clr-namespace:EasyChat.Converters"
+                 xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
                  xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
-                 x:Class="EasyChat.Presentation.Features.TextAssist.TextAssistActionWindowView"
+                 x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistActionWindowView"
                  x:DataType="vm:TextAssistResultWindowViewModel"
                  Width="820" Height="520" WindowStartupLocation="CenterScreen" Title="{Binding Title}">
     <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="12">

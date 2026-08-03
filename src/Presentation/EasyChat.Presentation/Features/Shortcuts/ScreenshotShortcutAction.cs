@@ -9,7 +9,7 @@ using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.ImageTranslation;
-using EasyChat.Views.Overlay;
+using EasyChat.Presentation.Features.Capture.Views;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.Shortcuts;
@@ -94,8 +94,8 @@ public sealed class ScreenshotShortcutAction(
         catch (OcrModelNotDownloadedException)
         {
             await _results.ShowMessageAsync(
-                EasyChat.Lang.Resources.OcrModelRequiredTitle,
-                EasyChat.Lang.Resources.OcrModelRequiredMessage);
+                EasyChat.Presentation.Lang.Resources.OcrModelRequiredTitle,
+                EasyChat.Presentation.Lang.Resources.OcrModelRequiredMessage);
         }
         catch (Exception exception)
         {

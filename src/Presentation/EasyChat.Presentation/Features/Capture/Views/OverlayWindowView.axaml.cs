@@ -9,7 +9,7 @@ using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using Key = Avalonia.Input.Key;
 
-namespace EasyChat.Views.Overlay;
+namespace EasyChat.Presentation.Features.Capture.Views;
 
 public enum CaptureOverlayAction
 {

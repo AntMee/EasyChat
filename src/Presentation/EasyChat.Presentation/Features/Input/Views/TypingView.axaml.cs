@@ -4,11 +4,11 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.ViewModels.Typing;
+using EasyChat.Presentation.Features.Input;
 using SukiUI.Controls;
 using Key = Avalonia.Input.Key;
 
-namespace EasyChat.Views.Typing;
+namespace EasyChat.Presentation.Features.Input.Views;
 
 public partial class TypingView : Window
 {

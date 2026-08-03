@@ -5,17 +5,17 @@ using EasyChat.Contracts.Shell;
 using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.Updates;
 using EasyChat.Infrastructure.DependencyInjection;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.DependencyInjection;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.ViewModels;
+using EasyChat.Presentation.Features.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 
-namespace EasyChat;
+namespace EasyChat.Desktop;
 
 public static class DesktopApplication
 {

@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.ViewModels.Dialogs;
+using EasyChat.Presentation.Features.Capture;
 
-namespace EasyChat.Views.Dialogs
+namespace EasyChat.Presentation.Features.Capture.Views
 {
     public partial class FixedAreaEditDialogView : UserControl
     {

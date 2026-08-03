@@ -3,7 +3,7 @@ using System.Globalization;
 using Avalonia.Data.Converters;
 using EasyChat.Contracts.Settings;
 
-namespace EasyChat.Converters;
+namespace EasyChat.Presentation.Features.Speech;
 
 public sealed class SubtitleContentConverter : IMultiValueConverter
 {

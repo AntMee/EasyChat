@@ -35,6 +35,57 @@ public sealed class ArchitectureRulesTests
     }
 
     [TestMethod]
+    public void SourceNamespaces_MatchTheirPhysicalLocations()
+    {
+        var root = FindRepositoryRoot();
+
+        var projects = Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(Path.Combine(root, "Tests"), "*.csproj", SearchOption.AllDirectories));
+
+        foreach (var project in projects)
+        {
+            var projectRoot = Path.GetDirectoryName(project)!;
+            var document = XDocument.Load(project);
+            var rootNamespace = document.Descendants()
+                .Where(node => node.Name.LocalName == "RootNamespace")
+                .Select(node => node.Value)
+                .LastOrDefault() ?? Path.GetFileNameWithoutExtension(project);
+
+            foreach (var file in Directory.EnumerateFiles(projectRoot, "*", SearchOption.AllDirectories)
+                         .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+                                        || path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
+                         .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj")))
+            {
+                var relative = Path.GetRelativePath(projectRoot, file);
+                var relativeDirectory = Path.GetDirectoryName(relative);
+                var expectedNamespace = string.IsNullOrEmpty(relativeDirectory)
+                    ? rootNamespace
+                    : $"{rootNamespace}.{relativeDirectory.Replace(Path.DirectorySeparatorChar, '.').Replace(Path.AltDirectorySeparatorChar, '.')}";
+                var source = File.ReadAllText(file);
+
+                if (file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+                {
+                    var namespaces = Regex.Matches(
+                        source,
+                        @"^\s*namespace\s+([A-Za-z_][A-Za-z0-9_.]*)\s*[;{]",
+                        RegexOptions.Multiline);
+                    foreach (Match match in namespaces)
+                        Assert.AreEqual(expectedNamespace, match.Groups[1].Value, Path.GetRelativePath(root, file));
+                }
+                else
+                {
+                    var classMatch = Regex.Match(source, "x:Class=\"([^\"]+)\"");
+                    if (!classMatch.Success)
+                        continue;
+
+                    var expectedClass = $"{expectedNamespace}.{Path.GetFileNameWithoutExtension(file)}";
+                    Assert.AreEqual(expectedClass, classMatch.Groups[1].Value, Path.GetRelativePath(root, file));
+                }
+            }
+        }
+    }
+
+    [TestMethod]
     public void ProductionProjects_FollowTheDependencyGraph()
     {
         var root = FindRepositoryRoot();
@@ -249,6 +300,10 @@ public sealed class ArchitectureRulesTests
                            path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
             .Where(path => !path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Any(segment => segment is "bin" or "obj" or ".verification"));
+
+    private static bool HasPathSegment(string path, string segment) =>
+        path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Any(candidate => candidate.Equals(segment, StringComparison.OrdinalIgnoreCase));
 
     private static string FindRepositoryRoot()
     {

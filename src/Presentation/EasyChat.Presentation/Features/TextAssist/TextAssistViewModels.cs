@@ -7,15 +7,16 @@ using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.TextAssist;
 using EasyChat.Contracts.Translation;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
+using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 
-namespace EasyChat.ViewModels.Pages
+namespace EasyChat.Presentation.Features.TextAssist
 {
     public sealed class TextAssistViewModel : NavigationPageViewModel
     {
@@ -678,9 +679,9 @@ namespace EasyChat.ViewModels.Pages
 
 namespace EasyChat.Presentation.Features.TextAssist
 {
-    using EasyChat.ViewModels.Pages;
+    using EasyChat.Presentation.Features.TextAssist;
 
-    public sealed class TextAssistResultWindowViewModel : EasyChat.ViewModels.ViewModelBase
+    public sealed class TextAssistResultWindowViewModel : EasyChat.Presentation.Foundation.Navigation.ViewModelBase
     {
         private readonly SettingsSession _settings;
         private readonly TranslationLanguageOptions _languages;

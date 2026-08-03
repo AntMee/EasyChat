@@ -1,14 +1,13 @@
 using Avalonia.Controls.Notifications;
 using Avalonia.Controls;
 using EasyChat.Contracts.Settings;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.ViewModels;
-using EasyChat.ViewModels.Dialogs;
+using EasyChat.Presentation.Features.Shell;
 using SukiUI.Dialogs;
 using SukiUI.Controls;
 
-namespace EasyChat.Views
+namespace EasyChat.Presentation.Features.Shell.Views
 {
     public partial class MainWindow : SukiWindow
     {
@@ -48,7 +47,7 @@ namespace EasyChat.Views
                 default:
                     args.Cancel = true;
                     dialogs.CreateDialog()
-                        .WithTitle(EasyChat.Lang.Resources.CloseToTrayPromptTitle)
+                        .WithTitle(EasyChat.Presentation.Lang.Resources.CloseToTrayPromptTitle)
                         .OfType(NotificationType.Information)
                         .WithViewModel(dialog => new CloseBehaviorDialogViewModel(
                             dialog,
@@ -66,7 +65,7 @@ namespace EasyChat.Views
     }
 }
 
-namespace EasyChat.Views.Pages
+namespace EasyChat.Presentation.Features.Shell.Views
 {
     public partial class HomeView : UserControl
     {
@@ -79,7 +78,7 @@ namespace EasyChat.Views.Pages
     }
 }
 
-namespace EasyChat.Views.Dialogs
+namespace EasyChat.Presentation.Features.Shell.Views
 {
     public partial class CloseBehaviorDialogView : UserControl
     {

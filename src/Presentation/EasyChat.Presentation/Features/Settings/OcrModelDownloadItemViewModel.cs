@@ -1,8 +1,8 @@
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Contracts.Ocr;
 using ReactiveUI;
 
-namespace EasyChat.ViewModels.Pages;
+namespace EasyChat.Presentation.Features.Settings;
 
 public sealed class OcrModelDownloadItemViewModel : ReactiveObject
 {

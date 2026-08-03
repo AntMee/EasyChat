@@ -6,6 +6,7 @@ using EasyChat.Contracts.SelectionTranslation;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Features.Translation.Views;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Platform;
 using Microsoft.Extensions.Logging;

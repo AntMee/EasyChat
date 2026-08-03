@@ -6,9 +6,9 @@ using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.TextAssist;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
+using EasyChat.Presentation.Features.TextAssist.Views;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Platform;
-using EasyChat.ViewModels.Pages;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.TextAssist;

@@ -3,8 +3,8 @@ using Avalonia.Controls;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Platform;
-using EasyChat.ViewModels.Pages;
-using EasyChat.Views.Speech;
+using EasyChat.Presentation.Features.Speech;
+using EasyChat.Presentation.Features.Speech.Views;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.Speech;

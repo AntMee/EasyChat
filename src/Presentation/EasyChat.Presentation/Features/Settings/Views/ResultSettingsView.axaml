@@ -1,16 +1,17 @@
-<UserControl x:Class="EasyChat.Views.Pages.Settings.ResultSettingsView"
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.ResultSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
-             xmlns:viewModels="clr-namespace:EasyChat.ViewModels.Pages"
-             xmlns:lang="clr-namespace:EasyChat.Lang;assembly=EasyChat.Presentation"
-             xmlns:converts="clr-namespace:EasyChat.Converters;assembly=EasyChat.Presentation"
+             xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
+             xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
+             xmlns:converts="clr-namespace:EasyChat.Presentation.Features.Settings;assembly=EasyChat.Presentation"
+             xmlns:formatting="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
     <UserControl.Resources>
-        <converts:ColorToHexConverter x:Key="ColorToHexConverter" />
+        <formatting:ColorToHexConverter x:Key="ColorToHexConverter" />
     </UserControl.Resources>
     
     <suki:GlassCard>
@@ -72,7 +73,7 @@
                               HorizontalAlignment="Right" Width="150">
                               <ComboBox.ItemTemplate>
                                   <DataTemplate>
-                                      <TextBlock Text="{Binding .}" FontFamily="{Binding ., Converter={x:Static converts:StringToFontFamilyConverter.Instance}}" VerticalAlignment="Center" />
+                                      <TextBlock Text="{Binding .}" FontFamily="{Binding ., Converter={x:Static formatting:StringToFontFamilyConverter.Instance}}" VerticalAlignment="Center" />
                                   </DataTemplate>
                               </ComboBox.ItemTemplate>
                     </ComboBox>

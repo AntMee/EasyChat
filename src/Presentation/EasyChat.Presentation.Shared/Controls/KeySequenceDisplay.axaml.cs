@@ -4,7 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace EasyChat.Views.Controls;
+namespace EasyChat.Presentation.Shared.Controls;
 
 public partial class KeySequenceDisplay : UserControl
 {

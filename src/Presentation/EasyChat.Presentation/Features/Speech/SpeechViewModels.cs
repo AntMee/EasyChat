@@ -8,15 +8,16 @@ using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
-using EasyChat.Lang;
+using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Speech;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
+using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 
-namespace EasyChat.ViewModels.Pages;
+namespace EasyChat.Presentation.Features.Speech;
 
 public sealed record SpeechEngineOption(string Name, string Id, bool IsMachine);
 

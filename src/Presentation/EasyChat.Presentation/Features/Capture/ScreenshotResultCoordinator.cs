@@ -3,7 +3,7 @@ using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.ImageTranslation;
-using EasyChat.Views.Result;
+using EasyChat.Presentation.Features.Capture.Views;
 using Microsoft.Extensions.Logging;
 using SukiUI.Toasts;
 
