@@ -16,9 +16,7 @@ publish/
 *.DotSettings.user
 
 # Local refactor documentation (never tracked)
-/REFACTOR_*.md
-/docs/refactor/
-/docs/architecture/ddd-architecture.md
+/refactor-docs/
 
 # OS files
 .DS_Store
