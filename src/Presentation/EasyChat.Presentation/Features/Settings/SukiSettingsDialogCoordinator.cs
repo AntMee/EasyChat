@@ -5,6 +5,7 @@ using EasyChat.Contracts.Speech;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Features.Settings.Translation;
 using EasyChat.Presentation.Features.Speech;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;

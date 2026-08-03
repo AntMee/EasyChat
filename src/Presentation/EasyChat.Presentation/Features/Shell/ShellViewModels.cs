@@ -9,6 +9,7 @@ using EasyChat.Contracts.Updates;
 using EasyChat.Presentation.Features.Settings;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Features.Settings.Theme;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
@@ -246,7 +247,7 @@ namespace EasyChat.Presentation.Features.Shell
 
 namespace EasyChat.Presentation.Features.Shell
 {
-    public sealed class CloseBehaviorDialogViewModel : ViewModelBase
+    public sealed class CloseBehaviorDialogViewModel : ConventionViewModelBase
     {
         private readonly ISukiDialog _dialog;
         private readonly LiveGeneralSettings _settings;

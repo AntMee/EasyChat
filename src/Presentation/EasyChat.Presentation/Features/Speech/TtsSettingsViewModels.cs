@@ -32,7 +32,7 @@ public sealed class ConfiguredVoiceItem
     public required string VoiceLocale { get; init; }
 }
 
-public sealed class TtsVoiceSettingsDialogViewModel : ViewModelBase
+public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
 {
     private readonly ISukiDialogManager _dialogManager;
     private readonly ISukiDialog _dialog;
@@ -199,7 +199,7 @@ public sealed class TtsVoiceSettingsDialogViewModel : ViewModelBase
         .Queue();
 }
 
-public sealed class TtsEditVoiceDialogViewModel : ViewModelBase
+public sealed class TtsEditVoiceDialogViewModel : ConventionViewModelBase
 {
     private readonly ISukiDialog _dialog;
     private readonly ISukiDialogManager _dialogManager;
@@ -328,7 +328,7 @@ public sealed class TtsEditVoiceDialogViewModel : ViewModelBase
         .TryShow();
 }
 
-public sealed class TtsPreviewInputDialogViewModel : ViewModelBase
+public sealed class TtsPreviewInputDialogViewModel : ConventionViewModelBase
 {
     private readonly ISukiDialog _dialog;
     private readonly ITtsUseCases _tts;

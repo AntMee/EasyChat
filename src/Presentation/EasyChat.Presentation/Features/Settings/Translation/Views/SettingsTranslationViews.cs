@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace EasyChat.Presentation.Features.Settings.Translation;
+namespace EasyChat.Presentation.Features.Settings.Translation.Views;
 
 public partial class AiModelEditDialogView : UserControl
 {

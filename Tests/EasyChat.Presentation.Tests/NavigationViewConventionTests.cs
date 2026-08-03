@@ -7,18 +7,18 @@ namespace EasyChat.Presentation.Tests;
 public sealed class NavigationViewConventionTests
 {
     [TestMethod]
-    public void EveryNavigationPageViewModel_HasConventionBasedView()
+    public void EveryConventionViewModel_HasConventionBasedView()
     {
         var assembly = typeof(Presentation.AssemblyMarker).Assembly;
-        var pageTypes = assembly.GetTypes()
-            .Where(type => !type.IsAbstract && type.IsAssignableTo(typeof(NavigationPageViewModel)));
+        var viewModelTypes = assembly.GetTypes()
+            .Where(type => !type.IsAbstract && type.IsAssignableTo(typeof(ConventionViewModelBase)));
 
-        foreach (var pageType in pageTypes)
+        foreach (var viewModelType in viewModelTypes)
         {
-            var viewName = ViewTypeConvention.GetViewTypeName(pageType);
+            var viewName = ViewTypeConvention.GetViewTypeName(viewModelType);
             var viewType = viewName is null ? null : assembly.GetType(viewName);
 
-            Assert.IsNotNull(viewType, $"{pageType.FullName} must have a view named {viewName}.");
+            Assert.IsNotNull(viewType, $"{viewModelType.FullName} must have a view named {viewName}.");
             Assert.IsTrue(
                 viewType.IsAssignableTo(typeof(Control)),
                 $"{viewType.FullName} must derive from {typeof(Control).FullName}.");

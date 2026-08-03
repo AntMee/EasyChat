@@ -5,10 +5,12 @@ namespace EasyChat.Presentation.Foundation.Navigation;
 
 public abstract class ViewModelBase : ReactiveObject;
 
+public abstract class ConventionViewModelBase : ViewModelBase;
+
 public abstract class NavigationPageViewModel(
     string displayName,
     MaterialIconKind icon,
-    int index = 0) : ViewModelBase
+    int index = 0) : ConventionViewModelBase
 {
     private string _displayName = displayName;
     private MaterialIconKind _icon = icon;

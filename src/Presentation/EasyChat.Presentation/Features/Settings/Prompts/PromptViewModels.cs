@@ -92,7 +92,7 @@ public sealed class PromptViewModel : NavigationPageViewModel
     }
 }
 
-public sealed class PromptEditDialogViewModel : ViewModelBase
+public sealed class PromptEditDialogViewModel : ConventionViewModelBase
 {
     private readonly ISukiDialog _dialog;
     private readonly PromptEntryState? _existing;

@@ -10,7 +10,7 @@ using SukiUI.Dialogs;
 
 namespace EasyChat.Presentation.Features.Capture;
 
-public sealed class FixedAreaEditDialogViewModel : ViewModelBase
+public sealed class FixedAreaEditDialogViewModel : ConventionViewModelBase
 {
     private readonly ISukiDialogManager _dialogs;
     private readonly ISukiDialog _dialog;
@@ -81,7 +81,7 @@ public sealed class FixedAreaEditDialogViewModel : ViewModelBase
         .TryShow();
 }
 
-public sealed class FixedAreaFormDialogViewModel : ViewModelBase
+public sealed class FixedAreaFormDialogViewModel : ConventionViewModelBase
 {
     private readonly ISukiDialog _dialog;
     private readonly ISukiDialogManager _dialogs;

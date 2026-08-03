@@ -148,7 +148,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
 {
     using EasyChat.Presentation.Features.Shortcuts;
 
-    public sealed class ShortcutEditDialogViewModel : ViewModelBase
+    public sealed class ShortcutEditDialogViewModel : ConventionViewModelBase
     {
         private readonly ISukiDialog _dialog;
         private readonly ShortcutEntryState? _existing;
