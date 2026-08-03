@@ -10,6 +10,7 @@
         x:DataType="vm:TextAssistResultWindowViewModel"
         Width="500" Height="420" MinWidth="380" MinHeight="180"
         WindowDecorations="None" TransparencyLevelHint="Transparent" Background="Transparent"
+        Foreground="{DynamicResource SukiText}"
         Topmost="True" ShowInTaskbar="False" CanResize="True" Focusable="False" ShowActivated="False"
         WindowStartupLocation="Manual">
     <Window.Resources>
@@ -69,8 +70,11 @@
                           IsVisible="{Binding ShowLanguageSelector}">
                     <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="7">
                         <Panel Width="22" Height="16">
-                            <icons:MaterialIcon Kind="FlagOutline" Width="18" Height="18" Opacity="0.65" />
-                            <Image Width="22" Height="16" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
+                            <icons:MaterialIcon Kind="FlagOutline" Width="18" Height="18" Opacity="0.65"
+                                                IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasNoIcon}}" />
+                            <Image Width="22" Height="16"
+                                   IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
+                                   Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
                         </Panel>
                         <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center" />
                     </StackPanel></DataTemplate></ComboBox.ItemTemplate>

@@ -98,6 +98,8 @@ public sealed class EngineTypeToBoolConverter(string expected) : IValueConverter
 public static class LanguageFlagConverters
 {
     public static readonly IValueConverter ToIcon = new LanguageFlagToIconConverter();
+    public static readonly IValueConverter HasIcon = new LanguageFlagHasIconConverter();
+    public static readonly IValueConverter HasNoIcon = new LanguageFlagHasNoIconConverter();
 }
 
 public static class LanguageSettingsConverters
@@ -120,20 +122,26 @@ public sealed class LanguageFlagToIconConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string file || string.IsNullOrEmpty(file))
-            return null;
-
-        try
-        {
-            using var stream = AssetLoader.Open(
-                new Uri($"avares://EasyChat.Desktop/Assets/Images/Flags/mini/{file}"));
-            return new Bitmap(stream);
-        }
-        catch
-        {
-            return null;
-        }
+        return LanguageFlagAssetLoader.Load(value as string);
     }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class LanguageFlagHasIconConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        LanguageFlagAssetLoader.Exists(value as string);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class LanguageFlagHasNoIconConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        !LanguageFlagAssetLoader.Exists(value as string);
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
@@ -205,6 +213,42 @@ internal static class AssetIconLoader
             using var stream = AssetLoader.Open(
                 new Uri($"avares://EasyChat.Desktop/Assets/Images/Engine/{file}"));
             return stream.CanRead;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+
+internal static class LanguageFlagAssetLoader
+{
+    private const string AssetRoot = "avares://EasyChat.Desktop/Assets/Images/Flags/mini/";
+
+    public static Bitmap? Load(string? file)
+    {
+        if (string.IsNullOrWhiteSpace(file))
+            return null;
+
+        try
+        {
+            using var stream = AssetLoader.Open(new Uri($"{AssetRoot}{file}"));
+            return new Bitmap(stream);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public static bool Exists(string? file)
+    {
+        if (string.IsNullOrWhiteSpace(file))
+            return false;
+
+        try
+        {
+            return AssetLoader.Exists(new Uri($"{AssetRoot}{file}"));
         }
         catch
         {
