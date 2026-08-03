@@ -37,6 +37,7 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
             var ui = createUiContext();
             _ui = ui;
             _desktop = desktop;
+            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
             _mainWindow = new MainWindow(ui.MainWindowViewModel, ui.Settings, ui.Dialogs);
             desktop.MainWindow = _mainWindow;
             desktop.Exit += OnExit;
