@@ -294,7 +294,38 @@ public sealed class ArchitectureRulesTests
         Assert.AreEqual("1.0.6", properties["Version"]);
     }
 
+    [TestMethod]
+    public void WindowsHost_DeclaresPerMonitorDpiAwareness()
+    {
+        var root = FindRepositoryRoot();
+        var document = XDocument.Load(Path.Combine(
+            root,
+            "src",
+            "Host",
+            "EasyChat.Desktop.Windows",
+            "app.manifest"));
+        XNamespace assemblyV3 = "urn:schemas-microsoft-com:asm.v3";
+        XNamespace windowsSettings2005 = "http://schemas.microsoft.com/SMI/2005/WindowsSettings";
+        XNamespace windowsSettings2016 = "http://schemas.microsoft.com/SMI/2016/WindowsSettings";
+
+        var windowsSettings = AssertExactlyOne(document.Descendants(assemblyV3 + "windowsSettings"));
+        Assert.AreEqual(assemblyV3 + "application", windowsSettings.Parent?.Name);
+        Assert.AreEqual(
+            "true/pm",
+            AssertExactlyOne(windowsSettings.Elements(windowsSettings2005 + "dpiAware")).Value);
+        Assert.AreEqual(
+            "PerMonitorV2,PerMonitor",
+            AssertExactlyOne(windowsSettings.Elements(windowsSettings2016 + "dpiAwareness")).Value);
+    }
+
     private static IReadOnlySet<string> Set(params string[] values) => values.ToHashSet(StringComparer.Ordinal);
+
+    private static T AssertExactlyOne<T>(IEnumerable<T> values)
+    {
+        var matches = values.ToArray();
+        Assert.HasCount(1, matches);
+        return matches[0];
+    }
 
     private static IEnumerable<string> SourceFiles(string root) =>
         Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)

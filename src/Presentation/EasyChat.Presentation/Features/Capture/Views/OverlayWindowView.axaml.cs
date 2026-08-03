@@ -20,34 +20,11 @@ public enum CaptureOverlayAction
     CopyImageTranslated
 }
 
-internal enum OverlayMode
-{
-    Idle,
-    Selecting,
-    Resizing,
-    Moving,
-    Done
-}
-
-internal enum ResizeHandle
-{
-    None,
-    TopLeft,
-    TopCenter,
-    TopRight,
-    RightCenter,
-    BottomRight,
-    BottomCenter,
-    BottomLeft,
-    LeftCenter
-}
-
 public partial class OverlayWindowView : Window
 {
-    private readonly Bitmap? _capturedImage;
-    private readonly PhysicalScreenRegion _bounds;
-    private readonly bool _precise;
+    private readonly ScreenDescriptor? _screen;
     private readonly bool _regionOnly;
+    private readonly Image? _capturedScreenImage;
     private readonly Rectangle? _selectionRectangle;
     private readonly Border? _hintBorder;
     private readonly TextBlock? _hintTextBlock;
@@ -56,35 +33,41 @@ public partial class OverlayWindowView : Window
     private readonly Control? _copyButton;
     private readonly Border[] _handles = new Border[8];
     private DispatcherTimer? _menuCloseTimer;
-    private Point _startPoint;
-    private Rect _initialSelection;
-    private OverlayMode _mode;
-    private ResizeHandle _activeHandle;
-    private bool _completed;
+    private IPointer? _capturedPointer;
+    private PhysicalScreenRegion? _selection;
+    private CaptureSelectionMode _mode;
+    private bool _hintHost;
+    private bool _sessionClosing;
+    private bool _releasingPointerCapture;
+    private bool _opened;
+    private bool _closed;
 
     public OverlayWindowView() => InitializeComponent();
 
-    public OverlayWindowView(
-        PhysicalScreenRegion bounds,
-        Bitmap capturedImage,
-        bool precise,
-        bool regionOnly = false)
+    internal OverlayWindowView(
+        ScreenDescriptor screen,
+        IImage capturedImage,
+        bool regionOnly)
     {
         InitializeComponent();
-        _bounds = bounds;
-        _capturedImage = capturedImage;
-        _precise = precise;
+        _screen = screen;
         _regionOnly = regionOnly;
         ShowInTaskbar = false;
         WindowState = WindowState.Normal;
+        WindowStartupLocation = WindowStartupLocation.Manual;
         WindowDecorations = WindowDecorations.None;
         ExtendClientAreaToDecorationsHint = true;
+        CanResize = false;
         Topmost = true;
-        Position = new PixelPoint(bounds.X, bounds.Y);
-        Width = bounds.Width;
-        Height = bounds.Height;
-        Background = new ImageBrush(capturedImage);
+        ShowActivated = false;
+        Position = new PixelPoint(screen.Bounds.X, screen.Bounds.Y);
+        var logicalSize = CaptureOverlayGeometry.GetLogicalSize(screen);
+        Width = logicalSize.Width;
+        Height = logicalSize.Height;
+        Background = Brushes.Black;
 
+        _capturedScreenImage = Require<Image>("CapturedScreenImage");
+        _capturedScreenImage.Source = capturedImage;
         _selectionRectangle = Require<Rectangle>("SelectionRectangle");
         _hintBorder = Require<Border>("HintBorder");
         _hintTextBlock = Require<TextBlock>("HintTextBlock");
@@ -106,209 +89,275 @@ public partial class OverlayWindowView : Window
         PointerPressed += OnPointerPressed;
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
+        PointerCaptureLost += OnPointerCaptureLost;
     }
 
-    public event Action<Bitmap, CaptureOverlayAction>? SelectionCompleted;
-    public event Action<PhysicalScreenRegion>? RegionSelected;
-    public event Action? SelectionCanceled;
+    internal ScreenDescriptor Screen => _screen
+        ?? throw new InvalidOperationException("The design-time overlay has no screen descriptor.");
+
+    internal event Action<OverlayWindowView, PhysicalScreenPoint, CaptureResizeHandle, bool>? InteractionStarted;
+    internal event Action<OverlayWindowView, PhysicalScreenPoint>? InteractionMoved;
+    internal event Action<OverlayWindowView, PhysicalScreenPoint>? InteractionEnded;
+    internal event Action<OverlayWindowView, CaptureOverlayAction>? ActionRequested;
+    internal event Action? ResetRequested;
+    internal event Action? CancelRequested;
+    internal event Action? ClosedUnexpectedly;
 
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        if (_screen is null)
+            return;
+
+        _opened = true;
+        Position = new PixelPoint(_screen.Bounds.X, _screen.Bounds.Y);
+        var scaling = PositiveScale(RenderScaling);
+        ClientSize = new Size(
+            _screen.Bounds.Width / scaling,
+            _screen.Bounds.Height / scaling);
+        RenderSelection(_selection, _mode, showToolbar: false);
+    }
+
+    internal void SetHintHost(bool value)
+    {
+        _hintHost = value;
         if (_hintBorder is not null)
+            _hintBorder.IsVisible = value && _mode == CaptureSelectionMode.Idle;
+    }
+
+    internal void RenderSelection(
+        PhysicalScreenRegion? selection,
+        CaptureSelectionMode mode,
+        bool showToolbar)
+    {
+        _selection = selection;
+        _mode = mode;
+        if (_selectionRectangle is null || _toolbarBorder is null || _hintBorder is null)
+            return;
+
+        _toolbarBorder.IsVisible = false;
+        if (_copyMenuBorder is not null)
+            _copyMenuBorder.IsVisible = false;
+        HideHandles();
+        _hintBorder.IsVisible = _hintHost && mode == CaptureSelectionMode.Idle;
+
+        if (_screen is null || selection is not { IsEmpty: false } region ||
+            Intersect(region, _screen.Bounds) is not { } visible)
         {
-            Canvas.SetLeft(_hintBorder, 30);
-            Canvas.SetTop(_hintBorder, 30);
-            _hintBorder.IsVisible = true;
+            _selectionRectangle.IsVisible = false;
+            Cursor = Cursor.Default;
+            return;
+        }
+
+        _selectionRectangle.IsVisible = true;
+        var local = ToClientRect(visible);
+        SetSelection(local);
+
+        if (mode == CaptureSelectionMode.Done)
+        {
+            ShowHandles(region);
+            if (showToolbar)
+                UpdateToolbarPosition(local);
+            Cursor = Cursor.Default;
+        }
+        else if (mode == CaptureSelectionMode.Moving)
+        {
+            Cursor = new Cursor(StandardCursorType.SizeAll);
+        }
+        else
+        {
+            Cursor = Cursor.Default;
         }
     }
+
+    internal void PrepareForSessionClose()
+    {
+        _sessionClosing = true;
+        _menuCloseTimer?.Stop();
+        ReleasePointerCapture();
+        if (_capturedScreenImage is not null)
+            _capturedScreenImage.Source = null;
+    }
+
+    internal void CloseSessionWindow()
+    {
+        PrepareForSessionClose();
+        if (_opened && !_closed)
+            Close();
+    }
+
+    private static double PositiveScale(double value) => value > 0 ? value : 1d;
 
     private T Require<T>(string name) where T : Control =>
         this.FindControl<T>(name) ?? throw new InvalidOperationException($"{name} not found.");
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_selectionRectangle is null || _toolbarBorder is null || _hintBorder is null)
+        if (_screen is null)
             return;
-        var position = e.GetPosition(this);
-        if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+
+        var current = e.GetCurrentPoint(this);
+        if (current.Properties.IsRightButtonPressed)
         {
-            Cancel();
+            CancelRequested?.Invoke();
+            return;
+        }
+        if (!current.Properties.IsLeftButtonPressed ||
+            _toolbarBorder?.IsPointerOver == true ||
+            _copyMenuBorder?.IsPointerOver == true)
+        {
             return;
         }
 
-        if (_mode == OverlayMode.Done)
-        {
-            var handle = GetHitHandle(position);
-            if (handle != ResizeHandle.None)
-            {
-                _mode = OverlayMode.Resizing;
-                _activeHandle = handle;
-                _startPoint = position;
-                _initialSelection = CurrentSelection();
-                _toolbarBorder.IsVisible = false;
-                return;
-            }
-
-            var selection = CurrentSelection();
-            if (selection.Contains(position))
-            {
-                _mode = OverlayMode.Moving;
-                _startPoint = position;
-                _initialSelection = selection;
-                _toolbarBorder.IsVisible = false;
-                HideHandles();
-                Cursor = new Cursor(StandardCursorType.SizeAll);
-                return;
-            }
-        }
-
-        _mode = OverlayMode.Selecting;
-        _activeHandle = ResizeHandle.None;
-        _hintBorder.IsVisible = false;
-        _toolbarBorder.IsVisible = false;
-        HideHandles();
-        _startPoint = position;
-        _selectionRectangle.IsVisible = true;
-        SetSelection(new Rect(position, new Size(0, 0)));
+        var logical = e.GetPosition(this);
+        var physical = ToPhysicalPoint(logical);
+        var handle = GetHitHandle(logical);
+        var insideSelection = _selection is { } selection && Contains(selection, physical);
+        _capturedPointer = e.Pointer;
+        e.Pointer.Capture(this);
+        InteractionStarted?.Invoke(this, physical, handle, insideSelection);
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_selectionRectangle is null)
+        if (_screen is null)
             return;
-        var position = e.GetPosition(this);
-        switch (_mode)
-        {
-            case OverlayMode.Idle:
-                MoveHint(position);
-                break;
-            case OverlayMode.Selecting:
-                SetSelection(new Rect(
-                    Math.Min(position.X, _startPoint.X),
-                    Math.Min(position.Y, _startPoint.Y),
-                    Math.Abs(position.X - _startPoint.X),
-                    Math.Abs(position.Y - _startPoint.Y)));
-                break;
-            case OverlayMode.Resizing:
-                ResizeSelection(position);
-                break;
-            case OverlayMode.Moving:
-                MoveSelection(position);
-                break;
-            case OverlayMode.Done:
-                UpdateCursor(position);
-                break;
-        }
+
+        var logical = e.GetPosition(this);
+        var physical = ToPhysicalPoint(logical);
+        if (_mode == CaptureSelectionMode.Idle)
+            MoveHint(logical);
+        else if (_mode == CaptureSelectionMode.Done)
+            UpdateCursor(logical, physical);
+        InteractionMoved?.Invoke(this, physical);
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_selectionRectangle is null ||
-            _mode is not (OverlayMode.Selecting or OverlayMode.Resizing or OverlayMode.Moving))
+        if (_screen is null)
             return;
-        if (_selectionRectangle.Width <= 0 || _selectionRectangle.Height <= 0)
+        if (_mode is not (
+                CaptureSelectionMode.Selecting or
+                CaptureSelectionMode.Resizing or
+                CaptureSelectionMode.Moving))
         {
-            ResetSelection();
+            ReleasePointerCapture();
             return;
         }
-        if (!_precise)
+
+        var physical = ToPhysicalPoint(e.GetPosition(this));
+        try
         {
-            ProcessSelection(CaptureOverlayAction.Translation);
-            return;
+            InteractionEnded?.Invoke(this, physical);
         }
-        _mode = OverlayMode.Done;
-        ShowHandles();
-        UpdateToolbarPosition();
-        Cursor = Cursor.Default;
+        finally
+        {
+            ReleasePointerCapture();
+        }
+    }
+
+    private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        _capturedPointer = null;
+        if (_releasingPointerCapture || _sessionClosing)
+            return;
+        if (_mode is CaptureSelectionMode.Selecting or
+            CaptureSelectionMode.Resizing or
+            CaptureSelectionMode.Moving)
+        {
+            CancelRequested?.Invoke();
+        }
+    }
+
+    private void ReleasePointerCapture()
+    {
+        var pointer = _capturedPointer;
+        if (pointer is null)
+            return;
+        _releasingPointerCapture = true;
+        try
+        {
+            pointer.Capture(null);
+        }
+        finally
+        {
+            _capturedPointer = null;
+            _releasingPointerCapture = false;
+        }
     }
 
     public void ConfirmButton_OnClick(object? sender, RoutedEventArgs e) =>
-        ProcessSelection(CaptureOverlayAction.Translation);
+        ActionRequested?.Invoke(this, CaptureOverlayAction.Translation);
     public void CopyOriginal_OnClick(object? sender, RoutedEventArgs e) =>
-        ProcessSelection(CaptureOverlayAction.CopyOriginal);
+        ActionRequested?.Invoke(this, CaptureOverlayAction.CopyOriginal);
     public void CopyTranslated_OnClick(object? sender, RoutedEventArgs e) =>
-        ProcessSelection(CaptureOverlayAction.CopyTranslated);
+        ActionRequested?.Invoke(this, CaptureOverlayAction.CopyTranslated);
     public void CopyBilingual_OnClick(object? sender, RoutedEventArgs e) =>
-        ProcessSelection(CaptureOverlayAction.CopyBilingual);
+        ActionRequested?.Invoke(this, CaptureOverlayAction.CopyBilingual);
     public void CopyImageTranslated_OnClick(object? sender, RoutedEventArgs e) =>
-        ProcessSelection(CaptureOverlayAction.CopyImageTranslated);
-    public void ResetButton_OnClick(object? sender, RoutedEventArgs e) => ResetSelection();
-    public void CancelButton_OnClick(object? sender, RoutedEventArgs e) => Cancel();
+        ActionRequested?.Invoke(this, CaptureOverlayAction.CopyImageTranslated);
+    public void ResetButton_OnClick(object? sender, RoutedEventArgs e) => ResetRequested?.Invoke();
+    public void CancelButton_OnClick(object? sender, RoutedEventArgs e) => CancelRequested?.Invoke();
 
-    private Rect CurrentSelection() => new(
-        Canvas.GetLeft(_selectionRectangle!),
-        Canvas.GetTop(_selectionRectangle!),
-        _selectionRectangle!.Width,
-        _selectionRectangle.Height);
+    private Rect ToClientRect(PhysicalScreenRegion region)
+    {
+        var topLeft = this.PointToClient(new PixelPoint(region.X, region.Y));
+        var bottomRight = this.PointToClient(new PixelPoint(
+            checked(region.X + region.Width),
+            checked(region.Y + region.Height)));
+        return new Rect(
+            Math.Min(topLeft.X, bottomRight.X),
+            Math.Min(topLeft.Y, bottomRight.Y),
+            Math.Abs(bottomRight.X - topLeft.X),
+            Math.Abs(bottomRight.Y - topLeft.Y));
+    }
+
+    private PhysicalScreenPoint ToPhysicalPoint(Point logical)
+    {
+        var point = this.PointToScreen(logical);
+        return new PhysicalScreenPoint(point.X, point.Y);
+    }
 
     private void SetSelection(Rect selection)
     {
-        if (_selectionRectangle is null)
-            return;
-        Canvas.SetLeft(_selectionRectangle, selection.X);
-        Canvas.SetTop(_selectionRectangle, selection.Y);
-        _selectionRectangle.Width = selection.Width;
+        Canvas.SetLeft(_selectionRectangle!, selection.X);
+        Canvas.SetTop(_selectionRectangle!, selection.Y);
+        _selectionRectangle!.Width = selection.Width;
         _selectionRectangle.Height = selection.Height;
-        UpdateHandles(selection);
     }
 
-    private void MoveSelection(Point position)
+    private void ShowHandles(PhysicalScreenRegion selection)
     {
-        var moved = _initialSelection.Translate(new Vector(
-            position.X - _startPoint.X,
-            position.Y - _startPoint.Y));
-        SetSelection(moved);
-    }
-
-    private void ResizeSelection(Point position)
-    {
-        var x = _initialSelection.X;
-        var y = _initialSelection.Y;
-        var width = _initialSelection.Width;
-        var height = _initialSelection.Height;
-        var deltaX = position.X - _startPoint.X;
-        var deltaY = position.Y - _startPoint.Y;
-        switch (_activeHandle)
-        {
-            case ResizeHandle.TopLeft: x += deltaX; y += deltaY; width -= deltaX; height -= deltaY; break;
-            case ResizeHandle.TopCenter: y += deltaY; height -= deltaY; break;
-            case ResizeHandle.TopRight: y += deltaY; width += deltaX; height -= deltaY; break;
-            case ResizeHandle.RightCenter: width += deltaX; break;
-            case ResizeHandle.BottomRight: width += deltaX; height += deltaY; break;
-            case ResizeHandle.BottomCenter: height += deltaY; break;
-            case ResizeHandle.BottomLeft: x += deltaX; width -= deltaX; height += deltaY; break;
-            case ResizeHandle.LeftCenter: x += deltaX; width -= deltaX; break;
-        }
-        SetSelection(new Rect(x, y, Math.Max(1, width), Math.Max(1, height)));
-    }
-
-    private void UpdateHandles(Rect selection)
-    {
-        if (_selectionRectangle?.IsVisible != true)
+        if (_screen is null)
             return;
-        var points = new[]
-        {
-            new Point(selection.X - 5, selection.Y - 5),
-            new Point(selection.Center.X - 5, selection.Y - 5),
-            new Point(selection.Right - 5, selection.Y - 5),
-            new Point(selection.Right - 5, selection.Center.Y - 5),
-            new Point(selection.Right - 5, selection.Bottom - 5),
-            new Point(selection.Center.X - 5, selection.Bottom - 5),
-            new Point(selection.X - 5, selection.Bottom - 5),
-            new Point(selection.X - 5, selection.Center.Y - 5)
-        };
+
+        var left = selection.X;
+        var top = selection.Y;
+        var right = checked(selection.X + selection.Width);
+        var bottom = checked(selection.Y + selection.Height);
+        var centerX = left + selection.Width / 2;
+        var centerY = top + selection.Height / 2;
+        PhysicalScreenPoint[] points =
+        [
+            new(left, top),
+            new(centerX, top),
+            new(right, top),
+            new(right, centerY),
+            new(right, bottom),
+            new(centerX, bottom),
+            new(left, bottom),
+            new(left, centerY)
+        ];
+
         for (var index = 0; index < _handles.Length; index++)
         {
-            Canvas.SetLeft(_handles[index], points[index].X);
-            Canvas.SetTop(_handles[index], points[index].Y);
+            if (!ContainsInclusive(_screen.Bounds, points[index]))
+                continue;
+            var local = this.PointToClient(new PixelPoint(points[index].X, points[index].Y));
+            Canvas.SetLeft(_handles[index], local.X - _handles[index].Width / 2);
+            Canvas.SetTop(_handles[index], local.Y - _handles[index].Height / 2);
+            _handles[index].IsVisible = true;
         }
-    }
-
-    private void ShowHandles()
-    {
-        foreach (var handle in _handles)
-            handle.IsVisible = true;
     }
 
     private void HideHandles()
@@ -317,7 +366,7 @@ public partial class OverlayWindowView : Window
             handle.IsVisible = false;
     }
 
-    private ResizeHandle GetHitHandle(Point point)
+    private CaptureResizeHandle GetHitHandle(Point point)
     {
         for (var index = 0; index < _handles.Length; index++)
         {
@@ -327,29 +376,32 @@ public partial class OverlayWindowView : Window
             var hit = new Rect(Canvas.GetLeft(handle), Canvas.GetTop(handle), handle.Width, handle.Height)
                 .Inflate(5);
             if (hit.Contains(point))
-                return (ResizeHandle)(index + 1);
+                return (CaptureResizeHandle)(index + 1);
         }
-        return ResizeHandle.None;
+        return CaptureResizeHandle.None;
     }
 
-    private void UpdateCursor(Point point)
+    private void UpdateCursor(Point logical, PhysicalScreenPoint physical)
     {
-        Cursor = GetHitHandle(point) switch
+        Cursor = GetHitHandle(logical) switch
         {
-            ResizeHandle.TopLeft => new Cursor(StandardCursorType.TopLeftCorner),
-            ResizeHandle.TopCenter or ResizeHandle.BottomCenter => new Cursor(StandardCursorType.SizeNorthSouth),
-            ResizeHandle.TopRight => new Cursor(StandardCursorType.TopRightCorner),
-            ResizeHandle.RightCenter or ResizeHandle.LeftCenter => new Cursor(StandardCursorType.SizeWestEast),
-            ResizeHandle.BottomRight => new Cursor(StandardCursorType.BottomRightCorner),
-            ResizeHandle.BottomLeft => new Cursor(StandardCursorType.BottomLeftCorner),
-            _ when CurrentSelection().Contains(point) => new Cursor(StandardCursorType.SizeAll),
+            CaptureResizeHandle.TopLeft => new Cursor(StandardCursorType.TopLeftCorner),
+            CaptureResizeHandle.TopCenter or CaptureResizeHandle.BottomCenter =>
+                new Cursor(StandardCursorType.SizeNorthSouth),
+            CaptureResizeHandle.TopRight => new Cursor(StandardCursorType.TopRightCorner),
+            CaptureResizeHandle.RightCenter or CaptureResizeHandle.LeftCenter =>
+                new Cursor(StandardCursorType.SizeWestEast),
+            CaptureResizeHandle.BottomRight => new Cursor(StandardCursorType.BottomRightCorner),
+            CaptureResizeHandle.BottomLeft => new Cursor(StandardCursorType.BottomLeftCorner),
+            _ when _selection is { } selection && Contains(selection, physical) =>
+                new Cursor(StandardCursorType.SizeAll),
             _ => Cursor.Default
         };
     }
 
     private void MoveHint(Point pointer)
     {
-        if (_hintBorder is null)
+        if (_hintBorder is null || !_hintHost)
             return;
         var target = new Point(30, 30);
         Canvas.SetLeft(_hintBorder, target.X);
@@ -357,84 +409,25 @@ public partial class OverlayWindowView : Window
         _hintBorder.IsVisible = !new Rect(target, _hintBorder.Bounds.Size).Contains(pointer);
     }
 
-    private void UpdateToolbarPosition()
+    private void UpdateToolbarPosition(Rect visibleSelection)
     {
         if (_toolbarBorder is null || _copyButton is null)
             return;
-        var selection = CurrentSelection();
         _toolbarBorder.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var toolbarSize = _toolbarBorder.DesiredSize;
         var width = toolbarSize.Width > 0 ? toolbarSize.Width : 200;
         var height = toolbarSize.Height > 0 ? toolbarSize.Height : 60;
         _copyButton.IsVisible = !_regionOnly;
-        var x = Math.Clamp(selection.Right - width, 10, Math.Max(10, Bounds.Width - width - 10));
-        var y = selection.Bottom + 10;
+        var x = Math.Clamp(
+            visibleSelection.Right - width,
+            10,
+            Math.Max(10, Bounds.Width - width - 10));
+        var y = visibleSelection.Bottom + 10;
         if (y + height > Bounds.Height)
-            y = Math.Max(0, selection.Y - height - 10);
+            y = Math.Max(0, visibleSelection.Y - height - 10);
         Canvas.SetLeft(_toolbarBorder, x);
         Canvas.SetTop(_toolbarBorder, y);
         _toolbarBorder.IsVisible = true;
-    }
-
-    private void ProcessSelection(CaptureOverlayAction action)
-    {
-        if (_selectionRectangle is null || _capturedImage is null)
-            return;
-        _copyMenuBorder!.IsVisible = false;
-        var selection = CurrentSelection();
-        var scaling = RenderScaling;
-        var local = new PhysicalScreenRegion(
-            (int)(selection.X * scaling),
-            (int)(selection.Y * scaling),
-            (int)(selection.Width * scaling),
-            (int)(selection.Height * scaling));
-        if (local.IsEmpty)
-        {
-            Cancel();
-            return;
-        }
-
-        _completed = true;
-        if (_regionOnly)
-        {
-            RegionSelected?.Invoke(new PhysicalScreenRegion(
-                _bounds.X + local.X,
-                _bounds.Y + local.Y,
-                local.Width,
-                local.Height));
-        }
-        else
-        {
-            var crop = new PixelRect(local.X, local.Y, local.Width, local.Height)
-                .Intersect(new PixelRect(0, 0, _capturedImage.PixelSize.Width, _capturedImage.PixelSize.Height));
-            if (crop.Width <= 0 || crop.Height <= 0)
-            {
-                Cancel();
-                return;
-            }
-            var source = new CroppedBitmap(_capturedImage, crop);
-            var bitmap = new RenderTargetBitmap(crop.Size, new Vector(96, 96));
-            using var context = bitmap.CreateDrawingContext();
-            context.DrawImage(source, new Rect(source.Size));
-            SelectionCompleted?.Invoke(bitmap, action);
-        }
-        Close();
-    }
-
-    private void ResetSelection()
-    {
-        _mode = OverlayMode.Idle;
-        if (_selectionRectangle is not null)
-            _selectionRectangle.IsVisible = false;
-        HideHandles();
-        if (_toolbarBorder is not null)
-            _toolbarBorder.IsVisible = false;
-        if (_copyMenuBorder is not null)
-            _copyMenuBorder.IsVisible = false;
-        _activeHandle = ResizeHandle.None;
-        Cursor = Cursor.Default;
-        if (_hintBorder is not null)
-            _hintBorder.IsVisible = true;
     }
 
     private void CopyButton_OnPointerEntered(object? sender, PointerEventArgs e)
@@ -474,27 +467,41 @@ public partial class OverlayWindowView : Window
     private void InputElement_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
-            Cancel();
+            CancelRequested?.Invoke();
         else if (e.Key == Key.Enter && _toolbarBorder?.IsVisible == true)
-            ProcessSelection(CaptureOverlayAction.Translation);
-    }
-
-    private void Cancel()
-    {
-        if (_completed)
-            return;
-        _completed = true;
-        SelectionCanceled?.Invoke();
-        Close();
+            ActionRequested?.Invoke(this, CaptureOverlayAction.Translation);
     }
 
     private void TopLevel_OnClosed(object? sender, EventArgs e)
     {
-        if (!_completed)
-        {
-            _completed = true;
-            SelectionCanceled?.Invoke();
-        }
+        _closed = true;
         _menuCloseTimer?.Stop();
+        if (!_sessionClosing)
+            ClosedUnexpectedly?.Invoke();
+    }
+
+    private static bool Contains(PhysicalScreenRegion region, PhysicalScreenPoint point) =>
+        point.X >= region.X && point.X < checked(region.X + region.Width) &&
+        point.Y >= region.Y && point.Y < checked(region.Y + region.Height);
+
+    private static bool ContainsInclusive(PhysicalScreenRegion region, PhysicalScreenPoint point) =>
+        point.X >= region.X && point.X <= checked(region.X + region.Width) &&
+        point.Y >= region.Y && point.Y <= checked(region.Y + region.Height);
+
+    private static PhysicalScreenRegion? Intersect(
+        PhysicalScreenRegion first,
+        PhysicalScreenRegion second)
+    {
+        var left = Math.Max(first.X, second.X);
+        var top = Math.Max(first.Y, second.Y);
+        var right = Math.Min(
+            checked(first.X + first.Width),
+            checked(second.X + second.Width));
+        var bottom = Math.Min(
+            checked(first.Y + first.Height),
+            checked(second.Y + second.Height));
+        return right > left && bottom > top
+            ? new PhysicalScreenRegion(left, top, right - left, bottom - top)
+            : null;
     }
 }

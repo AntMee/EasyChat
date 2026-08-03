@@ -66,6 +66,8 @@ public sealed class TranslationWindowCoordinator(
 
         var window = await ShowShellAsync(anchor, centerOnScreen: false, showCloseButton, cancellationToken);
         await window.ViewModel.InitializeAsync(text);
+        if (anchor is { } point)
+            await OnUiAsync(() => PositionNear(window.View, point), cancellationToken);
     }
 
     public async ValueTask ShowDictionaryAsync(
@@ -81,6 +83,8 @@ public sealed class TranslationWindowCoordinator(
 
         var window = await ShowShellAsync(anchor, centerOnScreen, showCloseButton: true, cancellationToken);
         await window.ViewModel.InitializeDictionaryAsync(text, sourceLanguageId, targetLanguageId);
+        if (!centerOnScreen && anchor is { } point)
+            await OnUiAsync(() => PositionNear(window.View, point), cancellationToken);
     }
 
     public ValueTask<bool> ContainsAsync(
@@ -151,27 +155,22 @@ public sealed class TranslationWindowCoordinator(
 
     private static void PositionNear(Window window, PhysicalScreenPoint point)
     {
-        const int width = 450;
-        const int estimatedHeight = 350;
-        const int offset = 20;
-        var left = point.X + offset;
-        var top = point.Y + offset;
         var screen = window.Screens.ScreenFromPoint(new PixelPoint(point.X, point.Y)) ?? window.Screens.Primary;
-        if (screen is not null)
+        if (screen is null)
         {
-            var area = screen.WorkingArea;
-            if (left + width > area.Right)
-                left = point.X - width - offset >= area.X
-                    ? point.X - width - offset
-                    : area.Right - width - 10;
-            if (top + estimatedHeight > area.Bottom)
-                top = point.Y - estimatedHeight - offset >= area.Y
-                    ? point.Y - estimatedHeight - offset
-                    : area.Bottom - estimatedHeight - 10;
-            left = Math.Max(left, area.X);
-            top = Math.Max(top, area.Y);
+            window.Position = new PixelPoint(point.X + 20, point.Y + 20);
+            return;
         }
-        window.Position = new PixelPoint(left, top);
+
+        var logicalWidth = window.Bounds.Width > 0 ? window.Bounds.Width : window.Width;
+        var logicalHeight = window.Bounds.Height > 0 ? window.Bounds.Height : 350;
+        window.Position = TranslationWindowPlacement.Near(
+            screen.WorkingArea,
+            screen.Scaling,
+            point,
+            logicalWidth,
+            logicalHeight,
+            logicalOffset: 20);
     }
 
     private static async ValueTask OnUiAsync(

@@ -2,10 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Notifications;
-using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
-using EasyChat.Presentation.ImageTranslation;
-using EasyChat.Presentation.Features.Capture.Views;
 using SukiUI.Toasts;
 
 namespace EasyChat.Presentation.Features.Capture;
@@ -17,13 +14,11 @@ public interface IScreenRegionPicker
 
 public sealed class AvaloniaScreenRegionPicker(
     IPlatformAccessUseCases platformAccess,
-    IScreenCatalog screens,
-    IScreenCapture capture,
+    CaptureOverlayCoordinator overlays,
     ISukiToastManager toasts) : IScreenRegionPicker
 {
     private readonly IPlatformAccessUseCases _platformAccess = platformAccess;
-    private readonly IScreenCatalog _screens = screens;
-    private readonly IScreenCapture _capture = capture;
+    private readonly CaptureOverlayCoordinator _overlays = overlays;
     private readonly ISukiToastManager _toasts = toasts;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -49,37 +44,12 @@ public sealed class AvaloniaScreenRegionPicker(
                 await Task.Delay(300, cancellationToken);
             }
 
-            var availableScreens = await _screens.GetScreensAsync(cancellationToken);
-            if (availableScreens.Count == 0)
-                return null;
-            var bounds = Union(availableScreens.Select(screen => screen.Bounds));
-            var captured = await _capture.CaptureAsync(
-                new ScreenCaptureRequest(ScreenCaptureTarget.Region, Region: bounds),
-                cancellationToken);
-            if (captured.IsFailure)
-            {
-                ShowError(captured.Error.Message);
-                return null;
-            }
-
-            var completion = new TaskCompletionSource<PhysicalScreenRegion?>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-            var overlay = new OverlayWindowView(
-                bounds,
-                AvaloniaImageFrames.ToBitmap(captured.Value),
+            var outcome = await _overlays.SelectAsync(
                 precise: true,
-                regionOnly: true);
-            overlay.RegionSelected += region => completion.TrySetResult(region);
-            overlay.SelectionCanceled += () => completion.TrySetResult(null);
-            using var cancellationRegistration = cancellationToken.Register(() =>
-                Dispatcher.UIThread.Post(() =>
-                {
-                    completion.TrySetCanceled(cancellationToken);
-                    overlay.Close();
-                }));
-            overlay.Show();
-            overlay.Activate();
-            return await completion.Task;
+                regionOnly: true,
+                ensureAccess: false,
+                cancellationToken: cancellationToken);
+            return outcome?.Region;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -102,16 +72,6 @@ public sealed class AvaloniaScreenRegionPicker(
             }
             _gate.Release();
         }
-    }
-
-    private static PhysicalScreenRegion Union(IEnumerable<PhysicalScreenRegion> regions)
-    {
-        var all = regions.ToArray();
-        var left = all.Min(region => region.X);
-        var top = all.Min(region => region.Y);
-        var right = all.Max(region => region.X + region.Width);
-        var bottom = all.Max(region => region.Y + region.Height);
-        return new PhysicalScreenRegion(left, top, right - left, bottom - top);
     }
 
     private void ShowError(string message) => _toasts.CreateToast()

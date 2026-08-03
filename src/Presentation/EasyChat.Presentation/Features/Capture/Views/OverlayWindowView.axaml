@@ -8,7 +8,11 @@
         x:Class="EasyChat.Presentation.Features.Capture.Views.OverlayWindowView"
         Closed="TopLevel_OnClosed" KeyDown="InputElement_OnKeyDown"
         Title="OverlayWindow">
-    <Canvas Name="MainCanvas">
+    <Grid Background="Black">
+        <Image x:Name="CapturedScreenImage"
+               Stretch="Fill"
+               IsHitTestVisible="False" />
+        <Canvas Name="MainCanvas">
         <!-- Main Selection Box -->
         <Rectangle x:Name="SelectionRectangle"
                    Stroke="{DynamicResource SukiPrimaryColor}"
@@ -134,5 +138,6 @@
                 </Button>
             </StackPanel>
         </Border>
-    </Canvas>
+        </Canvas>
+    </Grid>
 </Window>
