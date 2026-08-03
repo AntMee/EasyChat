@@ -61,6 +61,7 @@ namespace EasyChat.Presentation.Features.Shell
                 ? ThemeVariant.Dark
                 : ThemeVariant.Light;
             _isFullScreen = settings.General.FullScreen;
+            settings.General.TitleBarVisible = !_isFullScreen;
             _theme.ChangeBaseTheme(_baseTheme);
             RestoreColorTheme();
 

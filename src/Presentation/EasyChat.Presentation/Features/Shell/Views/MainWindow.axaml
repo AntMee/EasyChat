@@ -83,20 +83,6 @@
                                        Margin="8,4,8,6"
                                        Text="{x:Static lang:Resources.Settings}" />
 
-                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,0">
-                                <avalonia:MaterialIcon Grid.Column="0"
-                                                       Kind="FormatTitle"
-                                                       Width="18"
-                                                       Height="18"
-                                                       Margin="8,0,10,0" />
-                                <TextBlock Grid.Column="1"
-                                           VerticalAlignment="Center"
-                                           Text="{x:Static lang:Resources.TitleBar}" />
-                                <ToggleSwitch Grid.Column="2"
-                                              IsChecked="{Binding TitleBarVisible}"
-                                              ToolTip.Tip="{x:Static lang:Resources.TitleBarTip}" />
-                            </Grid>
-
                             <Button Classes="MenuItem"
                                     HorizontalContentAlignment="Left"
                                     Command="{Binding ToggleFullScreenCommand}"
