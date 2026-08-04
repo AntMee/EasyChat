@@ -67,12 +67,10 @@ public sealed class ScreenshotUseCases(
             cancellationToken);
     }
 
-    private static OcrLanguage? ResolveOcrLanguage(string languageId)
+    internal static OcrLanguage? ResolveOcrLanguage(string languageId)
     {
-        if (string.Equals(languageId, OcrLanguages.Auto.Id, StringComparison.OrdinalIgnoreCase))
-            return OcrLanguages.Auto;
-
-        return OcrLanguages.Supported.FirstOrDefault(language =>
-            string.Equals(language.Id, languageId, StringComparison.OrdinalIgnoreCase));
+        return OcrLanguages.TryGet(languageId, out var language)
+            ? language
+            : null;
     }
 }

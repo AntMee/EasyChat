@@ -6,7 +6,6 @@
     <Version>1.0.8</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\EasyChat.Desktop\Assets\easychat-logo.ico</ApplicationIcon>
-    <UseBundledOcrModels Condition="'$(UseBundledOcrModels)' == ''">false</UseBundledOcrModels>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />

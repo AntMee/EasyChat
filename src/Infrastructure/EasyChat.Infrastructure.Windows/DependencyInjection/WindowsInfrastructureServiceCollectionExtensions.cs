@@ -43,11 +43,11 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IPcmAudioCapture, WindowsPcmAudioCapture>();
         services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
-        services.AddSingleton<WindowsPaddleOcr>();
+        services.AddSingleton<WindowsOpenVinoOcr>();
         services.AddSingleton<IOcrRecognizer>(provider =>
-            provider.GetRequiredService<WindowsPaddleOcr>());
+            provider.GetRequiredService<WindowsOpenVinoOcr>());
         services.AddSingleton<IOcrModelStore>(provider =>
-            provider.GetRequiredService<WindowsPaddleOcr>());
+            provider.GetRequiredService<WindowsOpenVinoOcr>());
         return services;
     }
 }

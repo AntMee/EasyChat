@@ -28,7 +28,7 @@
                     kikipoulet/SukiUI
                 </TextBlock>
                 <TextBlock TextWrapping="Wrap" HorizontalAlignment="Center" FontFamily="Bold">
-                    sdcb/PaddleSharp
+                    sdcb/OpenVINO.NET
                 </TextBlock>
             </StackPanel>
         </ScrollViewer>

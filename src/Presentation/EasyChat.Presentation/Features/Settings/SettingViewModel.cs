@@ -12,6 +12,7 @@ using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
@@ -77,10 +78,14 @@ public sealed class SettingViewModel : NavigationPageViewModel
         DisplayLanguages = BuildDisplayLanguages();
         NativeLanguages = BuildLanguages(includeAuto: false);
         OcrModelItems = new ObservableCollection<OcrModelDownloadItemViewModel>(
-            _ocr.SupportedLanguages.Select(language => new OcrModelDownloadItemViewModel(
-                language,
-                _ocr.IsModelDownloaded(language),
-                _ocr.CanDeleteModels)));
+            _ocr.ModelPackages.Select(package => new OcrModelDownloadItemViewModel(
+                package,
+                GetOcrModelDisplayName(package.Id),
+                GetOcrModelDescription(package.Id),
+                string.Format(
+                    Resources.OcrSupportedLanguages,
+                    string.Join(", ", package.SupportedLanguages.Select(GetOcrLanguageDisplayName))),
+                _ocr.IsModelDownloaded(package))));
 
         RefreshModelCards();
         AiModelConf.ConfiguredModels.CollectionChanged += OnModelsChanged;
@@ -545,7 +550,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         item.StartDownload();
         try
         {
-            await _ocr.DownloadModelAsync(item.Language, new Progress<double>(item.SetProgress), cancellation.Token);
+            await _ocr.DownloadModelAsync(item.Package, new Progress<double>(item.SetProgress), cancellation.Token);
             item.CompleteDownload();
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -574,7 +579,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         try
         {
-            _ocr.DeleteModel(item.Language);
+            _ocr.DeleteModel(item.Package);
             item.MarkDeleted();
         }
         catch (Exception exception)
@@ -640,7 +645,9 @@ public sealed class SettingViewModel : NavigationPageViewModel
         var existing = new[] { GeneralConf.SourceLanguage, GeneralConf.TargetLanguage, GeneralConf.NativeLanguage }
             .Where(language => language is not null)
             .Cast<LanguageSettings>();
-        return existing.Concat(_languages.All.Select(ToSettingsLanguage))
+        return existing.Concat(_languages.All
+                .Where(language => language.Id != "sr")
+                .Select(ToSettingsLanguage))
             .Where(language => includeAuto || language.Id != "auto")
             .DistinctBy(language => language.Id)
             .OrderBy(language => language.DisplayName, StringComparer.CurrentCulture)
@@ -662,6 +669,35 @@ public sealed class SettingViewModel : NavigationPageViewModel
             display,
             language.ProviderCodes ?? new Dictionary<string, string>());
     }
+
+    private string GetOcrLanguageDisplayName(OcrLanguage language)
+    {
+        var translationLanguage = _languages.All.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, language.Id, StringComparison.Ordinal));
+        return translationLanguage is null
+            ? language.DisplayName
+            : LanguageDisplayNames.ForUi(
+                translationLanguage.NativeName,
+                translationLanguage.EnglishName);
+    }
+
+    private static string GetOcrModelDisplayName(string packageId) => packageId switch
+    {
+        "universal-v6-small" => Resources.OcrUniversalModel,
+        "korean-v4" => Resources.OcrKoreanV4Model,
+        "arabic-v4" => Resources.OcrArabicV4Model,
+        "devanagari-v4" => Resources.OcrDevanagariV4Model,
+        "tamil-v4" => Resources.OcrTamilV4Model,
+        "telugu-v4" => Resources.OcrTeluguV4Model,
+        "kannada-v4" => Resources.OcrKannadaV4Model,
+        "cyrillic-v3" => Resources.OcrCyrillicV3Model,
+        _ => packageId
+    };
+
+    private static string GetOcrModelDescription(string packageId) =>
+        packageId == "universal-v6-small"
+            ? Resources.OcrUniversalModelDescription
+            : string.Empty;
 
     private void ShowToast(string title, string content, NotificationType type) =>
         _toasts.CreateSimpleInfoToast().OfType(type).WithTitle(title).WithContent(content).Queue();

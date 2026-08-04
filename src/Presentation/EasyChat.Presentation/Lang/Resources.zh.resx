@@ -959,4 +959,14 @@
     <data name="ApplicationDataMoved" xml:space="preserve"><value>配置和模型已迁移到 {0}。</value></data>
     <data name="ApplicationDataMoveFailed" xml:space="preserve"><value>无法更改保存位置</value></data>
     <data name="ApplicationDataMoveBusy" xml:space="preserve"><value>请先等待当前模型操作完成，再更改保存位置。</value></data>
+  <data name="OcrUniversalModel" xml:space="preserve"><value>通用模型（PP-OCRv6 Small）</value></data>
+  <data name="OcrUniversalModelDescription" xml:space="preserve"><value>下列 50 种语言共用这一个模型。</value></data>
+  <data name="OcrKoreanV4Model" xml:space="preserve"><value>韩文模型（PP-OCRv4）</value></data>
+  <data name="OcrArabicV4Model" xml:space="preserve"><value>阿拉伯文字模型（PP-OCRv4）</value></data>
+  <data name="OcrDevanagariV4Model" xml:space="preserve"><value>天城文模型（PP-OCRv4）</value></data>
+  <data name="OcrTamilV4Model" xml:space="preserve"><value>泰米尔文模型（PP-OCRv4）</value></data>
+  <data name="OcrTeluguV4Model" xml:space="preserve"><value>泰卢固文模型（PP-OCRv4）</value></data>
+  <data name="OcrKannadaV4Model" xml:space="preserve"><value>卡纳达文模型（PP-OCRv4）</value></data>
+  <data name="OcrCyrillicV3Model" xml:space="preserve"><value>西里尔文字模型（PP-OCRv3）</value></data>
+  <data name="OcrSupportedLanguages" xml:space="preserve"><value>支持语言：{0}</value></data>
 </root>

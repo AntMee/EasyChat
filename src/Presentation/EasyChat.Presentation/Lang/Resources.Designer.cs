@@ -1471,6 +1471,66 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("OcrModels", resourceCulture);
             }
         }
+
+        public static string OcrUniversalModel {
+            get {
+                return ResourceManager.GetString("OcrUniversalModel", resourceCulture);
+            }
+        }
+
+        public static string OcrUniversalModelDescription {
+            get {
+                return ResourceManager.GetString("OcrUniversalModelDescription", resourceCulture);
+            }
+        }
+
+        public static string OcrKoreanV4Model {
+            get {
+                return ResourceManager.GetString("OcrKoreanV4Model", resourceCulture);
+            }
+        }
+
+        public static string OcrArabicV4Model {
+            get {
+                return ResourceManager.GetString("OcrArabicV4Model", resourceCulture);
+            }
+        }
+
+        public static string OcrDevanagariV4Model {
+            get {
+                return ResourceManager.GetString("OcrDevanagariV4Model", resourceCulture);
+            }
+        }
+
+        public static string OcrTamilV4Model {
+            get {
+                return ResourceManager.GetString("OcrTamilV4Model", resourceCulture);
+            }
+        }
+
+        public static string OcrTeluguV4Model {
+            get {
+                return ResourceManager.GetString("OcrTeluguV4Model", resourceCulture);
+            }
+        }
+
+        public static string OcrKannadaV4Model {
+            get {
+                return ResourceManager.GetString("OcrKannadaV4Model", resourceCulture);
+            }
+        }
+
+        public static string OcrCyrillicV3Model {
+            get {
+                return ResourceManager.GetString("OcrCyrillicV3Model", resourceCulture);
+            }
+        }
+
+        public static string OcrSupportedLanguages {
+            get {
+                return ResourceManager.GetString("OcrSupportedLanguages", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Use proxy for model download.

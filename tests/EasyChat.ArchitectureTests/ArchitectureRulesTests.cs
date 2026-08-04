@@ -127,7 +127,7 @@ public sealed class ArchitectureRulesTests
         string[] forbidden =
         [
             "Avalonia", "ReactiveUI", "DllImport", "LibraryImport", "Microsoft.Win32",
-            "OpenCv", "Paddle", "SoundFlow", "Velopack", "user32", "kernel32", "HWND", "AXUIElement"
+            "OpenCv", "OpenVINO", "Paddle", "SoundFlow", "Velopack", "user32", "kernel32", "HWND", "AXUIElement"
         ];
 
         foreach (var layer in layers)
@@ -178,8 +178,8 @@ public sealed class ArchitectureRulesTests
         var root = FindRepositoryRoot();
         string[] forbiddenPackages =
         [
-            "GlobalHotKeys.Windows", "OpenCvSharp4.Windows", "Sdcb.PaddleInference",
-            "Sdcb.PaddleOCR", "SoundFlow"
+            "GlobalHotKeys.Windows", "OpenCvSharp4.Windows", "Sdcb.OpenVINO",
+            "Sdcb.PaddleInference", "Sdcb.PaddleOCR", "SoundFlow"
         ];
 
         foreach (var project in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories)

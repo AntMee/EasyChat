@@ -8,7 +8,7 @@ namespace EasyChat.Infrastructure.Windows.Tests.Ocr;
 
 [TestClass]
 [SupportedOSPlatform("windows")]
-public sealed class WindowsPaddleOcrTests
+public sealed class WindowsOpenVinoOcrTests
 {
     [TestMethod]
     public async Task RecognizeAsync_MapsBgraPixelsLanguageAndTextGeometry()
@@ -20,11 +20,11 @@ public sealed class WindowsPaddleOcrTests
                 new WindowsOcrBackendRegion(
                     " text ",
                     [new WindowsOcrPoint(0, 0), new WindowsOcrPoint(0, 10)],
-                    0)
+                    0,
+                    0.84)
             ]
         };
-        backend.AvailableModels.Add(WindowsOcrModel.English);
-        using var ocr = new WindowsPaddleOcr(backend);
+        using var ocr = new WindowsOpenVinoOcr(backend);
         var frame = new ImageFrame(1, 1, 4, 96, 96, new byte[] { 1, 2, 3, 255 });
 
         var result = await ocr.RecognizeAsync(new OcrRecognitionRequest(
@@ -32,37 +32,33 @@ public sealed class WindowsPaddleOcrTests
             OcrLanguages.English,
             true));
 
-        Assert.AreEqual(WindowsOcrModel.English, backend.Language?.Model);
+        Assert.AreEqual(OpenVinoOcrModelCatalog.UniversalV6SmallId, backend.Language?.Package.Package.Id);
+        Assert.AreEqual(OcrLanguages.English.Id, backend.Language?.Language.Id);
         Assert.IsTrue(backend.EnableRotation);
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, backend.Pixel);
         Assert.AreEqual("text", result.Text);
         Assert.AreEqual(90d, result.Regions[0].Angle, 0.001);
+        Assert.AreEqual(0.84, result.Regions[0].Confidence, 0.001);
     }
 
     private sealed class FakeOcrBackend : IWindowsOcrBackend
     {
-        public bool CanDeleteModels => true;
-        public HashSet<WindowsOcrModel> AvailableModels { get; } = [];
         public IReadOnlyList<WindowsOcrBackendRegion> Regions { get; init; } = [];
         public WindowsOcrLanguageSelection? Language { get; private set; }
         public bool EnableRotation { get; private set; }
         public byte[]? Pixel { get; private set; }
 
-        public bool IsModelAvailable(WindowsOcrLanguageSelection language) =>
-            AvailableModels.Contains(language.Model);
+        public bool IsModelAvailable(OpenVinoOcrModelPackageSpec package) => true;
 
         public Task DownloadModelAsync(
-            WindowsOcrLanguageSelection language,
+            OpenVinoOcrModelPackageSpec package,
             OcrModelDownloadOptions options,
             IProgress<double>? progress,
-            CancellationToken cancellationToken)
-        {
-            AvailableModels.Add(language.Model);
-            return Task.CompletedTask;
-        }
+            CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public void DeleteModel(WindowsOcrLanguageSelection language) =>
-            AvailableModels.Remove(language.Model);
+        public void DeleteModel(OpenVinoOcrModelPackageSpec package)
+        {
+        }
 
         public IReadOnlyList<WindowsOcrBackendRegion> Recognize(
             Mat image,

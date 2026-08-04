@@ -8,56 +8,47 @@ using OpenCvSharp;
 namespace EasyChat.Infrastructure.Windows.Ocr;
 
 [SupportedOSPlatform("windows")]
-public sealed class WindowsPaddleOcr : IOcrRecognizer, IOcrModelStore, IDisposable
+public sealed class WindowsOpenVinoOcr : IOcrRecognizer, IOcrModelStore, IDisposable
 {
     private readonly IWindowsOcrBackend _backend;
-    private readonly ILogger<WindowsPaddleOcr>? _logger;
+    private readonly ILogger<WindowsOpenVinoOcr>? _logger;
 
-    public WindowsPaddleOcr(
+    public WindowsOpenVinoOcr(
         IApplicationDataPaths applicationData,
-        ILogger<WindowsPaddleOcr>? logger = null)
-        : this(new PaddleWindowsOcrBackend(applicationData, logger), logger)
+        ILogger<WindowsOpenVinoOcr>? logger = null)
+        : this(new OpenVinoWindowsOcrBackend(applicationData, logger), logger)
     {
     }
 
-    internal WindowsPaddleOcr(
+    internal WindowsOpenVinoOcr(
         IWindowsOcrBackend backend,
-        ILogger<WindowsPaddleOcr>? logger = null)
+        ILogger<WindowsOpenVinoOcr>? logger = null)
     {
         _backend = backend ?? throw new ArgumentNullException(nameof(backend));
         _logger = logger;
     }
 
-    public IReadOnlyList<OcrLanguage> SupportedLanguages => OcrLanguages.Supported;
+    public IReadOnlyList<OcrModelPackage> ModelPackages => OpenVinoOcrModelCatalog.Packages;
 
-    public bool CanDeleteModels => _backend.CanDeleteModels;
-
-    public bool IsModelDownloaded(OcrLanguage language)
-    {
-        ArgumentNullException.ThrowIfNull(language);
-        return _backend.IsModelAvailable(WindowsOcrLanguageCatalog.Resolve(language));
-    }
+    public bool IsModelDownloaded(OcrModelPackage package) =>
+        _backend.IsModelAvailable(OpenVinoOcrModelCatalog.ResolvePackage(package));
 
     public Task DownloadModelAsync(
-        OcrLanguage language,
+        OcrModelPackage package,
         OcrModelDownloadOptions options,
         IProgress<double>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(language);
         ArgumentNullException.ThrowIfNull(options);
         return _backend.DownloadModelAsync(
-            WindowsOcrLanguageCatalog.Resolve(language),
+            OpenVinoOcrModelCatalog.ResolvePackage(package),
             options,
             progress,
             cancellationToken);
     }
 
-    public void DeleteModel(OcrLanguage language)
-    {
-        ArgumentNullException.ThrowIfNull(language);
-        _backend.DeleteModel(WindowsOcrLanguageCatalog.Resolve(language));
-    }
+    public void DeleteModel(OcrModelPackage package) =>
+        _backend.DeleteModel(OpenVinoOcrModelCatalog.ResolvePackage(package));
 
     public ValueTask<OcrRecognitionResult> RecognizeAsync(
         OcrRecognitionRequest request,
@@ -65,11 +56,12 @@ public sealed class WindowsPaddleOcr : IOcrRecognizer, IOcrModelStore, IDisposab
     {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
-
         if (request.Image.PixelFormat != ImagePixelFormat.Bgra32)
             throw new NotSupportedException($"Pixel format '{request.Image.PixelFormat}' is not supported.");
+        if (request.Language is null)
+            throw new ArgumentException("The application must resolve the OCR language.", nameof(request));
 
-        var language = ResolveLanguage(request.Language);
+        var language = OpenVinoOcrModelCatalog.ResolveLanguage(request.Language);
         using var image = ConvertToBgr(request.Image);
         var backendRegions = _backend.Recognize(
             image,
@@ -91,20 +83,6 @@ public sealed class WindowsPaddleOcr : IOcrRecognizer, IOcrModelStore, IDisposab
 
     public void Dispose() => _backend.Dispose();
 
-    private WindowsOcrLanguageSelection ResolveLanguage(OcrLanguage? requestedLanguage)
-    {
-        var requested = requestedLanguage ?? OcrLanguages.ChineseSimplified;
-        if (!string.Equals(requested.Id, OcrLanguages.Auto.Id, StringComparison.Ordinal))
-            return WindowsOcrLanguageCatalog.Resolve(requested);
-
-        if (_backend.IsModelAvailable(WindowsOcrLanguageCatalog.ChineseSimplified))
-            return WindowsOcrLanguageCatalog.ChineseSimplified;
-        if (_backend.IsModelAvailable(WindowsOcrLanguageCatalog.English))
-            return WindowsOcrLanguageCatalog.English;
-
-        return WindowsOcrLanguageCatalog.ChineseSimplified;
-    }
-
     private static Mat ConvertToBgr(ImageFrame frame)
     {
         var pixels = frame.Pixels.ToArray();
@@ -125,7 +103,6 @@ public sealed class WindowsPaddleOcr : IOcrRecognizer, IOcrModelStore, IDisposab
         var polygon = region.Polygon
             .Select(point => new ImagePoint(point.X, point.Y))
             .ToArray();
-
         return new OcrTextRegion(
             region.Text.Trim(),
             polygon,
@@ -168,57 +145,6 @@ public sealed class WindowsPaddleOcr : IOcrRecognizer, IOcrModelStore, IDisposab
     }
 }
 
-internal enum WindowsOcrModel
-{
-    ChineseSimplified,
-    ChineseTraditional,
-    English,
-    Japanese,
-    Korean,
-    Arabic,
-    Devanagari,
-    Tamil,
-    Telugu,
-    Kannada,
-    ChineseV4Fallback
-}
-
-internal sealed record WindowsOcrLanguageSelection(OcrLanguage Language, WindowsOcrModel Model);
-
-internal static class WindowsOcrLanguageCatalog
-{
-    internal static readonly WindowsOcrLanguageSelection ChineseSimplified =
-        new(OcrLanguages.ChineseSimplified, WindowsOcrModel.ChineseSimplified);
-
-    internal static readonly WindowsOcrLanguageSelection English =
-        new(OcrLanguages.English, WindowsOcrModel.English);
-
-    private static readonly IReadOnlyDictionary<string, WindowsOcrModel> ModelsByLanguageId =
-        new Dictionary<string, WindowsOcrModel>(StringComparer.Ordinal)
-        {
-            [OcrLanguages.ChineseSimplified.Id] = WindowsOcrModel.ChineseSimplified,
-            [OcrLanguages.ChineseTraditional.Id] = WindowsOcrModel.ChineseTraditional,
-            [OcrLanguages.English.Id] = WindowsOcrModel.English,
-            [OcrLanguages.Japanese.Id] = WindowsOcrModel.Japanese,
-            [OcrLanguages.Korean.Id] = WindowsOcrModel.Korean,
-            [OcrLanguages.Arabic.Id] = WindowsOcrModel.Arabic,
-            [OcrLanguages.Devanagari.Id] = WindowsOcrModel.Devanagari,
-            [OcrLanguages.Tamil.Id] = WindowsOcrModel.Tamil,
-            [OcrLanguages.Telugu.Id] = WindowsOcrModel.Telugu,
-            [OcrLanguages.Kannada.Id] = WindowsOcrModel.Kannada
-        };
-
-    internal static WindowsOcrLanguageSelection Resolve(OcrLanguage language)
-    {
-        ArgumentNullException.ThrowIfNull(language);
-        return new WindowsOcrLanguageSelection(
-            language,
-            ModelsByLanguageId.TryGetValue(language.Id, out var model)
-                ? model
-                : WindowsOcrModel.ChineseV4Fallback);
-    }
-}
-
 internal sealed record WindowsOcrPoint(double X, double Y);
 
 internal sealed record WindowsOcrBackendRegion(
@@ -229,17 +155,15 @@ internal sealed record WindowsOcrBackendRegion(
 
 internal interface IWindowsOcrBackend : IDisposable
 {
-    bool CanDeleteModels { get; }
-
-    bool IsModelAvailable(WindowsOcrLanguageSelection language);
+    bool IsModelAvailable(OpenVinoOcrModelPackageSpec package);
 
     Task DownloadModelAsync(
-        WindowsOcrLanguageSelection language,
+        OpenVinoOcrModelPackageSpec package,
         OcrModelDownloadOptions options,
         IProgress<double>? progress,
         CancellationToken cancellationToken);
 
-    void DeleteModel(WindowsOcrLanguageSelection language);
+    void DeleteModel(OpenVinoOcrModelPackageSpec package);
 
     IReadOnlyList<WindowsOcrBackendRegion> Recognize(
         Mat image,
