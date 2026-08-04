@@ -11,14 +11,19 @@ namespace EasyChat.Presentation.Features.Shell.Views
 {
     public partial class MainWindow : SukiWindow
     {
+        private readonly Action _ensureTrayVisible = null!;
+
         public MainWindow() => InitializeComponent();
 
         public MainWindow(
             MainWindowViewModel viewModel,
             SettingsSession settings,
-            ISukiDialogManager dialogs)
+            ISukiDialogManager dialogs,
+            Action ensureTrayVisible)
             : this()
         {
+            _ensureTrayVisible = ensureTrayVisible
+                ?? throw new ArgumentNullException(nameof(ensureTrayVisible));
             DataContext = viewModel;
             Closing += (_, args) => HandleClosing(args, settings, dialogs);
             viewModel.FullScreenChanged += (_, fullScreen) =>
@@ -42,6 +47,7 @@ namespace EasyChat.Presentation.Features.Shell.Views
                     return;
                 case EasyChat.Contracts.Settings.ClosingBehavior.MinimizeToTray:
                     args.Cancel = true;
+                    _ensureTrayVisible();
                     Hide();
                     return;
                 default:
@@ -52,6 +58,7 @@ namespace EasyChat.Presentation.Features.Shell.Views
                         .WithViewModel(dialog => new CloseBehaviorDialogViewModel(
                             dialog,
                             settings.General,
+                            _ensureTrayVisible,
                             Hide,
                             () =>
                             {

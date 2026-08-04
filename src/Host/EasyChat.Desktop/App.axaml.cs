@@ -3,6 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Shell.Views;
@@ -15,6 +17,9 @@ namespace EasyChat.Desktop;
 
 public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalonia.Application
 {
+    private const int TrayMenuIconSize = 16;
+    private const int TrayMenuGlyphSize = 12;
+
     public App()
         : this(null!) =>
         throw new InvalidOperationException(
@@ -24,6 +29,7 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
     private TrayIcon? _trayIcon;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private MainWindow? _mainWindow;
+    private bool _isHiddenToTray;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -38,9 +44,14 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
             _ui = ui;
             _desktop = desktop;
             desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
-            _mainWindow = new MainWindow(ui.MainWindowViewModel, ui.Settings, ui.Dialogs);
+            _mainWindow = new MainWindow(
+                ui.MainWindowViewModel,
+                ui.Settings,
+                ui.Dialogs,
+                PrepareForTray);
             desktop.MainWindow = _mainWindow;
             desktop.Exit += OnExit;
+            ActualThemeVariantChanged += OnThemeVariantChanged;
             ui.Settings.Changed += OnSettingsChanged;
             UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
             ui.Interactions.Start();
@@ -57,10 +68,16 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
 
     private void UpdateTrayIcon(ClosingBehavior behavior)
     {
-        if (behavior == ClosingBehavior.MinimizeToTray)
+        if (behavior == ClosingBehavior.MinimizeToTray || _isHiddenToTray)
             EnsureTrayIcon();
         else
             RemoveTrayIcon();
+    }
+
+    private void PrepareForTray()
+    {
+        _isHiddenToTray = true;
+        EnsureTrayIcon();
     }
 
     private void EnsureTrayIcon()
@@ -71,7 +88,8 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
         {
             Icon = new WindowIcon(stream),
             ToolTipText = EasyChat.Presentation.Lang.Resources.AppName,
-            Menu = CreateTrayMenu()
+            Menu = CreateTrayMenu(),
+            IsVisible = true
         };
         _trayIcon.Clicked += OnTrayShow;
         var icons = GetValue(TrayIcon.IconsProperty) ?? new TrayIcons();
@@ -83,24 +101,105 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
     private NativeMenu CreateTrayMenu()
     {
         var menu = new NativeMenu();
-        var show = new NativeMenuItem(EasyChat.Presentation.Lang.Resources.TrayShow);
+        var show = new NativeMenuItem(EasyChat.Presentation.Lang.Resources.TrayShow)
+        {
+            Icon = CreateTrayMenuIcon(MaterialIconKind.WindowRestore)
+        };
         show.Click += OnTrayShow;
         menu.Items.Add(show);
         menu.Items.Add(new NativeMenuItemSeparator());
-        var exit = new NativeMenuItem(EasyChat.Presentation.Lang.Resources.TrayExit);
+        var exit = new NativeMenuItem(EasyChat.Presentation.Lang.Resources.TrayExit)
+        {
+            Icon = CreateTrayMenuIcon(MaterialIconKind.Power)
+        };
         exit.Click += OnTrayExit;
         menu.Items.Add(exit);
         return menu;
+    }
+
+    private Bitmap CreateTrayMenuIcon(MaterialIconKind kind)
+    {
+        var geometry = StreamGeometry.Parse(MaterialIconDataProvider.GetData(kind));
+        var glyph = new Avalonia.Controls.Shapes.Path
+        {
+            Data = geometry,
+            Fill = ResolveTrayMenuIconBrush(),
+            Width = TrayMenuGlyphSize,
+            Height = TrayMenuGlyphSize,
+            Stretch = Stretch.Uniform
+        };
+        var canvas = new Canvas
+        {
+            Width = TrayMenuIconSize,
+            Height = TrayMenuIconSize,
+            UseLayoutRounding = true
+        };
+        Canvas.SetLeft(glyph, (TrayMenuIconSize - TrayMenuGlyphSize) / 2d);
+        Canvas.SetTop(glyph, (TrayMenuIconSize - TrayMenuGlyphSize) / 2d);
+        canvas.Children.Add(glyph);
+        canvas.Measure(new Size(TrayMenuIconSize, TrayMenuIconSize));
+        canvas.Arrange(new Rect(0, 0, TrayMenuIconSize, TrayMenuIconSize));
+
+        var bitmap = new RenderTargetBitmap(
+            new PixelSize(TrayMenuIconSize, TrayMenuIconSize),
+            new Vector(96, 96));
+        bitmap.Render(canvas);
+        return bitmap;
+    }
+
+    private IBrush ResolveTrayMenuIconBrush()
+    {
+        if (TryGetResource("SystemControlForegroundBaseHighBrush", ActualThemeVariant, out var value)
+            && value is IBrush brush)
+        {
+            return brush;
+        }
+
+        return ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark
+            ? Brushes.White
+            : Brushes.Black;
+    }
+
+    private void OnThemeVariantChanged(object? sender, EventArgs args)
+    {
+        if (_trayIcon?.Menu is not { Items.Count: >= 3 } menu
+            || menu.Items[0] is not NativeMenuItem show
+            || menu.Items[2] is not NativeMenuItem exit)
+        {
+            return;
+        }
+
+        ReplaceTrayMenuIcon(show, MaterialIconKind.WindowRestore);
+        ReplaceTrayMenuIcon(exit, MaterialIconKind.Power);
+    }
+
+    private void ReplaceTrayMenuIcon(NativeMenuItem item, MaterialIconKind kind)
+    {
+        var previous = item.Icon as IDisposable;
+        item.Icon = CreateTrayMenuIcon(kind);
+        previous?.Dispose();
     }
 
     private void RemoveTrayIcon()
     {
         if (_trayIcon is null) return;
         _trayIcon.Clicked -= OnTrayShow;
+        DisposeTrayMenuIcons(_trayIcon.Menu);
         if (GetValue(TrayIcon.IconsProperty) is { } icons)
             icons.Remove(_trayIcon);
         _trayIcon.Dispose();
         _trayIcon = null;
+    }
+
+    private static void DisposeTrayMenuIcons(NativeMenu? menu)
+    {
+        if (menu is null) return;
+        foreach (var menuItem in menu.Items)
+        {
+            if (menuItem is not NativeMenuItem item || item.Icon is not IDisposable icon) continue;
+            item.Icon = null;
+            icon.Dispose();
+        }
     }
 
     private void OnTrayShow(object? sender, EventArgs args)
@@ -109,6 +208,12 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
+        _isHiddenToTray = false;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_ui is { } ui)
+                UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
+        });
     }
 
     private void OnTrayExit(object? sender, EventArgs args)
@@ -150,6 +255,7 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
 
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs args)
     {
+        ActualThemeVariantChanged -= OnThemeVariantChanged;
         RemoveTrayIcon();
         if (_ui is { } ui)
         {

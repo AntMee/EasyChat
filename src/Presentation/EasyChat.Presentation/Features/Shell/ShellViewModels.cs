@@ -348,6 +348,7 @@ namespace EasyChat.Presentation.Features.Shell
     {
         private readonly ISukiDialog _dialog;
         private readonly LiveGeneralSettings _settings;
+        private readonly Action _ensureTrayVisible;
         private readonly Action _minimize;
         private readonly Action _exit;
         private bool _isRemember;
@@ -355,11 +356,14 @@ namespace EasyChat.Presentation.Features.Shell
         public CloseBehaviorDialogViewModel(
             ISukiDialog dialog,
             LiveGeneralSettings settings,
+            Action ensureTrayVisible,
             Action minimize,
             Action exit)
         {
             _dialog = dialog;
             _settings = settings;
+            _ensureTrayVisible = ensureTrayVisible
+                ?? throw new ArgumentNullException(nameof(ensureTrayVisible));
             _minimize = minimize;
             _exit = exit;
             MinimizeCommand = ReactiveCommand.Create(Minimize);
@@ -374,6 +378,7 @@ namespace EasyChat.Presentation.Features.Shell
         {
             if (IsRemember)
                 _settings.ClosingBehavior = ClosingBehavior.MinimizeToTray;
+            _ensureTrayVisible();
             _minimize();
             _dialog.Dismiss();
         }
