@@ -26,7 +26,7 @@
         
         <!-- Settings content - hidden initially, shown after lazy load -->
         <Grid x:Name="SettingsContent" IsVisible="False">
-            <suki:SettingsLayout>
+            <suki:SettingsLayout StackSummaryWidth="240">
                 <suki:SettingsLayout.Items>
                     <objectModel:ObservableCollection x:TypeArguments="suki:SettingsLayoutItem">
                         <suki:SettingsLayoutItem Header="{x:Static lang:Resources.General}">
