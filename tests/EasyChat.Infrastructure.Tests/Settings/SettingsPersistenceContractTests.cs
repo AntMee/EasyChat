@@ -227,6 +227,47 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
+    public async Task SpeechRecognitionPromptId_RoundTripsAndOldFilesRemainCompatible()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            var changed = initial.Value with
+            {
+                SpeechRecognition = initial.Value.SpeechRecognition with
+                {
+                    PromptId = "speech-prompt"
+                }
+            };
+
+            var write = await gateway.WriteAsync(SettingsSection.SpeechRecognition, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.AreEqual("speech-prompt", reread.Value.SpeechRecognition.PromptId);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "SpeechRecognition.json")),
+                "\"PromptId\": \"speech-prompt\"");
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "SpeechRecognition.json"),
+                "{}");
+            var previous = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(previous.IsSuccess, previous.Error.Message);
+            Assert.IsNull(previous.Value.SpeechRecognition.PromptId);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
     public async Task WriteAsync_ReplacesOnlyTheSelectedFileWithoutLeavingTemporaryFiles()
     {
         var directory = CreateTemporaryDirectory();

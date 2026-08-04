@@ -1102,7 +1102,8 @@ internal sealed class SubtitleSessionCoordinator
             ? new TranslationProviderSelection(
                 TranslationEngineNames.AiModel,
                 AiModelId: settings.EngineId,
-                PromptOverride: SubtitlePrompt)
+                PromptOverride: SubtitlePrompt,
+                PromptId: settings.PromptId)
             : new TranslationProviderSelection(
                 TranslationEngineNames.MachineTrans,
                 MachineProviderId: settings.EngineId);

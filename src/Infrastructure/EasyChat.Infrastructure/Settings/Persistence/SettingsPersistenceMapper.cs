@@ -444,7 +444,8 @@ internal static class SettingsPersistenceMapper
         source.WindowX,
         source.WindowY,
         source.WindowWidth,
-        source.WindowHeight);
+        source.WindowHeight,
+        source.PromptId);
 
     private static SpeechRecognitionSettingsDto ToDto(SpeechRecognitionSettings source) => new()
     {
@@ -454,6 +455,7 @@ internal static class SettingsPersistenceMapper
         TargetLanguage = source.TargetLanguage,
         EngineId = source.EngineId,
         EngineType = source.EngineType,
+        PromptId = source.PromptId,
         MaxSentencesPerLine = source.MaxSentencesPerLine,
         FloatingDisplayMode = (FloatingDisplayModeDto)(int)source.FloatingDisplayMode,
         MaxFloatingHistory = source.MaxFloatingHistory,

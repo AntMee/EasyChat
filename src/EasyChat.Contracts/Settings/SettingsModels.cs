@@ -256,7 +256,8 @@ public sealed record SpeechRecognitionSettings(
     double WindowX,
     double WindowY,
     double WindowWidth,
-    double WindowHeight);
+    double WindowHeight,
+    string? PromptId = null);
 
 public sealed record SelectionTranslationSettings(
     bool Enabled,

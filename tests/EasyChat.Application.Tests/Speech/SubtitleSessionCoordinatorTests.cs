@@ -1410,6 +1410,23 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task AiTranslationCarriesConfiguredPromptIdAndSubtitleOverride()
+    {
+        var translations = new RecordingTranslationUseCases("translated");
+        var settings = CreateSettings(translationEnabled: true) with { PromptId = "speech-prompt" };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Prompted line.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var selection = translations.Invocations.Single().Selection!;
+        Assert.AreEqual("speech-prompt", selection.PromptId);
+        StringAssert.Contains(selection.PromptOverride!, "Translate live subtitles");
+    }
+
+    [TestMethod]
     public async Task PreservedStaleTranslationIsNotUsedAsAiContext()
     {
         var replacement = new ControlledTranslationStream();

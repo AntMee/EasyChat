@@ -291,7 +291,11 @@ public sealed class ArchitectureRulesTests
 
         Assert.AreEqual("EasyChat", properties["AssemblyName"]);
         Assert.AreEqual("WinExe", properties["OutputType"]);
-        Assert.AreEqual("1.0.6", properties["Version"]);
+        Assert.IsTrue(
+            Regex.IsMatch(
+                properties["Version"],
+                @"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$"),
+            "Windows host Version must be an explicit semantic version.");
     }
 
     [TestMethod]

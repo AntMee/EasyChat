@@ -279,6 +279,9 @@ internal sealed class SpeechRecognitionSettingsDto
     [JsonProperty]
     public int EngineType { get; set; }
 
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? PromptId { get; set; }
+
     [JsonProperty]
     public int MaxSentencesPerLine { get; set; } = 1;
 
