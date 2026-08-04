@@ -71,6 +71,66 @@ public sealed class WindowsPcmAudioCaptureTests
         Assert.AreEqual(1234, BitConverter.ToInt16(frames.Current.Span[..2]));
     }
 
+    [TestMethod]
+    public async Task ProducerContinuesWhileTheConsumerIsPausedAndKeepsRecentSilence()
+    {
+        var factory = new FakeSessionFactory();
+        var capture = new WindowsPcmAudioCapture(factory);
+        await using var frames = capture.CaptureAsync(
+                [],
+                PcmAudioFormat.SpeechRecognition)
+            .GetAsyncEnumerator();
+
+        Assert.IsTrue(await frames.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)));
+        Assert.AreEqual(1000, BitConverter.ToInt16(frames.Current.Span[..2]));
+
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        var buffered = await ReadBufferedSilenceAsync()
+            .WaitAsync(TimeSpan.FromMilliseconds(400));
+        Assert.HasCount(35, buffered);
+        Assert.IsTrue(buffered.All(frame => frame.Length == 640));
+        Assert.IsTrue(buffered.All(frame => frame.Span.SequenceEqual(new byte[640])));
+
+        async Task<List<ReadOnlyMemory<byte>>> ReadBufferedSilenceAsync()
+        {
+            var result = new List<ReadOnlyMemory<byte>>();
+            while (result.Count < 35 && await frames.MoveNextAsync())
+                result.Add(frames.Current);
+            return result;
+        }
+    }
+
+    [TestMethod]
+    public async Task CaptureFailureIsPropagatedAfterAllSessionsAreCleanedUp()
+    {
+        var factory = new FakeSessionFactory();
+        var capture = new WindowsPcmAudioCapture(factory);
+        var sources = new[]
+        {
+            WindowsAudioCaptureSourceCatalog.FromProcessId(42),
+            WindowsAudioCaptureSourceCatalog.FromProcessId(84)
+        };
+        await using var frames = capture.CaptureAsync(
+                sources,
+                PcmAudioFormat.SpeechRecognition)
+            .GetAsyncEnumerator();
+
+        Assert.IsTrue(await frames.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)));
+        factory.Sessions[1].Fail(new InvalidOperationException("capture failed"));
+
+        var failure = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            while (await frames.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)))
+            {
+            }
+        });
+
+        Assert.AreEqual("Windows audio capture failed.", failure.Message);
+        Assert.AreEqual("capture failed", failure.InnerException?.Message);
+        Assert.IsTrue(factory.Sessions.All(session => session.Stopped && session.Disposed));
+    }
+
     private sealed class FakeSessionFactory : IWindowsPcmCaptureSessionFactory
     {
         private readonly bool _emitSystemAudioOnStart;
@@ -106,11 +166,7 @@ public sealed class WindowsPcmAudioCaptureTests
     private sealed class FakeSession(short sample, bool emitAudioOnStart = true) : IWindowsPcmCaptureSession
     {
         public event Action<ReadOnlyMemory<byte>>? DataAvailable;
-        public event Action<Exception>? Failed
-        {
-            add { }
-            remove { }
-        }
+        public event Action<Exception>? Failed;
         public bool Stopped { get; private set; }
         public bool Disposed { get; private set; }
 
@@ -131,6 +187,8 @@ public sealed class WindowsPcmAudioCaptureTests
             }
             DataAvailable?.Invoke(frame);
         }
+
+        public void Fail(Exception exception) => Failed?.Invoke(exception);
 
         public Task StopAsync()
         {

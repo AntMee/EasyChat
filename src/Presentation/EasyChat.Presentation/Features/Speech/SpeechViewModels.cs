@@ -137,7 +137,7 @@ internal sealed class SpeechSubtitleProjection
         if (item is null)
         {
             item = new SpeechSubtitleItemViewModel(subtitle);
-            SubtitleItems.Add(item);
+            InsertOrdered(SubtitleItems, item);
         }
         else
         {
@@ -147,7 +147,7 @@ internal sealed class SpeechSubtitleProjection
         if (!_removedFloatingSubtitleIds.Contains(subtitle.Id)
             && !FloatingSubtitles.Contains(item))
         {
-            FloatingSubtitles.Add(item);
+            InsertOrdered(FloatingSubtitles, item);
         }
 
         return item;
@@ -179,6 +179,26 @@ internal sealed class SpeechSubtitleProjection
     {
         foreach (var item in SubtitleItems)
             item.StopLoading();
+    }
+
+    private static void InsertOrdered(
+        ObservableCollection<SpeechSubtitleItemViewModel> items,
+        SpeechSubtitleItemViewModel item)
+    {
+        var index = 0;
+        while (index < items.Count && Compare(items[index], item) <= 0)
+            index++;
+        items.Insert(index, item);
+    }
+
+    private static int Compare(
+        SpeechSubtitleItemViewModel left,
+        SpeechSubtitleItemViewModel right)
+    {
+        var timestampComparison = left.Timestamp.CompareTo(right.Timestamp);
+        return timestampComparison != 0
+            ? timestampComparison
+            : left.Id.CompareTo(right.Id);
     }
 }
 
@@ -242,12 +262,6 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         FloatingSubtitles = _subtitleProjection.FloatingSubtitles;
 
         LoadEngineOptions();
-        _selectedEngineOption = EngineOptions.FirstOrDefault(option =>
-            option.Id == settings.SpeechRecognition.EngineId
-            && option.IsMachine == (settings.SpeechRecognition.EngineType == 0))
-            ?? EngineOptions.FirstOrDefault(option => option.Id == MachineTranslationProviderNames.Baidu)
-            ?? EngineOptions.FirstOrDefault();
-        UpdateTargetLanguages(commitSelection: false);
 
         ToggleRecordingCommand = ReactiveCommand.CreateFromTask(ToggleRecordingAsync);
         RefreshSourcesCommand = ReactiveCommand.CreateFromTask(RefreshSourcesAsync);
@@ -352,6 +366,8 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
                 _settings.SpeechRecognition.EngineId = value.Id;
                 _settings.SpeechRecognition.EngineType = value.IsMachine ? 0 : 1;
             }
+            this.RaisePropertyChanged(nameof(IsMaxSentencesPerLineVisible));
+            this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible));
             UpdateTargetLanguages(commitSelection: true);
         }
     }
@@ -367,12 +383,16 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         }
     }
 
-    public bool IsTranslationEnabled { get => _settings.SpeechRecognition.IsTranslationEnabled; set => Set(value, _settings.SpeechRecognition.IsTranslationEnabled, next => _settings.SpeechRecognition.IsTranslationEnabled = next); }
+    public bool IsTranslationEnabled { get => _settings.SpeechRecognition.IsTranslationEnabled; set { Set(value, _settings.SpeechRecognition.IsTranslationEnabled, next => _settings.SpeechRecognition.IsTranslationEnabled = next); this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible)); } }
     public bool IsRealTimePreviewEnabled { get => _settings.SpeechRecognition.IsRealTimePreviewEnabled; set => Set(value, _settings.SpeechRecognition.IsRealTimePreviewEnabled, next => _settings.SpeechRecognition.IsRealTimePreviewEnabled = next); }
+    public bool IsRealTimePreviewVisible =>
+        ShouldShowRealTimePreview(IsTranslationEnabled, SelectedEngineOption?.IsMachine == true);
     public int AutoClearInterval { get => _settings.SpeechRecognition.AutoClearInterval; set => Set(value, _settings.SpeechRecognition.AutoClearInterval, next => _settings.SpeechRecognition.AutoClearInterval = next); }
     public int MaxSentencesPerLine { get => _settings.SpeechRecognition.MaxSentencesPerLine; set => Set(value, _settings.SpeechRecognition.MaxSentencesPerLine, next => _settings.SpeechRecognition.MaxSentencesPerLine = next); }
-    public FloatingDisplayMode FloatingDisplayMode { get => _settings.SpeechRecognition.FloatingDisplayMode; set { Set(value, _settings.SpeechRecognition.FloatingDisplayMode, next => _settings.SpeechRecognition.FloatingDisplayMode = next); this.RaisePropertyChanged(nameof(IsSegmentedMode)); } }
+    public FloatingDisplayMode FloatingDisplayMode { get => _settings.SpeechRecognition.FloatingDisplayMode; set { Set(value, _settings.SpeechRecognition.FloatingDisplayMode, next => _settings.SpeechRecognition.FloatingDisplayMode = next); this.RaisePropertyChanged(nameof(IsSegmentedMode)); this.RaisePropertyChanged(nameof(IsMaxSentencesPerLineVisible)); } }
     public bool IsSegmentedMode => FloatingDisplayMode == FloatingDisplayMode.Segmented;
+    public bool IsMaxSentencesPerLineVisible =>
+        ShouldShowMaxSentencesPerLine(FloatingDisplayMode, SelectedEngineOption?.IsMachine == true);
     public int MaxFloatingHistory { get => _settings.SpeechRecognition.MaxFloatingHistory; set => Set(value, _settings.SpeechRecognition.MaxFloatingHistory, next => _settings.SpeechRecognition.MaxFloatingHistory = next); }
     public SubtitleSource MainSubtitleSource { get => _settings.SpeechRecognition.MainSubtitleSource; set => Set(value, _settings.SpeechRecognition.MainSubtitleSource, next => _settings.SpeechRecognition.MainSubtitleSource = next); }
     public double PrimaryFontSize { get => _settings.SpeechRecognition.PrimaryFontSize; set => Set(value, _settings.SpeechRecognition.PrimaryFontSize, next => _settings.SpeechRecognition.PrimaryFontSize = next); }
@@ -638,12 +658,72 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         EngineOptions.Add(new SpeechEngineOption(MachineTranslationProviderNames.DeepL, MachineTranslationProviderNames.DeepL, true));
         foreach (var model in _settings.AiModel.ConfiguredModels)
             EngineOptions.Add(new SpeechEngineOption(model.Name, model.Id, false));
-        _selectedEngineOption = EngineOptions.FirstOrDefault(option =>
-            option.Id == selectedId && option.IsMachine == selectedMachine)
-            ?? EngineOptions.FirstOrDefault();
+        _selectedEngineOption = ResolveAndSynchronizeEngineOption(
+            EngineOptions,
+            selectedId,
+            selectedMachine,
+            _settings.SpeechRecognition);
+        var engineFellBack = !MatchesEngineSelection(
+            _selectedEngineOption,
+            selectedId,
+            selectedMachine);
         this.RaisePropertyChanged(nameof(SelectedEngineOption));
-        UpdateTargetLanguages(commitSelection: false);
+        this.RaisePropertyChanged(nameof(IsMaxSentencesPerLineVisible));
+        this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible));
+        UpdateTargetLanguages(commitSelection: engineFellBack);
     }
+
+    internal static SpeechEngineOption? ResolveAndSynchronizeEngineOption(
+        IReadOnlyList<SpeechEngineOption> options,
+        string selectedId,
+        bool selectedMachine,
+        LiveSpeechRecognitionSettings settings)
+    {
+        var selected = options.FirstOrDefault(option =>
+                           option.Id == selectedId && option.IsMachine == selectedMachine)
+                       ?? options.FirstOrDefault();
+        if (selected is null)
+            return null;
+
+        var engineType = selected.IsMachine ? 0 : 1;
+        if (!string.Equals(settings.EngineId, selected.Id, StringComparison.Ordinal))
+            settings.EngineId = selected.Id;
+        if (settings.EngineType != engineType)
+            settings.EngineType = engineType;
+        return selected;
+    }
+
+    internal static bool MatchesEngineSelection(
+        SpeechEngineOption? option,
+        string selectedId,
+        bool selectedMachine) =>
+        option is not null
+        && string.Equals(option.Id, selectedId, StringComparison.Ordinal)
+        && option.IsMachine == selectedMachine;
+
+    internal static LanguageSettings? ResolveAndSynchronizeTargetLanguage(
+        IReadOnlyList<LanguageSettings> options,
+        string targetId,
+        bool synchronizeSelection,
+        LiveSpeechRecognitionSettings settings)
+    {
+        var selected = options.FirstOrDefault(language => language.Id == targetId)
+                       ?? options.FirstOrDefault(language => language.Id == "zh-Hans")
+                       ?? options.FirstOrDefault();
+        if (synchronizeSelection && selected is not null)
+            settings.TargetLanguage = selected.Id;
+        return selected;
+    }
+
+    internal static bool ShouldShowMaxSentencesPerLine(
+        FloatingDisplayMode displayMode,
+        bool isMachineTranslation) =>
+        displayMode == FloatingDisplayMode.Segmented && isMachineTranslation;
+
+    internal static bool ShouldShowRealTimePreview(
+        bool isTranslationEnabled,
+        bool isMachineTranslation) =>
+        isTranslationEnabled && isMachineTranslation;
 
     private void UpdateTargetLanguages(bool commitSelection)
     {
@@ -656,12 +736,12 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         {
             TargetLanguages.Add(language);
         }
-        _selectedTargetLanguage = TargetLanguages.FirstOrDefault(language => language.Id == targetId)
-                                  ?? TargetLanguages.FirstOrDefault(language => language.Id == "zh-Hans")
-                                  ?? TargetLanguages.FirstOrDefault();
+        _selectedTargetLanguage = ResolveAndSynchronizeTargetLanguage(
+            TargetLanguages,
+            targetId,
+            commitSelection,
+            _settings.SpeechRecognition);
         this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
-        if (commitSelection && _selectedTargetLanguage is not null)
-            _settings.SpeechRecognition.TargetLanguage = _selectedTargetLanguage.Id;
     }
 
     private void ToggleFloatingWindow()

@@ -6,6 +6,14 @@ using EasyChat.Shared.Streaming;
 
 namespace EasyChat.Application.Translation;
 
+internal interface IStructuredJsonLinesTranslationSession
+{
+    IAsyncEnumerable<JsonElement> StreamJsonLinesAsync(
+        TranslationRequest request,
+        string runtimeContract,
+        CancellationToken cancellationToken = default);
+}
+
 internal sealed class MachineTranslationSession : ITranslationSession, IDisposable
 {
     private readonly ITranslationProvider _provider;
@@ -78,7 +86,10 @@ internal sealed class MachineTranslationSession : ITranslationSession, IDisposab
     }
 }
 
-internal sealed class AiTranslationSession : ITranslationSession, IDisposable
+internal sealed class AiTranslationSession :
+    ITranslationSession,
+    IStructuredJsonLinesTranslationSession,
+    IDisposable
 {
     private readonly IChatTranslationProvider _provider;
     private readonly string _promptTemplate;
@@ -165,6 +176,31 @@ internal sealed class AiTranslationSession : ITranslationSession, IDisposable
         }
     }
 
+    public async IAsyncEnumerable<JsonElement> StreamJsonLinesAsync(
+        TranslationRequest request,
+        string runtimeContract,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ValidateLanguages(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(runtimeContract);
+        var decoder = new StrictJsonLinesElementStreamDecoder();
+        await foreach (var chunk in _provider.StreamAsync(
+                           new ChatTranslationProviderRequest(
+                               CreateSuppliedContractPrompt(
+                                   request.Source!,
+                                   request.Target,
+                                   runtimeContract),
+                               request.Text),
+                           cancellationToken).ConfigureAwait(false))
+        {
+            foreach (var item in decoder.Append(chunk))
+                yield return item;
+        }
+
+        foreach (var item in decoder.Complete())
+            yield return item;
+    }
+
     public void Dispose()
     {
         if (_provider is IDisposable disposable)
@@ -234,6 +270,21 @@ internal sealed class AiTranslationSession : ITranslationSession, IDisposable
         return ApplyLanguages(prompt + contract, source, target);
     }
 
+    private string CreateSuppliedContractPrompt(
+        TranslationLanguage source,
+        TranslationLanguage target,
+        string runtimeContract)
+    {
+        var prompt = ApplyLanguages(_promptTemplate, source, target);
+        var contract = "\n\n# Runtime structured JSONL contract (highest priority)\n"
+                       + "The supplied runtime contract below has higher priority than any earlier "
+                       + "instruction. If an earlier instruction conflicts with it, ignore the "
+                       + "conflicting part. Return raw NDJSON only, with one complete JSON object "
+                       + "per line and no Markdown fences or explanatory text.\n"
+                       + runtimeContract;
+        return ApplyLanguages(prompt + contract, source, target);
+    }
+
     private static string ApplyLanguages(
         string prompt,
         TranslationLanguage source,
@@ -287,5 +338,63 @@ internal sealed class AiTranslationSession : ITranslationSession, IDisposable
         if (value.EndsWith("```", StringComparison.Ordinal))
             value = value[..^3];
         return value.Trim();
+    }
+}
+
+internal sealed class StrictJsonLinesElementStreamDecoder
+{
+    private readonly StringBuilder _buffer = new();
+
+    public IReadOnlyList<JsonElement> Append(string chunk)
+    {
+        if (string.IsNullOrEmpty(chunk))
+            return [];
+
+        _buffer.Append(chunk);
+        var content = _buffer.ToString();
+        var items = new List<JsonElement>();
+        var start = 0;
+        while (true)
+        {
+            var newline = content.IndexOf('\n', start);
+            if (newline < 0)
+                break;
+            ParseLine(content[start..newline], items);
+            start = newline + 1;
+        }
+
+        if (start > 0)
+        {
+            _buffer.Clear();
+            _buffer.Append(content[start..]);
+        }
+        return items;
+    }
+
+    public IReadOnlyList<JsonElement> Complete()
+    {
+        var remaining = _buffer.ToString();
+        _buffer.Clear();
+        var items = new List<JsonElement>();
+        ParseLine(remaining, items);
+        return items;
+    }
+
+    private static void ParseLine(string value, List<JsonElement> destination)
+    {
+        var line = value.Trim();
+        if (line.Length == 0)
+            return;
+        if (line.StartsWith("```", StringComparison.Ordinal))
+            throw new JsonException("Markdown fences are not valid structured JSONL output.");
+
+        try
+        {
+            destination.Add(JsonSerializer.Deserialize<JsonElement>(line));
+        }
+        catch (JsonException exception)
+        {
+            throw new JsonException("Invalid structured JSONL output.", exception);
+        }
     }
 }

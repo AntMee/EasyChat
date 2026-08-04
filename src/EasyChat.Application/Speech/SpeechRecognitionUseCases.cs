@@ -17,8 +17,10 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
     private readonly ITranslationLanguageCatalog _languages;
     private readonly ILogger<SpeechRecognitionUseCases> _logger;
     private readonly TimeProvider _timeProvider;
-    private readonly SemaphoreSlim _subtitleAiTranslationGate = new(1, 1);
-    private readonly SemaphoreSlim _subtitleMachineTranslationGate = new(1, 1);
+    private readonly SubtitleTranslationLane _subtitleAiTranslationLane = new();
+    private readonly SubtitleTranslationLane _subtitleMachineTranslationLane = new();
+    private readonly SubtitleFloatingLifecycleRegistry _subtitleFloatingLifecycle;
+    private readonly SubtitleTimestampClock _subtitleTimestampClock;
     private long _nextSubtitleId;
 
     public SpeechRecognitionUseCases(
@@ -55,6 +57,8 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
         _languages = languages ?? throw new ArgumentNullException(nameof(languages));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _subtitleFloatingLifecycle = new SubtitleFloatingLifecycleRegistry(_timeProvider);
+        _subtitleTimestampClock = new SubtitleTimestampClock(_timeProvider);
     }
 
     public async IAsyncEnumerable<SpeechSessionEvent> RecognizeAsync(
@@ -127,8 +131,10 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
                 _timeProvider,
                 () => Interlocked.Increment(ref _nextSubtitleId),
                 Publish,
-                _subtitleAiTranslationGate,
-                _subtitleMachineTranslationGate);
+                _subtitleAiTranslationLane,
+                _subtitleMachineTranslationLane,
+                _subtitleFloatingLifecycle,
+                _subtitleTimestampClock);
             await coordinator.RunAsync(
                 _engine.RecognizeAsync(
                     new SpeechRecognitionOptions(

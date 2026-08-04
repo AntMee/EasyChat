@@ -28,7 +28,7 @@ internal sealed record SubtitleSegmentationUpdate(
 
 internal sealed class IncrementalSubtitleSegmenter
 {
-    internal static readonly TimeSpan QuietPeriod = TimeSpan.FromMilliseconds(750);
+    internal static readonly TimeSpan QuietPeriod = TimeSpan.FromMilliseconds(1200);
     internal static readonly TimeSpan TargetSegmentDuration = TimeSpan.FromMilliseconds(2500);
     internal static readonly TimeSpan HardSegmentDuration = TimeSpan.FromSeconds(4);
     internal const int MaximumWords = 16;
@@ -313,7 +313,11 @@ internal sealed class IncrementalSubtitleSegmenter
             var candidate = remaining[..candidateLength].TrimEnd();
             if (!hardTriggered && CountDisplayColumns(candidate) < MinimumForcedColumns)
                 return;
-            var cut = FindForcedCut(candidate, timeTriggered || hardTriggered);
+            var cut = FindForcedCut(
+                candidate,
+                timeTriggered || hardTriggered,
+                MaximumWords,
+                MaximumDisplayColumns);
             if (cut <= 0)
                 return;
 
@@ -425,7 +429,11 @@ internal sealed class IncrementalSubtitleSegmenter
         return words[^RevisionTailWords].Index;
     }
 
-    private static int FindForcedCut(string candidate, bool allowWholeCandidate)
+    private static int FindForcedCut(
+        string candidate,
+        bool allowWholeCandidate,
+        int maximumWords,
+        int maximumDisplayColumns)
     {
         if (candidate.Length == 0)
             return 0;
@@ -440,7 +448,7 @@ internal sealed class IncrementalSubtitleSegmenter
                 ? positions[elementIndex + 1]
                 : candidate.Length;
             columns += IsWide(rune.Value) ? 2 : 1;
-            if (columns > MaximumDisplayColumns)
+            if (columns > maximumDisplayColumns)
             {
                 maximumIndex = position;
                 break;
@@ -449,8 +457,8 @@ internal sealed class IncrementalSubtitleSegmenter
         }
 
         var words = WordPattern.Matches(candidate);
-        if (words.Count > MaximumWords)
-            maximumIndex = Math.Min(maximumIndex, words[MaximumWords].Index);
+        if (words.Count > maximumWords)
+            maximumIndex = Math.Min(maximumIndex, words[maximumWords].Index);
         if (maximumIndex <= 0)
             return 0;
 
@@ -468,8 +476,15 @@ internal sealed class IncrementalSubtitleSegmenter
         return allowWholeCandidate || maximumIndex < candidate.Length ? maximumIndex : 0;
     }
 
-    internal static int FindPreferredCut(string candidate) =>
-        FindForcedCut(candidate, allowWholeCandidate: true);
+    internal static int FindPreferredCut(
+        string candidate,
+        int maximumWords = MaximumWords,
+        int maximumDisplayColumns = MaximumDisplayColumns) =>
+        FindForcedCut(
+            candidate,
+            allowWholeCandidate: true,
+            maximumWords,
+            maximumDisplayColumns);
 
     private static int IndexAtDisplayColumn(string text, int target)
     {

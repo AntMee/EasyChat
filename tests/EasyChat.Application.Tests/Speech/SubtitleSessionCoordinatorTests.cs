@@ -355,6 +355,385 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task AiTranslationBuffersTwoStableSentencesIntoOneRequest()
+    {
+        const string source = "First complete sentence. Second complete sentence.";
+        var translations = new RecordingTranslationUseCases("combined translation");
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            MaxSentencesPerLine = 1
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.WaitForAsync(events =>
+        {
+            var lines = LatestLines(events);
+            return lines.Count == 1 && lines[0].OriginalText == source;
+        });
+        await harness.DrainAsync();
+        Assert.AreEqual(0, translations.RequestCount);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        await harness.WaitForAsync(events => LatestLines(events)
+            .Single().DisplayTranslatedText == "combined translation");
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(1, translations.RequestCount);
+        using var json = JsonDocument.Parse(translations.Invocations.Single().Request.Text);
+        Assert.AreEqual(source, json.RootElement.GetProperty("current").GetString());
+        Assert.AreEqual(source, LatestLines(harness.Events).Single().OriginalText);
+    }
+
+    [TestMethod]
+    public async Task StructuredAiFinalMaterializesSemanticSentencesWithoutChangingSourceCoverage()
+    {
+        const string source = "Hello. Next.";
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            MaxSentencesPerLine = 1
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        var aggregate = AssertExactlyOneLatestLine(harness.Events);
+
+        stream.Emit(StructuredSegment(0, "Hello. ", "你好。", isFinal: true));
+        stream.Emit(StructuredSegment(1, "Next.", "下一句。", isFinal: true));
+        stream.Complete();
+        await harness.WaitForAsync(events => LatestLines(events).Count == 2);
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var lines = LatestLines(harness.Events)
+            .Where(line => !string.IsNullOrWhiteSpace(line.OriginalText))
+            .OrderBy(line => line.Id)
+            .ToArray();
+        Assert.HasCount(2, lines);
+        Assert.AreEqual(source, string.Concat(lines.Select(line => line.OriginalText)));
+        CollectionAssert.AreEqual(
+            new[] { "你好。", "下一句。" },
+            lines.Select(line => line.DisplayTranslatedText).ToArray());
+        Assert.AreEqual(aggregate.Timestamp, lines[0].Timestamp);
+        Assert.AreEqual(lines[0].Timestamp, lines[1].Timestamp);
+        Assert.IsLessThan(lines[1].Id, lines[0].Id);
+        Assert.IsTrue(lines.All(line => !line.IsTemporary && !line.IsTranslating));
+        Assert.AreEqual(1, translations.RequestCount);
+    }
+
+    [TestMethod]
+    [DataRow("incomplete-coverage")]
+    [DataRow("wrong-sequence")]
+    [DataRow("wrong-source")]
+    [DataRow("combined-sentences")]
+    public async Task InvalidStructuredAiPlanKeepsAggregateLineAndDoesNotRetry(string invalidPlan)
+    {
+        const string source = "Hello. Next.";
+        const string acceptedTranslation = "你好，世界。";
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            MaxSentencesPerLine = 1
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        if (invalidPlan == "combined-sentences")
+            stream.Emit(StructuredSegment(0, source, acceptedTranslation, isFinal: true));
+        else
+            stream.Emit(StructuredSegment(0, "Hello. ", acceptedTranslation, isFinal: true));
+        if (invalidPlan == "wrong-sequence")
+            stream.Emit(StructuredSegment(2, "Next.", "下一句。", isFinal: true));
+        else if (invalidPlan == "wrong-source")
+            stream.Emit(StructuredSegment(1, "Different.", "下一句。", isFinal: true));
+        stream.Complete();
+        await harness.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating
+                   && line.DisplayTranslatedText.Length == 0;
+        });
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var line = AssertExactlyOneLatestLine(harness.Events);
+        Assert.AreEqual(source, line.OriginalText);
+        Assert.AreEqual(string.Empty, line.DisplayTranslatedText);
+        Assert.AreEqual(1, translations.RequestCount);
+        Assert.AreEqual(0, translations.UnstructuredRequestCount);
+    }
+
+    [TestMethod]
+    public async Task StructuredTimeoutRetractsTheJobPartialTranslation()
+    {
+        const string source = "Hello. Next.";
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            AutoClearInterval = 0
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        stream.Emit(StructuredSegment(0, "Hello. ", "Readable partial translation.", isFinal: true));
+        await harness.WaitForAsync(events => LatestLines(events)
+            .Single().DisplayTranslatedText == "Readable partial translation.");
+
+        harness.Time.Advance(TimeSpan.FromSeconds(30.1));
+        await harness.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating && line.DisplayTranslatedText.Length == 0;
+        });
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task CancelingStructuredTranslationRetractsTheJobPartialTranslation()
+    {
+        const string source = "Hello. Next.";
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        await using var harness = new CoordinatorHarness(
+            CreateSettings(translationEnabled: true),
+            translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.WaitForAsync(events => LatestLines(events).Count == 1);
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        stream.Emit(StructuredSegment(0, "Hello. ", "Readable partial translation.", isFinal: true));
+        await harness.WaitForAsync(events => LatestLines(events)
+            .Single().DisplayTranslatedText == "Readable partial translation.");
+
+        harness.Settings = harness.Settings with { IsTranslationEnabled = false };
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating && line.DisplayTranslatedText.Length == 0;
+        });
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task StructuredProviderFailureRetractsTheJobPartialTranslation()
+    {
+        const string source = "Hello. Next.";
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        await using var harness = new CoordinatorHarness(
+            CreateSettings(translationEnabled: true),
+            translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        stream.Emit(StructuredSegment(0, "Hello. ", "Readable partial translation.", isFinal: true));
+        await harness.WaitForAsync(events => LatestLines(events)
+            .Single().DisplayTranslatedText == "Readable partial translation.");
+        stream.Fail(new InvalidOperationException("provider stream failed"));
+
+        await harness.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating && line.DisplayTranslatedText.Length == 0;
+        });
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task FailedStructuredRetryRestoresAnExactSourceTranslationSnapshot()
+    {
+        const string source = "Hello. Next.";
+        const string stableTranslation = "Stable prior translation.";
+        var first = new ControlledStructuredTranslationStream();
+        var retry = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(first, retry);
+        var settings = CreateSettings(translationEnabled: true);
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.WaitForAsync(events => LatestLines(events).Count == 1);
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        first.Emit(StructuredSegment(0, "Hello. ", "Stable prior", isFinal: true));
+        first.Emit(StructuredSegment(1, "Next.", "translation.", isFinal: true));
+        first.Complete();
+        await harness.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating
+                   && line.DisplayTranslatedText == stableTranslation;
+        });
+
+        harness.Settings = settings with { EngineId = "replacement" };
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 2);
+        retry.Emit(StructuredSegment(
+            0,
+            "Hello. ",
+            "Replacement partial translation.",
+            isFinal: true));
+        await harness.WaitForAsync(events => LatestLines(events)
+            .Single().DisplayTranslatedText == "Replacement partial translation.");
+        retry.Emit(StructuredSegment(2, "Next.", "Invalid tail.", isFinal: true));
+        retry.Complete();
+
+        await harness.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating
+                   && line.DisplayTranslatedText == stableTranslation;
+        });
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task StructuredAiPartialOnlyUpdatesAggregatePreviewUntilAsrFinal()
+    {
+        const string source = "Hello. Next.";
+        const string aggregateTranslation = "第一句。下一句。";
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        await using var harness = new CoordinatorHarness(
+            CreateSettings(translationEnabled: true),
+            translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.WaitForAsync(events =>
+        {
+            var lines = LatestLines(events);
+            return lines.Count == 1 && lines[0].OriginalText == source;
+        });
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+
+        stream.Emit(StructuredSegment(0, "Hello. ", "第一句。", isFinal: true));
+        stream.Emit(StructuredSegment(1, "Next.", "下一句。", isFinal: true));
+        await harness.WaitForAsync(events =>
+        {
+            var lines = LatestLines(events);
+            return lines.Count == 1
+                   && lines[0].DisplayTranslatedText == aggregateTranslation;
+        });
+
+        var preview = AssertExactlyOneLatestLine(harness.Events);
+        Assert.AreEqual(source, preview.OriginalText);
+        Assert.AreEqual(aggregateTranslation, preview.DisplayTranslatedText);
+        Assert.IsTrue(preview.IsTemporary);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(events =>
+        {
+            var lines = LatestLines(events);
+            return lines.Count == 1 && !lines.Single().IsTemporary;
+        });
+        Assert.AreEqual(1, translations.RequestCount);
+        stream.Complete();
+        await harness.WaitForAsync(events => LatestLines(events).Count == 2);
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task StructuredAiSegmentsStartTheirSharedTtlOnlyAfterTheStreamCompletes()
+    {
+        const string source = "Hello. Next.";
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            AutoClearInterval = 1,
+            MaxFloatingHistory = 10
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        stream.Emit(StructuredSegment(0, "Hello. ", "First translated.", isFinal: true));
+        harness.Time.Advance(TimeSpan.FromSeconds(2));
+        await harness.DrainAsync();
+
+        Assert.IsFalse(harness.Events.OfType<SpeechFloatingSubtitleRemovedEvent>().Any());
+        Assert.IsTrue(AssertExactlyOneLatestLine(harness.Events).IsTranslating);
+
+        stream.Emit(StructuredSegment(1, "Next.", "Second translated.", isFinal: true));
+        stream.Complete();
+        await harness.WaitForAsync(events => LatestLines(events).Count == 2
+                                             && LatestLines(events).All(line => !line.IsTranslating));
+        harness.Time.Advance(TimeSpan.FromMilliseconds(900));
+        await harness.DrainAsync();
+        Assert.IsFalse(harness.Events.OfType<SpeechFloatingSubtitleRemovedEvent>().Any());
+
+        harness.Time.Advance(TimeSpan.FromMilliseconds(200));
+        await harness.WaitForAsync(events => events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Select(item => item.SubtitleId)
+            .Distinct()
+            .Count() == 2);
+        Assert.HasCount(2, LatestLines(harness.Events));
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task AiForcedDisplayCutWaitsForFinalBeforeCreatingOneRequest()
+    {
+        const string source =
+            "one two six ten red blue sun moon day night east west calm warm soft clear";
+        var translations = new RecordingTranslationUseCases("single buffered result");
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            MaxSentencesPerLine = 1
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await harness.DrainAsync();
+        Assert.AreEqual(0, translations.RequestCount);
+        Assert.IsTrue(LatestLines(harness.Events).Single().IsTemporary);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(1, translations.RequestCount);
+        Assert.AreEqual(source, LatestLines(harness.Events).Single().OriginalText);
+        using var json = JsonDocument.Parse(translations.Invocations.Single().Request.Text);
+        Assert.AreEqual(source, json.RootElement.GetProperty("current").GetString());
+    }
+
+    [TestMethod]
     public async Task ActiveDraftDoesNotExpireButSealedLineExpiresAfterTerminalState()
     {
         var settings = CreateSettings(translationEnabled: false) with { AutoClearInterval = 1 };
@@ -399,6 +778,246 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task FloatingHistoryLimitIsSharedAcrossRecognitionSessions()
+    {
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var lifecycle = new SubtitleFloatingLifecycleRegistry(time);
+        var settings = CreateSettings(translationEnabled: false) with
+        {
+            AutoClearInterval = 0,
+            FloatingDisplayMode = FloatingDisplayMode.Segmented,
+            MaxFloatingHistory = 1
+        };
+        long nextId = 0;
+        long NextId() => Interlocked.Increment(ref nextId);
+
+        await using var first = new CoordinatorHarness(
+            settings,
+            timeProvider: time,
+            floatingLifecycle: lifecycle,
+            nextSubtitleId: NextId);
+        await first.SendAsync(SpeechRecognitionEventKind.Final, "First session.");
+        await first.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await first.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+        var firstId = AssertExactlyOneLatestLine(first.Events).Id;
+
+        await using var second = new CoordinatorHarness(
+            settings,
+            timeProvider: time,
+            floatingLifecycle: lifecycle,
+            nextSubtitleId: NextId);
+        await second.SendAsync(SpeechRecognitionEventKind.Final, "Second session.");
+        await second.WaitForAsync(events => events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Any(item => item.SubtitleId == firstId));
+        await second.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await second.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var secondId = AssertExactlyOneLatestLine(second.Events).Id;
+        Assert.IsFalse(lifecycle.IsVisible(firstId));
+        Assert.IsTrue(lifecycle.IsVisible(secondId));
+        Assert.HasCount(1, second.Events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Where(item => item.SubtitleId == firstId));
+
+        await using var takeover = new CoordinatorHarness(
+            settings,
+            timeProvider: time,
+            floatingLifecycle: lifecycle,
+            nextSubtitleId: NextId);
+        await takeover.WaitForAsync(events => events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Any(item => item.SubtitleId == firstId));
+        await takeover.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await takeover.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.HasCount(1, takeover.Events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Where(item => item.SubtitleId == firstId));
+    }
+
+    [TestMethod]
+    public async Task NewSessionExpiresTtlOwnedByCanceledPreviousSession()
+    {
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var lifecycle = new SubtitleFloatingLifecycleRegistry(time);
+        var expiringSettings = CreateSettings(translationEnabled: false) with
+        {
+            AutoClearInterval = 1,
+            FloatingDisplayMode = FloatingDisplayMode.Segmented,
+            MaxFloatingHistory = 10
+        };
+        long nextId = 0;
+        long NextId() => Interlocked.Increment(ref nextId);
+
+        var first = new CoordinatorHarness(
+            expiringSettings,
+            timeProvider: time,
+            floatingLifecycle: lifecycle,
+            nextSubtitleId: NextId);
+        await first.SendAsync(SpeechRecognitionEventKind.Final, "Expires after cancellation.");
+        await first.WaitForAsync(events => LatestLines(events)
+            .Any(line => line.OriginalText == "Expires after cancellation."));
+        var firstId = AssertExactlyOneLatestLine(first.Events).Id;
+        await first.DisposeAsync();
+
+        var persistentSettings = expiringSettings with { AutoClearInterval = 0 };
+        await using var second = new CoordinatorHarness(
+            persistentSettings,
+            timeProvider: time,
+            floatingLifecycle: lifecycle,
+            nextSubtitleId: NextId);
+        await second.SendAsync(SpeechRecognitionEventKind.Partial, "new active draft");
+        await second.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await second.WaitForAsync(events => events.OfType<SpeechSessionStoppedEvent>().Any());
+        Assert.IsFalse(second.Completion.IsCompleted);
+
+        time.Advance(TimeSpan.FromSeconds(1.1));
+        await second.WaitForAsync(events => events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Any(item => item.SubtitleId == firstId));
+        await second.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsFalse(lifecycle.IsVisible(firstId));
+        Assert.HasCount(1, second.Events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Where(item => item.SubtitleId == firstId));
+    }
+
+    [TestMethod]
+    public async Task LateStructuredMaterializationCannotReviveGloballyRemovedAnchorOrChildren()
+    {
+        const string source = "Hello. Next.";
+        var time = new ManualTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var lifecycle = new SubtitleFloatingLifecycleRegistry(time);
+        var stream = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(stream);
+        var aiSettings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            AutoClearInterval = 0,
+            FloatingDisplayMode = FloatingDisplayMode.Segmented,
+            MaxFloatingHistory = 1
+        };
+        long nextId = 0;
+        long NextId() => Interlocked.Increment(ref nextId);
+        await using var first = new CoordinatorHarness(
+            aiSettings,
+            translations,
+            timeProvider: time,
+            floatingLifecycle: lifecycle,
+            nextSubtitleId: NextId);
+
+        await first.SendAsync(SpeechRecognitionEventKind.Partial, source);
+        await first.WaitForAsync(events => LatestLines(events)
+            .Any(line => line.OriginalText == source));
+        time.Advance(IncrementalSubtitleSegmenter.QuietPeriod + TimeSpan.FromMilliseconds(100));
+        await first.WaitForAsync(_ => translations.RequestCount == 1);
+        stream.Emit(StructuredSegment(0, "Hello. ", "First translated.", isFinal: true));
+        stream.Emit(StructuredSegment(1, "Next.", "Second translated.", isFinal: true));
+        stream.Complete();
+        await first.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating && line.DisplayTranslatedText.Length > 0;
+        });
+        var anchorId = AssertExactlyOneLatestLine(first.Events).Id;
+
+        var secondSettings = CreateSettings(translationEnabled: false) with
+        {
+            AutoClearInterval = 0,
+            FloatingDisplayMode = FloatingDisplayMode.Segmented,
+            MaxFloatingHistory = 1
+        };
+        await using var second = new CoordinatorHarness(
+            secondSettings,
+            timeProvider: time,
+            floatingLifecycle: lifecycle,
+            nextSubtitleId: NextId);
+        await second.SendAsync(SpeechRecognitionEventKind.Final, "Newer subtitle.");
+        await second.WaitForAsync(events => events
+            .OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Any(item => item.SubtitleId == anchorId));
+
+        await first.SendAsync(SpeechRecognitionEventKind.Final, source);
+        await first.WaitForAsync(events => LatestLines(events).Count == 2);
+        var childId = LatestLines(first.Events).Single(line => line.Id != anchorId).Id;
+        var firstEvents = first.Events.ToArray();
+        var childRemovalIndex = Array.FindIndex(firstEvents, item =>
+            item is SpeechFloatingSubtitleRemovedEvent removed && removed.SubtitleId == childId);
+        var childChangedIndex = Array.FindIndex(firstEvents, item =>
+            item is SpeechSubtitleChangedEvent changed && changed.Subtitle.Id == childId);
+
+        Assert.IsFalse(lifecycle.IsVisible(anchorId));
+        Assert.IsFalse(lifecycle.IsVisible(childId));
+        Assert.IsGreaterThanOrEqualTo(0, childRemovalIndex);
+        Assert.IsGreaterThan(childRemovalIndex, childChangedIndex);
+        await first.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await first.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+        await second.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await second.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task SlowLlmLinesStayFloatingUntilCompletedHistoryExceedsTheLimit()
+    {
+        var first = new ControlledTranslationStream();
+        var second = new ControlledTranslationStream();
+        var third = new ControlledTranslationStream();
+        var translations = new RecordingTranslationUseCases((index, _, token) => index switch
+        {
+            1 => first.ReadAsync(token),
+            2 => second.ReadAsync(token),
+            _ => third.ReadAsync(token)
+        });
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            FloatingDisplayMode = FloatingDisplayMode.Segmented,
+            MaxFloatingHistory = 2,
+            AutoClearInterval = 0
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "First source line.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Second source line.");
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Third source line.");
+        await harness.WaitForAsync(events => LatestLines(events).Count == 3);
+        Assert.IsFalse(harness.Events.OfType<SpeechFloatingSubtitleRemovedEvent>().Any());
+
+        first.Emit(new TranslationDeltaEvent("first complete translation"));
+        first.Complete();
+        await harness.WaitForAsync(_ => translations.RequestCount == 2);
+        Assert.IsFalse(harness.Events.OfType<SpeechFloatingSubtitleRemovedEvent>().Any());
+
+        second.Emit(new TranslationDeltaEvent("second complete translation"));
+        second.Complete();
+        await harness.WaitForAsync(_ => translations.RequestCount == 3);
+        Assert.IsFalse(harness.Events.OfType<SpeechFloatingSubtitleRemovedEvent>().Any());
+
+        third.Emit(new TranslationDeltaEvent("third complete translation"));
+        third.Complete();
+        await harness.WaitForAsync(events =>
+            events.OfType<SpeechFloatingSubtitleRemovedEvent>().Count() == 1);
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var events = harness.Events.ToArray();
+        var firstId = LatestLines(events)
+            .Single(line => line.OriginalText == "First source line.").Id;
+        var completedIndex = Array.FindLastIndex(events, item =>
+            item is SpeechSubtitleChangedEvent changed
+            && changed.Subtitle.Id == firstId
+            && !changed.Subtitle.IsTranslating
+            && changed.Subtitle.DisplayTranslatedText == "first complete translation");
+        var removedIndex = Array.FindIndex(events, item =>
+            item is SpeechFloatingSubtitleRemovedEvent removed
+            && removed.SubtitleId == firstId);
+        Assert.IsGreaterThanOrEqualTo(0, completedIndex);
+        Assert.IsGreaterThan(completedIndex, removedIndex);
+    }
+
+    [TestMethod]
     public async Task DisabledRealtimePreviewWaitsForFinalBeforeCallingLlm()
     {
         var translations = new RecordingTranslationUseCases("最终翻译");
@@ -433,7 +1052,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "one two three four");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(300));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce - TimeSpan.FromMilliseconds(50));
         await harness.DrainAsync();
         Assert.AreEqual(0, translations.RequestCount);
 
@@ -473,7 +1093,7 @@ public sealed class SubtitleSessionCoordinatorTests
         await harness.WaitForAsync(events => LatestLines(events).Any());
         for (var index = 1; index <= 2; index++)
         {
-            harness.Time.Advance(TimeSpan.FromMilliseconds(300));
+            harness.Time.Advance(TimeSpan.FromMilliseconds(400));
             var text = $"one two three four extension{index}";
             await harness.SendAsync(SpeechRecognitionEventKind.Partial, text);
             await harness.WaitForAsync(events => LatestLines(events)
@@ -481,7 +1101,7 @@ public sealed class SubtitleSessionCoordinatorTests
             Assert.AreEqual(0, translations.RequestCount);
         }
 
-        harness.Time.Advance(TimeSpan.FromMilliseconds(300));
+        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
         await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
@@ -497,7 +1117,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "one two three four");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(300));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce - TimeSpan.FromMilliseconds(50));
         harness.Time.JumpWallClock(TimeSpan.FromHours(-1));
         harness.Time.Advance(TimeSpan.FromMilliseconds(100));
 
@@ -518,7 +1139,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "one two three four");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         stream.Emit(new TranslationDeltaEvent("可读取的预览"));
         await harness.WaitForAsync(events => LatestLines(events)
@@ -601,7 +1223,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "one two three four");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         oldLlmStream.Emit(new TranslationDeltaEvent("old llm preview"));
         await harness.WaitForAsync(events => LatestLines(events)
@@ -644,7 +1267,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "one two three four");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         await harness.SendAsync(SpeechRecognitionEventKind.Final, "one two three four");
         await harness.SendAsync(SpeechRecognitionEventKind.Final, "Second queued line.");
@@ -681,7 +1305,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "one two three four");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         canceledLlm.Emit(new TranslationDeltaEvent("readable canceled preview"));
         await harness.WaitForAsync(events =>
@@ -717,7 +1342,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "turn left now please");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(events => LatestLines(events)
             .Single().DisplayTranslatedText == "old readable preview");
 
@@ -728,7 +1354,8 @@ public sealed class SubtitleSessionCoordinatorTests
             return line.OriginalText == "turn right now please"
                    && line.DisplayTranslatedText.Length == 0;
         });
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(events => LatestLines(events)
             .Single().DisplayTranslatedText == "new readable preview");
 
@@ -752,7 +1379,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "turn left now please");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(events =>
             LatestLines(events).Single().DisplayTranslatedText == "old left translation");
 
@@ -781,7 +1409,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "one two three four");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(events => LatestLines(events)
             .Single().DisplayTranslatedText == "stable readable preview");
 
@@ -809,7 +1438,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "turn left now please");
         await harness.WaitForAsync(events => LatestLines(events).Any());
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         oldStream.Emit(new TranslationDeltaEvent("old readable preview"));
         await harness.WaitForAsync(events => LatestLines(events)
@@ -819,7 +1449,8 @@ public sealed class SubtitleSessionCoordinatorTests
         await harness.WaitForAsync(events => LatestLines(events)
             .Any(line => line.OriginalText == "turn right now please"));
         Assert.AreEqual(string.Empty, LatestLines(harness.Events).Single().DisplayTranslatedText);
-        harness.Time.Advance(TimeSpan.FromMilliseconds(400));
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.DrainAsync();
         Assert.AreEqual(1, translations.RequestCount, "Canceled provider must retain the single-flight slot.");
 
@@ -905,18 +1536,18 @@ public sealed class SubtitleSessionCoordinatorTests
         var secondStream = new ControlledTranslationStream();
         var translations = new RecordingTranslationUseCases((index, _, token) =>
             index == 1 ? firstStream.ReadAsync(token) : secondStream.ReadAsync(token));
-        using var gate = new SemaphoreSlim(1, 1);
+        var lane = new SubtitleTranslationLane();
         var settings = CreateSettings(translationEnabled: true) with
         {
             IsRealTimePreviewEnabled = false
         };
 
-        var first = new CoordinatorHarness(settings, translations, gate);
+        var first = new CoordinatorHarness(settings, translations, lane);
         await first.SendAsync(SpeechRecognitionEventKind.Final, "First session.");
         await first.WaitForAsync(_ => translations.RequestCount == 1);
         await first.DisposeAsync();
 
-        await using var second = new CoordinatorHarness(settings, translations, gate);
+        await using var second = new CoordinatorHarness(settings, translations, lane);
         await second.SendAsync(SpeechRecognitionEventKind.Final, "Second session.");
         await second.DrainAsync();
         Assert.AreEqual(1, translations.RequestCount);
@@ -946,7 +1577,7 @@ public sealed class SubtitleSessionCoordinatorTests
         await harness.SendAsync(SpeechRecognitionEventKind.Final, "This translation will time out.");
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
-        harness.Time.Advance(TimeSpan.FromSeconds(15.1));
+        harness.Time.Advance(TimeSpan.FromSeconds(30.1));
         await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
 
         var line = LatestLines(harness.Events).Single();
@@ -967,13 +1598,251 @@ public sealed class SubtitleSessionCoordinatorTests
         await harness.SendAsync(SpeechRecognitionEventKind.Final, "A provider can remain stuck.");
         await harness.WaitForAsync(_ => translations.RequestCount == 1);
         await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
-        harness.Time.Advance(TimeSpan.FromSeconds(15.1));
+        harness.Time.Advance(TimeSpan.FromSeconds(30.1));
         await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
 
         var line = LatestLines(harness.Events).Single();
         Assert.IsFalse(line.IsTranslating);
         Assert.AreEqual(string.Empty, line.DisplayTranslatedText);
         stream.Complete();
+    }
+
+    [TestMethod]
+    public async Task TimedOutProviderFailsQueuedLinesWithoutSerialTimeouts()
+    {
+        var stream = new ControlledTranslationStream(ignoreCancellation: true);
+        var translations = new RecordingTranslationUseCases((_, _, token) => stream.ReadAsync(token));
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            MaxFloatingHistory = 10
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "First stuck line.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Second queued line.");
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Third queued line.");
+        await harness.WaitForAsync(events => LatestLines(events).Count == 3);
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+
+        harness.Time.Advance(TimeSpan.FromSeconds(30.1));
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(1, translations.RequestCount);
+        Assert.IsTrue(LatestLines(harness.Events).All(line => !line.IsTranslating));
+        Assert.IsTrue(LatestLines(harness.Events).All(line =>
+            string.IsNullOrEmpty(line.DisplayTranslatedText)));
+        stream.Complete();
+    }
+
+    [TestMethod]
+    public async Task TimedOutProviderClearsPendingPreviewAndRejectsNewPreviewWhileRecording()
+    {
+        var stream = new ControlledTranslationStream(ignoreCancellation: true);
+        var translations = new RecordingTranslationUseCases((_, _, token) => stream.ReadAsync(token));
+        await using var harness = new CoordinatorHarness(
+            CreateSettings(translationEnabled: true),
+            translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "First stuck line.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        const string pendingSource = "one two three four";
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, pendingSource);
+        await harness.WaitForAsync(events => LatestLines(events).Count == 2);
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
+        await harness.WaitForAsync(events =>
+            translations.RequestCount == 1
+            && LatestLines(events).Single(line => line.OriginalText == pendingSource).IsTranslating);
+
+        var extendedSource = pendingSource + "x";
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, extendedSource);
+        for (var index = 0; index < 59; index++)
+        {
+            harness.Time.Advance(TimeSpan.FromMilliseconds(500));
+            extendedSource += "x";
+            await harness.SendAsync(SpeechRecognitionEventKind.Partial, extendedSource);
+        }
+        await harness.WaitForAsync(events => LatestLines(events).All(line => !line.IsTranslating));
+        Assert.AreEqual(1, translations.RequestCount);
+
+        extendedSource += "x";
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, extendedSource);
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
+        await harness.DrainAsync();
+
+        Assert.AreEqual(1, translations.RequestCount);
+        Assert.IsFalse(LatestLines(harness.Events).OrderBy(line => line.Id).Last().IsTranslating);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+        stream.Complete();
+    }
+
+    [TestMethod]
+    public async Task TimedOutSharedLaneFailsNextSessionFastAndRecoversAfterProviderExit()
+    {
+        var stuck = new ControlledTranslationStream(ignoreCancellation: true);
+        var recovered = new ControlledTranslationStream();
+        var translations = new RecordingTranslationUseCases((index, _, token) =>
+            index == 1 ? stuck.ReadAsync(token) : recovered.ReadAsync(token));
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false
+        };
+        var lane = new SubtitleTranslationLane();
+
+        await using var first = new CoordinatorHarness(settings, translations, lane);
+        await first.SendAsync(SpeechRecognitionEventKind.Final, "First stuck session.");
+        await first.WaitForAsync(_ => translations.RequestCount == 1);
+        await first.SendAsync(SpeechRecognitionEventKind.Stopped);
+        first.Time.Advance(TimeSpan.FromSeconds(30.1));
+        await first.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.IsTrue(lane.IsUnavailable());
+
+        await using var second = new CoordinatorHarness(settings, translations, lane);
+        await second.SendAsync(SpeechRecognitionEventKind.Final, "Rejected while provider is stuck.");
+        await second.WaitForAsync(events => LatestLines(events).Any());
+        await second.DrainAsync();
+
+        Assert.AreEqual(1, translations.RequestCount);
+        Assert.IsFalse(LatestLines(second.Events).Single().IsTranslating);
+
+        stuck.Complete();
+        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2)))
+        {
+            while (lane.IsUnavailable())
+                await Task.Delay(5, timeout.Token);
+        }
+
+        await second.SendAsync(SpeechRecognitionEventKind.Final, "Translation recovers.");
+        await second.WaitForAsync(_ => translations.RequestCount == 2);
+        recovered.Emit(new TranslationDeltaEvent("recovered translation"));
+        recovered.Complete();
+        await second.WaitForAsync(events => LatestLines(events)
+            .Any(line => line.DisplayTranslatedText == "recovered translation"));
+        await second.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await second.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task TimedOutSelectionDoesNotRetryWithinSessionButNextSessionCanRecover()
+    {
+        var timedOut = new ControlledTranslationStream();
+        var recovered = new ControlledTranslationStream();
+        var translations = new RecordingTranslationUseCases((index, _, token) =>
+            index == 1 ? timedOut.ReadAsync(token) : recovered.ReadAsync(token));
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false
+        };
+        var lane = new SubtitleTranslationLane();
+
+        await using var first = new CoordinatorHarness(settings, translations, lane);
+        await first.SendAsync(SpeechRecognitionEventKind.Final, "First timeout.");
+        await first.WaitForAsync(events => LatestLines(events).Any(line => line.IsTranslating));
+        first.Time.Advance(TimeSpan.FromSeconds(30.1));
+        await first.WaitForAsync(events => LatestLines(events).Count == 1
+                                          && LatestLines(events).All(line => !line.IsTranslating));
+        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2)))
+        {
+            while (lane.IsUnavailable())
+                await Task.Delay(5, timeout.Token);
+        }
+
+        await first.SendAsync(SpeechRecognitionEventKind.Final, "Rejected in the same session.");
+        await first.WaitForAsync(events => LatestLines(events).Count == 2);
+        await first.DrainAsync();
+        Assert.AreEqual(1, translations.RequestCount);
+        Assert.IsTrue(LatestLines(first.Events).All(line => !line.IsTranslating));
+        await first.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await first.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        await using var second = new CoordinatorHarness(settings, translations, lane);
+        await second.SendAsync(SpeechRecognitionEventKind.Final, "Recovered next session.");
+        await second.WaitForAsync(_ => translations.RequestCount == 2);
+        recovered.Emit(new TranslationDeltaEvent("next session translation"));
+        recovered.Complete();
+        await second.WaitForAsync(events => LatestLines(events)
+            .Single().DisplayTranslatedText == "next session translation");
+        await second.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await second.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task WaiterTimeoutTripsLaneWhenCanceledHolderStillOwnsTheProvider()
+    {
+        var stuck = new ControlledTranslationStream(ignoreCancellation: true);
+        var recovered = new ControlledTranslationStream();
+        var translations = new RecordingTranslationUseCases((index, _, token) =>
+            index == 1 ? stuck.ReadAsync(token) : recovered.ReadAsync(token));
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false
+        };
+        var lane = new SubtitleTranslationLane();
+
+        var holder = new CoordinatorHarness(settings, translations, lane);
+        await holder.SendAsync(SpeechRecognitionEventKind.Final, "Canceled holder.");
+        await holder.WaitForAsync(_ => translations.RequestCount == 1);
+        await holder.DisposeAsync();
+        Assert.IsFalse(lane.IsUnavailable());
+
+        await using var waiter = new CoordinatorHarness(settings, translations, lane);
+        await waiter.SendAsync(SpeechRecognitionEventKind.Final, "Waiting session.");
+        await waiter.WaitForAsync(events => LatestLines(events).Any(line => line.IsTranslating));
+        waiter.Time.Advance(TimeSpan.FromSeconds(30.1));
+        await waiter.WaitForAsync(events => LatestLines(events).Count == 1
+                                           && LatestLines(events).All(line => !line.IsTranslating));
+        Assert.IsTrue(lane.IsUnavailable());
+        await waiter.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await waiter.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        await using var next = new CoordinatorHarness(settings, translations, lane);
+        await next.SendAsync(SpeechRecognitionEventKind.Final, "Rejected behind stuck holder.");
+        await next.WaitForAsync(events => LatestLines(events).Any());
+        await next.DrainAsync();
+        Assert.AreEqual(1, translations.RequestCount);
+        Assert.IsFalse(LatestLines(next.Events).Single().IsTranslating);
+
+        stuck.Complete();
+        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2)))
+        {
+            while (lane.IsUnavailable())
+                await Task.Delay(5, timeout.Token);
+        }
+
+        await next.SendAsync(SpeechRecognitionEventKind.Final, "Recovered after holder exit.");
+        await next.WaitForAsync(_ => translations.RequestCount == 2);
+        recovered.Emit(new TranslationDeltaEvent("holder recovery translation"));
+        recovered.Complete();
+        await next.WaitForAsync(events => LatestLines(events)
+            .Any(line => line.DisplayTranslatedText == "holder recovery translation"));
+        await next.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await next.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
+    public async Task MachineTranslationRetainsTheShorterTimeout()
+    {
+        var stream = new ControlledTranslationStream();
+        var translations = new RecordingTranslationUseCases((_, _, token) => stream.ReadAsync(token));
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            EngineType = 0,
+            IsRealTimePreviewEnabled = false
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Machine timeout source.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        harness.Time.Advance(TimeSpan.FromSeconds(15.1));
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.IsFalse(LatestLines(harness.Events).Single().IsTranslating);
     }
 
     [TestMethod]
@@ -1058,6 +1927,19 @@ public sealed class SubtitleSessionCoordinatorTests
         };
     }
 
+    private static JsonElement StructuredSegment(
+        int sequence,
+        string source,
+        string translation,
+        bool isFinal) =>
+        JsonSerializer.SerializeToElement(new Dictionary<string, object?>
+        {
+            ["seq"] = sequence,
+            ["source"] = source,
+            ["translation"] = translation,
+            ["final"] = isFinal
+        });
+
     private static SpeechSubtitleLine AssertExactlyOneLatestLine(
         IReadOnlyCollection<SpeechSessionEvent> events)
     {
@@ -1084,10 +1966,14 @@ public sealed class SubtitleSessionCoordinatorTests
         public CoordinatorHarness(
             SpeechRecognitionSettings settings,
             ITranslationUseCases? translation = null,
-            SemaphoreSlim? aiTranslationGate = null,
-            SemaphoreSlim? machineTranslationGate = null)
+            SubtitleTranslationLane? aiTranslationLane = null,
+            SubtitleTranslationLane? machineTranslationLane = null,
+            ManualTimeProvider? timeProvider = null,
+            SubtitleFloatingLifecycleRegistry? floatingLifecycle = null,
+            Func<long>? nextSubtitleId = null)
         {
-            Time = new ManualTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+            Time = timeProvider
+                   ?? new ManualTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
             Settings = settings;
             long nextId = 0;
             var coordinator = new SubtitleSessionCoordinator(
@@ -1096,10 +1982,11 @@ public sealed class SubtitleSessionCoordinatorTests
                 new BuiltInTranslationLanguageCatalog(),
                 NullLogger.Instance,
                 Time,
-                () => Interlocked.Increment(ref nextId),
+                nextSubtitleId ?? (() => Interlocked.Increment(ref nextId)),
                 item => _events.Enqueue(item),
-                aiTranslationGate,
-                machineTranslationGate);
+                aiTranslationLane,
+                machineTranslationLane,
+                floatingLifecycle);
             Completion = coordinator.RunAsync(
                 _recognition.Reader.ReadAllAsync(_lifetime.Token),
                 _lifetime.Token);
@@ -1278,6 +2165,95 @@ public sealed class SubtitleSessionCoordinatorTests
         }
     }
 
+    private sealed class RecordingStructuredTranslationUseCases : ITranslationUseCases
+    {
+        private readonly ControlledStructuredTranslationStream[] _streams;
+        private readonly ConcurrentQueue<TranslationInvocation> _invocations = new();
+        private int _nextStream;
+        private int _unstructuredRequestCount;
+
+        public RecordingStructuredTranslationUseCases(
+            params ControlledStructuredTranslationStream[] streams)
+        {
+            _streams = streams;
+        }
+
+        public int RequestCount => _invocations.Count;
+        public int UnstructuredRequestCount => Volatile.Read(ref _unstructuredRequestCount);
+        public IReadOnlyList<TranslationInvocation> Invocations => _invocations.ToArray();
+
+        public ITranslationSession Prepare(TranslationProviderSelection? provider = null) =>
+            new RecordingStructuredTranslationSession(this, provider);
+
+        public Task<Result<TranslationResponse>> TranslateAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public IAsyncEnumerable<TranslationEvent> StreamAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        private async IAsyncEnumerable<JsonElement> RunStructuredAsync(
+            TranslationProviderSelection? selection,
+            TranslationRequest request,
+            string runtimeContract,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            Assert.IsFalse(string.IsNullOrWhiteSpace(runtimeContract));
+            _invocations.Enqueue(new TranslationInvocation(selection, request));
+            var streamIndex = Interlocked.Increment(ref _nextStream) - 1;
+            if (streamIndex >= _streams.Length)
+                throw new InvalidOperationException("No structured test stream was configured.");
+            await foreach (var item in _streams[streamIndex].ReadAsync(cancellationToken))
+                yield return item;
+        }
+
+        private async IAsyncEnumerable<TranslationEvent> RunUnstructuredAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _unstructuredRequestCount);
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        private sealed class RecordingStructuredTranslationSession(
+            RecordingStructuredTranslationUseCases owner,
+            TranslationProviderSelection? selection) :
+            ITranslationSession,
+            IStructuredJsonLinesTranslationSession
+        {
+            public bool SupportsIdentifiedStreaming => false;
+
+            public Task<TranslationResponse> TranslateAsync(
+                TranslationRequest request,
+                CancellationToken cancellationToken = default) =>
+                throw new NotSupportedException();
+
+            public IAsyncEnumerable<TranslationEvent> StreamAsync(
+                TranslationRequest request,
+                CancellationToken cancellationToken = default) =>
+                owner.RunUnstructuredAsync(cancellationToken);
+
+            public IAsyncEnumerable<JsonElement> StreamJsonLinesAsync(
+                TranslationRequest request,
+                string runtimeContract,
+                CancellationToken cancellationToken = default) =>
+                owner.RunStructuredAsync(
+                    selection,
+                    request,
+                    runtimeContract,
+                    cancellationToken);
+
+            public IAsyncEnumerable<IdentifiedTranslationDelta> StreamIdentifiedAsync(
+                TranslationRequest request,
+                CancellationToken cancellationToken = default) =>
+                throw new NotSupportedException();
+        }
+    }
+
     private sealed record TranslationInvocation(
         TranslationProviderSelection? Selection,
         TranslationRequest Request);
@@ -1296,6 +2272,25 @@ public sealed class SubtitleSessionCoordinatorTests
         {
             var effectiveToken = ignoreCancellation ? CancellationToken.None : cancellationToken;
             await foreach (var item in _events.Reader.ReadAllAsync(effectiveToken))
+                yield return item;
+        }
+    }
+
+    private sealed class ControlledStructuredTranslationStream
+    {
+        private readonly Channel<JsonElement> _items = Channel.CreateUnbounded<JsonElement>();
+
+        public void Emit(JsonElement item) =>
+            Assert.IsTrue(_items.Writer.TryWrite(item.Clone()));
+
+        public void Complete() => _items.Writer.TryComplete();
+
+        public void Fail(Exception exception) => _items.Writer.TryComplete(exception);
+
+        public async IAsyncEnumerable<JsonElement> ReadAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var item in _items.Reader.ReadAllAsync(cancellationToken))
                 yield return item;
         }
     }

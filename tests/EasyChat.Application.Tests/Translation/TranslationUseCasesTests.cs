@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using EasyChat.Application.Translation;
 using EasyChat.Application.Tests.Settings;
 using EasyChat.Contracts.Settings;
@@ -118,6 +119,77 @@ public sealed class TranslationUseCasesTests
         StringAssert.Contains(
             context.Factory.Chat.LastRequest!.SystemPrompt,
             "Identified JSONL translation contract");
+    }
+
+    [TestMethod]
+    public async Task StructuredJsonLinesStream_UsesSuppliedContractAndBuffersChunkBoundaries()
+    {
+        var context = CreateContext(CreateAiBundle());
+        context.Factory.Chat.StreamChunks =
+        [
+            "{\"kind\":\"fir",
+            "st\",\"text\":\"hello\"}\n{\"kind\":\"second\",\"count\":",
+            "2}\n"
+        ];
+        var session = context.UseCases.Prepare(new TranslationProviderSelection(
+            TranslationEngineNames.AiModel,
+            AiModelId: "ai-1",
+            PromptOverride: "Override [SourceLang] => [TargetLang]"));
+        using var disposable = session as IDisposable;
+        Assert.IsInstanceOfType<IStructuredJsonLinesTranslationSession>(session);
+        var structured = (IStructuredJsonLinesTranslationSession)session;
+
+        var items = new List<System.Text.Json.JsonElement>();
+        await foreach (var item in structured.StreamJsonLinesAsync(
+                           CreateRequest(),
+                           "Emit kind for [TargetLang]."))
+        {
+            items.Add(item);
+        }
+
+        Assert.HasCount(2, items);
+        Assert.AreEqual("first", items[0].GetProperty("kind").GetString());
+        Assert.AreEqual("hello", items[0].GetProperty("text").GetString());
+        Assert.AreEqual("second", items[1].GetProperty("kind").GetString());
+        Assert.AreEqual(2, items[1].GetProperty("count").GetInt32());
+        var systemPrompt = context.Factory.Chat.LastRequest!.SystemPrompt;
+        StringAssert.StartsWith(systemPrompt, "Override English => Simplified Chinese");
+        StringAssert.Contains(systemPrompt, "Runtime structured JSONL contract (highest priority)");
+        StringAssert.Contains(systemPrompt, "Emit kind for Simplified Chinese.");
+    }
+
+    [TestMethod]
+    [DataRow("```json\n{\"kind\":\"first\"}\n```\n")]
+    [DataRow("{\"kind\":\"first\"}\nnot-json\n")]
+    [DataRow("extra text\n{\"kind\":\"first\"}\n")]
+    public async Task StructuredJsonLinesStream_RejectsFencesAndNonJsonText(string output)
+    {
+        var context = CreateContext(CreateAiBundle());
+        context.Factory.Chat.StreamChunks = [output];
+        var session = context.UseCases.Prepare(new TranslationProviderSelection(
+            TranslationEngineNames.AiModel,
+            AiModelId: "ai-1"));
+        using var disposable = session as IDisposable;
+        var structured = (IStructuredJsonLinesTranslationSession)session;
+
+        await Assert.ThrowsExactlyAsync<JsonException>(async () =>
+        {
+            await foreach (var _ in structured.StreamJsonLinesAsync(
+                               CreateRequest(),
+                               "Emit one JSON object per line."))
+            {
+            }
+        });
+    }
+
+    [TestMethod]
+    public void MachineSession_DoesNotExposeStructuredJsonLinesCapability()
+    {
+        var context = CreateContext(CreateMachineBundle());
+        var session = context.UseCases.Prepare();
+        using var disposable = session as IDisposable;
+
+        Assert.IsFalse(session is IStructuredJsonLinesTranslationSession);
     }
 
     [TestMethod]

@@ -268,7 +268,7 @@ internal sealed class SpeechRecognitionSettingsDto
     public bool IsTranslationEnabled { get; set; }
 
     [JsonProperty]
-    public bool IsRealTimePreviewEnabled { get; set; }
+    public bool IsRealTimePreviewEnabled { get; set; } = true;
 
     [JsonProperty]
     public string TargetLanguage { get; set; } = string.Empty;
@@ -286,7 +286,7 @@ internal sealed class SpeechRecognitionSettingsDto
     public FloatingDisplayModeDto FloatingDisplayMode { get; set; }
 
     [JsonProperty]
-    public int MaxFloatingHistory { get; set; } = 2;
+    public int MaxFloatingHistory { get; set; } = 4;
 
     [JsonProperty]
     public int AutoClearInterval { get; set; }

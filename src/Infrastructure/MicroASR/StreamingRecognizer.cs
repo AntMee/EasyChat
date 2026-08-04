@@ -47,6 +47,7 @@ public sealed record StreamingRecognizerOptions
 public sealed class StreamingRecognizer : IAsyncDisposable
 {
     private const int FeatureWidth = StreamingFbankExtractor.FeatureSize;
+    private const int DigitalSilenceEndpointMilliseconds = 700;
 
     private readonly RnntRecognizer _recognizer;
     private readonly NeuralVoiceActivityDetector _vad;
@@ -130,10 +131,25 @@ public sealed class StreamingRecognizer : IAsyncDisposable
     private async Task ProcessAudioAsync()
     {
         var recent = new FeatureRingBuffer(_options.PreRollFrames);
+        var digitalSilence = new DigitalSilenceEndpointDetector(
+            StreamingFbankExtractor.SampleRate * DigitalSilenceEndpointMilliseconds / 1000);
         bool speaking = false;
         int silentFrames = 0;
         int speechFrames = 0;
         var partialState = new PartialPublicationState();
+
+        void FinishUtterance(bool resetStuckVad)
+        {
+            PublishFinal(
+                speechFrames >= _options.MinimumSpeechFrames,
+                partialState.Published);
+            speaking = false;
+            partialState.Reset();
+            recent.KeepLast(silentFrames);
+            digitalSilence.Reset();
+            if (resetStuckVad)
+                _vad.Reset();
+        }
 
         void ProcessFeature(float[] feature)
         {
@@ -176,19 +192,45 @@ public sealed class StreamingRecognizer : IAsyncDisposable
             if (silentFrames < _options.EndSilenceFrames)
                 return;
 
-            PublishFinal(speechFrames >= _options.MinimumSpeechFrames);
-            speaking = false;
-            partialState.Reset();
-            recent.KeepLast(silentFrames);
+            FinishUtterance(resetStuckVad: false);
         }
 
         try
         {
             await foreach (byte[] pcm in _audio.Reader.ReadAllAsync().ConfigureAwait(false))
-                _features.AcceptPcm(pcm, ProcessFeature);
+            {
+                int consumedBytes = 0;
+                while (consumedBytes < pcm.Length)
+                {
+                    bool reachedDigitalSilenceEndpoint = digitalSilence.TryFindEndpoint(
+                        pcm.AsSpan(consumedBytes),
+                        out int currentByteCount);
+                    _features.AcceptPcm(
+                        pcm.AsSpan(consumedBytes, currentByteCount),
+                        ProcessFeature);
+                    consumedBytes += currentByteCount;
+
+                    if (!reachedDigitalSilenceEndpoint)
+                        break;
+
+                    if (speaking)
+                    {
+                        silentFrames = Math.Max(silentFrames, _options.EndSilenceFrames);
+                        FinishUtterance(resetStuckVad: true);
+                    }
+                    else
+                    {
+                        digitalSilence.Reset();
+                    }
+                }
+            }
 
             if (speaking)
-                PublishFinal(speechFrames >= _options.MinimumSpeechFrames);
+            {
+                PublishFinal(
+                    speechFrames >= _options.MinimumSpeechFrames,
+                    partialState.Published);
+            }
         }
         catch (Exception exception)
         {
@@ -234,11 +276,12 @@ public sealed class StreamingRecognizer : IAsyncDisposable
             result.Words));
     }
 
-    private void PublishFinal(bool acceptResult)
+    private void PublishFinal(bool minimumSpeechMet, string publishedPartial)
     {
         _recognizer.Flush();
         RnntResult result = _recognizer.CurrentResult;
-        string text = acceptResult ? _postProcessor.Process(result.Text, final: true) : string.Empty;
+        string finalHypothesis = _postProcessor.Process(result.Text, final: true);
+        string text = ResolveFinalText(minimumSpeechMet, finalHypothesis, publishedPartial);
         if (text.Length > 0)
         {
             Publish(new RecognitionEvent(
@@ -248,6 +291,58 @@ public sealed class StreamingRecognizer : IAsyncDisposable
                 result.Words));
         }
         _recognizer.Reset();
+    }
+
+    internal static string ResolveFinalText(
+        bool minimumSpeechMet,
+        string finalHypothesis,
+        string publishedPartial)
+    {
+        if (finalHypothesis.Length > 0)
+            return finalHypothesis;
+        return minimumSpeechMet || publishedPartial.Length > 0
+            ? publishedPartial
+            : string.Empty;
+    }
+
+    internal sealed class DigitalSilenceEndpointDetector
+    {
+        private readonly int _requiredSamples;
+        private int _consecutiveSamples;
+
+        public DigitalSilenceEndpointDetector(int requiredSamples)
+        {
+            if (requiredSamples < 1)
+                throw new ArgumentOutOfRangeException(nameof(requiredSamples));
+            _requiredSamples = requiredSamples;
+        }
+
+        public bool TryFindEndpoint(
+            ReadOnlySpan<byte> pcm16,
+            out int consumedByteCount)
+        {
+            ValidatePcm(pcm16.Length);
+            for (int offset = 0; offset < pcm16.Length; offset += 2)
+            {
+                if (pcm16[offset] != 0 || pcm16[offset + 1] != 0)
+                {
+                    _consecutiveSamples = 0;
+                    continue;
+                }
+
+                if (_consecutiveSamples < _requiredSamples)
+                    _consecutiveSamples++;
+                if (_consecutiveSamples >= _requiredSamples)
+                {
+                    consumedByteCount = offset + sizeof(short);
+                    return true;
+                }
+            }
+            consumedByteCount = pcm16.Length;
+            return false;
+        }
+
+        public void Reset() => _consecutiveSamples = 0;
     }
 
     private void Publish(RecognitionEvent result)

@@ -106,7 +106,8 @@ public sealed class IncrementalSubtitleSegmenterTests
         var segmenter = new IncrementalSubtitleSegmenter();
         _ = segmenter.ApplyPartial("a quiet unfinished thought", Epoch);
 
-        var early = segmenter.Tick(Epoch + TimeSpan.FromMilliseconds(749));
+        var early = segmenter.Tick(
+            Epoch + IncrementalSubtitleSegmenter.QuietPeriod - TimeSpan.FromMilliseconds(1));
         var quiet = segmenter.Tick(Epoch + IncrementalSubtitleSegmenter.QuietPeriod);
 
         Assert.IsEmpty(early.Commits);

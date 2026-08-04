@@ -193,6 +193,50 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
     }
 
     [TestMethod]
+    public async Task DisposeWaitsForActiveAndQueuedSessionsToExitBeforeDisposingTheGate()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var recognizer = new CompletingRecognizer();
+        var engine = CreateEngine(recognizer, new BlockingPcmCapture());
+        await using var active = engine.RecognizeAsync(
+                CreateOptions(),
+                cancellation.Token)
+            .GetAsyncEnumerator();
+
+        Assert.IsTrue(await active.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Started, active.Current.Kind);
+        Assert.IsTrue(await active.MoveNextAsync());
+        Assert.AreEqual(SpeechRecognitionEventKind.Partial, active.Current.Kind);
+
+        await using var queued = engine.RecognizeAsync(CreateOptions()).GetAsyncEnumerator();
+        var queuedMove = queued.MoveNextAsync().AsTask();
+        await Task.Yield();
+        Assert.IsFalse(queuedMove.IsCompleted);
+
+        var firstDispose = engine.DisposeAsync().AsTask();
+        var secondDispose = engine.DisposeAsync().AsTask();
+        await Task.Yield();
+        Assert.IsFalse(firstDispose.IsCompleted);
+        Assert.IsFalse(secondDispose.IsCompleted);
+
+        cancellation.Cancel();
+        var remaining = new List<SpeechRecognitionEvent>();
+        while (await active.MoveNextAsync())
+            remaining.Add(active.Current);
+
+        CollectionAssert.AreEqual(
+            new[] { SpeechRecognitionEventKind.Final, SpeechRecognitionEventKind.Stopped },
+            remaining.Select(item => item.Kind).ToArray());
+        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(async () =>
+        {
+            await queuedMove;
+        });
+        await Task.WhenAll(firstDispose, secondDispose).WaitAsync(TimeSpan.FromSeconds(1));
+
+        Assert.IsTrue(recognizer.Completed);
+    }
+
+    [TestMethod]
     public async Task CaptureAndCompletionFailuresStillPublishErrorThenStopped()
     {
         var recognizer = new ThrowingCompleteRecognizer("completion failed");

@@ -1,7 +1,10 @@
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
+using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Features.Speech;
 using EasyChat.Presentation.Features.Speech.Views;
+using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Shared.Results;
 
 namespace EasyChat.Presentation.Tests;
 
@@ -25,6 +28,170 @@ public sealed class SpeechSubtitleProjectionTests
         Assert.HasCount(1, projection.FloatingSubtitles);
         Assert.AreSame(temporary, projection.SubtitleItems[0]);
         Assert.AreSame(temporary, projection.FloatingSubtitles[0]);
+    }
+
+    [TestMethod]
+    public void StableTimestampsAcrossMidnight_AreInsertedByTimestampThenIdInBothCollections()
+    {
+        var projection = new SpeechSubtitleProjection();
+        var nextDay = TimeSpan.FromDays(1) + TimeSpan.FromMinutes(1);
+
+        projection.Update(CreateLine(40, "later id", "translation", timestamp: nextDay));
+        projection.Update(CreateLine(30, "earlier id", "translation", timestamp: nextDay));
+        projection.Update(CreateLine(50, "previous day", "translation", timestamp: new TimeSpan(23, 59, 0)));
+
+        long[] expectedOrder = [50, 30, 40];
+        CollectionAssert.AreEqual(expectedOrder, projection.SubtitleItems.Select(item => item.Id).ToArray());
+        CollectionAssert.AreEqual(expectedOrder, projection.FloatingSubtitles.Select(item => item.Id).ToArray());
+    }
+
+    [TestMethod]
+    [DataRow(FloatingDisplayMode.Segmented, true, true)]
+    [DataRow(FloatingDisplayMode.Segmented, false, false)]
+    [DataRow(FloatingDisplayMode.AutoScroll, true, false)]
+    [DataRow(FloatingDisplayMode.AutoScroll, false, false)]
+    public void MaxSentencesPerLineVisibility_RequiresSegmentedMachineTranslation(
+        FloatingDisplayMode displayMode,
+        bool isMachineTranslation,
+        bool expected)
+    {
+        Assert.AreEqual(
+            expected,
+            SpeechRecognitionViewModel.ShouldShowMaxSentencesPerLine(
+                displayMode,
+                isMachineTranslation));
+    }
+
+    [TestMethod]
+    [DataRow(true, true, true)]
+    [DataRow(true, false, false)]
+    [DataRow(false, true, false)]
+    [DataRow(false, false, false)]
+    public void RealTimePreviewVisibility_RequiresEnabledMachineTranslation(
+        bool isTranslationEnabled,
+        bool isMachineTranslation,
+        bool expected)
+    {
+        Assert.AreEqual(
+            expected,
+            SpeechRecognitionViewModel.ShouldShowRealTimePreview(
+                isTranslationEnabled,
+                isMachineTranslation));
+    }
+
+    [TestMethod]
+    public void MissingAiEngineAtStartup_FallsBackAndSynchronizesPersistedSelection()
+    {
+        var settings = CreateLiveSpeechSettings("missing-ai-model", engineType: 1);
+        SpeechEngineOption[] available =
+        [
+            new(
+                MachineTranslationProviderNames.Baidu,
+                MachineTranslationProviderNames.Baidu,
+                IsMachine: true)
+        ];
+
+        var selected = SpeechRecognitionViewModel.ResolveAndSynchronizeEngineOption(
+            available,
+            settings.EngineId,
+            selectedMachine: false,
+            settings);
+
+        Assert.IsNotNull(selected);
+        Assert.AreEqual(MachineTranslationProviderNames.Baidu, selected.Id);
+        Assert.IsTrue(selected.IsMachine);
+        Assert.AreEqual(MachineTranslationProviderNames.Baidu, settings.EngineId);
+        Assert.AreEqual(0, settings.EngineType);
+    }
+
+    [TestMethod]
+    public void RemovingSelectedAiEngine_FallsBackAndSynchronizesPersistedSelection()
+    {
+        const string aiModelId = "deepseek-model";
+        var settings = CreateLiveSpeechSettings(aiModelId, engineType: 1);
+        var selected = new SpeechEngineOption("DeepSeek", aiModelId, IsMachine: false);
+        SpeechEngineOption[] remaining =
+        [
+            new(
+                MachineTranslationProviderNames.Baidu,
+                MachineTranslationProviderNames.Baidu,
+                IsMachine: true)
+        ];
+
+        var fallback = SpeechRecognitionViewModel.ResolveAndSynchronizeEngineOption(
+            remaining,
+            selected.Id,
+            selected.IsMachine,
+            settings);
+
+        Assert.IsNotNull(fallback);
+        Assert.AreEqual(MachineTranslationProviderNames.Baidu, fallback.Id);
+        Assert.IsTrue(fallback.IsMachine);
+        Assert.AreEqual(MachineTranslationProviderNames.Baidu, settings.EngineId);
+        Assert.AreEqual(0, settings.EngineType);
+    }
+
+    [TestMethod]
+    public void EngineFallback_SynchronizesUnsupportedTargetLanguageFallback()
+    {
+        const string aiModelId = "deepseek-model";
+        var settings = CreateLiveSpeechSettings(
+            aiModelId,
+            engineType: 1,
+            targetLanguage: "am");
+        SpeechEngineOption[] remaining =
+        [
+            new(
+                MachineTranslationProviderNames.Baidu,
+                MachineTranslationProviderNames.Baidu,
+                IsMachine: true)
+        ];
+
+        var selected = SpeechRecognitionViewModel.ResolveAndSynchronizeEngineOption(
+            remaining,
+            aiModelId,
+            selectedMachine: false,
+            settings);
+        var engineFellBack = !SpeechRecognitionViewModel.MatchesEngineSelection(
+            selected,
+            aiModelId,
+            selectedMachine: false);
+        var target = SpeechRecognitionViewModel.ResolveAndSynchronizeTargetLanguage(
+            [CreateLanguage("zh-Hans")],
+            settings.TargetLanguage,
+            engineFellBack,
+            settings);
+
+        Assert.IsTrue(engineFellBack);
+        Assert.IsNotNull(target);
+        Assert.AreEqual("zh-Hans", target.Id);
+        Assert.AreEqual("zh-Hans", settings.TargetLanguage);
+    }
+
+    [TestMethod]
+    public void UnchangedEngineRefresh_DoesNotPersistUiOnlyTargetResolution()
+    {
+        const string aiModelId = "deepseek-model";
+        var settings = CreateLiveSpeechSettings(
+            aiModelId,
+            engineType: 1,
+            targetLanguage: "am");
+        var selected = new SpeechEngineOption("DeepSeek", aiModelId, IsMachine: false);
+
+        var engineFellBack = !SpeechRecognitionViewModel.MatchesEngineSelection(
+            selected,
+            aiModelId,
+            selectedMachine: false);
+        var target = SpeechRecognitionViewModel.ResolveAndSynchronizeTargetLanguage(
+            [CreateLanguage("zh-Hans")],
+            settings.TargetLanguage,
+            engineFellBack,
+            settings);
+
+        Assert.IsFalse(engineFellBack);
+        Assert.IsNotNull(target);
+        Assert.AreEqual("zh-Hans", target.Id);
+        Assert.AreEqual("am", settings.TargetLanguage);
     }
 
     [TestMethod]
@@ -119,6 +286,23 @@ public sealed class SpeechSubtitleProjectionTests
     }
 
     [TestMethod]
+    public void ProtectedOverflowFollowsLatestSubtitleInSegmentedMode()
+    {
+        Assert.IsFalse(SubtitleOverlayWindowView.ShouldFollowLatest(
+            FloatingDisplayMode.Segmented,
+            visibleCount: 2,
+            completedHistoryLimit: 2));
+        Assert.IsTrue(SubtitleOverlayWindowView.ShouldFollowLatest(
+            FloatingDisplayMode.Segmented,
+            visibleCount: 3,
+            completedHistoryLimit: 2));
+        Assert.IsTrue(SubtitleOverlayWindowView.ShouldFollowLatest(
+            FloatingDisplayMode.AutoScroll,
+            visibleCount: 1,
+            completedHistoryLimit: 2));
+    }
+
+    [TestMethod]
     public void StopLoading_ClearsSpinnerWithoutChangingHistoryOrFloatingMembership()
     {
         var projection = new SpeechSubtitleProjection();
@@ -197,13 +381,58 @@ public sealed class SpeechSubtitleProjectionTests
         long id,
         string original,
         string translated,
-        bool isTemporary = false) =>
+        bool isTemporary = false,
+        TimeSpan? timestamp = null) =>
         new(
             id,
-            TimeSpan.FromSeconds(id),
+            timestamp ?? TimeSpan.FromSeconds(id),
             original,
             translated,
             translated,
             false,
             isTemporary);
+
+    private static LiveSpeechRecognitionSettings CreateLiveSpeechSettings(
+        string engineId,
+        int engineType,
+        string targetLanguage = "zh-Hans") =>
+        new(
+            new SpeechRecognitionSettings(
+                "en-US",
+                true,
+                true,
+                targetLanguage,
+                engineId,
+                engineType,
+                1,
+                FloatingDisplayMode.Segmented,
+                4,
+                0,
+                SubtitleSource.Original,
+                20,
+                "Microsoft YaHei UI",
+                "#FFFFFFFF",
+                SubtitleSource.Translated,
+                16,
+                "Microsoft YaHei UI",
+                "#FFCCCCCC",
+                "#99000000",
+                "#00000000",
+                0.8,
+                false,
+                "Horizontal",
+                -1,
+                -1,
+                -1,
+                -1),
+            _ => Result.Success());
+
+    private static LanguageSettings CreateLanguage(string id) => new(
+        id,
+        id,
+        id,
+        "unknown.png",
+        id,
+        id,
+        new Dictionary<string, string>());
 }

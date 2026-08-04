@@ -9,4 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.28.0" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EasyChat.Infrastructure.Tests" />
+  </ItemGroup>
 </Project>

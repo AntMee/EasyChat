@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using System.Threading.Channels;
 using EasyChat.Contracts.Platform;
 
 namespace EasyChat.Infrastructure.Windows.Speech;
@@ -32,6 +33,7 @@ internal sealed class WindowsPcmCaptureSessionFactory : IWindowsPcmCaptureSessio
 public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
 {
     private static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(20);
+    private const int BufferedFrameCapacity = 50;
     private readonly IWindowsPcmCaptureSessionFactory _sessions;
 
     public WindowsPcmAudioCapture()
@@ -58,6 +60,17 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
         var sync = new object();
         var dataHandlers = new Action<ReadOnlyMemory<byte>>[captures.Count];
         var failureHandlers = new Action<Exception>[captures.Count];
+        var frames = Channel.CreateBounded<ReadOnlyMemory<byte>>(
+            new BoundedChannelOptions(BufferedFrameCapacity)
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                FullMode = BoundedChannelFullMode.DropOldest,
+                AllowSynchronousContinuations = false
+            });
+        using var producerCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken);
+        Task producer = Task.CompletedTask;
 
         for (var index = 0; index < captures.Count; index++)
         {
@@ -77,6 +90,45 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
             foreach (var capture in captures)
                 await capture.StartAsync(cancellationToken).ConfigureAwait(false);
 
+            producer = ProduceFramesAsync(
+                buffers,
+                format,
+                failures,
+                sync,
+                frames.Writer,
+                producerCancellation.Token);
+            await foreach (var frame in frames.Reader.ReadAllAsync(cancellationToken)
+                               .ConfigureAwait(false))
+                yield return frame;
+        }
+        finally
+        {
+            producerCancellation.Cancel();
+            try
+            {
+                await producer.ConfigureAwait(false);
+            }
+            finally
+            {
+                await StopAndDisposeAsync(
+                    captures,
+                    dataHandlers,
+                    failureHandlers).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static async Task ProduceFramesAsync(
+        IReadOnlyList<PcmByteBuffer> buffers,
+        PcmAudioFormat format,
+        Queue<Exception> failures,
+        object sync,
+        ChannelWriter<ReadOnlyMemory<byte>> writer,
+        CancellationToken cancellationToken)
+    {
+        Exception? completionFailure = null;
+        try
+        {
             using var timer = new PeriodicTimer(FrameDuration);
             while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
             {
@@ -89,25 +141,56 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
                 if (failure is not null)
                     throw new InvalidOperationException("Windows audio capture failed.", failure);
 
-                yield return MixFrame(buffers, format);
+                if (!writer.TryWrite(MixFrame(buffers, format)))
+                    break;
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            completionFailure = exception;
         }
         finally
         {
-            for (var index = captures.Count - 1; index >= 0; index--)
+            writer.TryComplete(completionFailure);
+        }
+    }
+
+    private static async Task StopAndDisposeAsync(
+        IReadOnlyList<IWindowsPcmCaptureSession> captures,
+        IReadOnlyList<Action<ReadOnlyMemory<byte>>> dataHandlers,
+        IReadOnlyList<Action<Exception>> failureHandlers)
+    {
+        List<Exception>? cleanupFailures = null;
+        for (var index = captures.Count - 1; index >= 0; index--)
+        {
+            captures[index].DataAvailable -= dataHandlers[index];
+            captures[index].Failed -= failureHandlers[index];
+            try
             {
-                captures[index].DataAvailable -= dataHandlers[index];
-                captures[index].Failed -= failureHandlers[index];
-                try
-                {
-                    await captures[index].StopAsync().ConfigureAwait(false);
-                }
-                finally
-                {
-                    await captures[index].DisposeAsync().ConfigureAwait(false);
-                }
+                await captures[index].StopAsync().ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                (cleanupFailures ??= []).Add(exception);
+            }
+
+            try
+            {
+                await captures[index].DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                (cleanupFailures ??= []).Add(exception);
             }
         }
+
+        if (cleanupFailures is { Count: 1 })
+            throw cleanupFailures[0];
+        if (cleanupFailures is { Count: > 1 })
+            throw new AggregateException("Windows audio capture cleanup failed.", cleanupFailures);
     }
 
     private IReadOnlyList<IWindowsPcmCaptureSession> CreateSessions(

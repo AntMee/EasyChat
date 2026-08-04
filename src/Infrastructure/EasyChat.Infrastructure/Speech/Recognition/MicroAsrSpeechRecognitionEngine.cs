@@ -10,6 +10,10 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
     private readonly IMicroAsrRecognizerFactory _recognizers;
     private readonly string _modelsDirectory;
     private readonly SemaphoreSlim _sessionGate = new(1, 1);
+    private readonly object _lifecycleSync = new();
+    private TaskCompletionSource? _sessionsDrained;
+    private Task? _disposeTask;
+    private int _sessionOperations;
     private bool _disposed;
 
     public MicroAsrSpeechRecognitionEngine(IPcmAudioCapture audioCapture)
@@ -35,8 +39,7 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        await _sessionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using var session = await EnterSessionAsync(cancellationToken).ConfigureAwait(false);
 
         IMicroAsrRecognizer? recognizer = null;
         Exception? startFailure = null;
@@ -51,7 +54,6 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
 
         if (startFailure is not null)
         {
-            _sessionGate.Release();
             yield return new SpeechRecognitionEvent(
                 SpeechRecognitionEventKind.Error,
                 startFailure.Message);
@@ -123,25 +125,76 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
             finally
             {
                 recognizer.ResultAvailable -= OnResult;
-                try
-                {
-                    await recognizer.DisposeAsync().ConfigureAwait(false);
-                }
-                finally
-                {
-                    _sessionGate.Release();
-                }
+                await recognizer.DisposeAsync().ConfigureAwait(false);
             }
         }
     }
 
     public ValueTask DisposeAsync()
     {
-        if (_disposed)
-            return ValueTask.CompletedTask;
-        _disposed = true;
+        lock (_lifecycleSync)
+        {
+            _disposed = true;
+            _disposeTask ??= DisposeWhenSessionsDrainAsync(
+                _sessionOperations == 0
+                    ? Task.CompletedTask
+                    : _sessionsDrained!.Task);
+            return new ValueTask(_disposeTask);
+        }
+    }
+
+    private async Task<SessionLease> EnterSessionAsync(CancellationToken cancellationToken)
+    {
+        RegisterSessionOperation();
+        var gateEntered = false;
+        try
+        {
+            await _sessionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            gateEntered = true;
+            lock (_lifecycleSync)
+                ObjectDisposedException.ThrowIf(_disposed, this);
+            return new SessionLease(this);
+        }
+        catch
+        {
+            if (gateEntered)
+                _sessionGate.Release();
+            UnregisterSessionOperation();
+            throw;
+        }
+    }
+
+    private void RegisterSessionOperation()
+    {
+        lock (_lifecycleSync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_sessionOperations++ == 0)
+            {
+                _sessionsDrained = new TaskCompletionSource(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
+    }
+
+    private void UnregisterSessionOperation()
+    {
+        TaskCompletionSource? sessionsDrained = null;
+        lock (_lifecycleSync)
+        {
+            if (--_sessionOperations == 0)
+            {
+                sessionsDrained = _sessionsDrained;
+                _sessionsDrained = null;
+            }
+        }
+        sessionsDrained?.TrySetResult();
+    }
+
+    private async Task DisposeWhenSessionsDrainAsync(Task sessionsDrained)
+    {
+        await sessionsDrained.ConfigureAwait(false);
         _sessionGate.Dispose();
-        return ValueTask.CompletedTask;
     }
 
     private async Task PumpAudioAsync(
@@ -209,6 +262,26 @@ public sealed class MicroAsrSpeechRecognitionEngine : ISpeechRecognitionEngine, 
         if (!candidate.StartsWith(root, pathComparison))
             throw new ArgumentException("The speech model must be inside the model library.", nameof(modelPath));
         return candidate;
+    }
+
+    private sealed class SessionLease(MicroAsrSpeechRecognitionEngine owner) : IDisposable
+    {
+        private MicroAsrSpeechRecognitionEngine? _owner = owner;
+
+        public void Dispose()
+        {
+            var current = Interlocked.Exchange(ref _owner, null);
+            if (current is null)
+                return;
+            try
+            {
+                current._sessionGate.Release();
+            }
+            finally
+            {
+                current.UnregisterSessionOperation();
+            }
+        }
     }
 
     private sealed class RecognitionEventBuffer

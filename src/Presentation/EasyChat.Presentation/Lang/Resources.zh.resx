@@ -688,7 +688,7 @@
         <value>请输入需要翻译的文字</value>
     </data>
     <data name="Speech_MaxHistory" xml:space="preserve">
-        <value>最大行数</value>
+        <value>已完成行数</value>
     </data>
     <data name="Speech_MaxSentencesPerLine" xml:space="preserve">
         <value>每行句数</value>

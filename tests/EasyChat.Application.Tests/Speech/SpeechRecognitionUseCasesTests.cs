@@ -3,6 +3,7 @@ using EasyChat.Application.Speech;
 using EasyChat.Application.Tests.Settings;
 using EasyChat.Application.Translation;
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Shared.Results;
@@ -61,7 +62,9 @@ public sealed class SpeechRecognitionUseCasesTests
             {
                 RecognitionLanguage = "en",
                 IsTranslationEnabled = false,
-                AutoClearInterval = 0
+                AutoClearInterval = 0,
+                FloatingDisplayMode = FloatingDisplayMode.Segmented,
+                MaxFloatingHistory = 1
             }
         });
         var useCases = new SpeechRecognitionUseCases(
@@ -84,6 +87,47 @@ public sealed class SpeechRecognitionUseCasesTests
         var secondId = second.OfType<SpeechSubtitleChangedEvent>().Last().Subtitle.Id;
 
         Assert.IsGreaterThan(firstId, secondId);
+        Assert.IsTrue(second.OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Any(item => item.SubtitleId == firstId));
+        Assert.IsFalse(second.OfType<SpeechFloatingSubtitleRemovedEvent>()
+            .Any(item => item.SubtitleId == secondId));
+    }
+
+    [TestMethod]
+    public async Task SubtitleTimestampsRemainOrderedAcrossMidnight()
+    {
+        var initial = SettingsTestData.CreateBundle();
+        var settings = new MutableSettingsUseCases(initial with
+        {
+            SpeechRecognition = initial.SpeechRecognition with
+            {
+                RecognitionLanguage = "en",
+                IsTranslationEnabled = false,
+                AutoClearInterval = 0
+            }
+        });
+        var time = new ManualTimeProvider(
+            new DateTimeOffset(2026, 1, 1, 23, 59, 59, TimeSpan.Zero));
+        var useCases = new SpeechRecognitionUseCases(
+            new SequentialEngine(),
+            new AvailablePlatformAccess(),
+            settings,
+            new UnusedTranslationUseCases(),
+            new BuiltInTranslationLanguageCatalog(),
+            NullLogger<SpeechRecognitionUseCases>.Instance,
+            time);
+        var command = new SpeechRecognitionCommand("en", "en", []);
+
+        var first = await useCases.RecognizeAsync(command).ToListAsync();
+        time.Advance(TimeSpan.FromSeconds(2));
+        var second = await useCases.RecognizeAsync(command).ToListAsync();
+        var firstTimestamp = first.OfType<SpeechSubtitleChangedEvent>()
+            .Last().Subtitle.Timestamp;
+        var secondTimestamp = second.OfType<SpeechSubtitleChangedEvent>()
+            .Last().Subtitle.Timestamp;
+
+        Assert.IsGreaterThan(firstTimestamp, secondTimestamp);
+        Assert.IsGreaterThanOrEqualTo(TimeSpan.FromDays(1), secondTimestamp);
     }
 
     private sealed class FakeEngine : ISpeechRecognitionEngine

@@ -98,7 +98,19 @@ namespace EasyChat.Presentation.Features.Speech.Views
             _subscriptions.Add(viewModel.WhenAnyValue(model => model.FloatingDisplayMode)
                 .Subscribe(mode =>
                 {
-                    if (UsesAutoScroll(mode))
+                    if (ShouldFollowLatest(
+                            mode,
+                            viewModel.FloatingSubtitles.Count,
+                            viewModel.MaxFloatingHistory))
+                        TriggerAutoScroll();
+                }));
+            _subscriptions.Add(viewModel.WhenAnyValue(model => model.MaxFloatingHistory)
+                .Subscribe(limit =>
+                {
+                    if (ShouldFollowLatest(
+                            viewModel.FloatingDisplayMode,
+                            viewModel.FloatingSubtitles.Count,
+                            limit))
                         TriggerAutoScroll();
                 }));
             foreach (var item in viewModel.FloatingSubtitles)
@@ -177,14 +189,21 @@ namespace EasyChat.Presentation.Features.Speech.Views
                 foreach (SpeechSubtitleItemViewModel item in eventArgs.OldItems)
                     item.PropertyChanged -= OnSubtitlePropertyChanged;
             }
-            if (_viewModel is not null && UsesAutoScroll(_viewModel.FloatingDisplayMode))
+            if (_viewModel is not null
+                && ShouldFollowLatest(
+                    _viewModel.FloatingDisplayMode,
+                    _viewModel.FloatingSubtitles.Count,
+                    _viewModel.MaxFloatingHistory))
                 TriggerAutoScroll();
         }
 
         private void OnSubtitlePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
         {
             if (_viewModel is not null
-                && UsesAutoScroll(_viewModel.FloatingDisplayMode)
+                && ShouldFollowLatest(
+                    _viewModel.FloatingDisplayMode,
+                    _viewModel.FloatingSubtitles.Count,
+                    _viewModel.MaxFloatingHistory)
                 && eventArgs.PropertyName is nameof(SpeechSubtitleItemViewModel.OriginalText)
                     or nameof(SpeechSubtitleItemViewModel.DisplayTranslatedText)
                     or nameof(SpeechSubtitleItemViewModel.TranslatedText))
@@ -203,6 +222,12 @@ namespace EasyChat.Presentation.Features.Speech.Views
 
         internal static bool UsesAutoScroll(FloatingDisplayMode mode) =>
             mode == FloatingDisplayMode.AutoScroll;
+
+        internal static bool ShouldFollowLatest(
+            FloatingDisplayMode mode,
+            int visibleCount,
+            int completedHistoryLimit) =>
+            UsesAutoScroll(mode) || visibleCount > Math.Max(1, completedHistoryLimit);
 
         private void StartHitTestTimer()
         {
