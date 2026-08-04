@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reactive;
 using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
+using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
@@ -23,6 +24,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private static readonly Uri AsrModelDownloadsUri = new(
         "https://github.com/SwaggyMacro/MicroASR/releases/tag/models-v1");
     private readonly SettingsSession _settings;
+    private readonly IApplicationDataUseCases _applicationData;
     private readonly IOcrModelUseCases _ocr;
     private readonly ITranslationUseCases _translation;
     private readonly ITranslationLanguageCatalog _languages;
@@ -42,9 +44,11 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private ObservableCollection<string> _availableFonts = [];
     private ObservableCollection<SpeechRecognitionModel> _asrModels = [];
     private bool _isImportingAsrModel;
+    private bool _isChangingDataLocation;
 
     public SettingViewModel(
         SettingsSession settings,
+        IApplicationDataUseCases applicationData,
         IOcrModelUseCases ocr,
         ITtsUseCases tts,
         ITranslationUseCases translation,
@@ -58,6 +62,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         : base(Resources.Settings, MaterialIconKind.Settings, 1)
     {
         _settings = settings;
+        _applicationData = applicationData;
         _ocr = ocr;
         _translation = translation;
         _languages = languages;
@@ -172,9 +177,22 @@ public sealed class SettingViewModel : NavigationPageViewModel
         {
             this.RaiseAndSetIfChanged(ref _isImportingAsrModel, value);
             this.RaisePropertyChanged(nameof(CanImportAsrModel));
+            this.RaisePropertyChanged(nameof(CanChangeDataLocation));
         }
     }
     public bool CanImportAsrModel => !IsImportingAsrModel;
+    public string ApplicationDataRoot => _applicationData.Current.RootDirectory;
+    public bool IsChangingDataLocation
+    {
+        get => _isChangingDataLocation;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isChangingDataLocation, value);
+            this.RaisePropertyChanged(nameof(CanChangeDataLocation));
+        }
+    }
+    public bool CanChangeDataLocation =>
+        !IsChangingDataLocation && !IsImportingAsrModel && _downloads.Count == 0;
     public List<string> AiProviders => ConfiguredModels.Select(model => model.Name).ToList();
 
     public LanguageSettings SelectedDisplayLanguage
@@ -390,6 +408,50 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private void ConfirmDeleteAsrModel(SpeechRecognitionModel model) =>
         _dialogs.ConfirmDeleteAsrModel(model, () => _ = DeleteAsrModelAsync(model));
 
+    public async Task ChangeApplicationDataLocationAsync(string rootDirectory)
+    {
+        if (!CanChangeDataLocation)
+        {
+            ShowToast(
+                Resources.ApplicationData,
+                Resources.ApplicationDataMoveBusy,
+                NotificationType.Information);
+            return;
+        }
+
+        IsChangingDataLocation = true;
+        try
+        {
+            var result = await _applicationData.ChangeLocationAsync(rootDirectory);
+            if (result.IsFailure)
+            {
+                ShowToast(
+                    Resources.ApplicationDataMoveFailed,
+                    result.Error.Message,
+                    NotificationType.Error);
+                return;
+            }
+
+            this.RaisePropertyChanged(nameof(ApplicationDataRoot));
+            await RefreshAsrModelsAsync();
+            ShowToast(
+                Resources.ApplicationData,
+                string.Format(Resources.ApplicationDataMoved, result.Value.RootDirectory),
+                NotificationType.Success);
+        }
+        catch (Exception exception)
+        {
+            ShowToast(
+                Resources.ApplicationDataMoveFailed,
+                exception.Message,
+                NotificationType.Error);
+        }
+        finally
+        {
+            IsChangingDataLocation = false;
+        }
+    }
+
     private async Task DeleteAsrModelAsync(SpeechRecognitionModel model)
     {
         if (IsImportingAsrModel)
@@ -451,6 +513,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
 
         var cancellation = new CancellationTokenSource();
         _downloads.Add(item, cancellation);
+        this.RaisePropertyChanged(nameof(CanChangeDataLocation));
         item.StartDownload();
         try
         {
@@ -468,6 +531,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         finally
         {
             _downloads.Remove(item);
+            this.RaisePropertyChanged(nameof(CanChangeDataLocation));
             cancellation.Dispose();
         }
     }

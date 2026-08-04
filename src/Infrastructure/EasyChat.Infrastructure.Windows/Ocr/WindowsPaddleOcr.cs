@@ -1,4 +1,5 @@
 using System.Runtime.Versioning;
+using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
 using Microsoft.Extensions.Logging;
@@ -12,8 +13,10 @@ public sealed class WindowsPaddleOcr : IOcrRecognizer, IOcrModelStore, IDisposab
     private readonly IWindowsOcrBackend _backend;
     private readonly ILogger<WindowsPaddleOcr>? _logger;
 
-    public WindowsPaddleOcr(ILogger<WindowsPaddleOcr>? logger = null)
-        : this(new PaddleWindowsOcrBackend(logger), logger)
+    public WindowsPaddleOcr(
+        IApplicationDataPaths applicationData,
+        ILogger<WindowsPaddleOcr>? logger = null)
+        : this(new PaddleWindowsOcrBackend(applicationData, logger), logger)
     {
     }
 

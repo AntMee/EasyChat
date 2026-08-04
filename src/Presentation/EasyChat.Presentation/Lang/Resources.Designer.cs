@@ -3174,5 +3174,33 @@ namespace EasyChat.Presentation.Lang {
         public static string DownloadAsrModels {
             get { return ResourceManager.GetString("DownloadAsrModels", resourceCulture); }
         }
+
+        public static string ApplicationData {
+            get { return ResourceManager.GetString("ApplicationData", resourceCulture); }
+        }
+
+        public static string ApplicationDataDescription {
+            get { return ResourceManager.GetString("ApplicationDataDescription", resourceCulture); }
+        }
+
+        public static string ChangeApplicationDataLocation {
+            get { return ResourceManager.GetString("ChangeApplicationDataLocation", resourceCulture); }
+        }
+
+        public static string SelectApplicationDataLocation {
+            get { return ResourceManager.GetString("SelectApplicationDataLocation", resourceCulture); }
+        }
+
+        public static string ApplicationDataMoved {
+            get { return ResourceManager.GetString("ApplicationDataMoved", resourceCulture); }
+        }
+
+        public static string ApplicationDataMoveFailed {
+            get { return ResourceManager.GetString("ApplicationDataMoveFailed", resourceCulture); }
+        }
+
+        public static string ApplicationDataMoveBusy {
+            get { return ResourceManager.GetString("ApplicationDataMoveBusy", resourceCulture); }
+        }
     }
 }
