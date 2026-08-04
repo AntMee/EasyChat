@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 #endif
 using System.Runtime.Versioning;
+using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
@@ -21,6 +22,7 @@ namespace EasyChat.Infrastructure.Windows.Ocr;
 internal sealed class PaddleWindowsOcrBackend : IWindowsOcrBackend
 {
     private readonly ConcurrentDictionary<WindowsOcrModel, Lazy<PaddleEngineHandle>> _engines = new();
+    private readonly IApplicationDataPaths _applicationData;
     private readonly ILogger<WindowsPaddleOcr>? _logger;
 #if !BUNDLED_OCR_MODELS
     private static readonly object DownloadProxyLock = new();
@@ -59,15 +61,16 @@ internal sealed class PaddleWindowsOcrBackend : IWindowsOcrBackend
         };
 #endif
 
-    public PaddleWindowsOcrBackend(ILogger<WindowsPaddleOcr>? logger)
+    public PaddleWindowsOcrBackend(
+        IApplicationDataPaths applicationData,
+        ILogger<WindowsPaddleOcr>? logger)
     {
+        _applicationData = applicationData ?? throw new ArgumentNullException(nameof(applicationData));
         _logger = logger;
 #if !BUNDLED_OCR_MODELS
-        Settings.GlobalModelDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "EasyChat",
-            "PaddleOcrModels");
+        ApplyModelDirectory();
 #endif
+        _applicationData.LocationChanged += OnApplicationDataLocationChanged;
     }
 
 #if BUNDLED_OCR_MODELS
@@ -79,6 +82,9 @@ internal sealed class PaddleWindowsOcrBackend : IWindowsOcrBackend
     public bool IsModelAvailable(WindowsOcrLanguageSelection language)
     {
         ArgumentNullException.ThrowIfNull(language);
+#if !BUNDLED_OCR_MODELS
+        ApplyModelDirectory();
+#endif
 #if BUNDLED_OCR_MODELS
         return true;
 #else
@@ -103,6 +109,7 @@ internal sealed class PaddleWindowsOcrBackend : IWindowsOcrBackend
         progress?.Report(1);
         await Task.CompletedTask;
 #else
+        ApplyModelDirectory();
         ConfigureDownloadProxy(options.ProxyUrl, options.UseProxy);
         var model = GetModel(language.Model);
         _logger?.LogInformation(
@@ -124,6 +131,7 @@ internal sealed class PaddleWindowsOcrBackend : IWindowsOcrBackend
     {
         ArgumentNullException.ThrowIfNull(language);
 #if !BUNDLED_OCR_MODELS
+        ApplyModelDirectory();
         if (_engines.TryRemove(language.Model, out var lazyEngine) && lazyEngine.IsValueCreated)
             lazyEngine.Value.Dispose();
 
@@ -179,6 +187,13 @@ internal sealed class PaddleWindowsOcrBackend : IWindowsOcrBackend
 
     public void Dispose()
     {
+        _applicationData.LocationChanged -= OnApplicationDataLocationChanged;
+        DisposeEngines();
+        _logger?.LogDebug("Windows Paddle OCR backend disposed.");
+    }
+
+    private void DisposeEngines()
+    {
         foreach (var lazyEngine in _engines.Values)
         {
             if (lazyEngine.IsValueCreated)
@@ -186,8 +201,22 @@ internal sealed class PaddleWindowsOcrBackend : IWindowsOcrBackend
         }
 
         _engines.Clear();
-        _logger?.LogDebug("Windows Paddle OCR backend disposed.");
     }
+
+    private void OnApplicationDataLocationChanged(
+        object? sender,
+        ApplicationDataLocationChangedEventArgs args)
+    {
+        DisposeEngines();
+#if !BUNDLED_OCR_MODELS
+        ApplyModelDirectory();
+#endif
+    }
+
+#if !BUNDLED_OCR_MODELS
+    private void ApplyModelDirectory() =>
+        Settings.GlobalModelDirectory = _applicationData.OcrModelsDirectory;
+#endif
 
     private PaddleEngineHandle GetOrCreateEngine(WindowsOcrLanguageSelection language)
     {

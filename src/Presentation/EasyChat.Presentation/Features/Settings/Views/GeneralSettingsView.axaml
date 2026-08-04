@@ -73,6 +73,25 @@
         </suki:GlassCard>
 
         <suki:GlassCard>
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                <TextBlock Grid.ColumnSpan="2" FontSize="16" FontWeight="Bold"
+                           Text="{x:Static lang:Resources.ApplicationData}" />
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,10"
+                           Foreground="{DynamicResource SukiLowText}"
+                           Text="{x:Static lang:Resources.ApplicationDataDescription}"
+                           TextWrapping="Wrap" />
+                <TextBox Grid.Row="2" Margin="0,0,8,0" IsReadOnly="True"
+                         Text="{Binding ApplicationDataRoot}" />
+                <Button Grid.Row="2" Grid.Column="1" Width="36" Height="36" Padding="7"
+                        Click="ChangeApplicationDataLocation_OnClick"
+                        IsEnabled="{Binding CanChangeDataLocation}"
+                        ToolTip.Tip="{x:Static lang:Resources.ChangeApplicationDataLocation}">
+                    <avalonia:MaterialIcon Kind="FolderEdit" />
+                </Button>
+            </Grid>
+        </suki:GlassCard>
+
+        <suki:GlassCard>
             <StackPanel Spacing="10">
                 <TextBlock FontSize="16" FontWeight="Bold"
                            Text="{x:Static lang:Resources.OcrModels}" />

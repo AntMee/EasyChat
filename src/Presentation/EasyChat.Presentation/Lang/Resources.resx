@@ -960,4 +960,11 @@
   <data name="AsrModelDeleted" xml:space="preserve"><value>Deleted: {0}</value></data>
   <data name="AsrModelDeleteFailed" xml:space="preserve"><value>ASR model deletion failed</value></data>
   <data name="DownloadAsrModels" xml:space="preserve"><value>Download models</value></data>
+  <data name="ApplicationData" xml:space="preserve"><value>Application data</value></data>
+  <data name="ApplicationDataDescription" xml:space="preserve"><value>All configuration, ASR models, and OCR models are stored together in this directory.</value></data>
+  <data name="ChangeApplicationDataLocation" xml:space="preserve"><value>Change storage location</value></data>
+  <data name="SelectApplicationDataLocation" xml:space="preserve"><value>Select an empty application data directory</value></data>
+  <data name="ApplicationDataMoved" xml:space="preserve"><value>Configuration and models were migrated to {0}.</value></data>
+  <data name="ApplicationDataMoveFailed" xml:space="preserve"><value>Unable to change storage location</value></data>
+  <data name="ApplicationDataMoveBusy" xml:space="preserve"><value>Finish the current model operation before changing the storage location.</value></data>
 </root>
