@@ -25,7 +25,7 @@
         </Grid>
         
         <!-- Settings content - hidden initially, shown after lazy load -->
-        <ScrollViewer x:Name="SettingsContent" IsVisible="False">
+        <Grid x:Name="SettingsContent" IsVisible="False">
             <suki:SettingsLayout>
                 <suki:SettingsLayout.Items>
                     <objectModel:ObservableCollection x:TypeArguments="suki:SettingsLayoutItem">
@@ -74,7 +74,7 @@
                     </objectModel:ObservableCollection>
                 </suki:SettingsLayout.Items>
             </suki:SettingsLayout>
-        </ScrollViewer>
+        </Grid>
     </Panel>
 
 </UserControl>
