@@ -597,8 +597,10 @@ public sealed class SubtitleSessionCoordinatorTests
             "Hello. ",
             "Replacement partial translation.",
             isFinal: true));
-        await harness.WaitForAsync(events => LatestLines(events)
-            .Single().DisplayTranslatedText == "Replacement partial translation.");
+        await harness.DrainAsync();
+        var translating = LatestLines(harness.Events).Single();
+        Assert.IsTrue(translating.IsTranslating);
+        Assert.AreEqual(stableTranslation, translating.DisplayTranslatedText);
         retry.Emit(StructuredSegment(2, "Next.", "Invalid tail.", isFinal: true));
         retry.Complete();
 
@@ -1213,6 +1215,46 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task PreservedStaleTranslationIsNotUsedAsAiContext()
+    {
+        var replacement = new ControlledTranslationStream();
+        var translations = new RecordingTranslationUseCases((index, _, token) => index switch
+        {
+            1 => YieldTranslationAsync("old left translation", token),
+            2 => replacement.ReadAsync(token),
+            _ => YieldTranslationAsync("next translation", token)
+        });
+        await using var harness = new CoordinatorHarness(
+            CreateSettings(translationEnabled: true),
+            translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, "turn left now please");
+        await harness.WaitForAsync(events => LatestLines(events).Any());
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
+        await harness.WaitForAsync(events => LatestLines(events)
+            .Single().DisplayTranslatedText == "old left translation");
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "turn right now please.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 2);
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "A new sentence.");
+        await harness.WaitForAsync(events => LatestLines(events).Count == 2);
+
+        replacement.Emit(new TranslationFailedEvent(new Error("test.failure", "replacement failed")));
+        replacement.Complete();
+        await harness.WaitForAsync(_ => translations.RequestCount == 3);
+
+        using var json = JsonDocument.Parse(translations.Invocations[2].Request.Text);
+        var context = json.RootElement.GetProperty("context");
+        Assert.AreEqual(1, context.GetArrayLength());
+        Assert.AreEqual("turn right now please.", context[0].GetProperty("Original").GetString());
+        Assert.AreEqual(string.Empty, context[0].GetProperty("Translation").GetString());
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [TestMethod]
     public async Task SwitchingFromCanceledSlowLlmStartsMachineTranslationWithoutWaitingOrAcceptingLateOutput()
     {
         var oldLlmStream = new ControlledTranslationStream(ignoreCancellation: true);
@@ -1334,10 +1376,13 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
-    public async Task RewritingATranslatedPrefixInvalidatesTheOldPreviewAndRevealsTheNewOne()
+    public async Task RewritingATranslatedPrefixKeepsOldTranslationUntilReplacementCompletes()
     {
+        var replacement = new ControlledTranslationStream();
         var translations = new RecordingTranslationUseCases((index, _, token) =>
-            YieldTranslationAsync(index == 1 ? "old readable preview" : "new readable preview", token));
+            index == 1
+                ? YieldTranslationAsync("old readable preview", token)
+                : replacement.ReadAsync(token));
         await using var harness = new CoordinatorHarness(
             CreateSettings(translationEnabled: true),
             translations);
@@ -1354,12 +1399,27 @@ public sealed class SubtitleSessionCoordinatorTests
         {
             var line = LatestLines(events).Single();
             return line.OriginalText == "turn right now please"
-                   && line.DisplayTranslatedText.Length == 0;
+                   && line.DisplayTranslatedText == "old readable preview";
         });
         harness.Time.Advance(
             SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
-        await harness.WaitForAsync(events => LatestLines(events)
-            .Single().DisplayTranslatedText == "new readable preview");
+        await harness.WaitForAsync(_ => translations.RequestCount == 2);
+
+        replacement.Emit(new TranslationDeltaEvent("new readable"));
+        harness.Time.Advance(TimeSpan.FromMilliseconds(200));
+        await harness.DrainAsync();
+        var translating = LatestLines(harness.Events).Single();
+        Assert.IsTrue(translating.IsTranslating);
+        Assert.AreEqual("old readable preview", translating.DisplayTranslatedText);
+
+        replacement.Emit(new TranslationDeltaEvent(" replacement"));
+        replacement.Complete();
+        await harness.WaitForAsync(events =>
+        {
+            var line = LatestLines(events).Single();
+            return !line.IsTranslating
+                   && line.DisplayTranslatedText == "new readable replacement";
+        });
 
         await harness.SendAsync(SpeechRecognitionEventKind.Final, "turn right now please");
         await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
@@ -1368,7 +1428,7 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
-    public async Task NonPrefixFinalRevisionClearsStalePreviewEvenWhenFormalTranslationFails()
+    public async Task NonPrefixFinalRevisionKeepsOldTranslationWhenReplacementFails()
     {
         var failedFinal = new ControlledTranslationStream();
         var translations = new RecordingTranslationUseCases((index, _, token) =>
@@ -1390,12 +1450,14 @@ public sealed class SubtitleSessionCoordinatorTests
         await harness.WaitForAsync(_ => translations.RequestCount == 2);
         var revised = LatestLines(harness.Events).Single();
         Assert.AreEqual("turn right now please.", revised.OriginalText);
-        Assert.AreEqual(string.Empty, revised.DisplayTranslatedText);
+        Assert.AreEqual("old left translation", revised.DisplayTranslatedText);
 
         failedFinal.Emit(new TranslationFailedEvent(new Error("test.failure", "formal failed")));
         failedFinal.Complete();
         await harness.WaitForAsync(events => !LatestLines(events).Single().IsTranslating);
-        Assert.AreEqual(string.Empty, LatestLines(harness.Events).Single().DisplayTranslatedText);
+        Assert.AreEqual(
+            "old left translation",
+            LatestLines(harness.Events).Single().DisplayTranslatedText);
 
         await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
         await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
@@ -1450,7 +1512,9 @@ public sealed class SubtitleSessionCoordinatorTests
         await harness.SendAsync(SpeechRecognitionEventKind.Partial, "turn right now please");
         await harness.WaitForAsync(events => LatestLines(events)
             .Any(line => line.OriginalText == "turn right now please"));
-        Assert.AreEqual(string.Empty, LatestLines(harness.Events).Single().DisplayTranslatedText);
+        Assert.AreEqual(
+            "old readable preview",
+            LatestLines(harness.Events).Single().DisplayTranslatedText);
         harness.Time.Advance(
             SubtitleSessionCoordinator.AiPreviewDebounce + TimeSpan.FromMilliseconds(50));
         await harness.DrainAsync();

@@ -501,8 +501,6 @@ internal sealed class SubtitleSessionCoordinator
             if (line.LastTranslatedSource.Length > 0
                 && !text.StartsWith(line.LastTranslatedSource, StringComparison.Ordinal))
             {
-                line.TranslatedText = string.Empty;
-                line.DisplayTranslatedText = string.Empty;
                 line.LastTranslatedSource = string.Empty;
                 line.LastTranslationDefinition = null;
             }
@@ -1041,7 +1039,8 @@ internal sealed class SubtitleSessionCoordinator
             isFinal,
             definition,
             CancellationTokenSource.CreateLinkedTokenSource(CancellationToken.None),
-            recoveryDisplay);
+            recoveryDisplay,
+            preserveDisplayUntilCompleted: !string.IsNullOrWhiteSpace(line.DisplayTranslatedText));
     }
 
     private static TranslationDisplaySnapshot? CaptureTranslationDisplay(
@@ -1078,7 +1077,12 @@ internal sealed class SubtitleSessionCoordinator
             .TakeLast(2)
             .Select(candidate => new SubtitleTranslationContext(
                 candidate.OriginalText,
-                candidate.DisplayTranslatedText))
+                string.Equals(
+                    candidate.LastTranslatedSource,
+                    candidate.OriginalText,
+                    StringComparison.Ordinal)
+                    ? candidate.DisplayTranslatedText
+                    : string.Empty))
             .ToArray();
         var requestText = isAi
             ? JsonSerializer.Serialize(new
@@ -1351,6 +1355,8 @@ internal sealed class SubtitleSessionCoordinator
         line.ShadowTranslation = message.Text;
         line.ShadowTranslationSource = job.SourceText;
         line.ShadowTranslationDefinition = job.Definition;
+        if (job.PreserveDisplayUntilCompleted)
+            return;
         if (!job.Revealed
             && IsReadableTranslation(message.Text)
             && CanRevealTranslation(line, job))
@@ -1430,9 +1436,13 @@ internal sealed class SubtitleSessionCoordinator
                     line.ShadowTranslationDefinition = job.Definition;
                 }
                 if ((!structuredAttempted || structuredSucceeded)
-                    && CanRevealTranslation(line, job))
+                    && (job.PreserveDisplayUntilCompleted || CanRevealTranslation(line, job)))
                 {
-                    ApplyTranslationDisplay(line, job, translated);
+                    ApplyTranslationDisplay(
+                        line,
+                        job,
+                        translated,
+                        publish: !job.PreserveDisplayUntilCompleted);
                 }
             }
 
@@ -1521,6 +1531,8 @@ internal sealed class SubtitleSessionCoordinator
         line.ShadowTranslation = job.Buffer;
         line.ShadowTranslationSource = job.SourceText;
         line.ShadowTranslationDefinition = job.Definition;
+        if (job.PreserveDisplayUntilCompleted)
+            return;
         if (!job.Revealed
             && IsReadableTranslation(job.Buffer)
             && CanRevealTranslation(line, job))
@@ -1539,8 +1551,14 @@ internal sealed class SubtitleSessionCoordinator
     private void FlushBufferedTranslation(TimeSpan now)
     {
         var job = _activeTranslation;
-        if (job is null || !job.Revealed || now < job.NextDisplayAt || job.Buffer.Length == 0)
+        if (job is null
+            || job.PreserveDisplayUntilCompleted
+            || !job.Revealed
+            || now < job.NextDisplayAt
+            || job.Buffer.Length == 0)
+        {
             return;
+        }
         if (!TryResolveJobLine(job, out var line))
             return;
         ApplyTranslationDisplay(line, job, job.Buffer);
@@ -1597,7 +1615,8 @@ internal sealed class SubtitleSessionCoordinator
     private void ApplyTranslationDisplay(
         ManagedSubtitleLine line,
         TranslationJob job,
-        string text)
+        string text,
+        bool publish = true)
     {
         if (string.IsNullOrWhiteSpace(text))
             return;
@@ -1608,7 +1627,8 @@ internal sealed class SubtitleSessionCoordinator
         line.ShadowTranslationDefinition = job.Definition;
         line.LastTranslatedSource = job.SourceText;
         line.LastTranslationDefinition = job.Definition;
-        PublishLine(line);
+        if (publish)
+            PublishLine(line);
     }
 
     private static bool RollbackStructuredTranslation(
@@ -1631,6 +1651,24 @@ internal sealed class SubtitleSessionCoordinator
             line.ExpiresAt = recovery.ExpiresAt;
             line.IsTranslating = false;
             return recovery.IsTranslationTerminal;
+        }
+
+        if (job.PreserveDisplayUntilCompleted)
+        {
+            line.ShadowTranslation = string.Empty;
+            line.ShadowTranslationSource = string.Empty;
+            line.ShadowTranslationDefinition = null;
+            line.LastTranslatedSource = string.Empty;
+            line.LastTranslationDefinition = null;
+            line.TranslationDefinition = string.Equals(
+                line.OriginalText,
+                job.SourceText,
+                StringComparison.Ordinal)
+                ? job.Definition
+                : null;
+            line.ExpiresAt = null;
+            line.IsTranslating = false;
+            return false;
         }
 
         line.TranslatedText = string.Empty;
@@ -2110,7 +2148,8 @@ internal sealed class SubtitleSessionCoordinator
         bool isFinal,
         TranslationJobDefinition definition,
         CancellationTokenSource cancellation,
-        TranslationDisplaySnapshot? recoveryDisplay)
+        TranslationDisplaySnapshot? recoveryDisplay,
+        bool preserveDisplayUntilCompleted)
     {
         public long Id { get; } = id;
         public long LineId { get; } = lineId;
@@ -2124,6 +2163,7 @@ internal sealed class SubtitleSessionCoordinator
         public TranslationLanguage TargetLanguage => Definition.TargetLanguage;
         public CancellationTokenSource Cancellation { get; } = cancellation;
         public TranslationDisplaySnapshot? RecoveryDisplay { get; } = recoveryDisplay;
+        public bool PreserveDisplayUntilCompleted { get; } = preserveDisplayUntilCompleted;
         public object ProviderRunKey { get; } = new();
         public CancellationTokenRegistration SessionRegistration { get; set; }
         public Task? Runner { get; set; }
