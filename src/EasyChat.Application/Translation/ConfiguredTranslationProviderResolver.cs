@@ -128,17 +128,25 @@ internal sealed class ConfiguredTranslationProviderResolver
             if (string.Equals(machine.Tencent.Id, id, StringComparison.Ordinal)) return Map(machine.Tencent);
             if (string.Equals(machine.Google.Id, id, StringComparison.Ordinal)) return Map(machine.Google);
             if (string.Equals(machine.DeepL.Id, id, StringComparison.Ordinal)) return Map(machine.DeepL);
-            return null;
         }
 
-        return name switch
-        {
-            MachineTranslationProviderNames.Baidu => Map(machine.Baidu),
-            MachineTranslationProviderNames.Tencent => Map(machine.Tencent),
-            MachineTranslationProviderNames.Google => Map(machine.Google),
-            MachineTranslationProviderNames.DeepL => Map(machine.DeepL),
-            _ => null
-        };
+        return ResolveMachineByName(machine, name)
+               ?? ResolveMachineByName(machine, id);
+    }
+
+    private static MachineTranslationProviderConfiguration? ResolveMachineByName(
+        MachineTranslationSettings machine,
+        string? name)
+    {
+        if (string.Equals(name, MachineTranslationProviderNames.Baidu, StringComparison.OrdinalIgnoreCase))
+            return Map(machine.Baidu);
+        if (string.Equals(name, MachineTranslationProviderNames.Tencent, StringComparison.OrdinalIgnoreCase))
+            return Map(machine.Tencent);
+        if (string.Equals(name, MachineTranslationProviderNames.Google, StringComparison.OrdinalIgnoreCase))
+            return Map(machine.Google);
+        if (string.Equals(name, MachineTranslationProviderNames.DeepL, StringComparison.OrdinalIgnoreCase))
+            return Map(machine.DeepL);
+        return null;
     }
 
     private static AiTranslationProviderConfiguration Map(CustomAiModelSettings model) => new(

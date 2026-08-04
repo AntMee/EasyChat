@@ -80,6 +80,97 @@ public sealed class SpeechSubtitleProjectionTests
     }
 
     [TestMethod]
+    public void MachineEngineOptions_UseConfiguredIdsAndCanonicalProviderNames()
+    {
+        var machineSettings = CreateLiveMachineTranslationSettings();
+
+        var options = SpeechRecognitionViewModel.CreateMachineEngineOptions(machineSettings);
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                MachineTranslationProviderNames.Baidu,
+                MachineTranslationProviderNames.Tencent,
+                MachineTranslationProviderNames.Google,
+                MachineTranslationProviderNames.DeepL
+            },
+            options.Select(option => option.Name).ToArray());
+        CollectionAssert.AreEqual(
+            new[] { "baidu-id", "tencent-id", "google-id", "deepl-id" },
+            options.Select(option => option.Id).ToArray());
+        Assert.IsTrue(options.All(option => option.IsMachine));
+    }
+
+    [TestMethod]
+    public void LegacyMachineProviderName_ResolvesProviderAndMigratesPersistedId()
+    {
+        var settings = CreateLiveSpeechSettings(
+            MachineTranslationProviderNames.Google,
+            engineType: 0);
+        var options = SpeechRecognitionViewModel.CreateMachineEngineOptions(
+            CreateLiveMachineTranslationSettings());
+
+        var selected = SpeechRecognitionViewModel.ResolveAndSynchronizeEngineOption(
+            options,
+            settings.EngineId,
+            selectedMachine: true,
+            settings);
+
+        Assert.IsNotNull(selected);
+        Assert.AreEqual(MachineTranslationProviderNames.Google, selected.Name);
+        Assert.AreEqual("google-id", selected.Id);
+        Assert.AreEqual("google-id", settings.EngineId);
+        Assert.AreEqual(0, settings.EngineType);
+        Assert.IsTrue(SpeechRecognitionViewModel.MatchesEngineSelection(
+            selected,
+            MachineTranslationProviderNames.Google,
+            selectedMachine: true));
+    }
+
+    [TestMethod]
+    public void MissingMachineProviderId_FallsBackToConfiguredBaiduId()
+    {
+        var settings = CreateLiveSpeechSettings("missing-provider-id", engineType: 0);
+        var options = SpeechRecognitionViewModel.CreateMachineEngineOptions(
+            CreateLiveMachineTranslationSettings());
+
+        var selected = SpeechRecognitionViewModel.ResolveAndSynchronizeEngineOption(
+            options,
+            settings.EngineId,
+            selectedMachine: true,
+            settings);
+
+        Assert.IsNotNull(selected);
+        Assert.AreEqual(MachineTranslationProviderNames.Baidu, selected.Name);
+        Assert.AreEqual("baidu-id", selected.Id);
+        Assert.AreEqual("baidu-id", settings.EngineId);
+        Assert.AreEqual(0, settings.EngineType);
+    }
+
+    [TestMethod]
+    public void MachineTargetLanguageSupport_UsesCanonicalProviderNameInsteadOfConfiguredId()
+    {
+        var google = SpeechRecognitionViewModel.CreateMachineEngineOptions(
+                CreateLiveMachineTranslationSettings())
+            .Single(option => option.Name == MachineTranslationProviderNames.Google);
+        var supported = CreateLanguage(
+            "en",
+            new Dictionary<string, string>
+            {
+                [MachineTranslationProviderNames.Google] = "en"
+            });
+        var idOnly = CreateLanguage(
+            "fr",
+            new Dictionary<string, string>
+            {
+                [google.Id] = "fr"
+            });
+
+        Assert.IsTrue(SpeechRecognitionViewModel.SupportsTargetLanguage(supported, google));
+        Assert.IsFalse(SpeechRecognitionViewModel.SupportsTargetLanguage(idOnly, google));
+    }
+
+    [TestMethod]
     public void MissingAiEngineAtStartup_FallsBackAndSynchronizesPersistedSelection()
     {
         var settings = CreateLiveSpeechSettings("missing-ai-model", engineType: 1);
@@ -87,7 +178,7 @@ public sealed class SpeechSubtitleProjectionTests
         [
             new(
                 MachineTranslationProviderNames.Baidu,
-                MachineTranslationProviderNames.Baidu,
+                "baidu-id",
                 IsMachine: true)
         ];
 
@@ -98,9 +189,9 @@ public sealed class SpeechSubtitleProjectionTests
             settings);
 
         Assert.IsNotNull(selected);
-        Assert.AreEqual(MachineTranslationProviderNames.Baidu, selected.Id);
+        Assert.AreEqual("baidu-id", selected.Id);
         Assert.IsTrue(selected.IsMachine);
-        Assert.AreEqual(MachineTranslationProviderNames.Baidu, settings.EngineId);
+        Assert.AreEqual("baidu-id", settings.EngineId);
         Assert.AreEqual(0, settings.EngineType);
     }
 
@@ -114,7 +205,7 @@ public sealed class SpeechSubtitleProjectionTests
         [
             new(
                 MachineTranslationProviderNames.Baidu,
-                MachineTranslationProviderNames.Baidu,
+                "baidu-id",
                 IsMachine: true)
         ];
 
@@ -125,9 +216,9 @@ public sealed class SpeechSubtitleProjectionTests
             settings);
 
         Assert.IsNotNull(fallback);
-        Assert.AreEqual(MachineTranslationProviderNames.Baidu, fallback.Id);
+        Assert.AreEqual("baidu-id", fallback.Id);
         Assert.IsTrue(fallback.IsMachine);
-        Assert.AreEqual(MachineTranslationProviderNames.Baidu, settings.EngineId);
+        Assert.AreEqual("baidu-id", settings.EngineId);
         Assert.AreEqual(0, settings.EngineType);
     }
 
@@ -143,7 +234,7 @@ public sealed class SpeechSubtitleProjectionTests
         [
             new(
                 MachineTranslationProviderNames.Baidu,
-                MachineTranslationProviderNames.Baidu,
+                "baidu-id",
                 IsMachine: true)
         ];
 
@@ -427,12 +518,23 @@ public sealed class SpeechSubtitleProjectionTests
                 -1),
             _ => Result.Success());
 
-    private static LanguageSettings CreateLanguage(string id) => new(
+    private static LiveMachineTranslationSettings CreateLiveMachineTranslationSettings() =>
+        new(
+            new MachineTranslationSettings(
+                new BaiduTranslationSettings(false, "baidu-id", []),
+                new TencentTranslationSettings(false, "tencent-id", []),
+                new GoogleTranslationSettings(false, "google-id", "nmt", []),
+                new DeepLTranslationSettings(false, "deepl-id", "latency_optimized", [])),
+            _ => Result.Success());
+
+    private static LanguageSettings CreateLanguage(
+        string id,
+        IReadOnlyDictionary<string, string>? providerCodes = null) => new(
         id,
         id,
         id,
         "unknown.png",
         id,
         id,
-        new Dictionary<string, string>());
+        providerCodes ?? new Dictionary<string, string>());
 }

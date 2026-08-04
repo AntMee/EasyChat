@@ -44,6 +44,31 @@ public sealed class TranslationUseCasesTests
     }
 
     [TestMethod]
+    [DataRow("google-id", null)]
+    [DataRow(MachineTranslationProviderNames.Google, null)]
+    [DataRow("stale-id", MachineTranslationProviderNames.Google)]
+    public async Task Prepare_ResolvesMachineProviderIdNameAndLegacyNameInId(
+        string providerId,
+        string? providerName)
+    {
+        var context = CreateContext(CreateMachineBundle());
+        var session = context.UseCases.Prepare(new TranslationProviderSelection(
+            TranslationEngineNames.MachineTrans,
+            MachineProviderId: providerId,
+            MachineProviderName: providerName));
+        using var disposable = session as IDisposable;
+
+        var response = await session.TranslateAsync(CreateRequest());
+
+        Assert.AreEqual("machine translation", response.Text);
+        Assert.IsNotNull(context.Factory.MachineOptions);
+        var provider = (GoogleTranslationProviderConfiguration)
+            context.Factory.MachineOptions.Provider;
+        Assert.AreEqual("google-id", provider.Id);
+        Assert.AreEqual(MachineTranslationProviderNames.Google, provider.Name);
+    }
+
+    [TestMethod]
     public async Task Prepare_ResolvesSelectedPromptAndExplicitOverrideInApplication()
     {
         var context = CreateContext(CreateAiBundle());

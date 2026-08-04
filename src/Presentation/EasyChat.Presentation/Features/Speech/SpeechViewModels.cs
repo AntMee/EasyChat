@@ -652,10 +652,8 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         var selectedMachine = _selectedEngineOption?.IsMachine
                               ?? _settings.SpeechRecognition.EngineType == 0;
         EngineOptions.Clear();
-        EngineOptions.Add(new SpeechEngineOption(MachineTranslationProviderNames.Baidu, MachineTranslationProviderNames.Baidu, true));
-        EngineOptions.Add(new SpeechEngineOption(MachineTranslationProviderNames.Tencent, MachineTranslationProviderNames.Tencent, true));
-        EngineOptions.Add(new SpeechEngineOption(MachineTranslationProviderNames.Google, MachineTranslationProviderNames.Google, true));
-        EngineOptions.Add(new SpeechEngineOption(MachineTranslationProviderNames.DeepL, MachineTranslationProviderNames.DeepL, true));
+        foreach (var option in CreateMachineEngineOptions(_settings.MachineTranslation))
+            EngineOptions.Add(option);
         foreach (var model in _settings.AiModel.ConfiguredModels)
             EngineOptions.Add(new SpeechEngineOption(model.Name, model.Id, false));
         _selectedEngineOption = ResolveAndSynchronizeEngineOption(
@@ -673,6 +671,15 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         UpdateTargetLanguages(commitSelection: engineFellBack);
     }
 
+    internal static IReadOnlyList<SpeechEngineOption> CreateMachineEngineOptions(
+        LiveMachineTranslationSettings settings) =>
+    [
+        new(MachineTranslationProviderNames.Baidu, settings.Baidu.Id, IsMachine: true),
+        new(MachineTranslationProviderNames.Tencent, settings.Tencent.Id, IsMachine: true),
+        new(MachineTranslationProviderNames.Google, settings.Google.Id, IsMachine: true),
+        new(MachineTranslationProviderNames.DeepL, settings.DeepL.Id, IsMachine: true)
+    ];
+
     internal static SpeechEngineOption? ResolveAndSynchronizeEngineOption(
         IReadOnlyList<SpeechEngineOption> options,
         string selectedId,
@@ -681,6 +688,11 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     {
         var selected = options.FirstOrDefault(option =>
                            option.Id == selectedId && option.IsMachine == selectedMachine)
+                       ?? (selectedMachine
+                           ? options.FirstOrDefault(option =>
+                               option.IsMachine
+                               && option.Name.Equals(selectedId, StringComparison.OrdinalIgnoreCase))
+                           : null)
                        ?? options.FirstOrDefault();
         if (selected is null)
             return null;
@@ -698,7 +710,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         string selectedId,
         bool selectedMachine) =>
         option is not null
-        && string.Equals(option.Id, selectedId, StringComparison.Ordinal)
+        && (string.Equals(option.Id, selectedId, StringComparison.Ordinal)
+            || (selectedMachine
+                && option.Name.Equals(selectedId, StringComparison.OrdinalIgnoreCase)))
         && option.IsMachine == selectedMachine;
 
     internal static LanguageSettings? ResolveAndSynchronizeTargetLanguage(
@@ -725,14 +739,19 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         bool isMachineTranslation) =>
         isTranslationEnabled && isMachineTranslation;
 
+    internal static bool SupportsTargetLanguage(
+        LanguageSettings language,
+        SpeechEngineOption? option) =>
+        option?.IsMachine != true
+        || language.Id == "auto"
+        || language.ProviderCodes.ContainsKey(option.Name);
+
     private void UpdateTargetLanguages(bool commitSelection)
     {
         var targetId = _selectedTargetLanguage?.Id ?? _settings.SpeechRecognition.TargetLanguage;
         TargetLanguages.Clear();
         foreach (var language in _languages.All.Where(language =>
-                     _selectedEngineOption?.IsMachine != true
-                     || language.Id == "auto"
-                     || language.ProviderCodes.ContainsKey(_selectedEngineOption.Id)))
+                     SupportsTargetLanguage(language, _selectedEngineOption)))
         {
             TargetLanguages.Add(language);
         }

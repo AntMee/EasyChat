@@ -1177,6 +1177,8 @@ public sealed class SubtitleSessionCoordinatorTests
 
         var invocation = translations.Invocations.Single();
         Assert.AreEqual(TranslationEngineNames.MachineTrans, invocation.Selection!.Engine);
+        Assert.AreEqual(settings.EngineId, invocation.Selection.MachineProviderId);
+        Assert.IsNull(invocation.Selection.MachineProviderName);
         Assert.AreEqual("Fast machine source.", invocation.Request.Text);
         Assert.AreEqual(1, translations.MaximumActiveStreams);
     }
