@@ -1631,6 +1631,232 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task TransientFailureRetriesLongFinalBeforeQueuedNewerSubtitle()
+    {
+        const string longSource = "First sentence. Second sentence.";
+        const string newerSource = "Newer subtitle.";
+        var failed = new ControlledStructuredTranslationStream();
+        var retry = new ControlledStructuredTranslationStream();
+        var newer = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(failed, retry, newer);
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false,
+            MaxFloatingHistory = 10
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, longSource);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        var longLineId = LatestLines(harness.Events).Single().Id;
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, newerSource);
+        await harness.WaitForAsync(events => LatestLines(events).Count == 2);
+        var updatesBeforeFailure = harness.Events
+            .OfType<SpeechSubtitleChangedEvent>()
+            .Count(item => item.Subtitle.Id == longLineId);
+
+        failed.Fail(new SdkStatusException(503));
+        await harness.WaitForAsync(events => events
+            .OfType<SpeechSubtitleChangedEvent>()
+            .Count(item => item.Subtitle.Id == longLineId) > updatesBeforeFailure);
+        Assert.IsTrue(LatestLines(harness.Events)
+            .Single(line => line.Id == longLineId).IsTranslating);
+
+        harness.Time.Advance(
+            SubtitleSessionCoordinator.FinalTranslationRetryDelay - TimeSpan.FromMilliseconds(100));
+        await harness.DrainAsync();
+        Assert.AreEqual(1, translations.RequestCount);
+
+        harness.Time.Advance(TimeSpan.FromMilliseconds(200));
+        await harness.WaitForAsync(_ => translations.RequestCount == 2);
+        using (var retryRequest = JsonDocument.Parse(translations.Invocations[1].Request.Text))
+        {
+            Assert.AreEqual(
+                longSource,
+                retryRequest.RootElement.GetProperty("current").GetString());
+        }
+
+        retry.Emit(StructuredSegment(0, "First sentence. ", "First translated. ", isFinal: true));
+        retry.Emit(StructuredSegment(1, "Second sentence.", "Second translated.", isFinal: true));
+        retry.Complete();
+        await harness.WaitForAsync(_ => translations.RequestCount == 3);
+        using (var newerRequest = JsonDocument.Parse(translations.Invocations[2].Request.Text))
+        {
+            Assert.AreEqual(
+                newerSource,
+                newerRequest.RootElement.GetProperty("current").GetString());
+        }
+
+        newer.Emit(StructuredSegment(0, newerSource, "Newer translated.", isFinal: true));
+        newer.Complete();
+        await harness.WaitForAsync(events => LatestLines(events)
+            .Where(line => !string.IsNullOrWhiteSpace(line.OriginalText))
+            .All(line => !line.IsTranslating));
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var translationsBySource = LatestLines(harness.Events)
+            .Where(line => !string.IsNullOrWhiteSpace(line.OriginalText))
+            .ToDictionary(line => line.OriginalText, line => line.DisplayTranslatedText);
+        Assert.AreEqual("First translated. ", translationsBySource["First sentence. "]);
+        Assert.AreEqual("Second translated.", translationsBySource["Second sentence."]);
+        Assert.AreEqual("Newer translated.", translationsBySource[newerSource]);
+    }
+
+    [TestMethod]
+    public async Task TransientFailureRetriesOnlyOnceBeforeContinuingQueue()
+    {
+        var failed = new ControlledStructuredTranslationStream();
+        var retry = new ControlledStructuredTranslationStream();
+        var newer = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(failed, retry, newer);
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Older subtitle.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        var olderLineId = LatestLines(harness.Events).Single().Id;
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Newer subtitle.");
+        await harness.WaitForAsync(events => LatestLines(events).Count == 2);
+        var updatesBeforeFailure = harness.Events
+            .OfType<SpeechSubtitleChangedEvent>()
+            .Count(item => item.Subtitle.Id == olderLineId);
+
+        failed.Fail(new SdkStatusException(503));
+        await harness.WaitForAsync(events => events
+            .OfType<SpeechSubtitleChangedEvent>()
+            .Count(item => item.Subtitle.Id == olderLineId) > updatesBeforeFailure);
+        harness.Time.Advance(SubtitleSessionCoordinator.FinalTranslationRetryDelay);
+        await harness.WaitForAsync(_ => translations.RequestCount == 2);
+        using (var retryRequest = JsonDocument.Parse(translations.Invocations[1].Request.Text))
+        {
+            Assert.AreEqual(
+                "Older subtitle.",
+                retryRequest.RootElement.GetProperty("current").GetString());
+        }
+        retry.Fail(new SdkStatusException(503));
+        await harness.WaitForAsync(_ => translations.RequestCount == 3);
+        using (var newerRequest = JsonDocument.Parse(translations.Invocations[2].Request.Text))
+        {
+            Assert.AreEqual(
+                "Newer subtitle.",
+                newerRequest.RootElement.GetProperty("current").GetString());
+        }
+
+        newer.Emit(StructuredSegment(0, "Newer subtitle.", "Newer translated.", isFinal: true));
+        newer.Complete();
+        await harness.WaitForAsync(events => LatestLines(events)
+            .All(line => !line.IsTranslating));
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(3, translations.RequestCount);
+        Assert.AreEqual(
+            string.Empty,
+            LatestLines(harness.Events)
+                .Single(line => line.OriginalText == "Older subtitle.")
+                .DisplayTranslatedText);
+        Assert.AreEqual(
+            "Newer translated.",
+            LatestLines(harness.Events)
+                .Single(line => line.OriginalText == "Newer subtitle.")
+                .DisplayTranslatedText);
+    }
+
+    [TestMethod]
+    public async Task TransientFailuresWithoutHttpResponseRetryFinalTranslation()
+    {
+        Exception[] failures =
+        [
+            new HttpRequestException("The connection closed before a response was received."),
+            new SdkStatusException(0)
+        ];
+
+        foreach (var failure in failures)
+        {
+            var failed = new ControlledStructuredTranslationStream();
+            var retry = new ControlledStructuredTranslationStream();
+            var translations = new RecordingStructuredTranslationUseCases(failed, retry);
+            var settings = CreateSettings(translationEnabled: true) with
+            {
+                IsRealTimePreviewEnabled = false
+            };
+            await using var harness = new CoordinatorHarness(settings, translations);
+
+            await harness.SendAsync(SpeechRecognitionEventKind.Final, "Retry this subtitle.");
+            await harness.WaitForAsync(_ => translations.RequestCount == 1);
+            var lineId = LatestLines(harness.Events).Single().Id;
+            var updatesBeforeFailure = harness.Events
+                .OfType<SpeechSubtitleChangedEvent>()
+                .Count(item => item.Subtitle.Id == lineId);
+            failed.Fail(failure);
+            await harness.WaitForAsync(events => events
+                .OfType<SpeechSubtitleChangedEvent>()
+                .Count(item => item.Subtitle.Id == lineId) > updatesBeforeFailure);
+
+            harness.Time.Advance(SubtitleSessionCoordinator.FinalTranslationRetryDelay);
+            await harness.WaitForAsync(_ => translations.RequestCount == 2);
+            retry.Emit(StructuredSegment(
+                0,
+                "Retry this subtitle.",
+                "Retried translation.",
+                isFinal: true));
+            retry.Complete();
+            await harness.WaitForAsync(events =>
+                LatestLines(events).Single().DisplayTranslatedText == "Retried translation.");
+            await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+            await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+        }
+    }
+
+    [TestMethod]
+    public async Task PermanentFailureContinuesWithQueuedNewerSubtitleWithoutRetry()
+    {
+        var failed = new ControlledStructuredTranslationStream();
+        var newer = new ControlledStructuredTranslationStream();
+        var translations = new RecordingStructuredTranslationUseCases(failed, newer);
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsRealTimePreviewEnabled = false
+        };
+        await using var harness = new CoordinatorHarness(settings, translations);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Older subtitle.");
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Newer subtitle.");
+        failed.Fail(new SdkStatusException(400));
+        await harness.WaitForAsync(_ => translations.RequestCount == 2);
+        using (var newerRequest = JsonDocument.Parse(translations.Invocations[1].Request.Text))
+        {
+            Assert.AreEqual(
+                "Newer subtitle.",
+                newerRequest.RootElement.GetProperty("current").GetString());
+        }
+
+        newer.Emit(StructuredSegment(0, "Newer subtitle.", "Newer translated.", isFinal: true));
+        newer.Complete();
+        await harness.WaitForAsync(events => LatestLines(events)
+            .All(line => !line.IsTranslating));
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(2, translations.RequestCount);
+        Assert.AreEqual(
+            string.Empty,
+            LatestLines(harness.Events)
+                .Single(line => line.OriginalText == "Older subtitle.")
+                .DisplayTranslatedText);
+        Assert.AreEqual(
+            "Newer translated.",
+            LatestLines(harness.Events)
+                .Single(line => line.OriginalText == "Newer subtitle.")
+                .DisplayTranslatedText);
+    }
+
+    [TestMethod]
     public async Task TranslationTimeoutStopsLoadingWithoutAppendingErrorText()
     {
         var stream = new ControlledTranslationStream();
@@ -1647,6 +1873,7 @@ public sealed class SubtitleSessionCoordinatorTests
         await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
 
         var line = LatestLines(harness.Events).Single();
+        Assert.AreEqual(1, translations.RequestCount);
         Assert.IsFalse(line.IsTranslating);
         Assert.AreEqual(string.Empty, line.DisplayTranslatedText);
         Assert.AreEqual("This translation will time out.", line.OriginalText);
@@ -1936,7 +2163,7 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
-    public async Task FinalTranslationQueueOverloadDropsOldestUnstartedJobButKeepsSourceHistory()
+    public async Task FinalTranslationBacklogKeepsEveryUnstartedJobInFifoOrder()
     {
         var first = new ControlledTranslationStream();
         var translations = new RecordingTranslationUseCases((index, _, token) =>
@@ -1956,14 +2183,36 @@ public sealed class SubtitleSessionCoordinatorTests
             await harness.SendAsync(SpeechRecognitionEventKind.Final, $"Source line {index}.");
         await harness.WaitForAsync(events => LatestLines(events).Count == 34);
         await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        first.Emit(new TranslationDeltaEvent("translation 1"));
         first.Complete();
+        await harness.WaitForAsync(events =>
+        {
+            var latest = LatestLines(events);
+            return translations.RequestCount == 34
+                   && latest.Count == 34
+                   && latest.All(line => !line.IsTranslating
+                                         && !string.IsNullOrWhiteSpace(
+                                             line.DisplayTranslatedText));
+        });
         await harness.Completion.WaitAsync(TimeSpan.FromSeconds(5));
 
         var lines = LatestLines(harness.Events).OrderBy(line => line.Id).ToArray();
         Assert.HasCount(34, lines);
-        Assert.AreEqual(33, translations.RequestCount);
-        Assert.AreEqual("Source line 2.", lines[1].OriginalText);
-        Assert.AreEqual(string.Empty, lines[1].DisplayTranslatedText);
+        Assert.AreEqual(34, translations.RequestCount);
+        for (var index = 1; index <= 34; index++)
+        {
+            var source = $"Source line {index}.";
+            using var request = JsonDocument.Parse(
+                translations.Invocations[index - 1].Request.Text);
+            Assert.AreEqual(
+                source,
+                request.RootElement.GetProperty("current").GetString());
+            Assert.AreEqual(source, lines[index - 1].OriginalText);
+            Assert.AreEqual(
+                $"translation {index}",
+                lines[index - 1].DisplayTranslatedText);
+        }
+        Assert.IsFalse(harness.Events.OfType<SpeechFloatingSubtitleRemovedEvent>().Any());
         Assert.AreEqual(1, translations.MaximumActiveStreams);
     }
 
@@ -2359,6 +2608,11 @@ public sealed class SubtitleSessionCoordinatorTests
             await foreach (var item in _items.Reader.ReadAllAsync(cancellationToken))
                 yield return item;
         }
+    }
+
+    private sealed class SdkStatusException(int status) : Exception($"HTTP {status}")
+    {
+        public int Status { get; } = status;
     }
 }
 
