@@ -23,6 +23,7 @@ public sealed class SettingViewLayoutTests
             .Single(element => element.Name.LocalName == "SettingsLayout");
 
         Assert.IsFalse(settingsLayout.Ancestors().Any(element => element.Name.LocalName == "ScrollViewer"));
+        Assert.AreEqual("240", settingsLayout.Attribute("StackSummaryWidth")?.Value);
     }
 
     private static string FindRepositoryRoot()
