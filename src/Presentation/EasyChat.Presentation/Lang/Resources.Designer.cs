@@ -3143,6 +3143,14 @@ namespace EasyChat.Presentation.Lang {
             get { return ResourceManager.GetString("NoAsrModels", resourceCulture); }
         }
 
+        public static string ShowMoreAsrModels {
+            get { return ResourceManager.GetString("ShowMoreAsrModels", resourceCulture); }
+        }
+
+        public static string ShowLessAsrModels {
+            get { return ResourceManager.GetString("ShowLessAsrModels", resourceCulture); }
+        }
+
         public static string AsrModelsImported {
             get { return ResourceManager.GetString("AsrModelsImported", resourceCulture); }
         }

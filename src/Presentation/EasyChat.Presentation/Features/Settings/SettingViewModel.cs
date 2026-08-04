@@ -36,6 +36,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly ISukiToastManager _toasts;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
     private bool _isOcrModelListExpanded;
+    private bool _isAsrModelListExpanded;
     private bool _isTestingBaidu;
     private bool _isTestingTencent;
     private bool _isTestingGoogle;
@@ -111,6 +112,10 @@ public sealed class SettingViewModel : NavigationPageViewModel
         {
             IsOcrModelListExpanded = !IsOcrModelListExpanded;
         });
+        ToggleAsrModelListCommand = ReactiveCommand.Create(() =>
+        {
+            IsAsrModelListExpanded = !IsAsrModelListExpanded;
+        });
 
         Dispatcher.UIThread.Post(LoadAvailableFonts);
         Dispatcher.UIThread.Post(() => _ = LoadAsrModelsAsync());
@@ -164,12 +169,34 @@ public sealed class SettingViewModel : NavigationPageViewModel
         private set
         {
             this.RaiseAndSetIfChanged(ref _asrModels, value);
+            this.RaisePropertyChanged(nameof(VisibleAsrModels));
             this.RaisePropertyChanged(nameof(HasAsrModels));
             this.RaisePropertyChanged(nameof(HasNoAsrModels));
+            this.RaisePropertyChanged(nameof(IsAsrModelListToggleVisible));
         }
     }
+    public IEnumerable<SpeechRecognitionModel> VisibleAsrModels =>
+        IsAsrModelListExpanded ? AsrModels : AsrModels.Take(3);
     public bool HasAsrModels => AsrModels.Count > 0;
     public bool HasNoAsrModels => !HasAsrModels;
+    public bool IsAsrModelListExpanded
+    {
+        get => _isAsrModelListExpanded;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isAsrModelListExpanded, value);
+            this.RaisePropertyChanged(nameof(VisibleAsrModels));
+            this.RaisePropertyChanged(nameof(AsrModelListToggleIcon));
+            this.RaisePropertyChanged(nameof(AsrModelListToggleText));
+        }
+    }
+    public MaterialIconKind AsrModelListToggleIcon => IsAsrModelListExpanded
+        ? MaterialIconKind.ExpandLess
+        : MaterialIconKind.ExpandMore;
+    public bool IsAsrModelListToggleVisible => AsrModels.Count > 3;
+    public string AsrModelListToggleText => IsAsrModelListExpanded
+        ? Resources.ShowLessAsrModels
+        : Resources.ShowMoreAsrModels;
     public bool IsImportingAsrModel
     {
         get => _isImportingAsrModel;
@@ -329,6 +356,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> CancelOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DeleteOcrModelCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleOcrModelListCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleAsrModelListCommand { get; }
     public ReactiveCommand<Unit, Unit> AddModelCommand { get; }
     public ReactiveCommand<CustomAiModelState, Unit> EditModelCommand { get; }
     public ReactiveCommand<CustomAiModelState, Unit> DeleteModelCommand { get; }

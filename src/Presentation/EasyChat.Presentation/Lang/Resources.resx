@@ -952,6 +952,8 @@
   <data name="ImportAsrModelArchive" xml:space="preserve"><value>Import archives</value></data>
   <data name="AsrModelArchives" xml:space="preserve"><value>Model archives</value></data>
   <data name="NoAsrModels" xml:space="preserve"><value>No ASR models installed.</value></data>
+  <data name="ShowMoreAsrModels" xml:space="preserve"><value>Show more ASR models</value></data>
+  <data name="ShowLessAsrModels" xml:space="preserve"><value>Show fewer ASR models</value></data>
   <data name="AsrModelsImported" xml:space="preserve"><value>Imported: {0}</value></data>
   <data name="AsrModelsSkipped" xml:space="preserve"><value>Skipped (already installed or duplicated): {0}</value></data>
   <data name="AsrModelsAlreadyInstalled" xml:space="preserve"><value>The selected models are already installed.</value></data>

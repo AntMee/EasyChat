@@ -214,7 +214,7 @@
                 <TextBlock Foreground="{DynamicResource SukiLowText}"
                            Text="{x:Static lang:Resources.NoAsrModels}"
                            IsVisible="{Binding HasNoAsrModels}" />
-                <ItemsControl ItemsSource="{Binding AsrModels}"
+                <ItemsControl ItemsSource="{Binding VisibleAsrModels}"
                               IsVisible="{Binding HasAsrModels}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="speech:SpeechRecognitionModel">
@@ -240,6 +240,13 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <Button HorizontalAlignment="Center"
+                        Width="32" Height="32" Padding="6"
+                        Command="{Binding ToggleAsrModelListCommand}"
+                        ToolTip.Tip="{Binding AsrModelListToggleText}"
+                        IsVisible="{Binding IsAsrModelListToggleVisible}">
+                    <avalonia:MaterialIcon Kind="{Binding AsrModelListToggleIcon}" />
+                </Button>
             </StackPanel>
         </suki:GlassCard>
     </StackPanel>

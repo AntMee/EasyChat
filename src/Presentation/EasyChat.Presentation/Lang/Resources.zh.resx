@@ -942,6 +942,8 @@
     <data name="ImportAsrModelArchive" xml:space="preserve"><value>导入压缩包</value></data>
     <data name="AsrModelArchives" xml:space="preserve"><value>模型压缩包</value></data>
     <data name="NoAsrModels" xml:space="preserve"><value>尚未安装 ASR 模型。</value></data>
+    <data name="ShowMoreAsrModels" xml:space="preserve"><value>显示更多 ASR 模型</value></data>
+    <data name="ShowLessAsrModels" xml:space="preserve"><value>收起 ASR 模型</value></data>
     <data name="AsrModelsImported" xml:space="preserve"><value>已导入：{0}</value></data>
     <data name="AsrModelsSkipped" xml:space="preserve"><value>已跳过（已安装或重复）：{0}</value></data>
     <data name="AsrModelsAlreadyInstalled" xml:space="preserve"><value>所选模型已经安装。</value></data>

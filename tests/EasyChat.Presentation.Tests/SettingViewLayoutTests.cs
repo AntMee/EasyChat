@@ -26,6 +26,37 @@ public sealed class SettingViewLayoutTests
         Assert.AreEqual("240", settingsLayout.Attribute("StackSummaryWidth")?.Value);
     }
 
+    [TestMethod]
+    public void GeneralSettings_AsrModelsUseCollapsibleListBindings()
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views",
+            "GeneralSettingsView.axaml");
+        var document = XDocument.Load(path);
+
+        var modelList = document.Descendants()
+            .Single(element => element.Name.LocalName == "ItemsControl"
+                               && element.Attribute("ItemsSource")?.Value == "{Binding VisibleAsrModels}");
+        var toggle = document.Descendants()
+            .Single(element => element.Name.LocalName == "Button"
+                               && element.Attribute("Command")?.Value == "{Binding ToggleAsrModelListCommand}");
+
+        Assert.AreEqual("{Binding HasAsrModels}", modelList.Attribute("IsVisible")?.Value);
+        Assert.AreEqual(
+            "{Binding IsAsrModelListToggleVisible}",
+            toggle.Attribute("IsVisible")?.Value);
+        Assert.AreEqual(
+            "{Binding AsrModelListToggleText}",
+            toggle.Attribute("ToolTip.Tip")?.Value);
+    }
+
     private static string FindRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
