@@ -8,7 +8,6 @@ using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.Presentation.ImageTranslation;
 using EasyChat.Presentation.Features.Capture.Views;
 using Microsoft.Extensions.Logging;
 
@@ -39,14 +38,13 @@ public sealed class ScreenshotShortcutAction(
     {
         try
         {
-            using var selection = await _capture.CaptureAsync(
+            var selection = await _capture.CaptureAsync(
                 _settings.Screenshot.Mode,
                 cancellationToken);
             if (selection is null)
                 return;
 
-            var frame = AvaloniaImageFrames.ToImageFrame(selection.Image);
-            _ = ProcessAsync(frame, selection.Action, selection.CompletionPoint);
+            _ = ProcessAsync(selection.Image, selection.Action, selection.CompletionPoint);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -87,7 +85,10 @@ public sealed class ScreenshotShortcutAction(
                 return;
             }
 
-            await ProcessTextAsync(recognition.Text, action, completionPoint);
+            var text = recognition.Text;
+            image = null!;
+            recognition = null!;
+            await ProcessTextAsync(text, action, completionPoint);
         }
         catch (OperationCanceledException) when (imageCancellation?.IsCancellationRequested == true)
         {

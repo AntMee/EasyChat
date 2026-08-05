@@ -47,7 +47,6 @@ public sealed class AvaloniaScreenRegionPicker(
             var outcome = await _overlays.SelectAsync(
                 precise: true,
                 regionOnly: true,
-                ensureAccess: false,
                 cancellationToken: cancellationToken);
             return outcome?.Region;
         }

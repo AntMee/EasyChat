@@ -16,6 +16,7 @@ using EasyChat.Presentation.Features.Speech;
 using EasyChat.Presentation.Features.Shell;
 using EasyChat.Presentation.Foundation.Navigation;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 
@@ -32,6 +33,7 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddSingleton<PageNavigation>();
         services.AddSingleton<TranslationLanguageOptions>();
         services.AddSingleton<CaptureOverlayCoordinator>();
+        services.TryAddSingleton<IScreenshotCaptureSession, InProcessScreenshotCaptureSession>();
         services.AddSingleton<IScreenRegionPicker, AvaloniaScreenRegionPicker>();
         services.AddSingleton<ScreenshotCaptureCoordinator>();
         services.AddSingleton<ScreenshotResultCoordinator>();

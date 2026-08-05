@@ -1,4 +1,5 @@
 using EasyChat.Contracts.Updates;
+using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Shell;
 using SukiUI.Dialogs;
@@ -12,4 +13,5 @@ public sealed record DesktopUiContext(
     ISukiDialogManager Dialogs,
     DesktopInteractionLifecycle Interactions,
     IApplicationUpdateService Updates,
-    ISukiToastManager Toasts);
+    ISukiToastManager Toasts,
+    IScreenshotCaptureSession ScreenshotCapture);

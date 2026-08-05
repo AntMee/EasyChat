@@ -15,12 +15,10 @@ internal sealed record CaptureOverlayOutcome(
     Bitmap? Image);
 
 public sealed class CaptureOverlayCoordinator(
-    IPlatformAccessUseCases platformAccess,
     IScreenCatalog screens,
     IScreenCapture capture,
     IPointerPosition pointer)
 {
-    private readonly IPlatformAccessUseCases _platformAccess = platformAccess;
     private readonly IScreenCatalog _screens = screens;
     private readonly IScreenCapture _capture = capture;
     private readonly IPointerPosition _pointer = pointer;
@@ -29,21 +27,11 @@ public sealed class CaptureOverlayCoordinator(
     internal async Task<CaptureOverlayOutcome?> SelectAsync(
         bool precise,
         bool regionOnly,
-        bool ensureAccess = true,
         CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (ensureAccess)
-            {
-                var access = await _platformAccess.EnsureAvailableAsync(
-                    PlatformCapability.ScreenCapture,
-                    cancellationToken).ConfigureAwait(false);
-                if (access.IsFailure)
-                    throw new InvalidOperationException(access.Error.Message);
-            }
-
             var availableScreens = (await _screens.GetScreensAsync(cancellationToken)
                     .ConfigureAwait(false))
                 .Where(screen => !screen.Bounds.IsEmpty)
@@ -52,13 +40,9 @@ public sealed class CaptureOverlayCoordinator(
                 throw new InvalidOperationException("No display screen is available.");
 
             var desktopBounds = Union(availableScreens.Select(screen => screen.Bounds));
-            var captured = await _capture.CaptureAsync(
-                new ScreenCaptureRequest(ScreenCaptureTarget.Region, Region: desktopBounds),
+            using var desktopImage = await CaptureDesktopImageAsync(
+                desktopBounds,
                 cancellationToken).ConfigureAwait(false);
-            if (captured.IsFailure)
-                throw new InvalidOperationException(captured.Error.Message);
-
-            using var desktopImage = AvaloniaImageFrames.ToBitmap(captured.Value);
             var initialPointer = GetInitialPointer(availableScreens);
             var session = await OnUiAsync(
                 () => new CaptureOverlaySession(
@@ -86,6 +70,18 @@ public sealed class CaptureOverlayCoordinator(
         {
             _gate.Release();
         }
+    }
+
+    private async Task<Bitmap> CaptureDesktopImageAsync(
+        PhysicalScreenRegion desktopBounds,
+        CancellationToken cancellationToken)
+    {
+        var captured = await _capture.CaptureAsync(
+            new ScreenCaptureRequest(ScreenCaptureTarget.Region, Region: desktopBounds),
+            cancellationToken).ConfigureAwait(false);
+        if (captured.IsFailure)
+            throw new InvalidOperationException(captured.Error.Message);
+        return AvaloniaImageFrames.ToBitmap(captured.Value);
     }
 
     private PhysicalScreenPoint GetInitialPointer(IReadOnlyList<ScreenDescriptor> availableScreens)

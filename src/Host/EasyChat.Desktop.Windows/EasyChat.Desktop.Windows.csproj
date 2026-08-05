@@ -8,6 +8,9 @@
     <ApplicationIcon>..\EasyChat.Desktop\Assets\easychat-logo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="EasyChat.AcceptanceTests" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
