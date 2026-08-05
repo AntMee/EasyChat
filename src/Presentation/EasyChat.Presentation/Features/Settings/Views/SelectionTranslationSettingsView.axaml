@@ -14,7 +14,7 @@
     <suki:GlassCard>
         <StackPanel>
             <DockPanel Margin="0 0 0 10">
-                <TextBlock Text="划词工具栏"
+                <TextBlock Text="{x:Static lang:Resources.SelectionTranslation}"
                            VerticalAlignment="Center" FontWeight="Bold" />
                 <ToggleSwitch IsChecked="{Binding SelectionTranslationConf.Enabled}"
                               HorizontalAlignment="Right"
@@ -23,8 +23,8 @@
             <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12" Margin="0,5,0,10">
                 <CheckBox Content="{x:Static lang:Resources.TextAssistTranslate}" IsChecked="{Binding SelectionTranslationConf.TranslationEnabled}" />
                 <CheckBox Grid.Column="1" Content="{x:Static lang:Resources.TextAssistCorrect}" IsChecked="{Binding SelectionTranslationConf.CorrectionEnabled}" />
-                <CheckBox Grid.Column="2" Content="润色" IsChecked="{Binding SelectionTranslationConf.PolishEnabled}" />
-                <CheckBox Grid.Column="3" Content="总结" IsChecked="{Binding SelectionTranslationConf.SummaryEnabled}" />
+                <CheckBox Grid.Column="2" Content="{x:Static lang:Resources.TextAssistPolish}" IsChecked="{Binding SelectionTranslationConf.PolishEnabled}" />
+                <CheckBox Grid.Column="3" Content="{x:Static lang:Resources.TextAssistSummary}" IsChecked="{Binding SelectionTranslationConf.SummaryEnabled}" />
             </Grid>
             <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
                 <TextBlock FontWeight="Bold" VerticalAlignment="Center"
