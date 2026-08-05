@@ -53,6 +53,9 @@ public sealed class SettingsPersistenceContractTests
             Assert.AreEqual(5000, result.Value.Result.AutoCloseDelay);
             Assert.AreEqual(InputDeliveryMode.Paste, result.Value.Input.DeliveryMode);
             Assert.AreEqual(OcrRecognitionMode.Normal, result.Value.Screenshot.OcrMode);
+            Assert.AreEqual(
+                ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
+                result.Value.Screenshot.OcrIdleTimeoutSeconds);
             Assert.AreEqual("EdgeTTS", result.Value.Tts.Provider);
             StringAssert.Contains(
                 await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
@@ -77,7 +80,8 @@ public sealed class SettingsPersistenceContractTests
             {
                 Screenshot = initial.Value.Screenshot with
                 {
-                    OcrMode = OcrRecognitionMode.Normal
+                    OcrMode = OcrRecognitionMode.IdleRelease,
+                    OcrIdleTimeoutSeconds = 45
                 }
             };
 
@@ -86,7 +90,8 @@ public sealed class SettingsPersistenceContractTests
 
             Assert.IsTrue(write.IsSuccess, write.Error.Message);
             Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
-            Assert.AreEqual(OcrRecognitionMode.Normal, reread.Value.Screenshot.OcrMode);
+            Assert.AreEqual(OcrRecognitionMode.IdleRelease, reread.Value.Screenshot.OcrMode);
+            Assert.AreEqual(45, reread.Value.Screenshot.OcrIdleTimeoutSeconds);
 
             await File.WriteAllTextAsync(
                 Path.Combine(directory, "Screenshot.json"),
@@ -100,6 +105,9 @@ public sealed class SettingsPersistenceContractTests
 
             Assert.IsTrue(previous.IsSuccess, previous.Error.Message);
             Assert.AreEqual(OcrRecognitionMode.Normal, previous.Value.Screenshot.OcrMode);
+            Assert.AreEqual(
+                ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
+                previous.Value.Screenshot.OcrIdleTimeoutSeconds);
         }
         finally
         {

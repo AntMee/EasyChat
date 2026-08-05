@@ -66,6 +66,7 @@ public sealed class WindowsOpenVinoOcr : IOcrRecognizer, IOcrModelStore, IDispos
             language,
             request.EnableRotation,
             request.Mode,
+            request.IdleTimeoutSeconds,
             cancellationToken);
 
         var regions = backendRegions
@@ -154,5 +155,6 @@ internal interface IWindowsOcrBackend : IDisposable
         WindowsOcrLanguageSelection language,
         bool enableRotation,
         OcrRecognitionMode mode,
+        int idleTimeoutSeconds,
         CancellationToken cancellationToken);
 }

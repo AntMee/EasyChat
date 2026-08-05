@@ -1,4 +1,5 @@
 using System.Runtime.Serialization;
+using EasyChat.Contracts.Settings;
 using Newtonsoft.Json;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
@@ -33,7 +34,8 @@ internal enum InputDeliveryModeDto
 internal enum OcrRecognitionModeDto
 {
     Fast = 0,
-    Normal = 1
+    Normal = 1,
+    IdleRelease = 2
 }
 
 internal enum FloatingDisplayModeDto
@@ -240,6 +242,9 @@ internal sealed class ScreenshotSettingsDto
 
     [JsonProperty]
     public OcrRecognitionModeDto OcrMode { get; set; } = OcrRecognitionModeDto.Normal;
+
+    [JsonProperty]
+    public int OcrIdleTimeoutSeconds { get; set; } = ScreenshotSettings.DefaultOcrIdleTimeoutSeconds;
 }
 
 [JsonObject(MemberSerialization.OptIn)]

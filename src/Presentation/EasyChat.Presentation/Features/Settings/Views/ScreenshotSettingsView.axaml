@@ -48,6 +48,19 @@
                 <TextBlock Opacity="0.72"
                            TextWrapping="Wrap"
                            Text="{Binding SelectedOcrRecognitionMode, Converter={StaticResource OcrRecognitionModeDescriptionConverter}}" />
+                <StackPanel Orientation="Horizontal"
+                            Spacing="12"
+                            IsVisible="{Binding IsIdleReleaseOcrMode}">
+                    <TextBlock VerticalAlignment="Center"
+                               Text="{x:Static lang:Resources.OcrIdleTimeout}" />
+                    <NumericUpDown Value="{Binding ScreenshotConf.OcrIdleTimeoutSeconds}"
+                                   Minimum="10"
+                                   Maximum="3600"
+                                   Increment="10"
+                                   MinWidth="100" />
+                    <TextBlock VerticalAlignment="Center"
+                               Text="{x:Static lang:Resources.Seconds}" />
+                </StackPanel>
             </StackPanel>
             <Button Content="{x:Static lang:Resources.FixedAreaSettings}" 
                     Command="{Binding ManageFixedAreasCommand}" 

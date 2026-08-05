@@ -221,7 +221,13 @@ public sealed record InputSettings(
 public sealed record ScreenshotSettings(
     string? Mode,
     IReadOnlyList<FixedAreaSettings> FixedAreas,
-    OcrRecognitionMode OcrMode = OcrRecognitionMode.Normal);
+    OcrRecognitionMode OcrMode = OcrRecognitionMode.Normal,
+    int OcrIdleTimeoutSeconds = 300)
+{
+    public const int DefaultOcrIdleTimeoutSeconds = 300;
+    public const int MinOcrIdleTimeoutSeconds = 10;
+    public const int MaxOcrIdleTimeoutSeconds = 3600;
+}
 
 public sealed record FixedAreaSettings(
     string Id,

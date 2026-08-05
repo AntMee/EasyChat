@@ -12,7 +12,18 @@ using OpenCvSharp;
 namespace EasyChat.Infrastructure.Windows.Ocr;
 
 [SupportedOSPlatform("windows")]
-internal sealed class WindowsOcrWorkerClient : IDisposable
+internal interface IWindowsOcrWorkerClient : IDisposable
+{
+    IReadOnlyList<WindowsOcrBackendRegion> Recognize(
+        ImageFrame image,
+        WindowsOcrLanguageSelection language,
+        string modelDirectory,
+        bool enableRotation,
+        CancellationToken cancellationToken);
+}
+
+[SupportedOSPlatform("windows")]
+internal sealed class WindowsOcrWorkerClient : IWindowsOcrWorkerClient
 {
     private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan RecognitionTimeout = TimeSpan.FromMinutes(2);
@@ -56,7 +67,7 @@ internal sealed class WindowsOcrWorkerClient : IDisposable
         }
     }
 
-    internal IReadOnlyList<WindowsOcrBackendRegion> Recognize(
+    public IReadOnlyList<WindowsOcrBackendRegion> Recognize(
         ImageFrame image,
         WindowsOcrLanguageSelection language,
         string modelDirectory,

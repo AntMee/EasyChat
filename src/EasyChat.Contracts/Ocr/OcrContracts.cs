@@ -158,14 +158,16 @@ public sealed record OcrRecognitionResult(IReadOnlyList<OcrTextRegion> Regions)
 public enum OcrRecognitionMode
 {
     Fast = 0,
-    Normal = 1
+    Normal = 1,
+    IdleRelease = 2
 }
 
 public sealed record OcrRecognitionRequest(
     ImageFrame Image,
     OcrLanguage? Language = null,
     bool EnableRotation = false,
-    OcrRecognitionMode Mode = OcrRecognitionMode.Normal);
+    OcrRecognitionMode Mode = OcrRecognitionMode.Normal,
+    int IdleTimeoutSeconds = 300);
 
 public sealed record OcrModelDownloadOptions(string? ProxyUrl, bool UseProxy);
 

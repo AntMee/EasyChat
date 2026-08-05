@@ -391,13 +391,21 @@ internal static class SettingsPersistenceMapper
     private static ScreenshotSettings ToContract(ScreenshotSettingsDto source) => new(
         source.Mode,
         source.FixedAreas.Select(ToContract).ToArray(),
-        (OcrRecognitionMode)(int)source.OcrMode);
+        (OcrRecognitionMode)(int)source.OcrMode,
+        Math.Clamp(
+            source.OcrIdleTimeoutSeconds,
+            ScreenshotSettings.MinOcrIdleTimeoutSeconds,
+            ScreenshotSettings.MaxOcrIdleTimeoutSeconds));
 
     private static ScreenshotSettingsDto ToDto(ScreenshotSettings source) => new()
     {
         Mode = source.Mode,
         FixedAreas = source.FixedAreas.Select(ToDto).ToList(),
-        OcrMode = (OcrRecognitionModeDto)(int)source.OcrMode
+        OcrMode = (OcrRecognitionModeDto)(int)source.OcrMode,
+        OcrIdleTimeoutSeconds = Math.Clamp(
+            source.OcrIdleTimeoutSeconds,
+            ScreenshotSettings.MinOcrIdleTimeoutSeconds,
+            ScreenshotSettings.MaxOcrIdleTimeoutSeconds)
     };
 
     private static FixedAreaSettings ToContract(FixedAreaSettingsDto source) => new(

@@ -1496,6 +1496,12 @@ namespace EasyChat.Presentation.Lang {
             }
         }
 
+        public static string OcrRecognitionMode_IdleRelease {
+            get {
+                return ResourceManager.GetString("OcrRecognitionMode_IdleRelease", resourceCulture);
+            }
+        }
+
         public static string OcrRecognitionModeDescription_Fast {
             get {
                 return ResourceManager.GetString("OcrRecognitionModeDescription_Fast", resourceCulture);
@@ -1505,6 +1511,24 @@ namespace EasyChat.Presentation.Lang {
         public static string OcrRecognitionModeDescription_Normal {
             get {
                 return ResourceManager.GetString("OcrRecognitionModeDescription_Normal", resourceCulture);
+            }
+        }
+
+        public static string OcrRecognitionModeDescription_IdleRelease {
+            get {
+                return ResourceManager.GetString("OcrRecognitionModeDescription_IdleRelease", resourceCulture);
+            }
+        }
+
+        public static string OcrIdleTimeout {
+            get {
+                return ResourceManager.GetString("OcrIdleTimeout", resourceCulture);
+            }
+        }
+
+        public static string Seconds {
+            get {
+                return ResourceManager.GetString("Seconds", resourceCulture);
             }
         }
 

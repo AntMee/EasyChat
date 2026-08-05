@@ -91,6 +91,7 @@ public sealed class OcrRecognitionModeConverter : IValueConverter
     {
         OcrRecognitionMode.Fast => Resources.OcrRecognitionMode_Fast,
         OcrRecognitionMode.Normal => Resources.OcrRecognitionMode_Normal,
+        OcrRecognitionMode.IdleRelease => Resources.OcrRecognitionMode_IdleRelease,
         _ => value?.ToString()
     };
 
@@ -104,6 +105,7 @@ public sealed class OcrRecognitionModeDescriptionConverter : IValueConverter
     {
         OcrRecognitionMode.Fast => Resources.OcrRecognitionModeDescription_Fast,
         OcrRecognitionMode.Normal => Resources.OcrRecognitionModeDescription_Normal,
+        OcrRecognitionMode.IdleRelease => Resources.OcrRecognitionModeDescription_IdleRelease,
         _ => null
     };
 

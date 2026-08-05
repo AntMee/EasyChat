@@ -34,7 +34,8 @@ public sealed class ScreenshotUseCases(
                 image,
                 language,
                 enableRotation,
-                settings.Screenshot.OcrMode),
+                settings.Screenshot.OcrMode,
+                settings.Screenshot.OcrIdleTimeoutSeconds),
             cancellationToken);
     }
 

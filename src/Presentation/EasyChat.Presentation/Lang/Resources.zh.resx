@@ -924,8 +924,12 @@
     <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR 模式</value></data>
     <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>快速</value></data>
     <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>普通</value></data>
+    <data name="OcrRecognitionMode_IdleRelease" xml:space="preserve"><value>闲置释放</value></data>
     <data name="OcrRecognitionModeDescription_Fast" xml:space="preserve"><value>OCR 会保持加载，可能长时间额外占用约 500 MB 内存，但后续截图文字识别速度更快，适合内存充足且追求识别速度的用户。</value></data>
     <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>仅在截图文字识别时使用临时独立进程，识别完成后退出进程并回收其内存。</value></data>
+    <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>OCR 会保持加载以加快连续识别，并在指定时间内没有新的截图识别后退出进程、回收内存。</value></data>
+    <data name="OcrIdleTimeout" xml:space="preserve"><value>闲置关闭时间</value></data>
+    <data name="Seconds" xml:space="preserve"><value>秒</value></data>
     <data name="OcrUseProxy" xml:space="preserve"><value>下载模型时使用代理</value></data>
     <data name="DownloadOcrModels" xml:space="preserve"><value>下载 OCR 模型</value></data>
     <data name="DownloadOcrModel" xml:space="preserve"><value>下载</value></data>

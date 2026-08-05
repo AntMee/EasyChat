@@ -4,6 +4,7 @@ using System.Runtime.Versioning;
 using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Settings;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Sdcb.OpenVINO;
@@ -24,16 +25,35 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         new(StringComparer.Ordinal);
     private readonly IApplicationDataPaths _applicationData;
     private readonly ILogger<WindowsOpenVinoOcr>? _logger;
-    private WindowsOcrWorkerClient? _fastWorker;
+    private readonly Func<bool, IWindowsOcrWorkerClient> _workerFactory;
+    private readonly TimeProvider _timeProvider;
+    private IWindowsOcrWorkerClient? _fastWorker;
+    private ITimer? _idleWorkerTimer;
+    private long _idleWorkerTimerVersion;
     private bool _inProcessCoreInitialized;
     private bool _disposed;
 
     public OpenVinoWindowsOcrBackend(
         IApplicationDataPaths applicationData,
         ILogger<WindowsOpenVinoOcr>? logger)
+        : this(
+            applicationData,
+            logger,
+            static persistent => new WindowsOcrWorkerClient(persistent),
+            TimeProvider.System)
+    {
+    }
+
+    internal OpenVinoWindowsOcrBackend(
+        IApplicationDataPaths applicationData,
+        ILogger<WindowsOpenVinoOcr>? logger,
+        Func<bool, IWindowsOcrWorkerClient> workerFactory,
+        TimeProvider timeProvider)
     {
         _applicationData = applicationData ?? throw new ArgumentNullException(nameof(applicationData));
         _logger = logger;
+        _workerFactory = workerFactory ?? throw new ArgumentNullException(nameof(workerFactory));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
         ApplyModelDirectory();
         _applicationData.LocationChanged += OnApplicationDataLocationChanged;
     }
@@ -142,6 +162,7 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         WindowsOcrLanguageSelection language,
         bool enableRotation,
         OcrRecognitionMode mode,
+        int idleTimeoutSeconds,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -159,6 +180,12 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
                     image,
                     language,
                     enableRotation,
+                    cancellationToken),
+                OcrRecognitionMode.IdleRelease => RecognizeWithIdleReleaseWorkerCore(
+                    image,
+                    language,
+                    enableRotation,
+                    idleTimeoutSeconds,
                     cancellationToken),
                 OcrRecognitionMode.Normal => RecognizeWithOneShotWorkerCore(
                     image,
@@ -544,7 +571,37 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         bool enableRotation,
         CancellationToken cancellationToken)
     {
-        _fastWorker ??= new WindowsOcrWorkerClient(persistent: true);
+        CancelIdleWorkerTimerCore();
+        return RecognizeWithPersistentWorkerCore(
+            image,
+            language,
+            enableRotation,
+            cancellationToken);
+    }
+
+    private IReadOnlyList<WindowsOcrBackendRegion> RecognizeWithIdleReleaseWorkerCore(
+        ImageFrame image,
+        WindowsOcrLanguageSelection language,
+        bool enableRotation,
+        int idleTimeoutSeconds,
+        CancellationToken cancellationToken)
+    {
+        var result = RecognizeWithPersistentWorkerCore(
+            image,
+            language,
+            enableRotation,
+            cancellationToken);
+        ScheduleIdleWorkerReleaseCore(idleTimeoutSeconds);
+        return result;
+    }
+
+    private IReadOnlyList<WindowsOcrBackendRegion> RecognizeWithPersistentWorkerCore(
+        ImageFrame image,
+        WindowsOcrLanguageSelection language,
+        bool enableRotation,
+        CancellationToken cancellationToken)
+    {
+        _fastWorker ??= _workerFactory(true);
         try
         {
             _logger?.LogDebug(
@@ -574,7 +631,7 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         _logger?.LogDebug(
             "Starting one-shot Windows OpenVINO PaddleOCR worker for package {PackageId}.",
             language.Package.Package.Id);
-        using var worker = new WindowsOcrWorkerClient(persistent: false);
+        using var worker = _workerFactory(false);
         return worker.Recognize(
             image,
             language,
@@ -585,8 +642,56 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
 
     private void DisposeFastWorkerCore()
     {
+        CancelIdleWorkerTimerCore();
         _fastWorker?.Dispose();
         _fastWorker = null;
+    }
+
+    private void ScheduleIdleWorkerReleaseCore(int idleTimeoutSeconds)
+    {
+        CancelIdleWorkerTimerCore();
+        var timeout = TimeSpan.FromSeconds(Math.Clamp(
+            idleTimeoutSeconds,
+            ScreenshotSettings.MinOcrIdleTimeoutSeconds,
+            ScreenshotSettings.MaxOcrIdleTimeoutSeconds));
+        var version = _idleWorkerTimerVersion;
+        _idleWorkerTimer = _timeProvider.CreateTimer(
+            static state =>
+            {
+                var expiration = (IdleWorkerExpiration)state!;
+                expiration.Backend.ReleaseIdleWorker(expiration.Version);
+            },
+            new IdleWorkerExpiration(this, version),
+            timeout,
+            Timeout.InfiniteTimeSpan);
+    }
+
+    private void ReleaseIdleWorker(long version)
+    {
+        ModelMutationGate.Wait();
+        try
+        {
+            if (_disposed || version != _idleWorkerTimerVersion)
+                return;
+
+            _logger?.LogDebug("Releasing idle Windows OpenVINO PaddleOCR worker.");
+            DisposeFastWorkerCore();
+        }
+        catch (Exception exception)
+        {
+            _logger?.LogWarning(exception, "Unable to release idle Windows OpenVINO PaddleOCR worker.");
+        }
+        finally
+        {
+            ModelMutationGate.Release();
+        }
+    }
+
+    private void CancelIdleWorkerTimerCore()
+    {
+        _idleWorkerTimerVersion++;
+        _idleWorkerTimer?.Dispose();
+        _idleWorkerTimer = null;
     }
 
     private void DisposeEnginesCore()
@@ -612,4 +717,6 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         internal PaddleOcrAll Engine { get; } = engine;
         public void Dispose() => Engine.Dispose();
     }
+
+    private sealed record IdleWorkerExpiration(OpenVinoWindowsOcrBackend Backend, long Version);
 }

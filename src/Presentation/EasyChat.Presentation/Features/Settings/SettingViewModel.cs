@@ -288,8 +288,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
         {
             ScreenshotConf.OcrMode = value;
             this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(IsIdleReleaseOcrMode));
         }
     }
+
+    public bool IsIdleReleaseOcrMode =>
+        SelectedOcrRecognitionMode == OcrRecognitionMode.IdleRelease;
 
     public SelectionTriggerMode SelectedSelectionTriggerMode
     {

@@ -936,8 +936,12 @@
   <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR mode</value></data>
   <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>Fast</value></data>
   <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="OcrRecognitionMode_IdleRelease" xml:space="preserve"><value>Idle release</value></data>
   <data name="OcrRecognitionModeDescription_Fast" xml:space="preserve"><value>Keeps OCR loaded and may use about 500 MB of memory for longer, but subsequent screenshot text recognition is faster. Recommended for users with ample memory who prioritize recognition speed.</value></data>
   <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>Runs OCR in a temporary process only while recognizing screenshot text, then exits the process to reclaim its memory.</value></data>
+  <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>Keeps OCR loaded for faster consecutive recognition, then exits the process to reclaim memory after the configured period without a new screenshot recognition.</value></data>
+  <data name="OcrIdleTimeout" xml:space="preserve"><value>Close after idle</value></data>
+  <data name="Seconds" xml:space="preserve"><value>seconds</value></data>
   <data name="OcrUseProxy" xml:space="preserve"><value>Use proxy for model download</value></data>
   <data name="DownloadOcrModels" xml:space="preserve"><value>Download OCR models</value></data>
   <data name="DownloadOcrModel" xml:space="preserve"><value>Download</value></data>
