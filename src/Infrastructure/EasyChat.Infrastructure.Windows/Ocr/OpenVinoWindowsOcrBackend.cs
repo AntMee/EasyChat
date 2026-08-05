@@ -261,18 +261,110 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        EnsureModelRoot(rootDirectory);
         if (IsComponentComplete(package.Format, rootDirectory, requireYaml))
             return;
 
-        if (Directory.Exists(rootDirectory))
+        if (package.Format == OpenVinoOcrModelFormat.Paddle
+            && TryPromoteNestedPaddleModel(rootDirectory))
         {
-            EnsureModelRoot(rootDirectory);
-            Directory.Delete(rootDirectory, recursive: true);
+            _logger?.LogInformation(
+                "Repaired nested Paddle OCR model layout in {RootDirectory}.",
+                rootDirectory);
+            return;
         }
 
-        await download(cancellationToken).ConfigureAwait(false);
+        if (Directory.Exists(rootDirectory))
+            Directory.Delete(rootDirectory, recursive: true);
+
+        try
+        {
+            await download(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (IsPaddleArchiveLayoutError(package.Format, ex))
+        {
+            if (!TryPromoteNestedPaddleModel(rootDirectory))
+                throw;
+
+            _logger?.LogInformation(
+                "Repaired nested Paddle OCR model layout after extracting {RootDirectory}.",
+                rootDirectory);
+        }
+
         if (!IsComponentComplete(package.Format, rootDirectory, requireYaml))
             throw new InvalidDataException($"Downloaded OCR model component is incomplete: '{rootDirectory}'.");
+    }
+
+    internal static bool TryPromoteNestedPaddleModel(string rootDirectory)
+    {
+        if (!Directory.Exists(rootDirectory) || IsPaddleModelComplete(rootDirectory))
+            return false;
+
+        var candidates = Directory.EnumerateDirectories(rootDirectory)
+            .Where(IsPaddleModelComplete)
+            .Take(2)
+            .ToArray();
+        if (candidates.Length != 1)
+            return false;
+
+        var nestedDirectory = candidates[0];
+        MoveModelFile(nestedDirectory, rootDirectory, "inference.pdiparams");
+        if (IsNonEmptyFile(Path.Combine(nestedDirectory, "inference.pdmodel")))
+            MoveModelFile(nestedDirectory, rootDirectory, "inference.pdmodel");
+        else
+            MoveModelFile(nestedDirectory, rootDirectory, "inference.json");
+
+        if (!IsPaddleModelComplete(rootDirectory))
+            return false;
+
+        TryDeleteDirectory(nestedDirectory);
+        foreach (var archive in Directory.EnumerateFiles(rootDirectory, "*.tar"))
+            TryDeleteFile(archive);
+        foreach (var metadata in Directory.EnumerateFiles(rootDirectory, "._*"))
+            TryDeleteFile(metadata);
+        return true;
+    }
+
+    private static bool IsPaddleArchiveLayoutError(
+        OpenVinoOcrModelFormat format,
+        Exception exception) =>
+        format == OpenVinoOcrModelFormat.Paddle
+        && exception is not OperationCanceledException
+        && exception.Message.Contains("not found in", StringComparison.Ordinal)
+        && exception.Message.Contains("model error?", StringComparison.Ordinal);
+
+    private static void MoveModelFile(string sourceDirectory, string destinationDirectory, string fileName) =>
+        File.Move(
+            Path.Combine(sourceDirectory, fileName),
+            Path.Combine(destinationDirectory, fileName),
+            overwrite: true);
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            Directory.Delete(path, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private static bool IsComponentComplete(

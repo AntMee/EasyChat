@@ -63,6 +63,7 @@ public sealed class OpenVinoOcrUnicodeIntegrationTests
             var cases = new[]
             {
                 (PackageId: OpenVinoOcrModelCatalog.KoreanV4Id, Language: OcrLanguages.Korean),
+                (PackageId: OpenVinoOcrModelCatalog.KannadaV4Id, Language: OcrLanguages.Kannada),
                 (PackageId: OpenVinoOcrModelCatalog.CyrillicV3Id, Language: GetLanguage("ru"))
             };
 

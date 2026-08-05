@@ -112,6 +112,56 @@ public sealed class OpenVinoOcrModelStoreTests
     }
 
     [TestMethod]
+    public async Task DownloadComponentAsync_RepairsNestedPaddleModelFromFailedCache()
+    {
+        var paths = new FakeApplicationDataPaths(Path.Combine(Workspace, "models"));
+        using var backend = new OpenVinoWindowsOcrBackend(paths, logger: null);
+        var root = Path.Combine(paths.OcrModelsDirectory, "ka_PP-OCRv4_rec");
+        WriteNestedPaddleModel(root);
+        var package = CreatePaddlePackage("kannada-v4");
+        var downloadCalls = 0;
+
+        await backend.DownloadComponentAsync(
+            package,
+            root,
+            requireYaml: false,
+            _ =>
+            {
+                downloadCalls++;
+                return Task.CompletedTask;
+            },
+            CancellationToken.None);
+
+        Assert.AreEqual(0, downloadCalls);
+        Assert.IsTrue(OpenVinoWindowsOcrBackend.IsPaddleModelComplete(root));
+        Assert.IsFalse(Directory.Exists(Path.Combine(root, "kannada_PP-OCRv4_rec_infer")));
+    }
+
+    [TestMethod]
+    public async Task DownloadComponentAsync_RepairsNestedPaddleModelAfterUpstreamFailure()
+    {
+        var paths = new FakeApplicationDataPaths(Path.Combine(Workspace, "models"));
+        using var backend = new OpenVinoWindowsOcrBackend(paths, logger: null);
+        var root = Path.Combine(paths.OcrModelsDirectory, "ka_PP-OCRv4_rec");
+        var package = CreatePaddlePackage("kannada-v4");
+
+        await backend.DownloadComponentAsync(
+            package,
+            root,
+            requireYaml: false,
+            _ =>
+            {
+                WriteNestedPaddleModel(root);
+                throw new Exception($"inference.pdiparams not found in {root}, model error?");
+            },
+            CancellationToken.None);
+
+        Assert.IsTrue(OpenVinoWindowsOcrBackend.IsPaddleModelComplete(root));
+        Assert.IsFalse(File.Exists(Path.Combine(root, "ka_PP-OCRv4_rec_infer.tar")));
+        Assert.IsFalse(File.Exists(Path.Combine(root, "._kannada_PP-OCRv4_rec_infer")));
+    }
+
+    [TestMethod]
     public void LocationChange_RepointsTheOnlineModelDirectory()
     {
         var paths = new FakeApplicationDataPaths(Path.Combine(Workspace, "models-a"));
@@ -132,6 +182,21 @@ public sealed class OpenVinoOcrModelStoreTests
 
     private static OpenVinoOcrModelPackageSpec GetSpec(string id) =>
         OpenVinoOcrModelCatalog.Specs.Single(spec => spec.Package.Id == id);
+
+    private static OpenVinoOcrModelPackageSpec CreatePaddlePackage(string id) => new(
+        new OcrModelPackage(id, [OcrLanguages.Kannada]),
+        () => null!,
+        OpenVinoOcrModelFormat.Paddle);
+
+    private static void WriteNestedPaddleModel(string root)
+    {
+        var nested = Path.Combine(root, "kannada_PP-OCRv4_rec_infer");
+        Directory.CreateDirectory(nested);
+        File.WriteAllBytes(Path.Combine(nested, "inference.pdmodel"), [1]);
+        File.WriteAllBytes(Path.Combine(nested, "inference.pdiparams"), [1]);
+        File.WriteAllBytes(Path.Combine(root, "ka_PP-OCRv4_rec_infer.tar"), [1]);
+        File.WriteAllBytes(Path.Combine(root, "._kannada_PP-OCRv4_rec_infer"), [1]);
+    }
 
     private static void WriteCompleteModel(OpenVinoOcrModelPackageSpec spec)
     {
