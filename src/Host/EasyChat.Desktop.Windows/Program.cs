@@ -1,5 +1,4 @@
 using Avalonia;
-using EasyChat.Desktop;
 using EasyChat.Desktop.Windows.Capture;
 using EasyChat.Desktop.Windows.DependencyInjection;
 using EasyChat.Infrastructure.Windows.DependencyInjection;
