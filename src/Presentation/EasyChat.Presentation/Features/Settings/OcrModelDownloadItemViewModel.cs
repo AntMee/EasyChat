@@ -22,6 +22,10 @@ public sealed class OcrModelDownloadItemViewModel : ReactiveObject
         DisplayName = displayName;
         Description = description;
         SupportedLanguages = supportedLanguages;
+        IsSupportedLanguageListCompact = package.SupportedLanguages.Count >= 20;
+        SupportedLanguagesSummary = IsSupportedLanguageListCompact
+            ? string.Format(Resources.OcrSupportedLanguageCount, package.SupportedLanguages.Count)
+            : supportedLanguages;
         _isDownloaded = isDownloaded;
         _progress = isDownloaded ? 1 : 0;
     }
@@ -30,6 +34,9 @@ public sealed class OcrModelDownloadItemViewModel : ReactiveObject
     public string DisplayName { get; }
     public string Description { get; }
     public string SupportedLanguages { get; }
+    public string SupportedLanguagesSummary { get; }
+    public bool IsSupportedLanguageListCompact { get; }
+    public bool IsSupportedLanguageListInline => !IsSupportedLanguageListCompact;
 
     public bool IsDownloaded
     {

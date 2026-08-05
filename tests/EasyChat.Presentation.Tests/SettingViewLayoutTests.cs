@@ -57,6 +57,37 @@ public sealed class SettingViewLayoutTests
             toggle.Attribute("ToolTip.Tip")?.Value);
     }
 
+    [TestMethod]
+    public void GeneralSettings_CompactOcrLanguagesOpenDetailsDialog()
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views",
+            "GeneralSettingsView.axaml");
+        var document = XDocument.Load(path);
+
+        var detailsButton = document.Descendants()
+            .Single(element => element.Name.LocalName == "Button"
+                               && element.Attribute("Command")?.Value?.Contains(
+                                   "ShowOcrModelLanguagesCommand",
+                                   StringComparison.Ordinal) == true);
+
+        Assert.AreEqual(
+            "{Binding IsSupportedLanguageListCompact}",
+            detailsButton.Parent?.Attribute("IsVisible")?.Value);
+        Assert.AreEqual("Horizontal", detailsButton.Parent?.Attribute("Orientation")?.Value);
+        Assert.AreEqual("28", detailsButton.Attribute("Width")?.Value);
+        Assert.AreEqual("28", detailsButton.Attribute("Height")?.Value);
+        Assert.AreEqual("Transparent", detailsButton.Attribute("Background")?.Value);
+        Assert.AreEqual("0", detailsButton.Attribute("BorderThickness")?.Value);
+    }
+
     private static string FindRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

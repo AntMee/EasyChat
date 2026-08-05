@@ -113,6 +113,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
         DownloadOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(StartDownloadOcrModel);
         CancelOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(CancelOcrModel);
         DeleteOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(DeleteOcrModel);
+        ShowOcrModelLanguagesCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(item =>
+            _dialogs.ShowInformation(item.DisplayName, item.SupportedLanguages));
         ToggleOcrModelListCommand = ReactiveCommand.Create(() =>
         {
             IsOcrModelListExpanded = !IsOcrModelListExpanded;
@@ -360,6 +362,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DownloadOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> CancelOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DeleteOcrModelCommand { get; }
+    public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> ShowOcrModelLanguagesCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleOcrModelListCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleAsrModelListCommand { get; }
     public ReactiveCommand<Unit, Unit> AddModelCommand { get; }
@@ -728,4 +731,5 @@ public interface ISettingsDialogCoordinator
     void ManageFixedAreas();
     void ConfigureTts();
     void ConfirmDeleteAsrModel(SpeechRecognitionModel model, Action onConfirmed);
+    void ShowInformation(string title, string content);
 }

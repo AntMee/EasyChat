@@ -969,14 +969,16 @@
   <data name="ApplicationDataMoved" xml:space="preserve"><value>Configuration and models were migrated to {0}.</value></data>
   <data name="ApplicationDataMoveFailed" xml:space="preserve"><value>Unable to change storage location</value></data>
   <data name="ApplicationDataMoveBusy" xml:space="preserve"><value>Finish the current model operation before changing the storage location.</value></data>
-  <data name="OcrUniversalModel" xml:space="preserve"><value>Universal model (PP-OCRv6 Small)</value></data>
-  <data name="OcrUniversalModelDescription" xml:space="preserve"><value>All 50 listed languages share this single model.</value></data>
-  <data name="OcrKoreanV4Model" xml:space="preserve"><value>Korean model (PP-OCRv4)</value></data>
-  <data name="OcrArabicV4Model" xml:space="preserve"><value>Arabic-script model (PP-OCRv4)</value></data>
-  <data name="OcrDevanagariV4Model" xml:space="preserve"><value>Devanagari model (PP-OCRv4)</value></data>
-  <data name="OcrTamilV4Model" xml:space="preserve"><value>Tamil model (PP-OCRv4)</value></data>
-  <data name="OcrTeluguV4Model" xml:space="preserve"><value>Telugu model (PP-OCRv4)</value></data>
-  <data name="OcrKannadaV4Model" xml:space="preserve"><value>Kannada model (PP-OCRv4)</value></data>
-  <data name="OcrCyrillicV3Model" xml:space="preserve"><value>Cyrillic model (PP-OCRv3)</value></data>
+  <data name="OcrUniversalModel" xml:space="preserve"><value>Universal model</value></data>
+  <data name="OcrUniversalModelDescription" xml:space="preserve"><value>Covers Chinese, English, Japanese, and Latin-script languages.</value></data>
+  <data name="OcrKoreanV4Model" xml:space="preserve"><value>Korean model</value></data>
+  <data name="OcrArabicV4Model" xml:space="preserve"><value>Arabic-script model</value></data>
+  <data name="OcrDevanagariV4Model" xml:space="preserve"><value>Devanagari model</value></data>
+  <data name="OcrTamilV4Model" xml:space="preserve"><value>Tamil model</value></data>
+  <data name="OcrTeluguV4Model" xml:space="preserve"><value>Telugu model</value></data>
+  <data name="OcrKannadaV4Model" xml:space="preserve"><value>Kannada model</value></data>
+  <data name="OcrCyrillicV3Model" xml:space="preserve"><value>Cyrillic model</value></data>
   <data name="OcrSupportedLanguages" xml:space="preserve"><value>Supported languages: {0}</value></data>
+  <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>Supports {0} languages</value></data>
+  <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>View all supported languages</value></data>
 </root>

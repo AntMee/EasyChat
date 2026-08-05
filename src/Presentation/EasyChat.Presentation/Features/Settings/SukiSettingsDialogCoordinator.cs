@@ -52,6 +52,12 @@ public sealed class SukiSettingsDialogCoordinator(
             .WithActionButton(Resources.Cancel, _ => { }, true, string.Empty)
             .TryShow();
 
+    public void ShowInformation(string title, string content) => _dialogs.CreateDialog()
+        .WithTitle(title)
+        .WithContent(content)
+        .WithActionButton(Resources.Close, _ => { }, true, string.Empty)
+        .TryShow();
+
     public void EditAiModelKeys(CustomAiModelState model) => ShowStringKeys(
         $"{model.Name} API Keys",
         model.ApiKeys,

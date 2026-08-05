@@ -122,8 +122,27 @@
                                                    TextWrapping="Wrap"
                                                    IsVisible="{Binding Description, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}" />
                                         <TextBlock Foreground="{DynamicResource SukiLowText}"
-                                                   Text="{Binding SupportedLanguages}"
-                                                   TextWrapping="Wrap" />
+                                                   Text="{Binding SupportedLanguagesSummary}"
+                                                   TextWrapping="Wrap"
+                                                   IsVisible="{Binding IsSupportedLanguageListInline}" />
+                                        <StackPanel Orientation="Horizontal"
+                                                    Spacing="2"
+                                                    IsVisible="{Binding IsSupportedLanguageListCompact}">
+                                            <TextBlock VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource SukiLowText}"
+                                                       Text="{Binding SupportedLanguagesSummary}" />
+                                            <Button Width="28" Height="28" Padding="4"
+                                                    Background="Transparent"
+                                                    BorderBrush="Transparent"
+                                                    BorderThickness="0"
+                                                    Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).ShowOcrModelLanguagesCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip.Tip="{x:Static lang:Resources.ViewOcrSupportedLanguages}">
+                                                <avalonia:MaterialIcon Kind="HelpCircleOutline"
+                                                                       Width="16" Height="16"
+                                                                       Foreground="{DynamicResource SukiLowText}" />
+                                            </Button>
+                                        </StackPanel>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <TextBlock Foreground="{DynamicResource SukiLowText}"
                                                        Text="{Binding StatusText}" />

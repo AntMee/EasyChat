@@ -1531,6 +1531,18 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("OcrSupportedLanguages", resourceCulture);
             }
         }
+
+        public static string OcrSupportedLanguageCount {
+            get {
+                return ResourceManager.GetString("OcrSupportedLanguageCount", resourceCulture);
+            }
+        }
+
+        public static string ViewOcrSupportedLanguages {
+            get {
+                return ResourceManager.GetString("ViewOcrSupportedLanguages", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Use proxy for model download.
