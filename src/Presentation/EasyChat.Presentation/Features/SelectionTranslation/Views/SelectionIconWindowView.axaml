@@ -10,7 +10,9 @@
         Width="153" Height="40"
         WindowDecorations="None"
         TransparencyLevelHint="Transparent"
+        TransparencyBackgroundFallback="Transparent"
         Background="Transparent"
+        CornerRadius="8"
         Topmost="True"
         ShowInTaskbar="False"
         CanResize="False"
@@ -18,7 +20,7 @@
         ShowActivated="False"
         WindowStartupLocation="Manual">
     
-    <Border CornerRadius="8" Background="{DynamicResource SukiPrimaryColor}" Padding="4"
+    <Border CornerRadius="8" Background="{DynamicResource SukiPrimaryColor}" Padding="4" ClipToBounds="True"
             HorizontalAlignment="Center" VerticalAlignment="Center">
         <Grid>
             <StackPanel x:Name="Toolbar" Orientation="Horizontal" Spacing="3">

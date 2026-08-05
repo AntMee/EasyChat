@@ -19,17 +19,6 @@
     
     <suki:GlassCard>
         <StackPanel Spacing="15">
-            <!-- Transparency Level -->
-            <DockPanel>
-                <TextBlock Text="{x:Static lang:Resources.TransparencyLevel}"
-                           VerticalAlignment="Center" FontWeight="Bold" />
-                <ComboBox ItemsSource="{Binding TransparencyLevels}"
-                          SelectedItem="{Binding InputConf.TransparencyLevel}"
-                          HorizontalAlignment="Right" Width="150" />
-            </DockPanel>
-            
-            <Separator Opacity="0.1" />
-            
             <!-- Background Color -->
             <DockPanel>
                 <TextBlock Text="{x:Static lang:Resources.BackgroundColor}"

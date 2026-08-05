@@ -173,7 +173,7 @@ internal sealed class ResultSettingsDto
     public int MsPerChar { get; set; } = 50;
 
     [JsonProperty]
-    public string TransparencyLevel { get; set; } = "AcrylicBlur";
+    public string TransparencyLevel { get; set; } = "Transparent";
 
     [JsonProperty]
     public string BackgroundColor { get; set; } = "#00000000";
@@ -198,7 +198,7 @@ internal sealed class ResultSettingsDto
 internal sealed class InputSettingsDto
 {
     [JsonProperty]
-    public string TransparencyLevel { get; set; } = "AcrylicBlur";
+    public string TransparencyLevel { get; set; } = "Transparent";
 
     [JsonProperty]
     public string BackgroundColor { get; set; } = "#CC000000";

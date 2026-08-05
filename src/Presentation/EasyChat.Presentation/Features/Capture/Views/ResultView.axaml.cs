@@ -70,14 +70,8 @@ public partial class ResultView : Window
 
     private void ApplyConfiguration(LiveResultSettings settings)
     {
-        TransparencyLevelHint = settings.TransparencyLevel switch
-        {
-            "AcrylicBlur" => [WindowTransparencyLevel.AcrylicBlur],
-            "Blur" => [WindowTransparencyLevel.Blur],
-            _ => [WindowTransparencyLevel.Transparent]
-        };
         TrySetBrush(settings.BackgroundColor, brush => MainCard.Background = brush);
-        TrySetBrush(settings.WindowBackgroundColor, brush => Background = brush);
+        TrySetBrush(settings.WindowBackgroundColor, brush => WindowBackground.Background = brush);
         TrySetBrush(settings.FontColor, brush => TextBlockResult.Foreground = brush);
         TextBlockResult.FontSize = settings.FontSize;
         if (!string.IsNullOrWhiteSpace(settings.FontFamily))

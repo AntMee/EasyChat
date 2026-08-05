@@ -10,6 +10,7 @@
         x:DataType="vm:TextAssistResultWindowViewModel"
         Width="500" Height="420" MinWidth="380" MinHeight="180"
         WindowDecorations="None" TransparencyLevelHint="Transparent" Background="Transparent"
+        TransparencyBackgroundFallback="Transparent" CornerRadius="8"
         Foreground="{DynamicResource SukiText}"
         Topmost="True" ShowInTaskbar="False" CanResize="True" Focusable="False" ShowActivated="False"
         WindowStartupLocation="Manual">

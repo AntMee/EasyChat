@@ -11,19 +11,22 @@
         WindowDecorations="None"
         ExtendClientAreaToDecorationsHint="True"
         Topmost="True"
-        TransparencyLevelHint="Blur"
+        TransparencyLevelHint="Transparent"
+        TransparencyBackgroundFallback="Transparent"
         CornerRadius="5"
         Background="Transparent"
         Title="ResultView"
         SizeToContent="WidthAndHeight">
 
-    <Panel Margin="5">
-        <suki:GlassCard x:Name="MainCard" Padding="10" Background="Transparent" CornerRadius="5">
+    <Border x:Name="WindowBackground" Margin="5" CornerRadius="5" Background="Transparent"
+            ClipToBounds="True">
+        <Border x:Name="MainCard" Padding="10" Background="Transparent" CornerRadius="5"
+                ClipToBounds="True">
             <Panel>
                 <suki:Loading x:Name="LoadingIndicator" Width="20" Height="20" IsVisible="True" />
                 <TextBlock TextWrapping="Wrap" x:Name="TextBlockResult" IsVisible="False"
                            Foreground="{DynamicResource SukiText}" />
             </Panel>
-        </suki:GlassCard>
-    </Panel>
+        </Border>
+    </Border>
 </Window>

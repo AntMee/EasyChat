@@ -14,6 +14,8 @@
         Width="450" MinHeight="250" MaxHeight="900" MinWidth="150"
         WindowDecorations="None"
         Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        TransparencyBackgroundFallback="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
         CornerRadius="12"
@@ -131,7 +133,12 @@
     </Window.Styles>
 
     <Panel Margin="5">
-        <suki:GlassCard Padding="0" CornerRadius="12">
+        <Border Padding="0"
+                CornerRadius="12"
+                ClipToBounds="True"
+                Background="{DynamicResource SukiBackground}"
+                BorderBrush="{DynamicResource SukiBorderBrush}"
+                BorderThickness="1">
             <Grid RowDefinitions="Auto,*,Auto">
                 
                 <!-- Header -->
@@ -466,6 +473,6 @@
                                    PointerPressed="OnResizePointerPressed"
                                    Margin="0,0,2,2"/>
             </Grid>
-        </suki:GlassCard>
+        </Border>
     </Panel>
 </Window>

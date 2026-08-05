@@ -5,7 +5,6 @@ using Avalonia.VisualTree;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Input;
-using SukiUI.Controls;
 using Key = Avalonia.Input.Key;
 
 namespace EasyChat.Presentation.Features.Input.Views;
@@ -46,15 +45,9 @@ public partial class TypingView : Window
     {
         if (_settings is null)
             return;
-        TransparencyLevelHint = _settings.Input.TransparencyLevel switch
-        {
-            "AcrylicBlur" => [WindowTransparencyLevel.AcrylicBlur],
-            "Blur" => [WindowTransparencyLevel.Blur],
-            _ => [WindowTransparencyLevel.Transparent]
-        };
         var background = ParseBrush(_settings.Input.BackgroundColor);
         if (background is not null)
-            this.FindControl<GlassCard>("MainCard")!.Background = background;
+            MainCard.Background = background;
         var foreground = ParseBrush(_settings.Input.FontColor);
         if (foreground is not null)
             this.FindControl<TextBox>("InputBox")!.Foreground = foreground;

@@ -142,7 +142,6 @@ public sealed class SettingViewModel : NavigationPageViewModel
         new(SelectionTriggerMode.DragSelection, Resources.SelectionTriggerModeDragSelection),
         new(SelectionTriggerMode.All, Resources.SelectionTriggerModeAll)
     ];
-    public List<string> TransparencyLevels { get; } = ["AcrylicBlur", "Blur", "Transparent"];
     public List<InputDeliveryMode> InputDeliveryModes { get; } = Enum.GetValues<InputDeliveryMode>().ToList();
     public List<ResultWindowMode> ResultWindowModes { get; } = Enum.GetValues<ResultWindowMode>().ToList();
     public List<ResultReadAloudMode> ResultReadAloudModes { get; } = Enum.GetValues<ResultReadAloudMode>().ToList();

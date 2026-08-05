@@ -11,7 +11,8 @@
                  WindowStartupLocation="CenterScreen"
                  WindowDecorations="None"
                  ExtendClientAreaToDecorationsHint="True"
-                 TransparencyLevelHint="Blur"
+                 TransparencyLevelHint="Transparent"
+                 TransparencyBackgroundFallback="Transparent"
                  Background="Transparent"
                  Foreground="{DynamicResource SukiText}"
                  IsTitleBarVisible="False"
@@ -21,12 +22,13 @@
                  CornerRadius="14"
                  Title="{Binding WindowTitle}">
     <Grid>
-        <suki:GlassCard x:Name="MainCard"
-                        CornerRadius="14"
-                        Padding="0"
-                        Background="{DynamicResource SukiBackground}"
-                        BorderBrush="{DynamicResource SukiBorderBrush}"
-                        BorderThickness="1">
+        <Border x:Name="MainCard"
+                CornerRadius="14"
+                ClipToBounds="True"
+                Padding="0"
+                Background="{DynamicResource SukiBackground}"
+                BorderBrush="{DynamicResource SukiBorderBrush}"
+                BorderThickness="1">
             <Grid RowDefinitions="Auto,*">
                 <Border Grid.Row="0"
                         Padding="10,6"
@@ -50,7 +52,7 @@
                 </Border>
                 <ContentControl Grid.Row="1" x:Name="EditorHost" Margin="12" />
             </Grid>
-        </suki:GlassCard>
+        </Border>
 
         <!-- A borderless window needs explicit hit targets for native resize drags. -->
         <Border Width="6" HorizontalAlignment="Left" Background="Transparent"

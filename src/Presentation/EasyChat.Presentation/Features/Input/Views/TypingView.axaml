@@ -15,14 +15,16 @@
         WindowDecorations="None"
         ExtendClientAreaToDecorationsHint="True"
         CornerRadius="10"
-        TransparencyLevelHint="Blur"
+        TransparencyLevelHint="Transparent"
+        TransparencyBackgroundFallback="Transparent"
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
         Title="{x:Static lang:Resources.TranslateToWindow}">
 
     <Panel>
-        <suki:GlassCard x:Name="MainCard" CornerRadius="10" Padding="0" Background="#CC000000">
+        <Border x:Name="MainCard" CornerRadius="10" Padding="0" Background="#CC000000"
+                ClipToBounds="True">
             <Grid RowDefinitions="*,Auto" Margin="10">
                 <TextBox Name="InputBox"
                          Grid.Row="0"
@@ -82,6 +84,6 @@
                     </ComboBox>
                 </Grid>
             </Grid>
-        </suki:GlassCard>
+        </Border>
     </Panel>
 </Window>
