@@ -155,10 +155,17 @@ public sealed record OcrRecognitionResult(IReadOnlyList<OcrTextRegion> Regions)
     public string Text => string.Join("\n", Regions.Select(region => region.Text));
 }
 
+public enum OcrRecognitionMode
+{
+    Fast = 0,
+    Normal = 1
+}
+
 public sealed record OcrRecognitionRequest(
     ImageFrame Image,
     OcrLanguage? Language = null,
-    bool EnableRotation = false);
+    bool EnableRotation = false,
+    OcrRecognitionMode Mode = OcrRecognitionMode.Normal);
 
 public sealed record OcrModelDownloadOptions(string? ProxyUrl, bool UseProxy);
 

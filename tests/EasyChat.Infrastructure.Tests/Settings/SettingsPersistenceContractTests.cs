@@ -1,4 +1,5 @@
 using System.Globalization;
+using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Settings.Persistence;
 using EasyChat.Infrastructure.Settings.Persistence;
@@ -51,10 +52,54 @@ public sealed class SettingsPersistenceContractTests
             Assert.AreEqual(ThemeMode.System, result.Value.General.BaseTheme);
             Assert.AreEqual(5000, result.Value.Result.AutoCloseDelay);
             Assert.AreEqual(InputDeliveryMode.Paste, result.Value.Input.DeliveryMode);
+            Assert.AreEqual(OcrRecognitionMode.Normal, result.Value.Screenshot.OcrMode);
             Assert.AreEqual("EdgeTTS", result.Value.Tts.Provider);
             StringAssert.Contains(
                 await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
                 "\"BaseTheme\": \"Default\"");
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task ScreenshotOcrMode_RoundTripsAndOldFilesDefaultToNormal()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            var changed = initial.Value with
+            {
+                Screenshot = initial.Value.Screenshot with
+                {
+                    OcrMode = OcrRecognitionMode.Normal
+                }
+            };
+
+            var write = await gateway.WriteAsync(SettingsSection.Screenshot, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.AreEqual(OcrRecognitionMode.Normal, reread.Value.Screenshot.OcrMode);
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "Screenshot.json"),
+                """
+                {
+                  "Mode": "Precise",
+                  "FixedAreas": []
+                }
+                """);
+            var previous = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(previous.IsSuccess, previous.Error.Message);
+            Assert.AreEqual(OcrRecognitionMode.Normal, previous.Value.Screenshot.OcrMode);
         }
         finally
         {

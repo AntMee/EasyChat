@@ -1478,6 +1478,36 @@ namespace EasyChat.Presentation.Lang {
             }
         }
 
+        public static string OcrRecognitionMode {
+            get {
+                return ResourceManager.GetString("OcrRecognitionMode", resourceCulture);
+            }
+        }
+
+        public static string OcrRecognitionMode_Fast {
+            get {
+                return ResourceManager.GetString("OcrRecognitionMode_Fast", resourceCulture);
+            }
+        }
+
+        public static string OcrRecognitionMode_Normal {
+            get {
+                return ResourceManager.GetString("OcrRecognitionMode_Normal", resourceCulture);
+            }
+        }
+
+        public static string OcrRecognitionModeDescription_Fast {
+            get {
+                return ResourceManager.GetString("OcrRecognitionModeDescription_Fast", resourceCulture);
+            }
+        }
+
+        public static string OcrRecognitionModeDescription_Normal {
+            get {
+                return ResourceManager.GetString("OcrRecognitionModeDescription_Normal", resourceCulture);
+            }
+        }
+
         public static string OcrUniversalModel {
             get {
                 return ResourceManager.GetString("OcrUniversalModel", resourceCulture);

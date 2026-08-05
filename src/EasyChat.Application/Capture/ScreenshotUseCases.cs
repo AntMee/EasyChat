@@ -27,9 +27,14 @@ public sealed class ScreenshotUseCases(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(image);
-        var language = ResolveOcrLanguage(_settings.Current.General.SourceLanguage.Id);
+        var settings = _settings.Current;
+        var language = ResolveOcrLanguage(settings.General.SourceLanguage.Id);
         return _ocr.RecognizeAsync(
-            new OcrRecognitionRequest(image, language, enableRotation),
+            new OcrRecognitionRequest(
+                image,
+                language,
+                enableRotation,
+                settings.Screenshot.OcrMode),
             cancellationToken);
     }
 

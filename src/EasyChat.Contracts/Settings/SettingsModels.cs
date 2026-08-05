@@ -1,3 +1,5 @@
+using EasyChat.Contracts.Ocr;
+
 namespace EasyChat.Contracts.Settings;
 
 public sealed record SettingsBundle(
@@ -218,7 +220,8 @@ public sealed record InputSettings(
 
 public sealed record ScreenshotSettings(
     string? Mode,
-    IReadOnlyList<FixedAreaSettings> FixedAreas);
+    IReadOnlyList<FixedAreaSettings> FixedAreas,
+    OcrRecognitionMode OcrMode = OcrRecognitionMode.Normal);
 
 public sealed record FixedAreaSettings(
     string Id,

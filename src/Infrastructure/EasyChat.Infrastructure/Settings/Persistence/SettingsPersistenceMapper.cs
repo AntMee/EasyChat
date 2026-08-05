@@ -1,3 +1,4 @@
+using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
@@ -389,12 +390,14 @@ internal static class SettingsPersistenceMapper
 
     private static ScreenshotSettings ToContract(ScreenshotSettingsDto source) => new(
         source.Mode,
-        source.FixedAreas.Select(ToContract).ToArray());
+        source.FixedAreas.Select(ToContract).ToArray(),
+        (OcrRecognitionMode)(int)source.OcrMode);
 
     private static ScreenshotSettingsDto ToDto(ScreenshotSettings source) => new()
     {
         Mode = source.Mode,
-        FixedAreas = source.FixedAreas.Select(ToDto).ToList()
+        FixedAreas = source.FixedAreas.Select(ToDto).ToList(),
+        OcrMode = (OcrRecognitionModeDto)(int)source.OcrMode
     };
 
     private static FixedAreaSettings ToContract(FixedAreaSettingsDto source) => new(

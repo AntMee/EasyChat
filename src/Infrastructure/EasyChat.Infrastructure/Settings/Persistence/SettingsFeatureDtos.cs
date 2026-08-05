@@ -30,6 +30,12 @@ internal enum InputDeliveryModeDto
     Message = 2
 }
 
+internal enum OcrRecognitionModeDto
+{
+    Fast = 0,
+    Normal = 1
+}
+
 internal enum FloatingDisplayModeDto
 {
     Segmented = 0,
@@ -231,6 +237,9 @@ internal sealed class ScreenshotSettingsDto
 
     [JsonProperty]
     public List<FixedAreaSettingsDto> FixedAreas { get; set; } = [];
+
+    [JsonProperty]
+    public OcrRecognitionModeDto OcrMode { get; set; } = OcrRecognitionModeDto.Normal;
 }
 
 [JsonObject(MemberSerialization.OptIn)]

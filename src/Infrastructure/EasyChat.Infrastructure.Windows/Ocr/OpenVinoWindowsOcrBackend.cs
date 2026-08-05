@@ -3,6 +3,7 @@ using System.Net;
 using System.Runtime.Versioning;
 using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
+using EasyChat.Contracts.Platform;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Sdcb.OpenVINO;
@@ -23,6 +24,8 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         new(StringComparer.Ordinal);
     private readonly IApplicationDataPaths _applicationData;
     private readonly ILogger<WindowsOpenVinoOcr>? _logger;
+    private WindowsOcrWorkerClient? _fastWorker;
+    private bool _inProcessCoreInitialized;
     private bool _disposed;
 
     public OpenVinoWindowsOcrBackend(
@@ -116,6 +119,7 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         try
         {
             ApplyModelDirectory();
+            DisposeFastWorkerCore();
             RemoveEngineCore(package.Package.Id);
             var model = package.CreateOnlineModel();
             foreach (var root in GetModelRoots(model).Distinct(StringComparer.OrdinalIgnoreCase))
@@ -134,6 +138,43 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
     }
 
     public IReadOnlyList<WindowsOcrBackendRegion> Recognize(
+        ImageFrame image,
+        WindowsOcrLanguageSelection language,
+        bool enableRotation,
+        OcrRecognitionMode mode,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(language);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        ModelMutationGate.Wait(cancellationToken);
+        try
+        {
+            ApplyModelDirectory();
+            return mode switch
+            {
+                OcrRecognitionMode.Fast => RecognizeWithFastWorkerCore(
+                    image,
+                    language,
+                    enableRotation,
+                    cancellationToken),
+                OcrRecognitionMode.Normal => RecognizeWithOneShotWorkerCore(
+                    image,
+                    language,
+                    enableRotation,
+                    cancellationToken),
+                _ => throw new NotSupportedException($"OCR mode '{mode}' is not supported.")
+            };
+        }
+        finally
+        {
+            ModelMutationGate.Release();
+        }
+    }
+
+    internal IReadOnlyList<WindowsOcrBackendRegion> RecognizeLocal(
         Mat image,
         WindowsOcrLanguageSelection language,
         bool enableRotation,
@@ -198,7 +239,9 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
             if (_disposed)
                 return;
             _disposed = true;
+            DisposeFastWorkerCore();
             DisposeEnginesCore();
+            DisposeInProcessCore();
         }
         finally
         {
@@ -226,7 +269,9 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         {
             if (_disposed)
                 return;
+            DisposeFastWorkerCore();
             DisposeEnginesCore();
+            DisposeInProcessCore();
             ApplyModelDirectory();
         }
         finally
@@ -415,6 +460,7 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
             ? new FullOcrModel(detection, recognition)
             : new FullOcrModel(detection, classification, recognition);
 
+        _inProcessCoreInitialized = true;
         var engine = new PaddleOcrAll(model, new PaddleOcrOptions(new DeviceOptions("CPU")))
         {
             AllowRotateDetection = false,
@@ -492,11 +538,72 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
             lazyEngine.Value.Dispose();
     }
 
+    private IReadOnlyList<WindowsOcrBackendRegion> RecognizeWithFastWorkerCore(
+        ImageFrame image,
+        WindowsOcrLanguageSelection language,
+        bool enableRotation,
+        CancellationToken cancellationToken)
+    {
+        _fastWorker ??= new WindowsOcrWorkerClient(persistent: true);
+        try
+        {
+            _logger?.LogDebug(
+                "Using persistent Windows OpenVINO PaddleOCR worker for package {PackageId}.",
+                language.Package.Package.Id);
+            return _fastWorker.Recognize(
+                image,
+                language,
+                _applicationData.OcrModelsDirectory,
+                enableRotation,
+                cancellationToken);
+        }
+        catch
+        {
+            DisposeFastWorkerCore();
+            throw;
+        }
+    }
+
+    private IReadOnlyList<WindowsOcrBackendRegion> RecognizeWithOneShotWorkerCore(
+        ImageFrame image,
+        WindowsOcrLanguageSelection language,
+        bool enableRotation,
+        CancellationToken cancellationToken)
+    {
+        DisposeFastWorkerCore();
+        _logger?.LogDebug(
+            "Starting one-shot Windows OpenVINO PaddleOCR worker for package {PackageId}.",
+            language.Package.Package.Id);
+        using var worker = new WindowsOcrWorkerClient(persistent: false);
+        return worker.Recognize(
+            image,
+            language,
+            _applicationData.OcrModelsDirectory,
+            enableRotation,
+            cancellationToken);
+    }
+
+    private void DisposeFastWorkerCore()
+    {
+        _fastWorker?.Dispose();
+        _fastWorker = null;
+    }
+
     private void DisposeEnginesCore()
     {
         foreach (var packageId in _engines.Keys.ToArray())
             RemoveEngineCore(packageId);
         _engines.Clear();
+    }
+
+    private void DisposeInProcessCore()
+    {
+        if (!_inProcessCoreInitialized)
+            return;
+
+        OVCore.DisposeSharedInstance();
+        _inProcessCoreInitialized = false;
+        _logger?.LogDebug("Released the shared in-process OpenVINO Core.");
     }
 
     private sealed class PaddleEngineHandle(PaddleOcrAll engine) : IDisposable

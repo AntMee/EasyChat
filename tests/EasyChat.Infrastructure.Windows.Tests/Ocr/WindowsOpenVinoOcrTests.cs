@@ -2,7 +2,6 @@ using System.Runtime.Versioning;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
 using EasyChat.Infrastructure.Windows.Ocr;
-using OpenCvSharp;
 
 namespace EasyChat.Infrastructure.Windows.Tests.Ocr;
 
@@ -30,12 +29,14 @@ public sealed class WindowsOpenVinoOcrTests
         var result = await ocr.RecognizeAsync(new OcrRecognitionRequest(
             frame,
             OcrLanguages.English,
-            true));
+            true,
+            OcrRecognitionMode.Normal));
 
         Assert.AreEqual(OpenVinoOcrModelCatalog.UniversalV6SmallId, backend.Language?.Package.Package.Id);
         Assert.AreEqual(OcrLanguages.English.Id, backend.Language?.Language.Id);
         Assert.IsTrue(backend.EnableRotation);
-        CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, backend.Pixel);
+        Assert.AreEqual(OcrRecognitionMode.Normal, backend.Mode);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 255 }, backend.Pixels);
         Assert.AreEqual("text", result.Text);
         Assert.AreEqual(90d, result.Regions[0].Angle, 0.001);
         Assert.AreEqual(0.84, result.Regions[0].Confidence, 0.001);
@@ -46,7 +47,8 @@ public sealed class WindowsOpenVinoOcrTests
         public IReadOnlyList<WindowsOcrBackendRegion> Regions { get; init; } = [];
         public WindowsOcrLanguageSelection? Language { get; private set; }
         public bool EnableRotation { get; private set; }
-        public byte[]? Pixel { get; private set; }
+        public OcrRecognitionMode? Mode { get; private set; }
+        public byte[]? Pixels { get; private set; }
 
         public bool IsModelAvailable(OpenVinoOcrModelPackageSpec package) => true;
 
@@ -61,15 +63,16 @@ public sealed class WindowsOpenVinoOcrTests
         }
 
         public IReadOnlyList<WindowsOcrBackendRegion> Recognize(
-            Mat image,
+            ImageFrame image,
             WindowsOcrLanguageSelection language,
             bool enableRotation,
+            OcrRecognitionMode mode,
             CancellationToken cancellationToken)
         {
             Language = language;
             EnableRotation = enableRotation;
-            var pixel = image.At<Vec3b>(0, 0);
-            Pixel = [pixel.Item0, pixel.Item1, pixel.Item2];
+            Mode = mode;
+            Pixels = image.Pixels.ToArray();
             return Regions;
         }
 

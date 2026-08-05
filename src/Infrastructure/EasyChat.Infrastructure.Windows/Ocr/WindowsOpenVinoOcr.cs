@@ -3,7 +3,6 @@ using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
 using Microsoft.Extensions.Logging;
-using OpenCvSharp;
 
 namespace EasyChat.Infrastructure.Windows.Ocr;
 
@@ -62,11 +61,11 @@ public sealed class WindowsOpenVinoOcr : IOcrRecognizer, IOcrModelStore, IDispos
             throw new ArgumentException("The application must resolve the OCR language.", nameof(request));
 
         var language = OpenVinoOcrModelCatalog.ResolveLanguage(request.Language);
-        using var image = ConvertToBgr(request.Image);
         var backendRegions = _backend.Recognize(
-            image,
+            request.Image,
             language,
             request.EnableRotation,
+            request.Mode,
             cancellationToken);
 
         var regions = backendRegions
@@ -82,21 +81,6 @@ public sealed class WindowsOpenVinoOcr : IOcrRecognizer, IOcrModelStore, IDispos
     }
 
     public void Dispose() => _backend.Dispose();
-
-    private static Mat ConvertToBgr(ImageFrame frame)
-    {
-        var pixels = frame.Pixels.ToArray();
-        using var bgra = Mat.FromPixelData(
-            frame.Height,
-            frame.Width,
-            MatType.CV_8UC4,
-            pixels,
-            frame.Stride);
-        var bgr = new Mat();
-        Cv2.CvtColor(bgra, bgr, ColorConversionCodes.BGRA2BGR);
-        GC.KeepAlive(pixels);
-        return bgr;
-    }
 
     private static OcrTextRegion MapRegion(WindowsOcrBackendRegion region)
     {
@@ -166,8 +150,9 @@ internal interface IWindowsOcrBackend : IDisposable
     void DeleteModel(OpenVinoOcrModelPackageSpec package);
 
     IReadOnlyList<WindowsOcrBackendRegion> Recognize(
-        Mat image,
+        ImageFrame image,
         WindowsOcrLanguageSelection language,
         bool enableRotation,
+        OcrRecognitionMode mode,
         CancellationToken cancellationToken);
 }
