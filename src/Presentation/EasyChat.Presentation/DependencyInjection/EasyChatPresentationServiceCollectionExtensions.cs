@@ -12,6 +12,7 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.ImageTranslation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Features.Shortcuts;
+using EasyChat.Presentation.Features.ScreenshotOcr;
 using EasyChat.Presentation.Features.Speech;
 using EasyChat.Presentation.Features.Shell;
 using EasyChat.Presentation.Foundation.Navigation;
@@ -37,6 +38,7 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddSingleton<IScreenRegionPicker, AvaloniaScreenRegionPicker>();
         services.AddSingleton<ScreenshotCaptureCoordinator>();
         services.AddSingleton<ScreenshotResultCoordinator>();
+        services.AddSingleton<ScreenshotOcrWindowCoordinator>();
         services.AddSingleton<SubtitleWindowCoordinator>();
         services.AddSingleton<ITypingWindowFactory, TypingWindowFactory>();
         services.AddSingleton<ITranslationWindowCoordinator, TranslationWindowCoordinator>();
@@ -44,7 +46,9 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddSingleton<ISelectionInteractionSink, SelectionInteractionSink>();
         services.AddSingleton<ISettingsDialogCoordinator, SukiSettingsDialogCoordinator>();
         services.AddSingleton<IImageTranslationRenderer, AvaloniaImageTranslationRenderer>();
-        services.AddSingleton<IShortcutAction, ScreenshotShortcutAction>();
+        services.AddSingleton<ScreenshotShortcutAction>();
+        services.AddSingleton<IShortcutAction>(provider => provider.GetRequiredService<ScreenshotShortcutAction>());
+        services.AddSingleton<IShortcutAction, ScreenshotOcrShortcutAction>();
         services.AddSingleton<IShortcutAction, InputTranslateShortcutAction>();
         services.AddSingleton<IShortcutAction>(provider => new QuickTextAssistShortcutAction(
             "QuickTranslate",

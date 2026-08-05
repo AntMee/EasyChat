@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Runtime.Versioning;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using EasyChat.Contracts.Capture;
 using EasyChat.Presentation.Features.Capture;
 
 namespace EasyChat.Desktop.Windows.Capture;
@@ -36,6 +37,8 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
 
     public async Task<ScreenshotSelection?> CaptureAsync(
         bool precise,
+        CaptureOverlayAction defaultAction,
+        CaptureToolbarMode toolbarMode,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -43,7 +46,9 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
         var request = new ScreenshotWorkerRequest(
             precise,
             theme,
-            CultureInfo.CurrentUICulture.Name);
+            CultureInfo.CurrentUICulture.Name,
+            defaultAction,
+            toolbarMode);
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

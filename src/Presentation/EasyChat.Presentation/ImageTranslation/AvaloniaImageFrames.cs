@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
@@ -53,15 +54,22 @@ public static class AvaloniaImageFrames
         else
         {
             var source = frame.Pixels.Span;
-            var rowBuffer = new byte[rowBytes];
-            for (var row = 0; row < frame.Height; row++)
+            var rowBuffer = ArrayPool<byte>.Shared.Rent(rowBytes);
+            try
             {
-                source.Slice(row * frame.Stride, rowBytes).CopyTo(rowBuffer);
-                Marshal.Copy(
-                    rowBuffer,
-                    0,
-                    destination + row * destinationRowBytes,
-                    rowBytes);
+                for (var row = 0; row < frame.Height; row++)
+                {
+                    source.Slice(row * frame.Stride, rowBytes).CopyTo(rowBuffer);
+                    Marshal.Copy(
+                        rowBuffer,
+                        0,
+                        destination + row * destinationRowBytes,
+                        rowBytes);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rowBuffer);
             }
         }
     }

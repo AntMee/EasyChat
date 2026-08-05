@@ -1,12 +1,7 @@
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
-using EasyChat.Presentation.Features.Capture.Views;
 
 namespace EasyChat.Presentation.Features.Capture;
-
-public sealed record ScreenshotSelection(
-    ImageFrame Image,
-    CaptureOverlayAction Action,
-    PhysicalScreenPoint CompletionPoint);
 
 public interface IScreenshotCaptureSession
 {
@@ -14,6 +9,8 @@ public interface IScreenshotCaptureSession
 
     Task<ScreenshotSelection?> CaptureAsync(
         bool precise,
+        CaptureOverlayAction defaultAction,
+        CaptureToolbarMode toolbarMode,
         CancellationToken cancellationToken = default);
 }
 
@@ -26,6 +23,8 @@ public sealed class ScreenshotCaptureCoordinator(
 
     public async Task<ScreenshotSelection?> CaptureAsync(
         string? mode,
+        CaptureOverlayAction defaultAction = CaptureOverlayAction.Translation,
+        CaptureToolbarMode toolbarMode = CaptureToolbarMode.Full,
         CancellationToken cancellationToken = default)
     {
         var access = await _platformAccess.EnsureAvailableAsync(
@@ -36,6 +35,8 @@ public sealed class ScreenshotCaptureCoordinator(
 
         return await _session.CaptureAsync(
             precise: !string.Equals(mode, "Quick", StringComparison.OrdinalIgnoreCase),
+            defaultAction,
+            toolbarMode,
             cancellationToken).ConfigureAwait(false);
     }
 }
@@ -53,11 +54,15 @@ internal sealed class InProcessScreenshotCaptureSession(CaptureOverlayCoordinato
 
     public async Task<ScreenshotSelection?> CaptureAsync(
         bool precise,
+        CaptureOverlayAction defaultAction,
+        CaptureToolbarMode toolbarMode,
         CancellationToken cancellationToken = default)
     {
         var outcome = await _overlays.SelectAsync(
             precise,
             regionOnly: false,
+            defaultAction,
+            toolbarMode,
             cancellationToken: cancellationToken).ConfigureAwait(false);
         if (outcome is null)
             return null;

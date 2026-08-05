@@ -991,4 +991,5 @@
   <data name="OcrSupportedLanguages" xml:space="preserve"><value>Supported languages: {0}</value></data>
   <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>Supports {0} languages</value></data>
   <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>View all supported languages</value></data>
+  <data name="Action_ScreenshotOcr" xml:space="preserve"><value>Screenshot OCR</value></data>
 </root>

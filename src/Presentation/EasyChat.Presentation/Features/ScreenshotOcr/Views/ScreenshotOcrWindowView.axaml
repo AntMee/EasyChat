@@ -1,0 +1,200 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:EasyChat.Presentation.Features.ScreenshotOcr"
+        xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+        xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        x:Class="EasyChat.Presentation.Features.ScreenshotOcr.Views.ScreenshotOcrWindowView"
+        x:DataType="vm:ScreenshotOcrWindowViewModel"
+        Title="Screenshot OCR"
+        Width="1200" Height="720" MinWidth="900" MinHeight="560"
+        WindowDecorations="None" CanResize="True" Topmost="False"
+        Background="{DynamicResource SukiBackground}"
+        Foreground="{DynamicResource SukiText}"
+        WindowStartupLocation="CenterScreen">
+    <Window.Styles>
+        <Style Selector="Button.ToolButton">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.ContextButton">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="9,5" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Window.Styles>
+    <Grid RowDefinitions="44,*">
+        <Border BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource SukiCardBackground}"
+                PointerPressed="Header_OnPointerPressed">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="12,0,6,0">
+                <icons:MaterialIcon Kind="TextRecognition" Width="20" Height="20"
+                                    Foreground="{DynamicResource SukiPrimaryColor}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="Screenshot OCR" FontSize="15" FontWeight="SemiBold"
+                           Margin="9,0,0,0" VerticalAlignment="Center" />
+                <Button Grid.Column="2" x:Name="PinButton" Classes="ToolButton"
+                        Click="Pin_OnClick" ToolTip.Tip="Pin on screen">
+                    <icons:MaterialIcon x:Name="PinIcon" Kind="PinOutline" Width="19" Height="19" />
+                </Button>
+                <Button Grid.Column="3" Classes="ToolButton" Click="Close_OnClick" ToolTip.Tip="Close">
+                    <icons:MaterialIcon Kind="Close" Width="19" Height="19" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,1,*">
+            <Grid Grid.Column="0">
+                <controls:OcrImageViewport x:Name="Viewport" />
+
+                <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12"
+                        Padding="4" CornerRadius="7"
+                        Background="{DynamicResource SukiCardBackground}"
+                        BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1"
+                        IsVisible="{Binding HasSelection}">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button Classes="ContextButton" Click="CopySelection_OnClick" ToolTip.Tip="Copy selected text">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="ContentCopy" Width="17" Height="17" />
+                                <TextBlock Text="Copy" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="ContextButton" Click="TranslateSelection_OnClick" ToolTip.Tip="Translate selection">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="Translate" Width="17" Height="17" />
+                                <TextBlock Text="Translate" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="ContextButton" Click="ExplainSelection_OnClick" ToolTip.Tip="Explain with AI">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="LightbulbOnOutline" Width="17" Height="17" />
+                                <TextBlock Text="Explain" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="ContextButton" Click="ReplaceSelection_OnClick" ToolTip.Tip="Replace with translation">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <icons:MaterialIcon Kind="ImageEditOutline" Width="17" Height="17" />
+                                <TextBlock Text="Replace" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12"
+                        Padding="5" CornerRadius="7"
+                        Background="{DynamicResource SukiCardBackground}"
+                        BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button Classes="ToolButton" Click="ZoomOut_OnClick" ToolTip.Tip="Zoom out">
+                            <icons:MaterialIcon Kind="MagnifyMinusOutline" />
+                        </Button>
+                        <TextBlock Width="52" Text="{Binding ZoomText}" TextAlignment="Center" VerticalAlignment="Center" />
+                        <Button Classes="ToolButton" Click="ZoomIn_OnClick" ToolTip.Tip="Zoom in">
+                            <icons:MaterialIcon Kind="MagnifyPlusOutline" />
+                        </Button>
+                        <Border Width="1" Margin="4,5" Background="{DynamicResource SukiBorderBrush}" />
+                        <Button Classes="ToolButton" Click="OpenImage_OnClick" ToolTip.Tip="Open image">
+                            <icons:MaterialIcon Kind="FileImageOutline" />
+                        </Button>
+                        <Button Classes="ToolButton" Click="Recapture_OnClick" ToolTip.Tip="Capture again">
+                            <icons:MaterialIcon Kind="MonitorScreenshot" />
+                        </Button>
+                        <Button Classes="ToolButton" Click="CopyImage_OnClick" ToolTip.Tip="Copy current image">
+                            <icons:MaterialIcon Kind="ImageMultipleOutline" />
+                        </Button>
+                        <Border Width="1" Margin="4,5" Background="{DynamicResource SukiBorderBrush}" />
+                        <Button Classes="ToolButton" Click="Undo_OnClick" ToolTip.Tip="Undo" IsEnabled="{Binding CanUndo}">
+                            <icons:MaterialIcon Kind="Undo" />
+                        </Button>
+                        <Button Classes="ToolButton" Click="Redo_OnClick" ToolTip.Tip="Redo" IsEnabled="{Binding CanRedo}">
+                            <icons:MaterialIcon Kind="Redo" />
+                        </Button>
+                        <Button Classes="ToolButton" Click="Restore_OnClick" ToolTip.Tip="Restore original">
+                            <icons:MaterialIcon Kind="BackupRestore" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#73000000" IsVisible="{Binding IsRecognizing}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <suki:Loading Width="34" Height="34" />
+                        <TextBlock Text="Recognizing text..." Foreground="White" FontSize="15" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <GridSplitter Grid.Column="1" Width="1" Background="{DynamicResource SukiBorderBrush}" />
+
+            <Grid Grid.Column="2" RowDefinitions="*,Auto,Auto" Margin="14">
+                <Grid>
+                    <TextBox Text="{Binding SourceText, Mode=TwoWay}"
+                             IsVisible="{Binding !IsShowingTranslation}"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalContentAlignment="Top"
+                             Padding="12" />
+                    <TextBox Text="{Binding TranslatedText, Mode=TwoWay}"
+                             IsVisible="{Binding IsShowingTranslation}"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalContentAlignment="Top"
+                             Padding="12" />
+                    <Border Background="#50000000" IsVisible="{Binding IsTranslating}">
+                        <suki:Loading Width="30" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="4" Margin="0,10,0,0">
+                    <Button Grid.Column="0" Classes="ToolButton" Click="Retry_OnClick" ToolTip.Tip="Retry OCR">
+                        <icons:MaterialIcon Kind="Refresh" />
+                    </Button>
+                    <Button Grid.Column="1" Classes="ToolButton" Click="CopyText_OnClick" ToolTip.Tip="Copy text">
+                        <icons:MaterialIcon Kind="ContentCopy" />
+                    </Button>
+                    <Button Grid.Column="2" Classes="ToolButton" Click="TranslateText_OnClick" ToolTip.Tip="Translate text">
+                        <icons:MaterialIcon Kind="Translate" />
+                    </Button>
+                    <Button Grid.Column="3" Classes="ToolButton" Click="ShowOriginal_OnClick" ToolTip.Tip="Show original text">
+                        <icons:MaterialIcon Kind="TextBoxOutline" />
+                    </Button>
+                    <ComboBox Grid.Column="5" Width="190"
+                              ItemsSource="{Binding Languages}"
+                              SelectedItem="{Binding CandidateLanguage, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ScreenshotOcrLanguageOption">
+                                <TextBlock Text="{Binding DisplayName}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+
+                <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="2,8,2,0">
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="IndianRed" TextWrapping="Wrap" />
+                    <TextBlock Grid.Column="1" Text="{Binding StatusText}" Opacity="0.62" TextWrapping="Wrap" />
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Border Grid.RowSpan="2" Width="5" HorizontalAlignment="Left" Background="Transparent"
+                Cursor="LeftSide" Tag="West" PointerPressed="Resize_OnPointerPressed" />
+        <Border Grid.RowSpan="2" Width="5" HorizontalAlignment="Right" Background="Transparent"
+                Cursor="RightSide" Tag="East" PointerPressed="Resize_OnPointerPressed" />
+        <Border Grid.RowSpan="2" Height="5" VerticalAlignment="Top" Background="Transparent"
+                Cursor="TopSide" Tag="North" PointerPressed="Resize_OnPointerPressed" />
+        <Border Grid.RowSpan="2" Height="5" VerticalAlignment="Bottom" Background="Transparent"
+                Cursor="BottomSide" Tag="South" PointerPressed="Resize_OnPointerPressed" />
+        <Border Grid.RowSpan="2" Width="12" Height="12" HorizontalAlignment="Left" VerticalAlignment="Top"
+                Background="Transparent" Cursor="TopLeftCorner" Tag="NorthWest"
+                PointerPressed="Resize_OnPointerPressed" />
+        <Border Grid.RowSpan="2" Width="12" Height="12" HorizontalAlignment="Right" VerticalAlignment="Top"
+                Background="Transparent" Cursor="TopRightCorner" Tag="NorthEast"
+                PointerPressed="Resize_OnPointerPressed" />
+        <Border Grid.RowSpan="2" Width="12" Height="12" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                Background="Transparent" Cursor="BottomLeftCorner" Tag="SouthWest"
+                PointerPressed="Resize_OnPointerPressed" />
+        <Border Grid.RowSpan="2" Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Background="Transparent" Cursor="BottomRightCorner" Tag="SouthEast"
+                PointerPressed="Resize_OnPointerPressed" />
+    </Grid>
+</Window>

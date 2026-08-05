@@ -716,15 +716,21 @@ namespace EasyChat.Presentation.Features.TextAssist
         public bool IsCorrection => Operation == TextAssistOperation.Correction;
         public bool IsPolish => Operation == TextAssistOperation.Polish;
         public bool IsSummary => Operation == TextAssistOperation.Summary;
-        public bool ShowPlainResult => !IsCorrection;
+        public bool IsExplanation => Operation == TextAssistOperation.Explanation;
+        public bool ShowPlainResult => Operation is TextAssistOperation.Translation
+            or TextAssistOperation.Summary
+            or TextAssistOperation.Explanation;
         public MaterialIconKind WindowIcon => Operation switch
         {
             TextAssistOperation.Correction => MaterialIconKind.Spellcheck,
             TextAssistOperation.Polish => MaterialIconKind.FormatPaint,
             TextAssistOperation.Summary => MaterialIconKind.TextShort,
+            TextAssistOperation.Explanation => MaterialIconKind.LightbulbOnOutline,
             _ => MaterialIconKind.TextBoxEditOutline
         };
-        public string Title => Operation switch
+        public string Title => Operation == TextAssistOperation.Explanation
+            ? IsChineseUi ? "解释" : "Explain"
+            : Operation switch
         {
             TextAssistOperation.Correction => Resources.TextAssistCorrect,
             TextAssistOperation.Polish => IsChineseUi ? "润色" : "Polish",

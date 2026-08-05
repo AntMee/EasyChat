@@ -1,14 +1,13 @@
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
-using EasyChat.Presentation.Features.Capture;
-using EasyChat.Presentation.Features.Capture.Views;
 
 namespace EasyChat.Desktop.Windows.Capture;
 
 internal static class ScreenshotWorkerProtocol
 {
     private const int Magic = 0x50414353;
-    private const int Version = 2;
-    private const int MaxImageBytes = 512 * 1024 * 1024;
+    private const int Version = 3;
+    private const int MaxImageBytes = 128 * 1024 * 1024;
 
     internal static void WriteReady(BinaryWriter writer)
     {
@@ -28,10 +27,14 @@ internal static class ScreenshotWorkerProtocol
     internal static void WriteRequest(BinaryWriter writer, ScreenshotWorkerRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (!Enum.IsDefined(request.DefaultAction) || !Enum.IsDefined(request.ToolbarMode))
+            throw new InvalidDataException("Screenshot worker request options are invalid.");
         WriteHeader(writer, ScreenshotWorkerMessage.Request);
         writer.Write(request.Precise);
         writer.Write(request.Theme);
         writer.Write(request.CultureName);
+        writer.Write((int)request.DefaultAction);
+        writer.Write((int)request.ToolbarMode);
         writer.Flush();
     }
 
@@ -39,10 +42,15 @@ internal static class ScreenshotWorkerProtocol
     {
         if (ReadHeader(reader) != ScreenshotWorkerMessage.Request)
             throw new InvalidDataException("Screenshot worker request is invalid.");
-        return new ScreenshotWorkerRequest(
+        var request = new ScreenshotWorkerRequest(
             reader.ReadBoolean(),
             reader.ReadString(),
-            reader.ReadString());
+            reader.ReadString(),
+            (CaptureOverlayAction)reader.ReadInt32(),
+            (CaptureToolbarMode)reader.ReadInt32());
+        if (!Enum.IsDefined(request.DefaultAction) || !Enum.IsDefined(request.ToolbarMode))
+            throw new InvalidDataException("Screenshot worker request options are invalid.");
+        return request;
     }
 
     internal static void WriteCancelled(BinaryWriter writer)
@@ -54,6 +62,8 @@ internal static class ScreenshotWorkerProtocol
     internal static void WriteSuccess(BinaryWriter writer, ScreenshotSelection selection)
     {
         ArgumentNullException.ThrowIfNull(selection);
+        if (!Enum.IsDefined(selection.Action))
+            throw new InvalidDataException("Screenshot worker action is invalid.");
         WriteHeader(writer, ScreenshotWorkerMessage.Success);
         writer.Write((int)selection.Action);
         writer.Write(selection.CompletionPoint.X);
@@ -179,4 +189,6 @@ internal static class ScreenshotWorkerProtocol
 internal sealed record ScreenshotWorkerRequest(
     bool Precise,
     string Theme,
-    string CultureName);
+    string CultureName,
+    CaptureOverlayAction DefaultAction,
+    CaptureToolbarMode ToolbarMode);

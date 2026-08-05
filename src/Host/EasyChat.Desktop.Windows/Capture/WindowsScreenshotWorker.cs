@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Styling;
+using EasyChat.Contracts.Capture;
 using EasyChat.Infrastructure.Windows.Capture;
 using EasyChat.Infrastructure.Windows.Input;
 using EasyChat.Presentation.Features.Capture;
@@ -37,7 +38,9 @@ internal static class WindowsScreenshotWorker
                 return new ScreenshotCaptureCommand(
                     request.Precise,
                     theme,
-                    request.CultureName);
+                    request.CultureName,
+                    request.DefaultAction,
+                    request.ToolbarMode);
             }
             catch (Exception exception) when (exception is EndOfStreamException
                                               or IOException

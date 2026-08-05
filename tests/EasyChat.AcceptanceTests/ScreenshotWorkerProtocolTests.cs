@@ -1,7 +1,6 @@
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
 using EasyChat.Desktop.Windows.Capture;
-using EasyChat.Presentation.Features.Capture;
-using EasyChat.Presentation.Features.Capture.Views;
 
 namespace EasyChat.AcceptanceTests;
 
@@ -23,7 +22,12 @@ public sealed class ScreenshotWorkerProtocolTests
     [TestMethod]
     public void RequestRoundTripsCaptureOptions()
     {
-        var request = new ScreenshotWorkerRequest(true, "Dark", "zh-CN");
+        var request = new ScreenshotWorkerRequest(
+            true,
+            "Dark",
+            "zh-CN",
+            CaptureOverlayAction.OcrWorkbench,
+            CaptureToolbarMode.ImageSelection);
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
             ScreenshotWorkerProtocol.WriteRequest(writer, request);
@@ -33,6 +37,27 @@ public sealed class ScreenshotWorkerProtocolTests
         var actual = ScreenshotWorkerProtocol.ReadRequest(reader);
 
         Assert.AreEqual(request, actual);
+    }
+
+    [TestMethod]
+    public void RequestRejectsInvalidToolbarMode()
+    {
+        var request = new ScreenshotWorkerRequest(
+            true,
+            "Dark",
+            "zh-CN",
+            CaptureOverlayAction.OcrWorkbench,
+            CaptureToolbarMode.Full);
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+            ScreenshotWorkerProtocol.WriteRequest(writer, request);
+        var bytes = stream.ToArray();
+        BitConverter.GetBytes(int.MaxValue).CopyTo(bytes, bytes.Length - sizeof(int));
+        using var invalidStream = new MemoryStream(bytes);
+        using var reader = new BinaryReader(invalidStream);
+
+        Assert.ThrowsExactly<InvalidDataException>(() =>
+            ScreenshotWorkerProtocol.ReadRequest(reader));
     }
 
     [TestMethod]

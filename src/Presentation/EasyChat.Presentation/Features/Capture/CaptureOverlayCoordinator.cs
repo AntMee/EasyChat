@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Capture.Views;
 using EasyChat.Presentation.ImageTranslation;
@@ -27,6 +28,8 @@ public sealed class CaptureOverlayCoordinator(
     internal async Task<CaptureOverlayOutcome?> SelectAsync(
         bool precise,
         bool regionOnly,
+        CaptureOverlayAction defaultAction = CaptureOverlayAction.Translation,
+        CaptureToolbarMode toolbarMode = CaptureToolbarMode.Full,
         CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -50,7 +53,9 @@ public sealed class CaptureOverlayCoordinator(
                     desktopBounds,
                     desktopImage,
                     precise,
-                    regionOnly),
+                    regionOnly,
+                    defaultAction,
+                    regionOnly ? CaptureToolbarMode.ImageSelection : toolbarMode),
                 cancellationToken);
             try
             {
@@ -145,6 +150,7 @@ internal sealed class CaptureOverlaySession : IDisposable
     private readonly Bitmap _desktopImage;
     private readonly bool _precise;
     private readonly bool _regionOnly;
+    private readonly CaptureOverlayAction _defaultAction;
     private readonly PhysicalSelectionState _selection;
     private readonly List<OverlaySurface> _surfaces = [];
     private readonly TaskCompletionSource<CaptureOverlayOutcome?> _completion = new(
@@ -161,13 +167,16 @@ internal sealed class CaptureOverlaySession : IDisposable
         PhysicalScreenRegion desktopBounds,
         Bitmap desktopImage,
         bool precise,
-        bool regionOnly)
+        bool regionOnly,
+        CaptureOverlayAction defaultAction,
+        CaptureToolbarMode toolbarMode)
     {
         _screens = screens;
         _desktopBounds = desktopBounds;
         _desktopImage = desktopImage;
         _precise = precise;
         _regionOnly = regionOnly;
+        _defaultAction = defaultAction;
         _selection = new PhysicalSelectionState(ToPixelRect(desktopBounds));
 
         try
@@ -181,7 +190,12 @@ internal sealed class CaptureOverlaySession : IDisposable
                 OverlayWindowView? view = null;
                 try
                 {
-                    view = new OverlayWindowView(screen, background, regionOnly);
+                    view = new OverlayWindowView(
+                        screen,
+                        background,
+                        regionOnly,
+                        defaultAction,
+                        toolbarMode);
                     Subscribe(view);
                     _surfaces.Add(new OverlaySurface(view, background));
                 }
@@ -366,7 +380,7 @@ internal sealed class CaptureOverlaySession : IDisposable
             _toolbarView.Activate();
         }
         else
-            Complete(CaptureOverlayAction.Translation);
+            Complete(_defaultAction);
     }
 
     private void OnActionRequested(OverlayWindowView view, CaptureOverlayAction action)

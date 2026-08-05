@@ -44,6 +44,7 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
             TextAssistOperation.Correction => config.CorrectionPromptId,
             TextAssistOperation.Polish => config.PolishPromptId,
             TextAssistOperation.Summary => config.SummaryPromptId,
+            TextAssistOperation.Explanation => config.SummaryPromptId,
             _ => config.TranslationPromptId
         };
 
@@ -96,6 +97,7 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
             TextAssistOperation.Correction => StreamCorrectionAsync(request.Text, profile, cancellationToken),
             TextAssistOperation.Polish => StreamPolishAsync(request.Text, profile, cancellationToken),
             TextAssistOperation.Summary => StreamSummaryAsync(request.Text, profile, cancellationToken),
+            TextAssistOperation.Explanation => StreamExplanationAsync(request.Text, profile, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(request), request.Operation, null)
         };
     }
@@ -293,6 +295,44 @@ You are a precise writing assistant.
 
 # Task
 {{instruction}}
+
+# Optional user guidance
+{{BuildAssistGuidance(profile)}}
+""";
+        var emitted = false;
+        await foreach (var chunk in CreateChatProvider(profile).StreamAsync(
+                           new ChatTranslationProviderRequest(
+                               prompt,
+                               text,
+                               Temperature: 0.2f,
+                               MaxOutputTokenCount: 4000),
+                           cancellationToken).ConfigureAwait(false))
+        {
+            if (string.IsNullOrEmpty(chunk))
+                continue;
+            emitted = true;
+            yield return new TextAssistTranslationDeltaEvent(chunk);
+        }
+        if (!emitted)
+            yield return new TextAssistTranslationDeltaEvent(string.Empty);
+        yield return new TextAssistCompletedEvent();
+    }
+
+    private async IAsyncEnumerable<TextAssistEvent> StreamExplanationAsync(
+        string text,
+        TextAssistProfile profile,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var outputLanguage = ResolveOutputLanguage();
+        var prompt = $$"""
+# Role
+You are a precise language and context explainer.
+
+# Task
+Explain the selected text in {{outputLanguage}}. Detect the input language yourself.
+Clarify its meaning in context, important terms, idioms, ambiguity, and implied intent when relevant.
+Be concise but complete. Do not translate mechanically unless a translation helps the explanation.
+Output only the explanation, without a heading or meta commentary.
 
 # Optional user guidance
 {{BuildAssistGuidance(profile)}}

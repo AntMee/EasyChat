@@ -7,6 +7,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Capture.Views;
 
@@ -15,7 +16,9 @@ namespace EasyChat.Presentation.Features.Capture;
 public sealed record ScreenshotCaptureCommand(
     bool Precise,
     ThemeVariant RequestedTheme,
-    string CultureName);
+    string CultureName,
+    CaptureOverlayAction DefaultAction,
+    CaptureToolbarMode ToolbarMode);
 
 public sealed partial class ScreenshotCaptureWorkerApp : Avalonia.Application
 {
@@ -115,6 +118,8 @@ public sealed partial class ScreenshotCaptureWorkerApp : Avalonia.Application
             var outcome = await _overlays.SelectAsync(
                 command.Precise,
                 regionOnly: false,
+                command.DefaultAction,
+                command.ToolbarMode,
                 cancellationToken: CancellationToken.None);
             if (outcome is null)
             {

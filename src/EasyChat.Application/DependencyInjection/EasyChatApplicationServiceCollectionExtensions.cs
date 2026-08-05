@@ -53,6 +53,8 @@ public static class EasyChatApplicationServiceCollectionExtensions
         services.AddSingleton<IOcrRecognitionUseCases, OcrRecognitionUseCases>();
         services.AddSingleton<IOcrModelUseCases, OcrModelUseCases>();
         services.AddSingleton<IImageTranslationUseCases, ImageTranslationUseCases>();
+        services.AddSingleton<ImageTranslationMemoryBudget>();
+        services.AddSingleton<IImageTranslationEditSessionFactory, ImageTranslationEditSessionFactory>();
         services.AddSingleton<IInputDeliveryUseCases, InputDeliveryUseCases>();
         services.AddSingleton<IInputTranslationUseCases, InputTranslationUseCases>();
         services.AddSingleton<ISelectedTextUseCases, SelectedTextUseCases>();

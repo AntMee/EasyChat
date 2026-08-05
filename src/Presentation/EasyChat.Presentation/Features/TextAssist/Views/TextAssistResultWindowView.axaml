@@ -197,7 +197,7 @@
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
-                <Border Padding="14" CornerRadius="8" IsVisible="{Binding IsSummary}"
+                <Border Padding="14" CornerRadius="8" IsVisible="{Binding ShowPlainResult}"
                         Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
                         BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch">

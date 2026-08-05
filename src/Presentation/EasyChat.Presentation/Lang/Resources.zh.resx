@@ -981,4 +981,5 @@
   <data name="OcrSupportedLanguages" xml:space="preserve"><value>支持语言：{0}</value></data>
   <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>支持 {0} 种语言</value></data>
   <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>查看全部支持语言</value></data>
+  <data name="Action_ScreenshotOcr" xml:space="preserve"><value>截图 OCR</value></data>
 </root>

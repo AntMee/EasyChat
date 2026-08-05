@@ -65,6 +65,14 @@
                         ToolTip.Tip="{x:Static lang:Resources.Copy}">
                     <icon:MaterialIcon Kind="ContentCopy" Width="24" Height="24" Foreground="{DynamicResource SukiPrimaryColor}" />
                 </Button>
+                <Button x:Name="OcrButton"
+                        Background="Transparent"
+                        Padding="12,8"
+                        CornerRadius="0"
+                        Click="OcrButton_OnClick"
+                        ToolTip.Tip="OCR">
+                    <icon:MaterialIcon Kind="TextRecognition" Width="24" Height="24" Foreground="{DynamicResource SukiPrimaryColor}" />
+                </Button>
                 <Button x:Name="ResetButton" 
                         Background="Transparent"
                         Padding="12,8"

@@ -37,6 +37,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IClipboardSnapshots>(provider =>
             provider.GetRequiredService<WindowsClipboardSnapshots>());
         services.AddSingleton<IClipboardText, WindowsClipboardText>();
+        services.AddSingleton<IClipboardImage, WindowsClipboardImage>();
         services.AddSingleton<ITextDelivery, WindowsTextDelivery>();
         services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
         services.AddSingleton<IAudioCaptureSourceCatalog, WindowsAudioCaptureSourceCatalog>();
