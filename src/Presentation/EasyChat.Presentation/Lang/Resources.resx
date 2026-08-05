@@ -931,7 +931,8 @@
   <data name="Retry" xml:space="preserve"><value>Retry</value></data>
   <data name="Tts_ConfigureVoices" xml:space="preserve"><value>Configure Voices</value></data>
   <data name="ReadSelectedText" xml:space="preserve"><value>Read selected text</value></data>
-  <data name="OcrModels" xml:space="preserve"><value>OCR models</value></data>
+  <data name="OcrModels" xml:space="preserve"><value>Screenshot translation</value></data>
+  <data name="OcrModelsDescription" xml:space="preserve"><value>(Models used to extract text from screenshots; download one before using screenshot translation)</value></data>
   <data name="OcrUseProxy" xml:space="preserve"><value>Use proxy for model download</value></data>
   <data name="DownloadOcrModels" xml:space="preserve"><value>Download OCR models</value></data>
   <data name="DownloadOcrModel" xml:space="preserve"><value>Download</value></data>
@@ -946,8 +947,8 @@
   <data name="OcrModelDownloadTitle" xml:space="preserve"><value>OCR models</value></data>
   <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR models downloaded successfully.</value></data>
   <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR model download failed</value></data>
-  <data name="AsrModels" xml:space="preserve"><value>ASR models</value></data>
-  <data name="AsrModelsDescription" xml:space="preserve"><value>Import one or more model folders, folders containing models, or supported model archives.</value></data>
+  <data name="AsrModels" xml:space="preserve"><value>Real-time speech recognition</value></data>
+  <data name="AsrModelsDescription" xml:space="preserve"><value>(Models used for real-time speech-to-text recognition; download one before using real-time speech recognition)</value></data>
   <data name="ImportAsrModelFolder" xml:space="preserve"><value>Import folders</value></data>
   <data name="ImportAsrModelArchive" xml:space="preserve"><value>Import archives</value></data>
   <data name="AsrModelArchives" xml:space="preserve"><value>Model archives</value></data>

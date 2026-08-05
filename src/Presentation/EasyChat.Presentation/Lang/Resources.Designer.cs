@@ -1472,6 +1472,12 @@ namespace EasyChat.Presentation.Lang {
             }
         }
 
+        public static string OcrModelsDescription {
+            get {
+                return ResourceManager.GetString("OcrModelsDescription", resourceCulture);
+            }
+        }
+
         public static string OcrUniversalModel {
             get {
                 return ResourceManager.GetString("OcrUniversalModel", resourceCulture);

@@ -919,7 +919,8 @@
     <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译</value></data>
     <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正</value></data>
     <data name="ReadSelectedText" xml:space="preserve"><value>读取选中文本</value></data>
-    <data name="OcrModels" xml:space="preserve"><value>OCR 模型</value></data>
+    <data name="OcrModels" xml:space="preserve"><value>截图翻译</value></data>
+    <data name="OcrModelsDescription" xml:space="preserve"><value>（用于截图提取文字的模型，需要下载后才可以正常使用截图翻译）</value></data>
     <data name="OcrUseProxy" xml:space="preserve"><value>下载模型时使用代理</value></data>
     <data name="DownloadOcrModels" xml:space="preserve"><value>下载 OCR 模型</value></data>
     <data name="DownloadOcrModel" xml:space="preserve"><value>下载</value></data>
@@ -936,8 +937,8 @@
     <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR 模型下载失败</value></data>
   <data name="Retry" xml:space="preserve"><value>重试</value></data>
     <data name="Tts_ConfigureVoices" xml:space="preserve"><value>配置语音</value></data>
-    <data name="AsrModels" xml:space="preserve"><value>ASR 模型</value></data>
-    <data name="AsrModelsDescription" xml:space="preserve"><value>可一次导入一个或多个模型文件夹、包含模型的文件夹，或受支持的模型压缩包。</value></data>
+    <data name="AsrModels" xml:space="preserve"><value>语音实时识别</value></data>
+    <data name="AsrModelsDescription" xml:space="preserve"><value>（用于语音实时识别文字的模型，需要下载后才可以正常使用语音实时识别）</value></data>
     <data name="ImportAsrModelFolder" xml:space="preserve"><value>导入文件夹</value></data>
     <data name="ImportAsrModelArchive" xml:space="preserve"><value>导入压缩包</value></data>
     <data name="AsrModelArchives" xml:space="preserve"><value>模型压缩包</value></data>

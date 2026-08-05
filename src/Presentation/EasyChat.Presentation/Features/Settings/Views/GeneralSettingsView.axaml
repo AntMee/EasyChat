@@ -93,8 +93,15 @@
 
         <suki:GlassCard>
             <StackPanel Spacing="10">
-                <TextBlock FontSize="16" FontWeight="Bold"
-                           Text="{x:Static lang:Resources.OcrModels}" />
+                <WrapPanel VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold"
+                               Text="{x:Static lang:Resources.OcrModels}" />
+                    <TextBlock Margin="10,2,0,0"
+                               FontSize="13"
+                               Foreground="{DynamicResource SukiLowText}"
+                               Text="{x:Static lang:Resources.OcrModelsDescription}"
+                               TextWrapping="Wrap" />
+                </WrapPanel>
                 <StackPanel Orientation="Horizontal" Spacing="16">
                     <TextBlock VerticalAlignment="Center" Text="{x:Static lang:Resources.ProxyUrl}" />
                     <TextBox MinWidth="300"
@@ -203,13 +210,15 @@
 
         <suki:GlassCard>
             <StackPanel Spacing="10">
-                <StackPanel Spacing="3">
+                <WrapPanel VerticalAlignment="Center">
                     <TextBlock FontSize="16" FontWeight="Bold"
                                Text="{x:Static lang:Resources.AsrModels}" />
-                    <TextBlock Foreground="{DynamicResource SukiLowText}"
+                    <TextBlock Margin="10,2,0,0"
+                               FontSize="13"
+                               Foreground="{DynamicResource SukiLowText}"
                                Text="{x:Static lang:Resources.AsrModelsDescription}"
                                TextWrapping="Wrap" />
-                </StackPanel>
+                </WrapPanel>
                 <WrapPanel HorizontalAlignment="Right">
                     <Button Command="{Binding OpenAsrModelDownloadsCommand}"
                             Margin="4" IsEnabled="{Binding CanImportAsrModel}">
