@@ -8,7 +8,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Material.Icons;
 
-namespace EasyChat.Presentation.Features.ScreenshotOcr.Controls;
+namespace EasyChat.Presentation.Shared.Controls;
 
 /// <summary>
 /// Keeps the autocomplete popup compact while allowing visible long items to be
@@ -35,6 +35,11 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
     private bool _restoreTextWhenClosing;
     private bool _widthUpdateQueued;
     private bool _isUpdatingPopupWidth;
+    private TopLevel? _topLevel;
+    private Window? _window;
+    private TextBox? _attachedTextBox;
+    private bool _allowSelectAll;
+    private bool _adjustingSelection;
 
     public static readonly StyledProperty<MaterialIconKind> DropDownIconProperty =
         AvaloniaProperty.Register<LanguageAutoCompleteBox, MaterialIconKind>(
@@ -54,7 +59,6 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         DropDownOpened += OnDropDownOpened;
         DropDownClosed += OnDropDownClosed;
         Populated += OnPopulated;
-        GotFocus += OnSelectorGotFocus;
         LostFocus += OnSelectorLostFocus;
         PointerPressed += OnSelectorPointerPressed;
     }
@@ -63,11 +67,13 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
     {
         DetachPopupClip();
         DetachDropDownScrollViewer();
+        DetachTextBox();
         base.OnApplyTemplate(e);
         TextFilter = FilterText;
         _dropDownPopup = e.NameScope.Find<Popup>(PopupPartName);
         if (_dropDownPopup is not null)
             _dropDownPopup.Placement = PlacementMode.BottomEdgeAlignedRight;
+        AttachTextBox(e.NameScope.Find<TextBox>("PART_TextBox"));
         _basePopupWidth = Bounds.Width;
         _popupWidth = _basePopupWidth;
         ApplyPopupWidth();
@@ -91,10 +97,108 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         return arrangedSize;
     }
 
-    private void OnSelectorGotFocus(object? sender, RoutedEventArgs e)
+    protected override void OnGotFocus(FocusChangedEventArgs e)
     {
+        base.OnGotFocus(e);
+
         PrepareToShowAllItems();
-        QueueSelectAllText();
+
+        // base.OnGotFocus -> FocusChanged calls TextBox.SelectAll() whenever the
+        // control regains focus without a selection (e.g. after picking an item,
+        // which refocuses the text box). Restoring the caret right after the
+        // base call, in the same event dispatch, leaves the final selection
+        // state correct - no all-selected frame is ever rendered. This override
+        // guarantees ordering, unlike a plain GotFocus instance handler.
+        RestoreCaretToEnd();
+    }
+
+    private void RestoreCaretToEnd()
+    {
+        var textBox = _attachedTextBox
+            ?? this.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+        if (textBox is null)
+            return;
+
+        var selectionLength = Math.Abs(textBox.SelectionEnd - textBox.SelectionStart);
+        if (selectionLength > 1)
+            return; // user-selected text (e.g. Ctrl+A) must be preserved
+
+        var length = textBox.Text?.Length ?? 0;
+        textBox.CaretIndex = length;
+        textBox.SelectionStart = length;
+        textBox.SelectionEnd = length;
+    }
+
+    private void AttachTextBox(TextBox? textBox)
+    {
+        _attachedTextBox = textBox;
+        if (_attachedTextBox is null)
+            return;
+
+        _attachedTextBox.KeyDown += OnTextBoxKeyDown;
+        _attachedTextBox.KeyUp += OnTextBoxKeyUp;
+        _attachedTextBox.PropertyChanged += OnTextBoxPropertyChanged;
+    }
+
+    private void DetachTextBox()
+    {
+        if (_attachedTextBox is null)
+            return;
+
+        _attachedTextBox.KeyDown -= OnTextBoxKeyDown;
+        _attachedTextBox.KeyUp -= OnTextBoxKeyUp;
+        _attachedTextBox.PropertyChanged -= OnTextBoxPropertyChanged;
+        _attachedTextBox = null;
+    }
+
+    private void OnTextBoxPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == TextBox.SelectionStartProperty || e.Property == TextBox.SelectionEndProperty)
+            OnTextBoxSelectionChanged();
+    }
+
+    private void OnTextBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.A)
+            _allowSelectAll = true;
+    }
+
+    private void OnTextBoxKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (_allowSelectAll && e.Key == Key.A)
+            _allowSelectAll = false;
+    }
+
+    private void OnTextBoxSelectionChanged()
+    {
+        // AutoCompleteBox's built-in FocusChanged handler (and any other source)
+        // calls TextBox.SelectAll() asynchronously after the focus event, so
+        // restoring the caret inside OnGotFocus is too early. Intercept the
+        // selection here instead: whenever the whole text becomes selected not
+        // by the user (Ctrl+A), synchronously move the caret to the end - same
+        // event, no intermediate render, so no flicker and no persistent
+        // all-selected state.
+        if (_allowSelectAll || _adjustingSelection || _attachedTextBox is null)
+            return;
+
+        var length = _attachedTextBox.Text?.Length ?? 0;
+        if (length <= 0)
+            return;
+
+        if (_attachedTextBox.SelectionStart != 0 || _attachedTextBox.SelectionEnd != length)
+            return;
+
+        _adjustingSelection = true;
+        try
+        {
+            _attachedTextBox.CaretIndex = length;
+            _attachedTextBox.SelectionStart = length;
+            _attachedTextBox.SelectionEnd = length;
+        }
+        finally
+        {
+            _adjustingSelection = false;
+        }
     }
 
     private void OnSelectorPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -114,7 +218,6 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         {
             if (!IsDropDownOpen)
                 OpenDropDownWithAllItems();
-            SelectAllText();
         }, DispatcherPriority.Input);
     }
 
@@ -144,7 +247,6 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         }
 
         OpenDropDownWithAllItems();
-        QueueSelectAllText();
     }
 
     private void PrepareToShowAllItems()
@@ -174,22 +276,18 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
             Text = _textBeforeOpening;
     }
 
-    private void QueueSelectAllText() =>
-        Dispatcher.UIThread.Post(SelectAllText, DispatcherPriority.Input);
-
-    private void SelectAllText() =>
-        this.GetVisualDescendants().OfType<TextBox>().FirstOrDefault()?.SelectAll();
-
     private void OnDropDownOpened(object? sender, EventArgs e)
     {
         _textBeforeOpening ??= Text;
         DropDownIcon = MaterialIconKind.ChevronUp;
         QueuePopupWidthUpdate();
+        AttachTopLevelDismissal();
     }
 
     private void OnDropDownClosed(object? sender, EventArgs e)
     {
         DetachDropDownScrollViewer();
+        DetachTopLevelDismissal();
         _showAllItems = false;
         if (_restoreTextWhenClosing)
             RestoreTextBeforeOpening();
@@ -204,6 +302,75 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
     {
         if (IsDropDownOpen)
             QueuePopupWidthUpdate();
+    }
+
+    private void AttachTopLevelDismissal()
+    {
+        if (_topLevel is not null)
+            return;
+
+        _topLevel = TopLevel.GetTopLevel(this);
+        if (_topLevel is null)
+            return;
+
+        _topLevel.PointerPressed += OnTopLevelPointerPressed;
+
+        if (_topLevel is Window window)
+        {
+            _window = window;
+            _window.Deactivated += OnTopLevelDeactivated;
+        }
+    }
+
+    private void DetachTopLevelDismissal()
+    {
+        if (_topLevel is null)
+            return;
+
+        _topLevel.PointerPressed -= OnTopLevelPointerPressed;
+        _topLevel = null;
+
+        if (_window is not null)
+        {
+            _window.Deactivated -= OnTopLevelDeactivated;
+            _window = null;
+        }
+    }
+
+    private void OnTopLevelDeactivated(object? sender, EventArgs e) =>
+        CloseDropDownAndRestoreText();
+
+    private void OnTopLevelPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!IsDropDownOpen)
+            return;
+
+        // Clicks inside the selector itself (or the drop-down arrow overlaid on
+        // top of it) keep the popup open; clicking anywhere else dismisses it.
+        var position = e.GetPosition(this);
+        if (position.X >= 0
+            && position.Y >= 0
+            && position.X <= Bounds.Width
+            && position.Y <= Bounds.Height)
+        {
+            return;
+        }
+
+        if (_dropDownPopup?.Child is { } popupChild
+            && popupChild.Bounds.Width > 0
+            && popupChild.Bounds.Height > 0)
+        {
+            var popupPosition = e.GetPosition(popupChild);
+            if (popupPosition.X >= 0
+                && popupPosition.Y >= 0
+                && popupPosition.X <= popupChild.Bounds.Width
+                && popupPosition.Y <= popupChild.Bounds.Height)
+            {
+                return;
+            }
+        }
+
+        CloseDropDownAndRestoreText();
     }
 
     private void OnDropDownScrollChanged(object? sender, ScrollChangedEventArgs e)

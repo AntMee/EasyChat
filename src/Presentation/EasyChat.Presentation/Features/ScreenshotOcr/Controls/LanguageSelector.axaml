@@ -1,20 +1,19 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+             xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:converters="using:EasyChat.Presentation.Foundation.Formatting"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:vm="using:EasyChat.Presentation.Features.ScreenshotOcr"
              x:Class="EasyChat.Presentation.Features.ScreenshotOcr.Controls.LanguageSelector"
              x:Name="Root"
-             x:DataType="controls:LanguageSelector">
+             x:CompileBindings="False">
     <Grid>
         <Border Background="{DynamicResource SukiCardBackground}"
                 BorderBrush="{DynamicResource SukiBorderBrush}"
                 BorderThickness="1" CornerRadius="6" ClipToBounds="True">
-            <controls:LanguageAutoCompleteBox x:Name="LanguageAutoCompleteBox"
+            <sharedControls:LanguageAutoCompleteBox x:Name="LanguageAutoCompleteBox"
                                                 ItemsSource="{Binding Languages, ElementName=Root}"
                                                 SelectedItem="{Binding SelectedLanguage, ElementName=Root, Mode=TwoWay}"
-                                                ValueMemberBinding="{Binding DisplayName}"
+                                                ValueMemberBinding="{Binding Converter={x:Static converters:LanguageDisplayNameConverter.Instance}}"
                                                 FilterMode="ContainsOrdinal"
                                                 MinimumPrefixLength="0"
                                                 IsTextCompletionEnabled="False"
@@ -26,8 +25,8 @@
                                                 Padding="32,0,28,0"
                                                 HorizontalAlignment="Stretch"
                                                 VerticalAlignment="Stretch">
-                <controls:LanguageAutoCompleteBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ScreenshotOcrLanguageOption">
+                <sharedControls:LanguageAutoCompleteBox.ItemTemplate>
+                    <DataTemplate>
                         <Grid ColumnDefinitions="24,*" ColumnSpacing="7" Margin="3,2,0,2"
                               HorizontalAlignment="Stretch">
                             <Panel Width="22" Height="16" VerticalAlignment="Center">
@@ -37,13 +36,13 @@
                                        IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
                                        Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
                             </Panel>
-                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
+                            <TextBlock Grid.Column="1" Text="{Binding Converter={x:Static converters:LanguageDisplayNameConverter.Instance}}"
                                        TextWrapping="NoWrap" TextTrimming="None"
                                        VerticalAlignment="Center" />
                         </Grid>
                     </DataTemplate>
-                </controls:LanguageAutoCompleteBox.ItemTemplate>
-            </controls:LanguageAutoCompleteBox>
+                </sharedControls:LanguageAutoCompleteBox.ItemTemplate>
+            </sharedControls:LanguageAutoCompleteBox>
         </Border>
 
         <Panel ZIndex="10" Width="22" Height="16" Margin="8,0,0,0"

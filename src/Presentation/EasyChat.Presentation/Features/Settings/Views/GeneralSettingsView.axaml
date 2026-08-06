@@ -9,6 +9,8 @@
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:speech="clr-namespace:EasyChat.Contracts.Speech;assembly=EasyChat.Contracts"
+             xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
+             xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
              xmlns:dataConverters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
@@ -18,44 +20,16 @@
                 <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
                     <TextBlock FontWeight="Bold" VerticalAlignment="Center"
                                Text="{x:Static lang:Resources.DisplayLanguage}" />
-                    <ComboBox ItemsSource="{Binding DisplayLanguages}"
-                              SelectedItem="{Binding SelectedDisplayLanguage}"
-                              MinWidth="150">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14"
-                                            IsVisible="{Binding Icon, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}">
-                                        <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
-                                               Stretch="UniformToFill" />
-                                    </Border>
-                                    <TextBlock Text="{Binding Converter={x:Static converts:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource SukiText}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <controls:LanguageSelector Languages="{Binding DisplayLanguages}"
+                              SelectedLanguage="{Binding SelectedDisplayLanguage, Mode=TwoWay}"
+                              MinWidth="150" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
                     <TextBlock FontWeight="Bold" VerticalAlignment="Center"
                                Text="{x:Static lang:Resources.NativeLanguage}" />
-                    <ComboBox ItemsSource="{Binding NativeLanguages}"
-                              SelectedItem="{Binding SelectedNativeLanguage}"
-                              MinWidth="150">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14"
-                                            IsVisible="{Binding Icon, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}">
-                                        <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
-                                               Stretch="UniformToFill" />
-                                    </Border>
-                                    <TextBlock Text="{Binding Converter={x:Static converts:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource SukiText}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <controls:LanguageSelector Languages="{Binding NativeLanguages}"
+                              SelectedLanguage="{Binding SelectedNativeLanguage, Mode=TwoWay}"
+                              MinWidth="150" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
                     <TextBlock FontWeight="Bold" VerticalAlignment="Center"

@@ -3,6 +3,8 @@
         xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
         xmlns:controls="using:EasyChat.Presentation.Features.TextAssist.Controls"
         xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
+        xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
+        xmlns:sharedControls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
@@ -68,19 +70,8 @@
                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
                 </Border>
-                <ComboBox Grid.Column="1" Width="160" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedSourceLanguage}"
-                          IsVisible="{Binding ShowLanguageSelector}">
-                    <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="7">
-                        <Panel Width="22" Height="16">
-                            <icons:MaterialIcon Kind="FlagOutline" Width="18" Height="18" Opacity="0.65"
-                                                IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasNoIcon}}" />
-                            <Image Width="22" Height="16"
-                                   IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
-                                   Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                        </Panel>
-                        <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center" />
-                    </StackPanel></DataTemplate></ComboBox.ItemTemplate>
-                </ComboBox>
+                <sharedControls:LanguageSelector Grid.Column="1" Width="160" Languages="{Binding Languages}" SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
+                          IsVisible="{Binding ShowLanguageSelector}" />
                 <Button Grid.Column="2" Classes="Basic" Command="{Binding RetryCommand}" ToolTip.Tip="{x:Static lang:Resources.Retry}">
                     <icons:MaterialIcon Kind="Refresh" />
                 </Button>

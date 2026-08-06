@@ -5,8 +5,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Shell"
+             xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
              xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
+             xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              d:DesignWidth="800"
              d:DesignHeight="450"
@@ -136,20 +138,11 @@
                                 <TextBlock Text="{x:Static lang:Resources.SourceLang}" 
                                            VerticalAlignment="Center" FontWeight="SemiBold" />
                             </StackPanel>
-                            <ComboBox Grid.Column="1" 
-                                      ItemsSource="{Binding AvailableLanguages}"
-                                      SelectedItem="{Binding SelectedSourceLanguage}"
+                            <controls:LanguageSelector Grid.Column="1"
+                                      Languages="{Binding AvailableLanguages}"
+                                      SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
                                       HorizontalAlignment="Left" MinWidth="200"
-                                      Classes="Outline">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Image Width="20" Height="20" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                            <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" Foreground="{DynamicResource SukiText}" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                                      Classes="Outline" />
                         </Grid>
                         
                         <!-- Target Language -->
@@ -160,20 +153,11 @@
                                 <TextBlock Text="{x:Static lang:Resources.TargetLang}" 
                                            VerticalAlignment="Center" FontWeight="SemiBold" />
                             </StackPanel>
-                            <ComboBox Grid.Column="1" 
-                                      ItemsSource="{Binding AvailableLanguages}"
-                                      SelectedItem="{Binding SelectedTargetLanguage}"
+                            <controls:LanguageSelector Grid.Column="1"
+                                      Languages="{Binding AvailableLanguages}"
+                                      SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}"
                                       HorizontalAlignment="Left" MinWidth="200"
-                                      Classes="Outline">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Image Width="20" Height="20" Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                            <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" Foreground="{DynamicResource SukiText}" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                                      Classes="Outline" />
                         </Grid>
                     </StackPanel>
                 </suki:GroupBox>

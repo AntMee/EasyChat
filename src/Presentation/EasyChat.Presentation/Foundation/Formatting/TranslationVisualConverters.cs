@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Media.Imaging;
@@ -106,6 +107,38 @@ public static class LanguageFlagConverters
 public static class LanguageSettingsConverters
 {
     public static readonly IValueConverter ToDisplayName = new LanguageSettingsDisplayNameConverter();
+}
+
+/// <summary>
+/// Resolves a language item's display text for the current UI culture: picks
+/// <c>ChineseName</c>/<c>EnglishName</c> (Chinese UI shows Chinese names, any
+/// other UI shows English names) and falls back to <c>DisplayName</c> for item
+/// types that do not expose the two names separately. Works with any language
+/// item type via reflection, so it can be used inside generic controls.
+/// </summary>
+public sealed class LanguageDisplayNameConverter : IValueConverter
+{
+    public static readonly LanguageDisplayNameConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is null)
+            return null;
+
+        var type = value.GetType();
+        var chineseName = GetStringProperty(type, value, "ChineseName");
+        var englishName = GetStringProperty(type, value, "EnglishName");
+        if (chineseName is not null || englishName is not null)
+            return LanguageDisplayNames.ForUi(chineseName, englishName ?? string.Empty);
+
+        return GetStringProperty(type, value, "DisplayName");
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+
+    private static string? GetStringProperty(Type type, object instance, string name) =>
+        type.GetProperty(name)?.GetValue(instance) as string;
 }
 
 public static class SpeechRecognitionModelConverters
