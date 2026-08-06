@@ -5,7 +5,7 @@
              xmlns:dataConverters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
              xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
              xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
-             xmlns:sharedControls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+             xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"

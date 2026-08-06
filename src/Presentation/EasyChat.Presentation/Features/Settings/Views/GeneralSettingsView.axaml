@@ -10,7 +10,7 @@
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:speech="clr-namespace:EasyChat.Contracts.Speech;assembly=EasyChat.Contracts"
              xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
-             xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+             xmlns:controls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:dataConverters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
@@ -230,7 +230,7 @@
                             <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,3" MinHeight="36">
                                 <Border Width="24" Height="16" CornerRadius="2" ClipToBounds="True"
                                         VerticalAlignment="Center">
-                                    <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
+                                    <Image Source="{Binding Icon, Converter={x:Static controls:LanguageFlagConverters.ToIcon}}"
                                            Stretch="UniformToFill" />
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">

@@ -2,6 +2,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:vm="using:EasyChat.Presentation.Features.ScreenshotOcr"
                  xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+                 xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
                  xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:suki="https://github.com/kikipoulet/SukiUI"
                  x:Class="EasyChat.Presentation.Features.ScreenshotOcr.Views.ScreenshotOcrWindowView"
@@ -196,7 +197,7 @@
                                 <Button Grid.Column="3" Classes="ToolButton" Click="ShowOriginal_OnClick" ToolTip.Tip="Show original text">
                                     <icons:MaterialIcon Kind="TextBoxOutline" Width="18" Height="18" />
                                 </Button>
-                                <controls:LanguageSelector Grid.Column="5" Width="178" Height="32"
+                                <sharedControls:LanguageSelector Grid.Column="5" Width="178" Height="32"
                                                               Languages="{Binding Languages}"
                                                               SelectedLanguage="{Binding CandidateLanguage, Mode=TwoWay}" />
                             </Grid>

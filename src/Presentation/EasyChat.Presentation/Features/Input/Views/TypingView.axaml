@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Input"
         xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
         xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
-        xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+        xmlns:controls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
         xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="110"
         Height="110" MinWidth="500" SizeToContent="Width"

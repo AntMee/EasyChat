@@ -1,15 +1,19 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
-             xmlns:converters="using:EasyChat.Presentation.Foundation.Formatting"
+             xmlns:converters="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             x:Class="EasyChat.Presentation.Features.ScreenshotOcr.Controls.LanguageSelector"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             x:Class="EasyChat.Presentation.Shared.Controls.LanguageSelector"
              x:Name="Root"
              x:CompileBindings="False">
     <Grid>
-        <Border Background="{DynamicResource SukiCardBackground}"
-                BorderBrush="{DynamicResource SukiBorderBrush}"
-                BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+        <suki:GlassCard Classes="Discrete"
+                        Padding="0"
+                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource SmallCornerRadius}"
+                        ClipToBounds="True">
             <sharedControls:LanguageAutoCompleteBox x:Name="LanguageAutoCompleteBox"
                                                 ItemsSource="{Binding Languages, ElementName=Root}"
                                                 SelectedItem="{Binding SelectedLanguage, ElementName=Root, Mode=TwoWay}"
@@ -43,7 +47,7 @@
                     </DataTemplate>
                 </sharedControls:LanguageAutoCompleteBox.ItemTemplate>
             </sharedControls:LanguageAutoCompleteBox>
-        </Border>
+        </suki:GlassCard>
 
         <Panel ZIndex="10" Width="22" Height="16" Margin="8,0,0,0"
                HorizontalAlignment="Left" VerticalAlignment="Center"

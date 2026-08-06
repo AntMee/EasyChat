@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using System.Collections;
 
-namespace EasyChat.Presentation.Features.ScreenshotOcr.Controls;
+namespace EasyChat.Presentation.Shared.Controls;
 
 /// <summary>
 /// A generic language picker: auto-complete box with the selected language's

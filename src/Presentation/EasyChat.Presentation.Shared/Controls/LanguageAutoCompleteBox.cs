@@ -20,7 +20,6 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
     private const double ArrowButtonWidth = 32;
     private const double PopupEdgeInset = 8;
     private const double FallbackPopupHorizontalChrome = 94;
-    private const double TextWidthSafetyMargin = 4;
     private const double MaximumPopupWidth = 540;
 
     private Popup? _dropDownPopup;
@@ -373,11 +372,6 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         CloseDropDownAndRestoreText();
     }
 
-    private void OnDropDownScrollChanged(object? sender, ScrollChangedEventArgs e)
-    {
-        QueuePopupWidthUpdate();
-    }
-
     private bool FilterText(string? searchText, string? itemText)
     {
         searchText ??= string.Empty;
@@ -437,7 +431,6 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         _dropDownScrollViewer = scrollViewer;
         _dropDownScrollViewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
         _dropDownScrollViewer.HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
-        _dropDownScrollViewer.ScrollChanged += OnDropDownScrollChanged;
 
         if (_dropDownPopup?.Child is { } child)
         {
@@ -452,10 +445,6 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
 
     private void DetachDropDownScrollViewer()
     {
-        if (_dropDownScrollViewer is null)
-            return;
-
-        _dropDownScrollViewer.ScrollChanged -= OnDropDownScrollChanged;
         _dropDownScrollViewer = null;
     }
 
@@ -467,27 +456,15 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         _isUpdatingPopupWidth = true;
         try
         {
+            // Measure the widest realized item text. The popup width is fixed
+            // for the whole open session - scrolling must not re-trigger a
+            // width update, or the popup resizes back and forth while the user
+            // scrolls and the layout enters an infinite loop.
             var maxTextWidth = 0d;
-            var requiredPopupWidth = 0d;
-            var hasMeasuredTextLayout = false;
-            var viewportHeight = _dropDownScrollViewer.Bounds.Height;
-            var popupChild = _dropDownPopup?.Child;
-            var currentPopupWidth = popupChild?.Bounds.Width > 0
-                ? popupChild.Bounds.Width
-                : _popupWidth;
-
             foreach (var textBlock in _dropDownScrollViewer.GetVisualDescendants().OfType<TextBlock>())
             {
                 if (string.IsNullOrWhiteSpace(textBlock.Text))
                     continue;
-
-                var point = textBlock.TranslatePoint(new Point(0, 0), _dropDownScrollViewer);
-                if (point is null
-                    || point.Value.Y + textBlock.Bounds.Height < 0
-                    || point.Value.Y > viewportHeight)
-                {
-                    continue;
-                }
 
                 var measureBlock = new TextBlock
                 {
@@ -502,26 +479,15 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
                     TextTrimming = TextTrimming.None
                 };
                 measureBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                var desiredTextWidth = measureBlock.DesiredSize.Width;
-                maxTextWidth = Math.Max(maxTextWidth, desiredTextWidth);
-
-                if (currentPopupWidth <= 0 || textBlock.Bounds.Width <= 0)
-                    continue;
-
-                // Derive the actual popup chrome from the realized item rather than
-                // guessing at theme padding and the vertical scrollbar width.
-                hasMeasuredTextLayout = true;
-                requiredPopupWidth = Math.Max(
-                    requiredPopupWidth,
-                    currentPopupWidth + desiredTextWidth - textBlock.Bounds.Width + TextWidthSafetyMargin);
+                maxTextWidth = Math.Max(maxTextWidth, measureBlock.DesiredSize.Width);
             }
 
             var minimumPopupWidth = _basePopupWidth + PopupEdgeInset * 2;
             var maximumPopupWidth = Math.Max(MaximumPopupWidth, minimumPopupWidth);
-            var desiredWidth = hasMeasuredTextLayout
-                ? requiredPopupWidth
-                : maxTextWidth + FallbackPopupHorizontalChrome;
-            desiredWidth = Math.Clamp(desiredWidth, minimumPopupWidth, maximumPopupWidth);
+            var desiredWidth = Math.Clamp(
+                maxTextWidth + FallbackPopupHorizontalChrome,
+                minimumPopupWidth,
+                maximumPopupWidth);
 
             if (Math.Abs(_popupWidth - desiredWidth) < 0.5)
                 return;
