@@ -2,7 +2,6 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:vm="using:EasyChat.Presentation.Features.ScreenshotOcr"
                  xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
-                 xmlns:converters="using:EasyChat.Presentation.Foundation.Formatting"
                  xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:suki="https://github.com/kikipoulet/SukiUI"
                  x:Class="EasyChat.Presentation.Features.ScreenshotOcr.Views.ScreenshotOcrWindowView"
@@ -197,55 +196,9 @@
                                 <Button Grid.Column="3" Classes="ToolButton" Click="ShowOriginal_OnClick" ToolTip.Tip="Show original text">
                                     <icons:MaterialIcon Kind="TextBoxOutline" Width="18" Height="18" />
                                 </Button>
-                                <Grid Grid.Column="5" Width="178" Height="32">
-                                    <AutoCompleteBox x:Name="LanguageSelector"
-                                                     ItemsSource="{Binding Languages}"
-                                                     SelectedItem="{Binding CandidateLanguage, Mode=TwoWay}"
-                                                     ValueMemberBinding="{Binding DisplayName}"
-                                                     FilterMode="ContainsOrdinal"
-                                                     MinimumPrefixLength="0"
-                                                     IsTextCompletionEnabled="False"
-                                                     MaxDropDownHeight="260"
-                                                     Padding="32,0,28,0"
-                                                     GotFocus="LanguageSelector_OnGotFocus"
-                                                     PointerPressed="LanguageSelector_OnPointerPressed"
-                                                     LostFocus="LanguageSelector_OnLostFocus"
-                                                     DropDownOpened="LanguageSelector_OnDropDownOpened"
-                                                     DropDownClosed="LanguageSelector_OnDropDownClosed">
-                                        <AutoCompleteBox.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:ScreenshotOcrLanguageOption">
-                                                <Grid ColumnDefinitions="24,*" ColumnSpacing="7" Margin="1,2">
-                                                    <Panel Width="22" Height="16" VerticalAlignment="Center">
-                                                        <icons:MaterialIcon Kind="FlagOutline" Width="18" Height="18"
-                                                                            IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasNoIcon}}" />
-                                                        <Image Width="22" Height="16" Stretch="UniformToFill"
-                                                               IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
-                                                               Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                                    </Panel>
-                                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
-                                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </AutoCompleteBox.ItemTemplate>
-                                    </AutoCompleteBox>
-                                    <Panel Width="22" Height="16" Margin="8,0,0,0"
-                                           HorizontalAlignment="Left" VerticalAlignment="Center"
-                                           IsHitTestVisible="False">
-                                        <icons:MaterialIcon Kind="FlagOutline" Width="18" Height="18"
-                                                            IsVisible="{Binding CandidateLanguage.Icon, Converter={x:Static converters:LanguageFlagConverters.HasNoIcon}}" />
-                                        <Image Width="22" Height="16" Stretch="UniformToFill"
-                                               IsVisible="{Binding CandidateLanguage.Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
-                                               Source="{Binding CandidateLanguage.Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                    </Panel>
-                                    <Border Width="28" HorizontalAlignment="Right"
-                                            Background="Transparent" Cursor="Hand"
-                                            PointerPressed="LanguageSelectorArrow_OnPointerPressed">
-                                        <icons:MaterialIcon x:Name="LanguageSelectorArrow"
-                                                            Kind="ChevronDown" Width="18" Height="18"
-                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                            Opacity="0.65" IsHitTestVisible="False" />
-                                    </Border>
-                                </Grid>
+                                <controls:LanguageSelector Grid.Column="5" Width="178" Height="32"
+                                                              Languages="{Binding Languages}"
+                                                              SelectedLanguage="{Binding CandidateLanguage, Mode=TwoWay}" />
                             </Grid>
                         </Grid>
                     </Border>

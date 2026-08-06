@@ -5,7 +5,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
-using Avalonia.VisualTree;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.ScreenshotOcr.Controls;
 using Material.Icons;
@@ -147,76 +146,6 @@ public sealed partial class ScreenshotOcrWindowView : SukiWindow
         if (e.Key == Key.Escape)
             Close();
     }
-
-    private void LanguageSelector_OnGotFocus(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not AutoCompleteBox selector)
-            return;
-        SelectLanguageSearchText(selector);
-    }
-
-    private void LanguageSelector_OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (sender is not AutoCompleteBox selector
-            || !e.GetCurrentPoint(selector).Properties.IsLeftButtonPressed)
-            return;
-        Avalonia.Threading.Dispatcher.UIThread.Post(
-            () => SelectLanguageSearchText(selector),
-            Avalonia.Threading.DispatcherPriority.Input);
-    }
-
-    private void LanguageSelectorArrow_OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        var selector = this.FindControl<AutoCompleteBox>("LanguageSelector");
-        if (selector is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-            return;
-        if (selector.IsDropDownOpen)
-        {
-            RestoreLanguageSelection(selector);
-        }
-        else
-        {
-            selector.Focus();
-            selector.Text = string.Empty;
-            selector.IsDropDownOpen = true;
-        }
-        e.Handled = true;
-    }
-
-    private void LanguageSelector_OnDropDownOpened(object? sender, EventArgs e) =>
-        UpdateLanguageSelectorArrow(open: true);
-
-    private void LanguageSelector_OnDropDownClosed(object? sender, EventArgs e) =>
-        UpdateLanguageSelectorArrow(open: false);
-
-    private void LanguageSelector_OnLostFocus(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not AutoCompleteBox selector || _viewModel is null)
-            return;
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            if (!_disposed && !selector.IsDropDownOpen)
-                RestoreLanguageSelection(selector);
-        }, Avalonia.Threading.DispatcherPriority.Background);
-    }
-
-    private void RestoreLanguageSelection(AutoCompleteBox selector)
-    {
-        if (_viewModel is null)
-            return;
-        selector.SelectedItem = _viewModel.CandidateLanguage;
-        selector.Text = _viewModel.CandidateLanguage.DisplayName;
-        selector.IsDropDownOpen = false;
-    }
-
-    private void UpdateLanguageSelectorArrow(bool open)
-    {
-        if (this.FindControl<MaterialIcon>("LanguageSelectorArrow") is { } icon)
-            icon.Kind = open ? MaterialIconKind.ChevronUp : MaterialIconKind.ChevronDown;
-    }
-
-    private static void SelectLanguageSearchText(AutoCompleteBox selector) =>
-        selector.GetVisualDescendants().OfType<TextBox>().FirstOrDefault()?.SelectAll();
 
     private PhysicalScreenPoint GetPopupAnchor(object? sender)
     {
