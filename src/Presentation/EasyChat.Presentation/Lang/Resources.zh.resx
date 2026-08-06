@@ -892,6 +892,7 @@
   <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
   <data name="TextAssistPolish" xml:space="preserve"><value>润色</value></data>
   <data name="TextAssistSummary" xml:space="preserve"><value>总结</value></data>
+  <data name="TextAssistExplain" xml:space="preserve"><value>解释</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>

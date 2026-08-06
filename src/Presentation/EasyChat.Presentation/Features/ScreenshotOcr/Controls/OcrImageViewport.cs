@@ -3,15 +3,23 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using EasyChat.Contracts.Ocr;
 
 namespace EasyChat.Presentation.Features.ScreenshotOcr.Controls;
 
-public sealed class OcrImageViewport : Control
+public sealed class OcrImageViewport : Decorator
 {
     private const double MinimumZoom = 0.1;
     private const double MaximumZoom = 8;
     private static readonly IBrush SurfaceBrush = new SolidColorBrush(Color.Parse("#17191C"));
+    private static readonly IBrush BusySelectionBrush = new SolidColorBrush(Color.FromArgb(118, 13, 148, 136));
+    private static readonly IBrush BusyDotBrush = new SolidColorBrush(Color.FromArgb(235, 255, 255, 255));
+    private static readonly IBrush BusyDotDimBrush = new SolidColorBrush(Color.FromArgb(95, 255, 255, 255));
+    public static readonly StyledProperty<bool> IsSelectionBusyProperty =
+        AvaloniaProperty.Register<OcrImageViewport, bool>(nameof(IsSelectionBusy));
+
     private Bitmap? _bitmap;
     private OcrRegionSpatialIndex _index = OcrRegionSpatialIndex.Empty;
     private readonly HashSet<int> _selected = [];
@@ -25,26 +33,49 @@ public sealed class OcrImageViewport : Control
     private double _zoom = 1;
     private bool _isPanning;
     private bool _spacePressed;
+    private bool _toggleSelection;
+    private int _clickCount;
+    private readonly DispatcherTimer _busyTimer;
+    private int _busyPhase;
+    private TextBox? _textSelector;
+    private int? _textSelectorRegion;
 
     public OcrImageViewport()
     {
         Focusable = true;
         ClipToBounds = true;
+        _busyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(180) };
+        _busyTimer.Tick += (_, _) =>
+        {
+            _busyPhase = (_busyPhase + 1) % 3;
+            InvalidateVisual();
+        };
     }
 
     public event Action<IReadOnlyList<int>>? SelectionChanged;
     public event Action<double>? ZoomChanged;
 
-    public void SetBitmap(Bitmap bitmap)
+    public bool IsSelectionBusy
+    {
+        get => GetValue(IsSelectionBusyProperty);
+        set => SetValue(IsSelectionBusyProperty, value);
+    }
+
+    public void SetBitmap(Bitmap bitmap, bool resetView = true)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
+        CloseTextSelector();
         _bitmap = bitmap;
-        ResetView();
+        if (resetView)
+            ResetView();
+        else
+            InvalidateVisual();
     }
 
     public void SetRegions(IReadOnlyList<OcrTextRegion> regions)
     {
         _index = new OcrRegionSpatialIndex(regions);
+        CloseTextSelector();
         _selected.Clear();
         _hovered = null;
         SelectionChanged?.Invoke([]);
@@ -56,6 +87,7 @@ public sealed class OcrImageViewport : Control
 
     public void ResetView()
     {
+        CloseTextSelector();
         _zoom = 1;
         _pan = default;
         _selected.Clear();
@@ -89,13 +121,17 @@ public sealed class OcrImageViewport : Control
                 continue;
 
             var geometry = CreateGeometry(_index.Regions[regionIndex].Polygon, transform);
-            var fill = selected
+            var fill = selected && IsSelectionBusy
+                ? BusySelectionBrush
+                : selected
                 ? new SolidColorBrush(Color.FromArgb(82, 22, 163, 155))
                 : new SolidColorBrush(Color.FromArgb(62, 33, 150, 243));
             var pen = new Pen(
                 selected ? Brushes.Teal : Brushes.DeepSkyBlue,
                 selected ? 2 : 1.25);
             context.DrawGeometry(fill, pen, geometry);
+            if (selected && IsSelectionBusy)
+                DrawBusyIndicator(context, _index.GetBounds(regionIndex), transform);
         }
 
         if (_selectionStart is { } start && _selectionCurrent is { } current)
@@ -111,6 +147,8 @@ public sealed class OcrImageViewport : Control
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
+        if (IsFromTextSelector(e.Source))
+            return;
         if (_bitmap is null || e.Delta.Y == 0)
             return;
         SetZoomAt(_zoom * Math.Pow(1.15, e.Delta.Y), e.GetPosition(this));
@@ -120,8 +158,11 @@ public sealed class OcrImageViewport : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        if (IsFromTextSelector(e.Source))
+            return;
         if (_bitmap is null)
             return;
+        CloseTextSelector();
         Focus();
         var point = e.GetCurrentPoint(this);
         var position = e.GetPosition(this);
@@ -142,6 +183,8 @@ public sealed class OcrImageViewport : Control
             var imagePoint = GetTransform().ToImage(position);
             _selectionStart = imagePoint;
             _selectionCurrent = imagePoint;
+            _toggleSelection = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+            _clickCount = e.ClickCount;
             Capture(e.Pointer);
             e.Handled = true;
         }
@@ -196,21 +239,28 @@ public sealed class OcrImageViewport : Control
         var end = GetTransform().ToImage(e.GetPosition(this));
         _selectionStart = null;
         _selectionCurrent = null;
-        _selected.Clear();
-        if (Distance(start, end) <= 4 / Math.Max(GetTransform().Scale, 0.001))
+        IReadOnlyList<int> candidates;
+        int? clickedRegion = null;
+        if (_clickCount > 1
+            || Distance(start, end) <= 4 / Math.Max(GetTransform().Scale, 0.001))
         {
             var hit = _index.HitTest(end);
-            if (hit is not null)
-                _selected.Add(hit.Value);
+            clickedRegion = hit;
+            candidates = hit is null ? [] : [hit.Value];
         }
         else
         {
-            foreach (var index in _index.Query(Normalize(start, end)))
-                _selected.Add(index);
+            candidates = _index.Query(Normalize(start, end));
         }
+        OcrRegionSelection.Apply(_selected, candidates, _toggleSelection);
+        var openTextSelector = _clickCount > 1 && !_toggleSelection && clickedRegion is not null;
+        _toggleSelection = false;
+        _clickCount = 0;
         ReleaseCapture();
         SelectionChanged?.Invoke(_selected.Order().ToArray());
         InvalidateVisual();
+        if (openTextSelector)
+            OpenTextSelector(clickedRegion!.Value);
         e.Handled = true;
     }
 
@@ -231,6 +281,8 @@ public sealed class OcrImageViewport : Control
         _isPanning = false;
         _selectionStart = null;
         _selectionCurrent = null;
+        _toggleSelection = false;
+        _clickCount = 0;
         Cursor = Cursor.Default;
         InvalidateVisual();
     }
@@ -259,6 +311,64 @@ public sealed class OcrImageViewport : Control
     {
         base.OnSizeChanged(e);
         InvalidateVisual();
+        InvalidateArrange();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property != IsSelectionBusyProperty)
+            return;
+        if (IsSelectionBusy)
+        {
+            CloseTextSelector();
+            _busyTimer.Start();
+        }
+        else
+        {
+            _busyTimer.Stop();
+            _busyPhase = 0;
+        }
+        InvalidateVisual();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (IsSelectionBusy)
+            _busyTimer.Start();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _busyTimer.Stop();
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (_textSelector is not null && _textSelectorRegion is { } regionIndex)
+        {
+            var region = GetTransform().ToView(_index.GetBounds(regionIndex));
+            var layout = GetTextSelectorLayout(region, finalSize);
+            _textSelector.FontSize = layout.FontSize;
+            _textSelector.Arrange(layout.Bounds);
+        }
+        return finalSize;
+    }
+
+    internal static TextSelectorLayout GetTextSelectorLayout(Rect region, Size viewport)
+    {
+        const double margin = 8;
+        var availableWidth = Math.Max(1, viewport.Width - margin * 2);
+        var availableHeight = Math.Max(1, viewport.Height - margin * 2);
+        var width = Math.Min(Math.Max(region.Width + 28, 220), availableWidth);
+        var height = Math.Min(Math.Max(region.Height + 24, 76), Math.Min(220, availableHeight));
+        var x = Math.Clamp(region.X - 8, margin, Math.Max(margin, viewport.Width - width - margin));
+        var y = Math.Clamp(region.Y - 8, margin, Math.Max(margin, viewport.Height - height - margin));
+        return new TextSelectorLayout(
+            new Rect(x, y, width, height),
+            Math.Clamp(region.Height * 0.62, 14, 26));
     }
 
     private void SetZoomAt(double value, Point anchor)
@@ -276,6 +386,7 @@ public sealed class OcrImageViewport : Control
             anchor.Y - imageAnchor.Y * newScale - centeredOrigin.Y);
         ZoomChanged?.Invoke(_zoom * 100);
         InvalidateVisual();
+        InvalidateArrange();
     }
 
     private ViewportTransform GetTransform()
@@ -318,6 +429,81 @@ public sealed class OcrImageViewport : Control
         var pointer = _capturedPointer;
         _capturedPointer = null;
         pointer?.Capture(null);
+    }
+
+    private void OpenTextSelector(int regionIndex)
+    {
+        CloseTextSelector();
+        var editor = new TextBox
+        {
+            Text = _index.Regions[regionIndex].Text,
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Cursor = new Cursor(StandardCursorType.Ibeam),
+            Background = new SolidColorBrush(Color.Parse("#F21D2024")),
+            Foreground = Brushes.White,
+            BorderBrush = Brushes.Teal,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(9, 7),
+            SelectionBrush = Brushes.Teal
+        };
+        editor.SetValue(
+            ScrollViewer.HorizontalScrollBarVisibilityProperty,
+            Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled);
+        editor.SetValue(
+            ScrollViewer.VerticalScrollBarVisibilityProperty,
+            Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);
+        _textSelector = editor;
+        _textSelectorRegion = regionIndex;
+        Child = editor;
+        InvalidateMeasure();
+        InvalidateArrange();
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!ReferenceEquals(_textSelector, editor))
+                return;
+            editor.Focus();
+            editor.SelectAll();
+        }, DispatcherPriority.Input);
+    }
+
+    private void CloseTextSelector()
+    {
+        if (_textSelector is null)
+            return;
+        Child = null;
+        _textSelector = null;
+        _textSelectorRegion = null;
+        InvalidateMeasure();
+        InvalidateArrange();
+    }
+
+    private bool IsFromTextSelector(object? source) =>
+        _textSelector is not null
+        && source is Visual visual
+        && (ReferenceEquals(visual, _textSelector)
+            || visual.GetVisualAncestors().Any(ancestor => ReferenceEquals(ancestor, _textSelector)));
+
+    private void DrawBusyIndicator(
+        DrawingContext context,
+        Rect imageBounds,
+        ViewportTransform transform)
+    {
+        var viewBounds = transform.ToView(imageBounds);
+        var radius = Math.Clamp(Math.Min(viewBounds.Width, viewBounds.Height) * 0.1, 2.5, 5);
+        var spacing = radius * 2.7;
+        for (var index = 0; index < 3; index++)
+        {
+            var x = viewBounds.Center.X + (index - 1) * spacing;
+            context.DrawEllipse(
+                index == _busyPhase ? BusyDotBrush : BusyDotDimBrush,
+                null,
+                new Point(x, viewBounds.Center.Y),
+                radius,
+                radius);
+        }
     }
 
     private static StreamGeometry CreateGeometry(
@@ -369,6 +555,28 @@ public sealed class OcrImageViewport : Control
             rect.Width * Scale,
             rect.Height * Scale);
     }
+
+    internal readonly record struct TextSelectorLayout(Rect Bounds, double FontSize);
+}
+
+internal static class OcrRegionSelection
+{
+    internal static void Apply(
+        HashSet<int> selected,
+        IReadOnlyList<int> candidates,
+        bool toggle)
+    {
+        ArgumentNullException.ThrowIfNull(selected);
+        ArgumentNullException.ThrowIfNull(candidates);
+        if (!toggle)
+            selected.Clear();
+
+        foreach (var candidate in candidates)
+        {
+            if (!toggle || !selected.Remove(candidate))
+                selected.Add(candidate);
+        }
+    }
 }
 
 internal sealed class OcrRegionSpatialIndex
@@ -400,6 +608,8 @@ internal sealed class OcrRegionSpatialIndex
     }
 
     internal IReadOnlyList<OcrTextRegion> Regions { get; }
+
+    internal Rect GetBounds(int index) => _bounds[index];
 
     internal int? HitTest(Point point)
     {

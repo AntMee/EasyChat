@@ -119,6 +119,35 @@ public sealed class ImageTranslationEditSessionTests
         await session.DisposeAsync();
     }
 
+    [TestMethod]
+    public async Task TranslateAsync_RendersEverySelectedRegionInOneEdit()
+    {
+        var renderer = new RecordingRenderer();
+        var factory = CreateFactory(
+            new ImageTranslationMemoryBudget(),
+            new IncrementingTranslations(),
+            renderer);
+        var session = factory.Create(Frame()).Value;
+        var recognition = new OcrRecognitionResult(
+        [
+            Region("first"),
+            Region("second"),
+            Region("third")
+        ]);
+
+        var result = await session.TranslateAsync(
+            recognition,
+            [0, 2],
+            OcrLanguages.English);
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual(2, result.Value.ActiveOverlayCount);
+        CollectionAssert.AreEquivalent(
+            new[] { "first", "third" },
+            renderer.LastOverlays.Select(overlay => overlay.Region.Text).ToArray());
+        await session.DisposeAsync();
+    }
+
     private static ImageTranslationEditSessionFactory CreateFactory(
         ImageTranslationMemoryBudget budget,
         IImageTranslationUseCases? translations = null,
@@ -161,6 +190,7 @@ public sealed class ImageTranslationEditSessionTests
     private sealed class RecordingRenderer : IImageTranslationRenderer
     {
         public List<ImageFrame> Backgrounds { get; } = [];
+        public IReadOnlyList<ImageTranslationOverlay> LastOverlays { get; private set; } = [];
 
         public Task<ImageTranslationRenderResult> RenderAsync(
             ImageFrame background,
@@ -168,6 +198,7 @@ public sealed class ImageTranslationEditSessionTests
             CancellationToken cancellationToken = default)
         {
             Backgrounds.Add(background);
+            LastOverlays = overlays;
             return Task.FromResult(new ImageTranslationRenderResult(background, [], overlays.Count));
         }
     }

@@ -2701,6 +2701,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("TextAssistSummary", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Explain.
+        /// </summary>
+        public static string TextAssistExplain {
+            get {
+                return ResourceManager.GetString("TextAssistExplain", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Corrected result.

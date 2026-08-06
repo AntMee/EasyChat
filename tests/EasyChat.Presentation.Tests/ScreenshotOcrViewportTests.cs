@@ -48,6 +48,39 @@ public sealed class ScreenshotOcrViewportTests
         CollectionAssert.AreEquivalent(new[] { 0, 1 }, selected.ToArray());
     }
 
+    [TestMethod]
+    public void SelectionWithoutControlReplacesExistingBlocks()
+    {
+        var selected = new HashSet<int> { 0, 2 };
+
+        OcrRegionSelection.Apply(selected, [1], toggle: false);
+
+        CollectionAssert.AreEquivalent(new[] { 1 }, selected.ToArray());
+    }
+
+    [TestMethod]
+    public void ControlSelectionTogglesBlocksWithoutClearingOthers()
+    {
+        var selected = new HashSet<int> { 0, 2 };
+
+        OcrRegionSelection.Apply(selected, [1, 2], toggle: true);
+
+        CollectionAssert.AreEquivalent(new[] { 0, 1 }, selected.ToArray());
+    }
+
+    [TestMethod]
+    public void TextSelectorNearRightEdgeRemainsFullyInsideViewport()
+    {
+        var layout = OcrImageViewport.GetTextSelectorLayout(
+            new Rect(470, 40, 45, 24),
+            new Size(500, 300));
+
+        Assert.IsGreaterThanOrEqualTo(220, layout.Bounds.Width);
+        Assert.IsLessThanOrEqualTo(492, layout.Bounds.Right);
+        Assert.IsGreaterThanOrEqualTo(8, layout.Bounds.Left);
+        Assert.IsGreaterThanOrEqualTo(14, layout.FontSize);
+    }
+
     private static OcrTextRegion Region(
         string text,
         double x,

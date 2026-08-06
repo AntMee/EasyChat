@@ -179,7 +179,37 @@ public sealed class ImageTranslationUseCases : IImageTranslationUseCases
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            translations.Clear();
+        }
+
+        var missing = selectedBlocks
+            .Where(block => !translations.TryGetValue($"block-{block.Index}", out var value)
+                            || string.IsNullOrWhiteSpace(value.ToString()))
+            .ToArray();
+        if (missing.Length > 0)
+        {
+            var fallback = _translation.Prepare();
+            using var fallbackDisposable = fallback as IDisposable;
+            foreach (var block in missing)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    var response = await fallback.TranslateAsync(
+                        new TranslationRequest(
+                            block.Region.Text.Trim(),
+                            sourceLanguage,
+                            targetLanguage),
+                        cancellationToken).ConfigureAwait(false);
+                    if (!string.IsNullOrWhiteSpace(response.Text))
+                    {
+                        translations[$"block-{block.Index}"] =
+                            new StringBuilder(response.Text.Trim());
+                    }
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                }
+            }
         }
 
         return CreateTranslations(selectedBlocks, translations, warnings);

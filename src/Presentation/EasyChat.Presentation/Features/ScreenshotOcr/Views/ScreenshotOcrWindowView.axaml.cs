@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Notifications;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -9,10 +10,12 @@ using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.ScreenshotOcr.Controls;
 using Material.Icons;
 using Material.Icons.Avalonia;
+using SukiUI.Controls;
+using SukiUI.Dialogs;
 
 namespace EasyChat.Presentation.Features.ScreenshotOcr.Views;
 
-public sealed partial class ScreenshotOcrWindowView : Window
+public sealed partial class ScreenshotOcrWindowView : SukiWindow
 {
     private readonly ScreenshotOcrWindowViewModel? _viewModel;
     private readonly OcrImageViewport? _viewport;
@@ -53,6 +56,10 @@ public sealed partial class ScreenshotOcrWindowView : Window
 
     private async void OnOpened(object? sender, EventArgs e)
     {
+        Activate();
+        Avalonia.Threading.Dispatcher.UIThread.Post(
+            () => Activate(),
+            Avalonia.Threading.DispatcherPriority.Input);
         if (_viewModel is not null)
             await _viewModel.InitializeAsync();
     }
@@ -76,28 +83,6 @@ public sealed partial class ScreenshotOcrWindowView : Window
         _viewModel.ZoomPercent = value;
     }
 
-    private void Header_OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && e.Source is Visual visual
-            && visual is not Button
-            && !visual.GetVisualAncestors().OfType<Button>().Any())
-        {
-            BeginMoveDrag(e);
-        }
-    }
-
-    private void Resize_OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (sender is Control { Tag: string edgeName }
-            && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && Enum.TryParse<WindowEdge>(edgeName, out var edge))
-        {
-            BeginResizeDrag(edge, e);
-            e.Handled = true;
-        }
-    }
-
     private void Pin_OnClick(object? sender, RoutedEventArgs e)
     {
         Topmost = !Topmost;
@@ -105,7 +90,6 @@ public sealed partial class ScreenshotOcrWindowView : Window
             icon.Kind = Topmost ? MaterialIconKind.Pin : MaterialIconKind.PinOutline;
     }
 
-    private void Close_OnClick(object? sender, RoutedEventArgs e) => Close();
     private void ZoomOut_OnClick(object? sender, RoutedEventArgs e) => _viewport?.ZoomOut();
     private void ZoomIn_OnClick(object? sender, RoutedEventArgs e) => _viewport?.ZoomIn();
     private async void Recapture_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.RecaptureAsync();
@@ -164,6 +148,76 @@ public sealed partial class ScreenshotOcrWindowView : Window
             Close();
     }
 
+    private void LanguageSelector_OnGotFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not AutoCompleteBox selector)
+            return;
+        SelectLanguageSearchText(selector);
+    }
+
+    private void LanguageSelector_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not AutoCompleteBox selector
+            || !e.GetCurrentPoint(selector).Properties.IsLeftButtonPressed)
+            return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(
+            () => SelectLanguageSearchText(selector),
+            Avalonia.Threading.DispatcherPriority.Input);
+    }
+
+    private void LanguageSelectorArrow_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var selector = this.FindControl<AutoCompleteBox>("LanguageSelector");
+        if (selector is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
+        if (selector.IsDropDownOpen)
+        {
+            RestoreLanguageSelection(selector);
+        }
+        else
+        {
+            selector.Focus();
+            selector.Text = string.Empty;
+            selector.IsDropDownOpen = true;
+        }
+        e.Handled = true;
+    }
+
+    private void LanguageSelector_OnDropDownOpened(object? sender, EventArgs e) =>
+        UpdateLanguageSelectorArrow(open: true);
+
+    private void LanguageSelector_OnDropDownClosed(object? sender, EventArgs e) =>
+        UpdateLanguageSelectorArrow(open: false);
+
+    private void LanguageSelector_OnLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not AutoCompleteBox selector || _viewModel is null)
+            return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (!_disposed && !selector.IsDropDownOpen)
+                RestoreLanguageSelection(selector);
+        }, Avalonia.Threading.DispatcherPriority.Background);
+    }
+
+    private void RestoreLanguageSelection(AutoCompleteBox selector)
+    {
+        if (_viewModel is null)
+            return;
+        selector.SelectedItem = _viewModel.CandidateLanguage;
+        selector.Text = _viewModel.CandidateLanguage.DisplayName;
+        selector.IsDropDownOpen = false;
+    }
+
+    private void UpdateLanguageSelectorArrow(bool open)
+    {
+        if (this.FindControl<MaterialIcon>("LanguageSelectorArrow") is { } icon)
+            icon.Kind = open ? MaterialIconKind.ChevronUp : MaterialIconKind.ChevronDown;
+    }
+
+    private static void SelectLanguageSearchText(AutoCompleteBox selector) =>
+        selector.GetVisualDescendants().OfType<TextBox>().FirstOrDefault()?.SelectAll();
+
     private PhysicalScreenPoint GetPopupAnchor(object? sender)
     {
         var point = sender is Control control
@@ -173,49 +227,14 @@ public sealed partial class ScreenshotOcrWindowView : Window
         return new PhysicalScreenPoint(screen.X, screen.Y);
     }
 
-    private async Task<bool> ShowResetConfirmationAsync(string message)
-    {
-        var dialog = new Window
-        {
-            Title = "Confirm replacement",
-            Width = 430,
-            Height = 170,
-            MinWidth = 430,
-            MinHeight = 170,
-            MaxWidth = 430,
-            MaxHeight = 170,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = CreateConfirmationContent(message)
-        };
-        return await dialog.ShowDialog<bool>(this);
-    }
-
-    private static Control CreateConfirmationContent(string message)
-    {
-        var confirm = new Button { Content = "Continue", MinWidth = 92 };
-        var cancel = new Button { Content = "Cancel", MinWidth = 92 };
-        var buttons = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Spacing = 8,
-            Children = { cancel, confirm }
-        };
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 22,
-            Children =
-            {
-                new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
-                buttons
-            }
-        };
-        confirm.Click += (_, _) => (TopLevel.GetTopLevel(confirm) as Window)?.Close(true);
-        cancel.Click += (_, _) => (TopLevel.GetTopLevel(cancel) as Window)?.Close(false);
-        return panel;
-    }
+    private async Task<bool> ShowResetConfirmationAsync(string message) =>
+        await _viewModel!.DialogManager.CreateDialog()
+            .WithTitle("Confirm replacement")
+            .WithContent(message)
+            .OfType(NotificationType.Warning)
+            .Dismiss().ByClickingBackground()
+            .WithYesNoResult("Continue", "Cancel", "Flat")
+            .TryShowAsync();
 
     private async Task ShowErrorAsync(string message)
     {

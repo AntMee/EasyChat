@@ -902,6 +902,7 @@
   <data name="TextAssistCorrect" xml:space="preserve"><value>Correct</value></data>
   <data name="TextAssistPolish" xml:space="preserve"><value>Polish</value></data>
   <data name="TextAssistSummary" xml:space="preserve"><value>Summary</value></data>
+  <data name="TextAssistExplain" xml:space="preserve"><value>Explain</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>No AI model is configured. Add an AI model in Settings.</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>No voice is available for this language.</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>Enter text...</value></data>

@@ -8,11 +8,13 @@ using EasyChat.Contracts.TextAssist;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.ScreenshotOcr.Views;
 using EasyChat.Presentation.Features.TextAssist;
+using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using EasyChat.Presentation.ImageTranslation;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
+using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using EasyChat.Shared.Results;
 
@@ -21,6 +23,7 @@ namespace EasyChat.Presentation.Features.ScreenshotOcr;
 public sealed record ScreenshotOcrLanguageOption(
     OcrLanguage Language,
     string DisplayName,
+    string Icon,
     IReadOnlyList<string> ModelPackageIds)
 {
     public string Id => Language.Id;
@@ -33,6 +36,7 @@ public sealed class ScreenshotOcrWindowCoordinator(
     IClipboardText clipboardText,
     IClipboardImage clipboardImage,
     ITextAssistWindowCoordinator textAssist,
+    ITranslationWindowCoordinator translation,
     ScreenshotCaptureCoordinator capture,
     TranslationLanguageOptions translationLanguages,
     ISukiToastManager toasts,
@@ -69,6 +73,7 @@ public sealed class ScreenshotOcrWindowCoordinator(
                         clipboardText,
                         clipboardImage,
                         textAssist,
+                        translation,
                         capture,
                         translationLanguages,
                         session,
@@ -125,6 +130,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
     private readonly IClipboardText _clipboardText;
     private readonly IClipboardImage _clipboardImage;
     private readonly ITextAssistWindowCoordinator _textAssist;
+    private readonly ITranslationWindowCoordinator _translation;
     private readonly ScreenshotCaptureCoordinator _capture;
     private readonly ILogger<ScreenshotOcrWindowViewModel> _logger;
     private readonly CancellationTokenSource _lifetime = new();
@@ -160,6 +166,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         IClipboardText clipboardText,
         IClipboardImage clipboardImage,
         ITextAssistWindowCoordinator textAssist,
+        ITranslationWindowCoordinator translation,
         ScreenshotCaptureCoordinator capture,
         TranslationLanguageOptions translationLanguages,
         IImageTranslationEditSession editSession,
@@ -172,6 +179,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         _clipboardText = clipboardText;
         _clipboardImage = clipboardImage;
         _textAssist = textAssist;
+        _translation = translation;
         _capture = capture;
         _editSession = editSession;
         _bitmap = bitmap;
@@ -181,14 +189,19 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         _candidateLanguage = Languages.FirstOrDefault(option =>
                                  string.Equals(option.Id, _activeLanguage.Id, StringComparison.OrdinalIgnoreCase))
                              ?? Languages.FirstOrDefault()
-                             ?? new ScreenshotOcrLanguageOption(_activeLanguage, _activeLanguage.DisplayName, []);
+                             ?? new ScreenshotOcrLanguageOption(
+                                 _activeLanguage,
+                                 _activeLanguage.DisplayName,
+                                 "unknown.png",
+                                 []);
     }
 
     public IReadOnlyList<ScreenshotOcrLanguageOption> Languages { get; }
+    public ISukiDialogManager DialogManager { get; } = new SukiDialogManager();
     public Bitmap Bitmap => _bitmap;
     public IReadOnlyList<OcrTextRegion> Regions => _recognition.Regions;
     public Func<string, Task<bool>>? ConfirmResetAsync { get; set; }
-    public event Action<Bitmap>? BitmapChanged;
+    public event Action<Bitmap, bool>? BitmapChanged;
     public event Action<IReadOnlyList<OcrTextRegion>>? RegionsChanged;
 
     public string SourceText
@@ -244,7 +257,11 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
     public ScreenshotOcrLanguageOption CandidateLanguage
     {
         get => _candidateLanguage;
-        set => this.RaiseAndSetIfChanged(ref _candidateLanguage, value);
+        set
+        {
+            if (value is not null)
+                this.RaiseAndSetIfChanged(ref _candidateLanguage, value);
+        }
     }
 
     public async Task InitializeAsync()
@@ -307,7 +324,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
             var previousSession = _editSession;
             _editSession = replacementSession;
             replacementSession = null!;
-            SetBitmap(replacementBitmap);
+            SetBitmap(replacementBitmap, resetView: true);
             replacementBitmap = null;
             CommitRecognition(recognition, CandidateLanguage.Language);
             await previousSession.DisposeAsync();
@@ -435,7 +452,12 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
     {
         var text = GetSelectedText();
         if (!string.IsNullOrWhiteSpace(text))
-            await _textAssist.ShowResultAsync(text, TextAssistOperation.Translation, anchor, _lifetime.Token);
+        {
+            await _translation.ShowSentenceAsync(
+                text,
+                anchor,
+                cancellationToken: _lifetime.Token);
+        }
     }
 
     public async Task ExplainSelectedAsync(PhysicalScreenPoint anchor)
@@ -532,7 +554,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
             {
                 restored = AvaloniaImageFrames.ToBitmap(_editSession.OriginalImage);
                 await _editSession.ResetHistoryAsync(request.Token);
-                SetBitmap(restored);
+                SetBitmap(restored, resetView: true);
                 restored = null;
             }
             CommitRecognition(recognition, CandidateLanguage.Language);
@@ -602,7 +624,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
             return;
         }
         var bitmap = AvaloniaImageFrames.ToBitmap(result.Value.Image);
-        SetBitmap(bitmap);
+        SetBitmap(bitmap, resetView: false);
         CanUndo = result.Value.CanUndo;
         CanRedo = result.Value.CanRedo;
         StatusText = result.Value.Warnings.FirstOrDefault() ?? string.Empty;
@@ -624,11 +646,11 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         RegionsChanged?.Invoke(recognition.Regions);
     }
 
-    private void SetBitmap(Bitmap bitmap)
+    private void SetBitmap(Bitmap bitmap, bool resetView)
     {
         var previous = _bitmap;
         _bitmap = bitmap;
-        BitmapChanged?.Invoke(bitmap);
+        BitmapChanged?.Invoke(bitmap, resetView);
         previous.Dispose();
     }
 
@@ -717,6 +739,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
                 return new ScreenshotOcrLanguageOption(
                     language,
                     display,
+                    translated?.Icon ?? "unknown.png",
                     group.Select(item => item.Id).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
             })
             .OrderBy(option => option.DisplayName, StringComparer.CurrentCultureIgnoreCase)
