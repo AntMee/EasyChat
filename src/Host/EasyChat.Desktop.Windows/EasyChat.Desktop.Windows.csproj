@@ -6,10 +6,8 @@
     <Version>1.0.12</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\EasyChat.Desktop\Assets\easychat-logo.ico</ApplicationIcon>
+    <UseBundledOcrModels Condition="'$(UseBundledOcrModels)' == ''">false</UseBundledOcrModels>
   </PropertyGroup>
-  <ItemGroup>
-    <InternalsVisibleTo Include="EasyChat.AcceptanceTests" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
     <PackageReference Include="Velopack" Version="0.0.1298" />

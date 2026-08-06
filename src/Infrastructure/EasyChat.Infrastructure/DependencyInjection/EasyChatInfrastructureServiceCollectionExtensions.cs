@@ -1,11 +1,9 @@
-using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.AiModels;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings.Persistence;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.Updates;
-using EasyChat.Infrastructure.ApplicationData;
 using EasyChat.Infrastructure.AiModels;
 using EasyChat.Infrastructure.Settings.Persistence;
 using EasyChat.Infrastructure.Speech;
@@ -22,7 +20,16 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
     public static IServiceCollection AddEasyChatInfrastructure(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        return AddEasyChatInfrastructure(services, ApplicationDataStore.CreateDefault());
+        var configurationDirectory = Path.Combine(
+            AppContext.BaseDirectory,
+#if DEBUG
+            "Configuration"
+#else
+            "..",
+            "Configuration"
+#endif
+        );
+        return services.AddEasyChatInfrastructure(configurationDirectory);
     }
 
     public static IServiceCollection AddEasyChatInfrastructure(
@@ -32,21 +39,9 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(configurationDirectory);
 
-        return AddEasyChatInfrastructure(
-            services,
-            ApplicationDataStore.CreateFixed(configurationDirectory));
-    }
-
-    private static IServiceCollection AddEasyChatInfrastructure(
-        IServiceCollection services,
-        ApplicationDataStore applicationData)
-    {
-        services.AddSingleton(applicationData);
-        services.AddSingleton<IApplicationDataPaths>(applicationData);
-        services.AddSingleton<IApplicationDataStore>(applicationData);
+        var fullConfigurationDirectory = Path.GetFullPath(configurationDirectory);
         services.AddSingleton<ISettingsPersistenceGateway>(
-            provider => new JsonSettingsPersistenceGateway(
-                () => provider.GetRequiredService<IApplicationDataPaths>().ConfigurationDirectory));
+            _ => new JsonSettingsPersistenceGateway(fullConfigurationDirectory));
         services.AddHttpClient<IAiModelCatalogTransport, HttpAiModelCatalogTransport>();
         services.AddSingleton<ITranslationProviderFactory, TranslationProviderFactory>();
         services.AddSingleton<ITranslationFailureSink, LoggingTranslationFailureSink>();

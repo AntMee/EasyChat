@@ -11,6 +11,12 @@ namespace EasyChat.Presentation.Features.SelectionTranslation.Views;
 
 public partial class SelectionIconWindowView : Window
 {
+    private const double ShellPadding = 14;
+    private const double ButtonGap = 3;
+    private const double CompactButton = 30;
+    private const double NormalButton = 34;
+    private const double PrimaryExtraWidth = 52;
+
     private IPlatformWindowBehavior? _platformWindowBehavior;
     private ILogger<SelectionIconWindowView>? _logger;
     private readonly Loading? _loadingSpinner;
@@ -19,7 +25,6 @@ public partial class SelectionIconWindowView : Window
     private readonly Button? _correctionButton;
     private readonly Button? _polishButton;
     private readonly Button? _summaryButton;
-    private readonly Button? _explanationButton;
     private bool _isLoading;
 
     public SelectionIconWindowView()
@@ -31,7 +36,6 @@ public partial class SelectionIconWindowView : Window
         _correctionButton = this.FindControl<Button>("CorrectionButton");
         _polishButton = this.FindControl<Button>("PolishButton");
         _summaryButton = this.FindControl<Button>("SummaryButton");
-        _explanationButton = this.FindControl<Button>("ExplanationButton");
     }
 
     public SelectionIconWindowView(
@@ -48,7 +52,6 @@ public partial class SelectionIconWindowView : Window
     public event EventHandler? CorrectionClicked;
     public event EventHandler? PolishClicked;
     public event EventHandler? SummaryClicked;
-    public event EventHandler? ExplanationClicked;
 
     public bool IsLoading => _isLoading;
 
@@ -58,39 +61,47 @@ public partial class SelectionIconWindowView : Window
         if (_correctionButton is not null) _correctionButton.IsVisible = options.Correction;
         if (_polishButton is not null) _polishButton.IsVisible = options.Polish;
         if (_summaryButton is not null) _summaryButton.IsVisible = options.Summary;
-        if (_explanationButton is not null) _explanationButton.IsVisible = options.Explanation;
 
-        var count = (options.Translation ? 1 : 0)
-                    + (options.Correction ? 1 : 0)
-                    + (options.Polish ? 1 : 0)
-                    + (options.Summary ? 1 : 0)
-                    + (options.Explanation ? 1 : 0);
-        var compact = count == 1;
-        var buttonWidth = compact ? 24 : 34;
-        var buttonHeight = compact ? 24 : 32;
-        foreach (var button in new[]
-                 {
-                     _translateButton,
-                     _correctionButton,
-                     _polishButton,
-                     _summaryButton,
-                     _explanationButton
-                 })
+        var secondaryCount = (options.Correction ? 1 : 0)
+                             + (options.Polish ? 1 : 0)
+                             + (options.Summary ? 1 : 0);
+        var hasPrimary = options.Translation;
+        var totalCount = (hasPrimary ? 1 : 0) + secondaryCount;
+        var compact = totalCount == 1;
+        var secondarySize = compact ? CompactButton : NormalButton;
+        var iconSize = compact ? 15.0 : 17.0;
+
+        if (_translateButton is not null)
+        {
+            // Primary stays pill-shaped with optional label when not alone.
+            _translateButton.MinWidth = secondarySize;
+            _translateButton.Height = secondarySize;
+            _translateButton.Padding = compact ? new Thickness(8, 4) : new Thickness(10, 6);
+            if (this.FindControl<TextBlock>("TranslateLabel") is { } label)
+                label.IsVisible = !compact || !hasPrimary || secondaryCount > 0;
+        }
+
+        foreach (var button in new[] { _correctionButton, _polishButton, _summaryButton })
         {
             if (button is null)
                 continue;
-            button.Width = buttonWidth;
-            button.Height = buttonHeight;
-            button.Padding = compact ? new Thickness(3) : new Thickness(5);
+            button.Width = secondarySize;
+            button.Height = secondarySize;
+            button.Padding = compact ? new Thickness(4) : new Thickness(6);
             if (button.Content is MaterialIcon icon)
             {
-                icon.Width = compact ? 18 : 20;
-                icon.Height = compact ? 18 : 20;
+                icon.Width = iconSize;
+                icon.Height = iconSize;
             }
         }
 
-        Width = Math.Max(32, 8 + count * buttonWidth + Math.Max(0, count - 1) * 3);
-        Height = compact ? 32 : 40;
+        var primaryWidth = hasPrimary
+            ? (compact && secondaryCount == 0 ? secondarySize + 8 : secondarySize + PrimaryExtraWidth)
+            : 0;
+        var secondaryWidth = secondaryCount * secondarySize;
+        var gaps = Math.Max(0, totalCount - 1) * ButtonGap;
+        Width = Math.Max(44, ShellPadding + primaryWidth + secondaryWidth + gaps);
+        Height = compact ? 38 : 44;
     }
 
     public void ShowLoading()
@@ -124,5 +135,4 @@ public partial class SelectionIconWindowView : Window
     private void OnCorrectionClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) CorrectionClicked?.Invoke(this, EventArgs.Empty); }
     private void OnPolishClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) PolishClicked?.Invoke(this, EventArgs.Empty); }
     private void OnSummaryClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) SummaryClicked?.Invoke(this, EventArgs.Empty); }
-    private void OnExplanationClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) ExplanationClicked?.Invoke(this, EventArgs.Empty); }
 }

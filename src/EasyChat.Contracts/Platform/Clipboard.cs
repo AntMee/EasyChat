@@ -33,10 +33,3 @@ public interface IClipboardText
 
     ValueTask<Result> WriteAsync(string text, CancellationToken cancellationToken = default);
 }
-
-public interface IClipboardImage
-{
-    ValueTask<Result> WriteAsync(
-        ImageFrame image,
-        CancellationToken cancellationToken = default);
-}

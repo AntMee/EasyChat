@@ -21,54 +21,27 @@ public sealed class ScreenshotUseCases(
     private readonly ITranslationUseCases _translation = translation;
     private readonly IImageTranslationUseCases _imageTranslation = imageTranslation;
 
-    public OcrLanguage ResolveOcrLanguage(OcrLanguage? requestedLanguage = null)
-    {
-        if (requestedLanguage is not null
-            && !string.Equals(requestedLanguage.Id, OcrLanguages.Auto.Id, StringComparison.OrdinalIgnoreCase)
-            && OcrLanguages.TryGet(requestedLanguage.Id, out var requested))
-        {
-            return requested;
-        }
-
-        var global = ResolveOcrLanguage(_settings.Current.General.SourceLanguage.Id);
-        return global is not null
-               && !string.Equals(global.Id, OcrLanguages.Auto.Id, StringComparison.OrdinalIgnoreCase)
-            ? global
-            : OcrLanguages.ChineseSimplified;
-    }
-
     public ValueTask<OcrRecognitionResult> RecognizeAsync(
         ImageFrame image,
         bool enableRotation,
-        OcrLanguage? language = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(image);
-        var settings = _settings.Current;
+        var language = ResolveOcrLanguage(_settings.Current.General.SourceLanguage.Id);
         return _ocr.RecognizeAsync(
-            new OcrRecognitionRequest(
-                image,
-                ResolveOcrLanguage(language),
-                enableRotation,
-                settings.Screenshot.OcrMode,
-                settings.Screenshot.OcrIdleTimeoutSeconds),
+            new OcrRecognitionRequest(image, language, enableRotation),
             cancellationToken);
     }
 
     public async IAsyncEnumerable<TranslationEvent> TranslateTextAsync(
         string text,
-        OcrLanguage? sourceLanguage = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         var general = _settings.Current.General;
-        var source = sourceLanguage is null
-            ? _languages.Get(general.SourceLanguage.Id)
-            : TryGetTranslationLanguage(sourceLanguage.Id)
-              ?? _languages.Get(general.SourceLanguage.Id);
         var request = new TranslationRequest(
             text,
-            source,
+            _languages.Get(general.SourceLanguage.Id),
             _languages.Get(general.TargetLanguage.Id));
         await foreach (var item in _translation.StreamAsync(request, cancellationToken)
                            .ConfigureAwait(false))
@@ -94,22 +67,12 @@ public sealed class ScreenshotUseCases(
             cancellationToken);
     }
 
-    internal static OcrLanguage? ResolveOcrLanguage(string languageId)
+    private static OcrLanguage? ResolveOcrLanguage(string languageId)
     {
-        return OcrLanguages.TryGet(languageId, out var language)
-            ? language
-            : null;
-    }
+        if (string.Equals(languageId, OcrLanguages.Auto.Id, StringComparison.OrdinalIgnoreCase))
+            return OcrLanguages.Auto;
 
-    private TranslationLanguage? TryGetTranslationLanguage(string languageId)
-    {
-        try
-        {
-            return _languages.Get(languageId);
-        }
-        catch
-        {
-            return null;
-        }
+        return OcrLanguages.Supported.FirstOrDefault(language =>
+            string.Equals(language.Id, languageId, StringComparison.OrdinalIgnoreCase));
     }
 }

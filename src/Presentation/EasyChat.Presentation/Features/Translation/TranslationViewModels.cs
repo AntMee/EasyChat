@@ -8,7 +8,6 @@ using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.Translation.Models;
-using LiveMarkdown.Avalonia;
 using ReactiveUI;
 
 namespace EasyChat.Presentation.Features.Translation;
@@ -72,7 +71,6 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
             this.RaisePropertyChanged(nameof(ShowTranslationSkeleton));
         }
     }
-    public ObservableStringBuilder TranslationMarkdown { get; } = new();
     public bool IsLoading
     {
         get => _isLoading;
@@ -127,8 +125,6 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         _sourceLanguageId = string.IsNullOrWhiteSpace(sourceLanguageId) ? "auto" : sourceLanguageId;
         _targetLanguageId = string.IsNullOrWhiteSpace(targetLanguageId) ? "zh-Hans" : targetLanguageId;
         SourceText = text;
-        _sentenceTranslationSnapshot = null;
-        await Dispatcher.UIThread.InvokeAsync(() => TranslationMarkdown.Clear());
         BeginLoading();
         try
         {
@@ -136,7 +132,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         }
         catch (Exception exception)
         {
-            await SetErrorAsync(exception);
+            TranslationResult = FormatError(exception);
         }
         finally
         {
@@ -153,8 +149,6 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         _canNavigateBack = false;
         DictionaryResult = new DictionaryResultViewModel { Word = text };
         TranslationResult = string.Empty;
-        _sentenceTranslationSnapshot = null;
-        await Dispatcher.UIThread.InvokeAsync(() => TranslationMarkdown.Clear());
         BeginLoading();
         try
         {
@@ -162,7 +156,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         }
         catch (Exception exception)
         {
-            await SetErrorAsync(exception);
+            TranslationResult = FormatError(exception);
         }
         finally
         {
@@ -179,8 +173,11 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         var stream = dictionary
             ? _translation.StreamDictionaryAsync(request)
             : _translation.StreamAsync(request);
+        // Background priority: coalesce layout passes so stream deltas don't hitch the float.
         await foreach (var item in stream)
-            await Dispatcher.UIThread.InvokeAsync(() => Apply(item, canNavigateBack, dictionary));
+            await Dispatcher.UIThread.InvokeAsync(
+                () => Apply(item, canNavigateBack, dictionary),
+                DispatcherPriority.Background);
     }
 
     private void Apply(SelectionTranslationEvent item, bool canNavigateBack, bool lookup)
@@ -192,7 +189,6 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
                 _canNavigateBack = IsWordMode && canNavigateBack;
                 ShowBackButton = IsWordMode && _canNavigateBack;
                 TranslationResult = string.Empty;
-                TranslationMarkdown.Clear();
                 DictionaryResult = IsWordMode ? new DictionaryResultViewModel { Word = DictionaryResult?.Word ?? SourceText } : null;
                 if (!IsWordMode && !lookup)
                     _sentenceTranslationSnapshot = string.Empty;
@@ -207,7 +203,6 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
                 break;
             case SelectionTranslationDeltaEvent delta:
                 TranslationResult += delta.Text;
-                TranslationMarkdown.Append(delta.Text);
                 if (!lookup)
                     _sentenceTranslationSnapshot = TranslationResult;
                 break;
@@ -253,7 +248,6 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         ShowBackButton = true;
         DictionaryResult = new DictionaryResultViewModel { Word = word };
         TranslationResult = string.Empty;
-        TranslationMarkdown.Clear();
         BeginLoading();
         try
         {
@@ -261,7 +255,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         }
         catch (Exception exception)
         {
-            await SetErrorAsync(exception);
+            TranslationResult = FormatError(exception);
         }
         finally
         {
@@ -273,19 +267,6 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
     {
         IsWordMode = false;
         TranslationResult = _sentenceTranslationSnapshot ?? TranslationResult;
-        TranslationMarkdown.Clear();
-        TranslationMarkdown.Append(TranslationResult);
-    }
-
-    private async Task SetErrorAsync(Exception exception)
-    {
-        var message = FormatError(exception);
-        TranslationResult = message;
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            TranslationMarkdown.Clear();
-            TranslationMarkdown.Append(message);
-        });
     }
 
     private Task PlayTtsAsync(object? parameter)

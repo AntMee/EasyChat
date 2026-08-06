@@ -37,18 +37,17 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IClipboardSnapshots>(provider =>
             provider.GetRequiredService<WindowsClipboardSnapshots>());
         services.AddSingleton<IClipboardText, WindowsClipboardText>();
-        services.AddSingleton<IClipboardImage, WindowsClipboardImage>();
         services.AddSingleton<ITextDelivery, WindowsTextDelivery>();
         services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
         services.AddSingleton<IAudioCaptureSourceCatalog, WindowsAudioCaptureSourceCatalog>();
         services.AddSingleton<IPcmAudioCapture, WindowsPcmAudioCapture>();
         services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
-        services.AddSingleton<WindowsOpenVinoOcr>();
+        services.AddSingleton<WindowsPaddleOcr>();
         services.AddSingleton<IOcrRecognizer>(provider =>
-            provider.GetRequiredService<WindowsOpenVinoOcr>());
+            provider.GetRequiredService<WindowsPaddleOcr>());
         services.AddSingleton<IOcrModelStore>(provider =>
-            provider.GetRequiredService<WindowsOpenVinoOcr>());
+            provider.GetRequiredService<WindowsPaddleOcr>());
         return services;
     }
 }

@@ -6,17 +6,24 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
 using Key = Avalonia.Input.Key;
 
 namespace EasyChat.Presentation.Features.Capture.Views;
 
+public enum CaptureOverlayAction
+{
+    Translation,
+    CopyOriginal,
+    CopyTranslated,
+    CopyBilingual,
+    CopyImageTranslated
+}
+
 public partial class OverlayWindowView : Window
 {
     private readonly ScreenDescriptor? _screen;
     private readonly bool _regionOnly;
-    private readonly CaptureOverlayAction _defaultAction = CaptureOverlayAction.Translation;
     private readonly Image? _capturedScreenImage;
     private readonly Rectangle? _selectionRectangle;
     private readonly Border? _hintBorder;
@@ -40,14 +47,11 @@ public partial class OverlayWindowView : Window
     internal OverlayWindowView(
         ScreenDescriptor screen,
         IImage capturedImage,
-        bool regionOnly,
-        CaptureOverlayAction defaultAction = CaptureOverlayAction.Translation,
-        CaptureToolbarMode toolbarMode = CaptureToolbarMode.Full)
+        bool regionOnly)
     {
         InitializeComponent();
         _screen = screen;
         _regionOnly = regionOnly;
-        _defaultAction = defaultAction;
         ShowInTaskbar = false;
         WindowState = WindowState.Normal;
         WindowStartupLocation = WindowStartupLocation.Manual;
@@ -70,8 +74,6 @@ public partial class OverlayWindowView : Window
         _toolbarBorder = Require<Control>("ToolbarBorder");
         _copyMenuBorder = Require<Control>("CopyMenuBorder");
         _copyButton = Require<Control>("CopyButton");
-        _copyButton.IsVisible = toolbarMode == CaptureToolbarMode.Full;
-        Require<Control>("OcrButton").IsVisible = toolbarMode == CaptureToolbarMode.Full;
         _handles =
         [
             Require<Border>("HandleTopLeft"),
@@ -285,9 +287,7 @@ public partial class OverlayWindowView : Window
     }
 
     public void ConfirmButton_OnClick(object? sender, RoutedEventArgs e) =>
-        ActionRequested?.Invoke(this, _defaultAction);
-    public void OcrButton_OnClick(object? sender, RoutedEventArgs e) =>
-        ActionRequested?.Invoke(this, CaptureOverlayAction.OcrWorkbench);
+        ActionRequested?.Invoke(this, CaptureOverlayAction.Translation);
     public void CopyOriginal_OnClick(object? sender, RoutedEventArgs e) =>
         ActionRequested?.Invoke(this, CaptureOverlayAction.CopyOriginal);
     public void CopyTranslated_OnClick(object? sender, RoutedEventArgs e) =>
@@ -469,7 +469,7 @@ public partial class OverlayWindowView : Window
         if (e.Key == Key.Escape)
             CancelRequested?.Invoke();
         else if (e.Key == Key.Enter && _toolbarBorder?.IsVisible == true)
-            ActionRequested?.Invoke(this, _defaultAction);
+            ActionRequested?.Invoke(this, CaptureOverlayAction.Translation);
     }
 
     private void TopLevel_OnClosed(object? sender, EventArgs e)

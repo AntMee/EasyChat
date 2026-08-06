@@ -1,5 +1,3 @@
-using EasyChat.Contracts.Ocr;
-
 namespace EasyChat.Contracts.Settings;
 
 public sealed record SettingsBundle(
@@ -113,7 +111,8 @@ public sealed record GeneralSettings(
     string? CustomThemePrimaryColor,
     string? CustomThemeAccentColor,
     bool TitleBarVisible,
-    bool FullScreen);
+    bool FullScreen,
+    bool HomeOnboardingDismissed = false);
 
 public sealed record AiModelSettings(
     IReadOnlyList<CustomAiModelSettings> ConfiguredModels);
@@ -220,14 +219,7 @@ public sealed record InputSettings(
 
 public sealed record ScreenshotSettings(
     string? Mode,
-    IReadOnlyList<FixedAreaSettings> FixedAreas,
-    OcrRecognitionMode OcrMode = OcrRecognitionMode.Normal,
-    int OcrIdleTimeoutSeconds = 300)
-{
-    public const int DefaultOcrIdleTimeoutSeconds = 300;
-    public const int MinOcrIdleTimeoutSeconds = 10;
-    public const int MaxOcrIdleTimeoutSeconds = 3600;
-}
+    IReadOnlyList<FixedAreaSettings> FixedAreas);
 
 public sealed record FixedAreaSettings(
     string Id,
@@ -265,8 +257,7 @@ public sealed record SpeechRecognitionSettings(
     double WindowX,
     double WindowY,
     double WindowWidth,
-    double WindowHeight,
-    string? PromptId = null);
+    double WindowHeight);
 
 public sealed record SelectionTranslationSettings(
     bool Enabled,

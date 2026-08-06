@@ -32,16 +32,14 @@ public sealed record TranslationProviderSelection(
     string? AiModelName = null,
     string? MachineProviderId = null,
     string? MachineProviderName = null,
-    string? PromptOverride = null,
-    string? PromptId = null);
+    string? PromptOverride = null);
 
 public sealed record TranslationRequest(
     string Text,
     TranslationLanguage? Source,
     TranslationLanguage Target,
     bool ShowOriginal = false,
-    TranslationProviderSelection? Provider = null,
-    bool PlainText = false);
+    TranslationProviderSelection? Provider = null);
 
 public sealed record TranslationResponse(string Text);
 

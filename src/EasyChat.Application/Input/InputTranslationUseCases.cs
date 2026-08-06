@@ -33,8 +33,7 @@ public sealed class InputTranslationUseCases(
             new TranslationRequest(
                 request.Text,
                 _languages.Get(sourceId),
-                _languages.Get(targetId),
-                PlainText: true),
+                _languages.Get(targetId)),
             cancellationToken).ConfigureAwait(false);
         if (translated.IsFailure)
             return Result.Failure(translated.Error);

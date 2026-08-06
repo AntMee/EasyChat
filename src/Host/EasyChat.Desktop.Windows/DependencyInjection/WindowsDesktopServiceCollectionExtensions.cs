@@ -1,6 +1,4 @@
 using EasyChat.Desktop.Windows;
-using EasyChat.Desktop.Windows.Capture;
-using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Foundation.Platform;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,7 +10,6 @@ public static class WindowsDesktopServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<IPlatformWindowBehavior, AvaloniaWindowsWindowBehavior>();
-        services.AddSingleton<IScreenshotCaptureSession, WindowsScreenshotCaptureSession>();
         return services;
     }
 }

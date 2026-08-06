@@ -33,10 +33,9 @@ public sealed record SelectionToolbarOptions(
     bool Translation,
     bool Correction,
     bool Polish,
-    bool Summary,
-    bool Explanation = true)
+    bool Summary)
 {
-    public bool HasAnyAction => Translation || Correction || Polish || Summary || Explanation;
+    public bool HasAnyAction => Translation || Correction || Polish || Summary;
 }
 
 public sealed record SelectionCapture(

@@ -9,30 +9,28 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
     ISpeechRecognitionModelInstaller,
     ISpeechRecognitionModelRemover
 {
-    private readonly Func<string> _modelsDirectory;
+    private readonly string _modelsDirectory;
     private readonly Action? _modelsChanged;
     private readonly SemaphoreSlim _importGate = new(1, 1);
 
     public MicroAsrSpeechRecognitionModelInstaller(MicroAsrSpeechRecognitionModelCatalog catalog)
-        : this(() => catalog.ModelsDirectory, catalog.NotifyModelsChanged)
+        : this(catalog.ModelsDirectory, catalog.NotifyModelsChanged)
     {
     }
 
     internal MicroAsrSpeechRecognitionModelInstaller(string modelsDirectory)
-        : this(() => modelsDirectory, null)
+        : this(modelsDirectory, null)
     {
     }
 
     private MicroAsrSpeechRecognitionModelInstaller(
-        Func<string> modelsDirectory,
+        string modelsDirectory,
         Action? modelsChanged)
     {
-        ArgumentNullException.ThrowIfNull(modelsDirectory);
-        _modelsDirectory = modelsDirectory;
+        ArgumentException.ThrowIfNullOrWhiteSpace(modelsDirectory);
+        _modelsDirectory = Path.GetFullPath(modelsDirectory);
         _modelsChanged = modelsChanged;
     }
-
-    private string ModelsDirectory => Path.GetFullPath(_modelsDirectory());
 
     public async ValueTask<SpeechRecognitionModelImportResult> ImportAsync(
         SpeechRecognitionModelImportRequest request,
@@ -91,13 +89,12 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
         foreach (var sourcePath in sourcePaths)
             ValidateSource(sourcePath, request.SourceKind);
 
-        var modelsDirectory = ModelsDirectory;
-        var modelsParent = Directory.GetParent(modelsDirectory)?.FullName
+        var modelsParent = Directory.GetParent(_modelsDirectory)?.FullName
                            ?? throw new InvalidOperationException("The model library has no parent directory.");
         Directory.CreateDirectory(modelsParent);
         var stagingRoot = Path.Combine(
             modelsParent,
-            $".{Path.GetFileName(modelsDirectory)}.import-{Guid.NewGuid():N}");
+            $".{Path.GetFileName(_modelsDirectory)}.import-{Guid.NewGuid():N}");
         Directory.CreateDirectory(stagingRoot);
 
         try
@@ -115,7 +112,7 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
                 _ => throw new ArgumentOutOfRangeException(nameof(request.SourceKind))
             }).ToArray();
 
-            var sharedVadPath = FindSharedVad(scanRoots) ?? FindSharedVad([modelsDirectory]);
+            var sharedVadPath = FindSharedVad(scanRoots) ?? FindSharedVad([_modelsDirectory]);
             var validationErrors = new List<Exception>();
             var packages = scanRoots
                 .SelectMany(scanRoot => DiscoverPackages(
@@ -151,7 +148,7 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
     {
         cancellationToken.ThrowIfCancellationRequested();
         var id = ValidateModelIdentifier(modelId);
-        var targetDirectory = Path.Combine(ModelsDirectory, id);
+        var targetDirectory = Path.Combine(_modelsDirectory, id);
         if (!Directory.Exists(targetDirectory))
             return false;
         if (!SpeechModelPackage.IsSupported(targetDirectory))
@@ -166,7 +163,7 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
         string stagingRoot,
         CancellationToken cancellationToken)
     {
-        Directory.CreateDirectory(ModelsDirectory);
+        Directory.CreateDirectory(_modelsDirectory);
         var preparedRoot = Path.Combine(stagingRoot, "prepared");
         Directory.CreateDirectory(preparedRoot);
         var imported = new List<SpeechRecognitionModel>();
@@ -191,7 +188,7 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
                 continue;
             }
 
-            var targetDirectory = Path.Combine(ModelsDirectory, id);
+            var targetDirectory = Path.Combine(_modelsDirectory, id);
             if (Directory.Exists(targetDirectory))
             {
                 if (!SpeechModelPackage.IsSupported(targetDirectory))
@@ -221,7 +218,7 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
             foreach (var item in prepared)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var targetDirectory = Path.Combine(ModelsDirectory, item.Id);
+                var targetDirectory = Path.Combine(_modelsDirectory, item.Id);
                 Directory.Move(item.Directory, targetDirectory);
                 movedDirectories.Add(targetDirectory);
                 imported.Add(new SpeechRecognitionModel(item.Id));

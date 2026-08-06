@@ -115,11 +115,9 @@ internal sealed class IncrementalSubtitleSegmenter
             StartsNewUtterance: startsNewUtterance);
     }
 
-    public SubtitleSegmentationUpdate Tick(TimeSpan now, TimeSpan? quietPeriod = null)
+    public SubtitleSegmentationUpdate Tick(TimeSpan now)
     {
-        var requiredQuietPeriod = quietPeriod ?? QuietPeriod;
-        ArgumentOutOfRangeException.ThrowIfLessThan(requiredQuietPeriod, TimeSpan.Zero);
-        if (!_hasHypothesis || _quietHandled || now - _lastChangedAt < requiredQuietPeriod)
+        if (!_hasHypothesis || _quietHandled || now - _lastChangedAt < QuietPeriod)
             return SubtitleSegmentationUpdate.Empty;
 
         _quietHandled = true;
