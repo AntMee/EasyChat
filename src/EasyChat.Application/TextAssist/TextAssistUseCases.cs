@@ -139,7 +139,7 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
         try
         {
             await foreach (var item in prepared.StreamAsync(
-                                   new TranslationRequest(text, profile.Source, profile.Target),
+                                   new TranslationRequest(text, profile.Source, profile.Target, PlainText: true),
                                    cancellationToken).ConfigureAwait(false))
             {
                 if (item is TranslationDeltaEvent delta && !string.IsNullOrEmpty(delta.Text))
@@ -295,6 +295,7 @@ You are a precise writing assistant.
 
 # Task
 {{instruction}}
+Use Markdown inline emphasis, lists, code spans, or blockquotes when they improve readability; do not wrap the entire response in a code fence.
 
 # Optional user guidance
 {{BuildAssistGuidance(profile)}}
@@ -332,6 +333,7 @@ You are a precise language and context explainer.
 Explain the selected text in {{outputLanguage}}. Detect the input language yourself.
 Clarify its meaning in context, important terms, idioms, ambiguity, and implied intent when relevant.
 Be concise but complete. Do not translate mechanically unless a translation helps the explanation.
+Use Markdown inline emphasis, lists, code spans, or blockquotes when they improve readability; do not wrap the entire response in a code fence.
 Output only the explanation, without a heading or meta commentary.
 
 # Optional user guidance
@@ -430,6 +432,7 @@ Source language: [SourceLang]
 Target language: [TargetLang]
 Translate from the source language to the target language exactly.
 Only output the target-language translation. Do not output explanations, labels, analysis, or the source text.
+The translated text must be plain text for direct input delivery. Do not use Markdown formatting, headings, list markers, or code fences.
 """;
 
     private string BuildDetailedTranslationPrompt(TextAssistProfile profile) => """

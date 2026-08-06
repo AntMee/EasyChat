@@ -40,7 +40,8 @@ public sealed record TranslationRequest(
     TranslationLanguage? Source,
     TranslationLanguage Target,
     bool ShowOriginal = false,
-    TranslationProviderSelection? Provider = null);
+    TranslationProviderSelection? Provider = null,
+    bool PlainText = false);
 
 public sealed record TranslationResponse(string Text);
 

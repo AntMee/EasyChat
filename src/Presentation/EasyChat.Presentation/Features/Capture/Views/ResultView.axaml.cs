@@ -1,18 +1,25 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Settings.State;
+using LiveMarkdown.Avalonia;
 
 namespace EasyChat.Presentation.Features.Capture.Views;
 
 public partial class ResultView : Window
 {
+    private readonly ObservableStringBuilder _markdown = new();
     private Screen? _screen;
 
-    public ResultView() => InitializeComponent();
+    public ResultView()
+    {
+        InitializeComponent();
+        MarkdownResult.MarkdownBuilder = _markdown;
+    }
 
     public ResultView(
         SettingsSession settings,
@@ -27,7 +34,7 @@ public partial class ResultView : Window
             new PixelPoint(completionPoint.X, completionPoint.Y)) ?? Screens.Primary;
         if (_screen is not null)
         {
-            TextBlockResult.MaxWidth = _screen.Bounds.Width / _screen.Scaling * 0.8;
+            MarkdownResult.MaxWidth = _screen.Bounds.Width / _screen.Scaling * 0.8;
             Position = new PixelPoint(_screen.Bounds.X, _screen.Bounds.Y);
         }
         Loaded += (_, _) =>
@@ -45,20 +52,21 @@ public partial class ResultView : Window
     {
         if (LoadingIndicator.IsVisible)
             ShowResult();
-        TextBlockResult.Text += text;
+        _markdown.Append(text);
         Dispatcher.UIThread.Post(ReCenterPosition);
     });
 
     public void ShowLoading() => Dispatcher.UIThread.Post(() =>
     {
+        _markdown.Clear();
         LoadingIndicator.IsVisible = true;
-        TextBlockResult.IsVisible = false;
+        MarkdownResult.IsVisible = false;
     });
 
     public void ShowResult() => Dispatcher.UIThread.Post(() =>
     {
         LoadingIndicator.IsVisible = false;
-        TextBlockResult.IsVisible = true;
+        MarkdownResult.IsVisible = true;
         ReCenterPosition();
     });
 
@@ -72,13 +80,13 @@ public partial class ResultView : Window
     {
         TrySetBrush(settings.BackgroundColor, brush => MainCard.Background = brush);
         TrySetBrush(settings.WindowBackgroundColor, brush => WindowBackground.Background = brush);
-        TrySetBrush(settings.FontColor, brush => TextBlockResult.Foreground = brush);
-        TextBlockResult.FontSize = settings.FontSize;
+        TrySetBrush(settings.FontColor, brush => MarkdownResult.SetValue(TextElement.ForegroundProperty, brush));
+        MarkdownResult.SetValue(TextElement.FontSizeProperty, settings.FontSize);
         if (!string.IsNullOrWhiteSpace(settings.FontFamily))
         {
             try
             {
-                TextBlockResult.FontFamily = new FontFamily(settings.FontFamily);
+                MarkdownResult.SetValue(TextElement.FontFamilyProperty, new FontFamily(settings.FontFamily));
             }
             catch
             {

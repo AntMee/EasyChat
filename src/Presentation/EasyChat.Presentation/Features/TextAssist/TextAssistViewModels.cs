@@ -13,6 +13,7 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
+using LiveMarkdown.Avalonia;
 using Material.Icons;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
@@ -754,6 +755,7 @@ namespace EasyChat.Presentation.Features.TextAssist
         }
 
         public string Result { get => _result; private set => this.RaiseAndSetIfChanged(ref _result, value); }
+        public ObservableStringBuilder ResultMarkdown { get; } = new();
         public string CorrectedResult { get => _correctedResult; private set => this.RaiseAndSetIfChanged(ref _correctedResult, value); }
         public string CorrectionTranslation { get => _correctionTranslation; private set => this.RaiseAndSetIfChanged(ref _correctionTranslation, value); }
         public ObservableCollection<TextAssistIssueViewModel> Issues { get; } = [];
@@ -793,7 +795,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             _request?.Dispose();
             _request = new CancellationTokenSource();
             var token = _request.Token;
-            ResetResults();
+            await ResetResultsAsync();
             IsBusy = true;
             try
             {
@@ -848,6 +850,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             {
                 case TextAssistTranslationDeltaEvent delta:
                     Result += delta.Text;
+                    ResultMarkdown.Append(delta.Text);
                     this.RaisePropertyChanged(nameof(CopyText));
                     break;
                 case TextAssistPolishExplanationEvent explanation:
@@ -857,9 +860,13 @@ namespace EasyChat.Presentation.Features.TextAssist
             }
         }
 
-        private void ResetResults()
+        private async Task ResetResultsAsync()
         {
             Result = string.Empty;
+            if (Dispatcher.UIThread.CheckAccess())
+                ResultMarkdown.Clear();
+            else
+                await Dispatcher.UIThread.InvokeAsync(() => ResultMarkdown.Clear());
             CorrectedResult = string.Empty;
             CorrectionTranslation = string.Empty;
             Issues.Clear();
@@ -877,6 +884,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             this.RaisePropertyChanged(nameof(IsCorrection));
             this.RaisePropertyChanged(nameof(IsPolish));
             this.RaisePropertyChanged(nameof(IsSummary));
+            this.RaisePropertyChanged(nameof(IsExplanation));
             this.RaisePropertyChanged(nameof(ShowPlainResult));
             this.RaisePropertyChanged(nameof(WindowIcon));
             this.RaisePropertyChanged(nameof(Title));

@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="EasyChat.Presentation.Features.Capture.Views.ResultView"
         WindowStartupLocation="CenterScreen"
@@ -24,8 +25,9 @@
                 ClipToBounds="True">
             <Panel>
                 <suki:Loading x:Name="LoadingIndicator" Width="20" Height="20" IsVisible="True" />
-                <TextBlock TextWrapping="Wrap" x:Name="TextBlockResult" IsVisible="False"
-                           Foreground="{DynamicResource SukiText}" />
+                <md:MarkdownRenderer x:Name="MarkdownResult" IsVisible="False"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Top" />
             </Panel>
         </Border>
     </Border>

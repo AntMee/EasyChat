@@ -5,6 +5,7 @@
         xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         xmlns:suki="https://github.com/kikipoulet/SukiUI"
         x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistResultWindowView"
         x:DataType="vm:TextAssistResultWindowViewModel"
@@ -16,7 +17,7 @@
         WindowStartupLocation="Manual">
     <Window.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="TextAssistSurfaceBrush" Color="#FFFCFCFD" />
                     <SolidColorBrush x:Key="TextAssistRaisedSurfaceBrush" Color="#FFF1F4F6" />
@@ -202,8 +203,10 @@
                         BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <TextBlock Text="{Binding Result}" FontSize="17" TextWrapping="Wrap"
-                                   HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                        <Grid HorizontalAlignment="Stretch">
+                            <md:MarkdownRenderer MarkdownBuilder="{Binding ResultMarkdown}"
+                                                  HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                        </Grid>
                     </ScrollViewer>
                 </Border>
                 <suki:Loading Width="24" Height="24" IsVisible="{Binding IsBusy}" HorizontalAlignment="Center" VerticalAlignment="Center" />
