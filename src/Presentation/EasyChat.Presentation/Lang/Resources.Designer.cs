@@ -2343,6 +2343,24 @@ namespace EasyChat.Presentation.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Decrease Font Size.
+        /// </summary>
+        public static string Speech_FontSizeDecrease {
+            get {
+                return ResourceManager.GetString("Speech_FontSizeDecrease", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Increase Font Size.
+        /// </summary>
+        public static string Speech_FontSizeIncrease {
+            get {
+                return ResourceManager.GetString("Speech_FontSizeIncrease", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Max Visible Lines.
         /// </summary>
         public static string Speech_MaxHistory {
@@ -2690,6 +2708,42 @@ namespace EasyChat.Presentation.Lang {
         public static string TextAssistPolish {
             get {
                 return ResourceManager.GetString("TextAssistPolish", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Polish notes.
+        /// </summary>
+        public static string TextAssistPolishExplanationTitle {
+            get {
+                return ResourceManager.GetString("TextAssistPolishExplanationTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Original.
+        /// </summary>
+        public static string TextAssistPolishOriginalLabel {
+            get {
+                return ResourceManager.GetString("TextAssistPolishOriginalLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Revised.
+        /// </summary>
+        public static string TextAssistPolishRevisedLabel {
+            get {
+                return ResourceManager.GetString("TextAssistPolishRevisedLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Text assist.
+        /// </summary>
+        public static string TextAssistProcessing {
+            get {
+                return ResourceManager.GetString("TextAssistProcessing", resourceCulture);
             }
         }
 

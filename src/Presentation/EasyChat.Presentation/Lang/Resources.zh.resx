@@ -567,6 +567,12 @@
     <data name="Speech_EnableTranslation" xml:space="preserve">
         <value>启用翻译</value>
     </data>
+    <data name="Speech_FontSizeDecrease" xml:space="preserve">
+        <value>减小字号</value>
+    </data>
+    <data name="Speech_FontSizeIncrease" xml:space="preserve">
+        <value>增大字号</value>
+    </data>
     <data name="Speech_RealTimePreview" xml:space="preserve">
         <value>实时预览</value>
     </data>
@@ -891,6 +897,10 @@
   <data name="TextAssistTranslate" xml:space="preserve"><value>翻译</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
   <data name="TextAssistPolish" xml:space="preserve"><value>润色</value></data>
+  <data name="TextAssistPolishExplanationTitle" xml:space="preserve"><value>润色说明</value></data>
+  <data name="TextAssistPolishOriginalLabel" xml:space="preserve"><value>原表达</value></data>
+  <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>润色后</value></data>
+  <data name="TextAssistProcessing" xml:space="preserve"><value>文本处理</value></data>
   <data name="TextAssistSummary" xml:space="preserve"><value>总结</value></data>
   <data name="TextAssistExplain" xml:space="preserve"><value>解释</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>

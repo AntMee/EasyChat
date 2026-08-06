@@ -569,6 +569,12 @@
     <data name="Speech_EnableTranslation" xml:space="preserve">
         <value>Enable Translation</value>
     </data>
+    <data name="Speech_FontSizeDecrease" xml:space="preserve">
+        <value>Decrease Font Size</value>
+    </data>
+    <data name="Speech_FontSizeIncrease" xml:space="preserve">
+        <value>Increase Font Size</value>
+    </data>
     <data name="Speech_RealTimePreview" xml:space="preserve">
         <value>Real-time Preview</value>
     </data>
@@ -901,6 +907,10 @@
   <data name="TextAssistTranslate" xml:space="preserve"><value>Translate</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>Correct</value></data>
   <data name="TextAssistPolish" xml:space="preserve"><value>Polish</value></data>
+  <data name="TextAssistPolishExplanationTitle" xml:space="preserve"><value>Polish notes</value></data>
+  <data name="TextAssistPolishOriginalLabel" xml:space="preserve"><value>Original</value></data>
+  <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>Revised</value></data>
+  <data name="TextAssistProcessing" xml:space="preserve"><value>Text assist</value></data>
   <data name="TextAssistSummary" xml:space="preserve"><value>Summary</value></data>
   <data name="TextAssistExplain" xml:space="preserve"><value>Explain</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>No AI model is configured. Add an AI model in Settings.</value></data>

@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Reactive;
 using System.Reactive.Threading.Tasks;
 using System.Text;
@@ -729,19 +728,17 @@ namespace EasyChat.Presentation.Features.TextAssist
             TextAssistOperation.Explanation => MaterialIconKind.LightbulbOnOutline,
             _ => MaterialIconKind.TextBoxEditOutline
         };
-        public string Title => Operation == TextAssistOperation.Explanation
-            ? IsChineseUi ? "解释" : "Explain"
-            : Operation switch
+        public string Title => Operation switch
         {
+            TextAssistOperation.Explanation => Resources.TextAssistExplain,
             TextAssistOperation.Correction => Resources.TextAssistCorrect,
-            TextAssistOperation.Polish => IsChineseUi ? "润色" : "Polish",
-            TextAssistOperation.Summary => IsChineseUi ? "总结" : "Summarize",
-            _ => IsChineseUi ? "文本处理" : "Text assist"
+            TextAssistOperation.Polish => Resources.TextAssistPolish,
+            TextAssistOperation.Summary => Resources.TextAssistSummary,
+            _ => Resources.TextAssistProcessing
         };
-        public string PolishExplanationTitle => IsChineseUi ? "润色说明" : "Polish notes";
-        public string PolishOriginalLabel => IsChineseUi ? "原表达" : "Original";
-        public string PolishRevisedLabel => IsChineseUi ? "润色后" : "Revised";
-        private static bool IsChineseUi => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
+        public string PolishExplanationTitle => Resources.TextAssistPolishExplanationTitle;
+        public string PolishOriginalLabel => Resources.TextAssistPolishOriginalLabel;
+        public string PolishRevisedLabel => Resources.TextAssistPolishRevisedLabel;
 
         public LanguageSettings SelectedSourceLanguage
         {
