@@ -15,7 +15,7 @@
                         CornerRadius="{DynamicResource SmallCornerRadius}"
                         ClipToBounds="True">
             <sharedControls:LanguageAutoCompleteBox x:Name="LanguageAutoCompleteBox"
-                                                ItemsSource="{Binding Languages, ElementName=Root}"
+                                                ItemsSource="{Binding SortedLanguages, ElementName=Root}"
                                                 SelectedItem="{Binding SelectedLanguage, ElementName=Root, Mode=TwoWay}"
                                                 ValueMemberBinding="{Binding Converter={x:Static converters:LanguageDisplayNameConverter.Instance}}"
                                                 FilterMode="ContainsOrdinal"
