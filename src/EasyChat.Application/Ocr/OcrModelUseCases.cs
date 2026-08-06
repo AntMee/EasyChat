@@ -14,31 +14,33 @@ public sealed class OcrModelUseCases : IOcrModelUseCases
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     }
 
-    public IReadOnlyList<OcrModelPackage> ModelPackages => _models.ModelPackages;
+    public IReadOnlyList<OcrLanguage> SupportedLanguages => _models.SupportedLanguages;
 
-    public bool IsModelDownloaded(OcrModelPackage package)
+    public bool CanDeleteModels => _models.CanDeleteModels;
+
+    public bool IsModelDownloaded(OcrLanguage language)
     {
-        ArgumentNullException.ThrowIfNull(package);
-        return _models.IsModelDownloaded(package);
+        ArgumentNullException.ThrowIfNull(language);
+        return _models.IsModelDownloaded(language);
     }
 
     public Task DownloadModelAsync(
-        OcrModelPackage package,
+        OcrLanguage language,
         IProgress<double>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(package);
+        ArgumentNullException.ThrowIfNull(language);
         var settings = _settings.Current;
         return _models.DownloadModelAsync(
-            package,
+            language,
             new OcrModelDownloadOptions(settings.Proxy.ProxyUrl, settings.Ocr.UseProxy),
             progress,
             cancellationToken);
     }
 
-    public void DeleteModel(OcrModelPackage package)
+    public void DeleteModel(OcrLanguage language)
     {
-        ArgumentNullException.ThrowIfNull(package);
-        _models.DeleteModel(package);
+        ArgumentNullException.ThrowIfNull(language);
+        _models.DeleteModel(language);
     }
 }

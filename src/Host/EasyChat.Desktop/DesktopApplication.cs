@@ -12,8 +12,7 @@ using EasyChat.Presentation.Features.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using SukiUI.Dialogs;
-using SukiUI.Toasts;
+
 
 namespace EasyChat.Desktop;
 
@@ -24,8 +23,7 @@ public static class DesktopApplication
     public static void Run(
         string[] args,
         Action<IServiceCollection> addPlatformServices,
-        Action? initializeDeployment = null,
-        Action<AppBuilder>? configureAppBuilder = null)
+        Action? initializeDeployment = null)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(addPlatformServices);
@@ -46,10 +44,9 @@ public static class DesktopApplication
             initializeDeployment?.Invoke();
             shell = StartShell(services);
             InitializeSettings(services);
-            var builder = AppBuilder.Configure(() => new App(() => ui ??= CreateUiContext(services)))
-                .UsePlatformDetect();
-            configureAppBuilder?.Invoke(builder);
-            builder.WithInterFont()
+            AppBuilder.Configure(() => new App(() => ui ??= CreateUiContext(services)))
+                .UsePlatformDetect()
+                .WithInterFont()
                 .LogToTrace()
                 .StartWithClassicDesktopLifetime(args);
         }
@@ -92,11 +89,10 @@ public static class DesktopApplication
     private static DesktopUiContext CreateUiContext(IServiceProvider services) => new(
         services.GetRequiredService<SettingsSession>(),
         services.GetRequiredService<MainWindowViewModel>(),
-        services.GetRequiredService<ISukiDialogManager>(),
+        services.GetRequiredService<EasyChat.Presentation.Foundation.UiHost.IUiDialogHost>(),
         services.GetRequiredService<DesktopInteractionLifecycle>(),
         services.GetRequiredService<IApplicationUpdateService>(),
-        services.GetRequiredService<ISukiToastManager>(),
-        services.GetRequiredService<EasyChat.Presentation.Features.Capture.IScreenshotCaptureSession>());
+        services.GetRequiredService<EasyChat.Presentation.Foundation.UiHost.IUiToastHost>());
 
     private static IShellLifecycle StartShell(IServiceProvider services)
     {

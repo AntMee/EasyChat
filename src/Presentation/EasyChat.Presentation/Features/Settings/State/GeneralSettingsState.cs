@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 
 namespace EasyChat.Presentation.Features.Settings.State;
@@ -23,6 +22,7 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
     private string? _customThemeAccentColor;
     private bool _titleBarVisible;
     private bool _fullScreen;
+    private bool _homeOnboardingDismissed;
 
     public LiveGeneralSettings(GeneralSettings value, Func<SettingsSection, EasyChat.Shared.Results.Result> commit)
         : base(SettingsSection.General, commit)
@@ -43,6 +43,7 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
         _customThemeAccentColor = value.CustomThemeAccentColor;
         _titleBarVisible = value.TitleBarVisible;
         _fullScreen = value.FullScreen;
+        _homeOnboardingDismissed = value.HomeOnboardingDismissed;
     }
 
     public LanguageSettings SourceLanguage { get => _sourceLanguage; set => Set(ref _sourceLanguage, value); }
@@ -61,12 +62,17 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
     public string? CustomThemeAccentColor { get => _customThemeAccentColor; set => Set(ref _customThemeAccentColor, value); }
     public bool TitleBarVisible { get => _titleBarVisible; set => Set(ref _titleBarVisible, value); }
     public bool FullScreen { get => _fullScreen; set => Set(ref _fullScreen, value); }
+    public bool HomeOnboardingDismissed
+    {
+        get => _homeOnboardingDismissed;
+        set => Set(ref _homeOnboardingDismissed, value);
+    }
 
     public GeneralSettings ToContract() => new(
         SourceLanguage, TargetLanguage, DisplayLanguage, NativeLanguage, ClosingBehavior,
         TransEngine, UsingAiModel, UsingAiModelId, UsingMachineTransId, UsingMachineTrans,
         BaseTheme, ColorTheme, CustomThemePrimaryColor, CustomThemeAccentColor,
-        TitleBarVisible, FullScreen);
+        TitleBarVisible, FullScreen, HomeOnboardingDismissed);
 }
 
 public sealed class LiveProxySettings : LiveSettingsSection
@@ -215,38 +221,19 @@ public sealed class FixedAreaState : LiveSettingsSection
 public sealed class LiveScreenshotSettings : LiveSettingsSection
 {
     private string? _mode;
-    private OcrRecognitionMode _ocrRecognitionMode;
-    private int _ocrIdleTimeoutSeconds;
 
     public LiveScreenshotSettings(ScreenshotSettings value, Func<SettingsSection, EasyChat.Shared.Results.Result> commit)
         : base(SettingsSection.Screenshot, commit)
     {
         _mode = value.Mode;
-        _ocrRecognitionMode = value.OcrMode;
-        _ocrIdleTimeoutSeconds = value.OcrIdleTimeoutSeconds;
         FixedAreas = new ObservableCollection<FixedAreaState>(
             value.FixedAreas.Select(area => new FixedAreaState(area, commit)));
         FixedAreas.CollectionChanged += OnCollectionChanged;
     }
 
     public string? Mode { get => _mode; set => Set(ref _mode, value); }
-    public OcrRecognitionMode OcrMode { get => _ocrRecognitionMode; set => Set(ref _ocrRecognitionMode, value); }
-    public int OcrIdleTimeoutSeconds
-    {
-        get => _ocrIdleTimeoutSeconds;
-        set => Set(
-            ref _ocrIdleTimeoutSeconds,
-            Math.Clamp(
-                value,
-                ScreenshotSettings.MinOcrIdleTimeoutSeconds,
-                ScreenshotSettings.MaxOcrIdleTimeoutSeconds));
-    }
     public ObservableCollection<FixedAreaState> FixedAreas { get; }
-    public ScreenshotSettings ToContract() => new(
-        Mode,
-        FixedAreas.Select(area => area.ToContract()).ToArray(),
-        OcrMode,
-        OcrIdleTimeoutSeconds);
+    public ScreenshotSettings ToContract() => new(Mode, FixedAreas.Select(area => area.ToContract()).ToArray());
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => Commit();
 }

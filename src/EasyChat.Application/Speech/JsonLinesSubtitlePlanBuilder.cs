@@ -48,14 +48,10 @@ internal sealed class JsonLinesSubtitlePlanBuilder
             || segment.Sequence != _segments.Count
             || segment.Source.Length == 0
             || segment.Translation.AsSpan().Trim().Length == 0
-            || !TryMatchSourceSlice(segment.Source, out var matchedSource))
-        {
-            _failed = true;
-            return false;
-        }
-
-        segment = segment with { Source = matchedSource };
-        if (!HasConsistentSentenceFinality(segment))
+            || !ContainsAtMostOneCompleteSentence(segment)
+            || segment.Source.Length > _sourceSnapshot.Length - _coveredSourceLength
+            || !_sourceSnapshot.AsSpan(_coveredSourceLength, segment.Source.Length)
+                .SequenceEqual(segment.Source.AsSpan()))
         {
             _failed = true;
             return false;
@@ -155,44 +151,13 @@ internal sealed class JsonLinesSubtitlePlanBuilder
         return fields == CompleteSchema;
     }
 
-    private bool TryMatchSourceSlice(string emittedSource, out string matchedSource)
-    {
-        matchedSource = string.Empty;
-        var remaining = _sourceSnapshot.AsSpan(_coveredSourceLength);
-        if (remaining.StartsWith(emittedSource.AsSpan(), StringComparison.Ordinal))
-        {
-            matchedSource = emittedSource;
-            return true;
-        }
-
-        var sourceLeadingWhitespace = 0;
-        while (sourceLeadingWhitespace < remaining.Length
-               && char.IsWhiteSpace(remaining[sourceLeadingWhitespace]))
-        {
-            sourceLeadingWhitespace++;
-        }
-
-        var trimmedEmitted = emittedSource.AsSpan().TrimStart();
-        if (trimmedEmitted.Length == 0
-            || !remaining[sourceLeadingWhitespace..].StartsWith(
-                trimmedEmitted,
-                StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        var matchedLength = sourceLeadingWhitespace + trimmedEmitted.Length;
-        matchedSource = _sourceSnapshot.Substring(_coveredSourceLength, matchedLength);
-        return true;
-    }
-
-    private static bool HasConsistentSentenceFinality(JsonLinesSubtitleSegment segment)
+    private static bool ContainsAtMostOneCompleteSentence(JsonLinesSubtitleSegment segment)
     {
         var boundaries = IncrementalSubtitleSegmenter.FindStrongBoundaries(segment.Source);
         if (boundaries.Count == 0)
             return true;
-        if (!segment.IsFinal)
+        if (boundaries.Count > 1 || !segment.IsFinal)
             return false;
-        return segment.Source.AsSpan(boundaries[^1]).Trim().IsEmpty;
+        return segment.Source.AsSpan(boundaries[0]).Trim().IsEmpty;
     }
 }

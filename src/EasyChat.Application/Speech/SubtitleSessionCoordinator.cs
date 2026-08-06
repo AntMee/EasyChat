@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -20,16 +19,10 @@ internal sealed class SubtitleSessionCoordinator
     private static readonly TimeSpan MachinePreviewDebounce = TimeSpan.FromMilliseconds(350);
     private static readonly TimeSpan MachinePreviewMaximumWait = TimeSpan.FromMilliseconds(900);
     private static readonly TimeSpan DisplayUpdateInterval = TimeSpan.FromMilliseconds(100);
-    internal static readonly TimeSpan AiQuietPeriod = TimeSpan.FromSeconds(2);
-    internal static readonly TimeSpan FinalTranslationRetryDelay = TimeSpan.FromSeconds(1);
-    private static readonly TimeSpan ProviderCancellationGracePeriod =
-        TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan AiTranslationTimeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan MachineTranslationTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan DuplicateFinalWindow = TimeSpan.FromMilliseconds(500);
-    private const int MaximumTransientTranslationAttempts = 4;
-    private const int MaximumTimedOutTranslationAttempts = 2;
-    private const int MaximumInvalidStructuredPlanAttempts = 2;
+    private const int TranslationQueueCapacity = 32;
     private const int MaximumStructuredSegments = 32;
     private const int AiMaximumWordsPerTranslation = IncrementalSubtitleSegmenter.MaximumWords * 2;
     private const int AiMaximumDisplayColumnsPerTranslation =
@@ -298,12 +291,7 @@ internal sealed class SubtitleSessionCoordinator
     private void HandleTick(TimeSpan now)
     {
         if (!_recognitionStopped)
-        {
-            var quietPeriod = UsesBufferedAiTranslation(_getSettings())
-                ? AiQuietPeriod
-                : IncrementalSubtitleSegmenter.QuietPeriod;
-            ApplySegmentation(_segmenter.Tick(now, quietPeriod), now);
-        }
+            ApplySegmentation(_segmenter.Tick(now), now);
         SchedulePreview(now);
         FlushBufferedTranslation(now);
         ExpireFloatingLines(now);
@@ -1004,25 +992,34 @@ internal sealed class SubtitleSessionCoordinator
         }
 
         CancelPendingPreview();
+        if (_activeTranslation is { } activeToCancel)
+        {
+            if (activeToCancel.LineId == line.Id || !activeToCancel.IsFinal)
+                CancelAndDetachActiveTranslation();
+        }
+
         RemoveQueuedTranslations(line.Id);
+        while (_finalJobs.Count >= TranslationQueueCapacity)
+        {
+            var dropped = _finalJobs.First!.Value;
+            _finalJobs.RemoveFirst();
+            dropped.Cancellation.Dispose();
+            if (_linesById.TryGetValue(dropped.LineId, out var droppedLine)
+                && droppedLine.Revision == dropped.Revision
+                && string.Equals(droppedLine.OriginalText, dropped.SourceText, StringComparison.Ordinal))
+            {
+                _logger.LogWarning(
+                    "Dropping the oldest unstarted subtitle translation for line {SubtitleId} because the queue is full.",
+                    dropped.LineId);
+                MarkTranslationTerminal(droppedLine, now);
+            }
+        }
+
         _finalJobs.AddLast(CreateTranslationJob(
             line,
             isFinal: true,
             expectedDefinition,
             recoveryDisplay));
-        if (_activeTranslation is { } activeToCancel)
-        {
-            if (activeToCancel.LineId == line.Id || !activeToCancel.IsFinal)
-            {
-                var preserveReadablePrefix = activeToCancel.LineId == line.Id
-                                             && line.OriginalText.StartsWith(
-                                                 activeToCancel.SourceText,
-                                                 StringComparison.Ordinal)
-                                             && !string.IsNullOrWhiteSpace(
-                                                 line.DisplayTranslatedText);
-                CancelAndDetachActiveTranslation(preserveReadablePrefix);
-            }
-        }
         line.IsTranslating = true;
         PublishLine(line);
     }
@@ -1031,9 +1028,7 @@ internal sealed class SubtitleSessionCoordinator
         ManagedSubtitleLine line,
         bool isFinal,
         TranslationJobDefinition? definition = null,
-        TranslationDisplaySnapshot? recoveryDisplay = null,
-        int attempt = 1,
-        TimeSpan? notBefore = null)
+        TranslationDisplaySnapshot? recoveryDisplay = null)
     {
         definition ??= CreateTranslationDefinition(line, _getSettings());
         return new TranslationJob(
@@ -1045,9 +1040,7 @@ internal sealed class SubtitleSessionCoordinator
             definition,
             CancellationTokenSource.CreateLinkedTokenSource(CancellationToken.None),
             recoveryDisplay,
-            preserveDisplayUntilCompleted: !string.IsNullOrWhiteSpace(line.DisplayTranslatedText),
-            attempt,
-            notBefore);
+            preserveDisplayUntilCompleted: !string.IsNullOrWhiteSpace(line.DisplayTranslatedText));
     }
 
     private static TranslationDisplaySnapshot? CaptureTranslationDisplay(
@@ -1102,8 +1095,7 @@ internal sealed class SubtitleSessionCoordinator
             ? new TranslationProviderSelection(
                 TranslationEngineNames.AiModel,
                 AiModelId: settings.EngineId,
-                PromptOverride: SubtitlePrompt,
-                PromptId: settings.PromptId)
+                PromptOverride: SubtitlePrompt)
             : new TranslationProviderSelection(
                 TranslationEngineNames.MachineTrans,
                 MachineProviderId: settings.EngineId);
@@ -1129,8 +1121,6 @@ internal sealed class SubtitleSessionCoordinator
             if (_finalJobs.First is not null)
             {
                 job = _finalJobs.First.Value;
-                if (job.NotBefore is { } notBefore && GetMonotonicNow() < notBefore)
-                    return;
                 _finalJobs.RemoveFirst();
             }
             else if (!_recognitionStopped && _pendingPreview is not null)
@@ -1205,19 +1195,6 @@ internal sealed class SubtitleSessionCoordinator
         {
             translationLane.MarkTimedOut(job.ProviderRunKey);
             TryCancel(job.Cancellation);
-            var providerStopped = await WaitForProviderExitAfterCancellationAsync(
-                    providerRun,
-                    sessionToken)
-                .ConfigureAwait(false);
-            var canRetry = providerStopped
-                           && !translationLane.IsUnavailable()
-                           && !string.Equals(
-                               job.Selection.Engine,
-                               TranslationEngineNames.MachineTrans,
-                               StringComparison.Ordinal);
-            Exception completionException = canRetry
-                ? new TimeoutException("Subtitle translation timed out.", exception)
-                : new OperationCanceledException("Subtitle translation timed out.", exception);
             await TryWriteCompletionAsync(
                 new TranslationCompletedMessage(
                     job.Id,
@@ -1225,7 +1202,7 @@ internal sealed class SubtitleSessionCoordinator
                     job.Revision,
                     job.SourceText,
                     string.Empty,
-                    completionException,
+                    new OperationCanceledException("Subtitle translation timed out.", exception),
                     false,
                     false),
                 sessionToken).ConfigureAwait(false);
@@ -1420,12 +1397,6 @@ internal sealed class SubtitleSessionCoordinator
 
         if (TryResolveJobLine(job, out var line))
         {
-            if (message.Exception is not null
-                && TryQueueFinalTranslationRetry(line, job, now, message.Exception))
-            {
-                return;
-            }
-
             var structuredAttempted = job.IsStructured
                                       || message.WasStructured
                                       || job.StructuredPlanBuilder is not null;
@@ -1454,8 +1425,6 @@ internal sealed class SubtitleSessionCoordinator
                 }
                 else if (structuredAttempted)
                 {
-                    if (TryQueueFinalTranslationRetry(line, job, now))
-                        return;
                     _logger.LogWarning(
                         "Ignoring an invalid structured subtitle plan for line {SubtitleId}.",
                         line.Id);
@@ -1508,149 +1477,6 @@ internal sealed class SubtitleSessionCoordinator
 
         if (message.Exception is OperationCanceledException)
             DisableTimedOutTranslationSelection(job.Selection, now);
-    }
-
-    private bool TryQueueFinalTranslationRetry(
-        ManagedSubtitleLine line,
-        TranslationJob job,
-        TimeSpan now,
-        Exception? exception = null)
-    {
-        var maximumAttempts = GetMaximumFinalTranslationAttempts(exception);
-        if (!job.IsFinal
-            || job.Attempt >= maximumAttempts)
-        {
-            return false;
-        }
-
-        var preserveReadableJobOutput = job.RecoveryDisplay is null
-                                        && !string.IsNullOrWhiteSpace(
-                                            line.DisplayTranslatedText)
-                                        && string.Equals(
-                                            line.LastTranslatedSource,
-                                            job.SourceText,
-                                            StringComparison.Ordinal);
-        if (!preserveReadableJobOutput)
-            RollbackStructuredTranslation(line, job);
-        line.IsTranslationTerminal = false;
-        line.TranslationDefinition = job.Definition;
-        line.ExpiresAt = null;
-        line.IsTranslating = true;
-        var nextAttempt = job.Attempt + 1;
-        _finalJobs.AddFirst(CreateTranslationJob(
-            line,
-            isFinal: true,
-            job.Definition,
-            job.RecoveryDisplay,
-            attempt: nextAttempt,
-            notBefore: now + GetFinalTranslationRetryDelay(nextAttempt)));
-        if (exception is null)
-        {
-            _logger.LogWarning(
-                "Retrying invalid structured subtitle plan for line {SubtitleId} (attempt {Attempt}/{MaximumAttempts}).",
-                line.Id,
-                nextAttempt,
-                maximumAttempts);
-        }
-        else
-        {
-            _logger.LogWarning(
-                exception,
-                "Retrying transient subtitle translation failure for line {SubtitleId} (attempt {Attempt}/{MaximumAttempts}).",
-                line.Id,
-                nextAttempt,
-                maximumAttempts);
-        }
-        PublishLine(line);
-        return true;
-    }
-
-    internal static TimeSpan GetFinalTranslationRetryDelay(int attempt)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(attempt, 2);
-        var exponent = Math.Min(attempt - 2, 2);
-        return TimeSpan.FromTicks(FinalTranslationRetryDelay.Ticks * (1L << exponent));
-    }
-
-    private static int GetMaximumFinalTranslationAttempts(Exception? exception)
-    {
-        if (exception is null)
-            return MaximumInvalidStructuredPlanAttempts;
-        if (exception is TimeoutException)
-            return MaximumTimedOutTranslationAttempts;
-        return IsTransientTranslationFailure(exception)
-            ? MaximumTransientTranslationAttempts
-            : 0;
-    }
-
-    private static bool IsTransientTranslationFailure(Exception exception)
-    {
-        for (Exception? current = exception; current is not null; current = current.InnerException)
-        {
-            if (current is OperationCanceledException)
-                return false;
-        }
-
-        for (Exception? current = exception; current is not null; current = current.InnerException)
-        {
-            if (current is TimeoutException or IOException)
-                return true;
-            if (current is HttpRequestException { StatusCode: null })
-                return true;
-            if (TryGetHttpStatusCode(current) is { } status)
-            {
-                return status is 0 or 408 or 409 or 425 or 429
-                       || status is >= 500 and <= 599;
-            }
-        }
-
-        return false;
-    }
-
-    private static int? TryGetHttpStatusCode(Exception exception)
-    {
-        if (exception is HttpRequestException { StatusCode: { } statusCode })
-            return (int)statusCode;
-
-        try
-        {
-            var statusProperty = exception.GetType().GetProperty("Status");
-            return statusProperty?.GetIndexParameters().Length == 0
-                   && statusProperty.GetValue(exception) is int status
-                ? status
-                : null;
-        }
-        catch (Exception reflectionException) when (reflectionException is
-                   AmbiguousMatchException
-                   or MethodAccessException
-                   or TargetException
-                   or TargetInvocationException)
-        {
-            return null;
-        }
-    }
-
-    private static async Task<bool> WaitForProviderExitAfterCancellationAsync(
-        Task providerRun,
-        CancellationToken sessionToken)
-    {
-        var gracePeriod = Task.Delay(ProviderCancellationGracePeriod, sessionToken);
-        if (!ReferenceEquals(
-                await Task.WhenAny(providerRun, gracePeriod).ConfigureAwait(false),
-                providerRun))
-        {
-            return false;
-        }
-
-        try
-        {
-            await providerRun.ConfigureAwait(false);
-        }
-        catch
-        {
-            // The provider run owns error reporting; this wait only confirms lane release.
-        }
-        return true;
     }
 
     private void DisableTimedOutTranslationSelection(
@@ -2092,7 +1918,7 @@ internal sealed class SubtitleSessionCoordinator
         }
     }
 
-    private void CancelAndDetachActiveTranslation(bool preserveReadableDisplay = false)
+    private void CancelAndDetachActiveTranslation()
     {
         var job = _activeTranslation;
         if (job is null || job.IsObsolete)
@@ -2101,8 +1927,7 @@ internal sealed class SubtitleSessionCoordinator
         TryCancel(job.Cancellation);
         if (_linesById.TryGetValue(job.LineId, out var line))
         {
-            var rolledBack = !preserveReadableDisplay
-                             && (job.IsStructured || job.StructuredPlanBuilder is not null);
+            var rolledBack = job.IsStructured || job.StructuredPlanBuilder is not null;
             if (rolledBack)
                 RollbackStructuredTranslation(line, job);
             if (!_finalJobs.Any(candidate => candidate.LineId == line.Id))
@@ -2324,9 +2149,7 @@ internal sealed class SubtitleSessionCoordinator
         TranslationJobDefinition definition,
         CancellationTokenSource cancellation,
         TranslationDisplaySnapshot? recoveryDisplay,
-        bool preserveDisplayUntilCompleted,
-        int attempt,
-        TimeSpan? notBefore)
+        bool preserveDisplayUntilCompleted)
     {
         public long Id { get; } = id;
         public long LineId { get; } = lineId;
@@ -2341,8 +2164,6 @@ internal sealed class SubtitleSessionCoordinator
         public CancellationTokenSource Cancellation { get; } = cancellation;
         public TranslationDisplaySnapshot? RecoveryDisplay { get; } = recoveryDisplay;
         public bool PreserveDisplayUntilCompleted { get; } = preserveDisplayUntilCompleted;
-        public int Attempt { get; } = attempt;
-        public TimeSpan? NotBefore { get; } = notBefore;
         public object ProviderRunKey { get; } = new();
         public CancellationTokenRegistration SessionRegistration { get; set; }
         public Task? Runner { get; set; }

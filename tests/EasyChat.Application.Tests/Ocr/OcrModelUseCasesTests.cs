@@ -19,38 +19,35 @@ public sealed class OcrModelUseCasesTests
         };
         var store = new FakeOcrModelStore();
         var useCases = new OcrModelUseCases(store, new FakeSettingsUseCases(bundle));
-        var package = store.ModelPackages[0];
 
-        await useCases.DownloadModelAsync(package);
+        await useCases.DownloadModelAsync(OcrLanguages.English);
 
-        Assert.AreEqual(package.Id, store.DownloadedPackage?.Id);
+        Assert.AreEqual(OcrLanguages.English, store.DownloadedLanguage);
         Assert.AreEqual("http://127.0.0.1:7890", store.Options?.ProxyUrl);
         Assert.IsTrue(store.Options?.UseProxy);
     }
 
     private sealed class FakeOcrModelStore : IOcrModelStore
     {
-        public IReadOnlyList<OcrModelPackage> ModelPackages { get; } =
-        [
-            new("test-package", [OcrLanguages.English])
-        ];
-        public OcrModelPackage? DownloadedPackage { get; private set; }
+        public IReadOnlyList<OcrLanguage> SupportedLanguages => OcrLanguages.Supported;
+        public bool CanDeleteModels => true;
+        public OcrLanguage? DownloadedLanguage { get; private set; }
         public OcrModelDownloadOptions? Options { get; private set; }
 
-        public bool IsModelDownloaded(OcrModelPackage package) => false;
+        public bool IsModelDownloaded(OcrLanguage language) => false;
 
         public Task DownloadModelAsync(
-            OcrModelPackage package,
+            OcrLanguage language,
             OcrModelDownloadOptions options,
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            DownloadedPackage = package;
+            DownloadedLanguage = language;
             Options = options;
             return Task.CompletedTask;
         }
 
-        public void DeleteModel(OcrModelPackage package)
+        public void DeleteModel(OcrLanguage language)
         {
         }
     }

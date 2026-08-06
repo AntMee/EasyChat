@@ -1,4 +1,3 @@
-using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Speech;
 using MicroASR;
 
@@ -6,27 +5,21 @@ namespace EasyChat.Infrastructure.Speech.Recognition;
 
 public sealed class MicroAsrSpeechRecognitionModelCatalog : ISpeechRecognitionModelCatalog
 {
-    private readonly Func<string> _modelsDirectory;
+    private readonly string _modelsDirectory;
 
-    public MicroAsrSpeechRecognitionModelCatalog(IApplicationDataPaths applicationData)
-        : this(() => applicationData.SpeechModelsDirectory)
+    public MicroAsrSpeechRecognitionModelCatalog()
+        : this(Path.Combine(AppContext.BaseDirectory, "Models"))
     {
-        ArgumentNullException.ThrowIfNull(applicationData);
     }
 
     internal MicroAsrSpeechRecognitionModelCatalog(string modelsDirectory)
-        : this(() => modelsDirectory)
     {
-    }
-
-    private MicroAsrSpeechRecognitionModelCatalog(Func<string> modelsDirectory)
-    {
-        _modelsDirectory = modelsDirectory;
+        _modelsDirectory = Path.GetFullPath(modelsDirectory);
     }
 
     public event EventHandler? ModelsChanged;
 
-    internal string ModelsDirectory => Path.GetFullPath(_modelsDirectory());
+    internal string ModelsDirectory => _modelsDirectory;
 
     internal void NotifyModelsChanged() => ModelsChanged?.Invoke(this, EventArgs.Empty);
 
@@ -36,12 +29,11 @@ public sealed class MicroAsrSpeechRecognitionModelCatalog : ISpeechRecognitionMo
 
     private IReadOnlyList<SpeechRecognitionModel> Discover(CancellationToken cancellationToken)
     {
-        var modelsDirectory = ModelsDirectory;
-        if (!Directory.Exists(modelsDirectory))
+        if (!Directory.Exists(_modelsDirectory))
             return [];
 
         var models = new List<SpeechRecognitionModel>();
-        foreach (var directory in Directory.EnumerateDirectories(modelsDirectory)
+        foreach (var directory in Directory.EnumerateDirectories(_modelsDirectory)
                      .OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
         {
             cancellationToken.ThrowIfCancellationRequested();

@@ -1,4 +1,3 @@
-using EasyChat.Application.ApplicationData;
 using EasyChat.Application.Capture;
 using EasyChat.Application.ImageTranslation;
 using EasyChat.Application.Input;
@@ -12,7 +11,6 @@ using EasyChat.Application.Shell;
 using EasyChat.Application.Speech;
 using EasyChat.Application.Translation;
 using EasyChat.Application.TextAssist;
-using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Input;
@@ -40,7 +38,6 @@ public static class EasyChatApplicationServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(translationMessages);
 
         services.AddSingleton(translationMessages);
-        services.AddSingleton<IApplicationDataUseCases, ApplicationDataUseCases>();
         services.AddSingleton<IPlatformAccessUseCases, PlatformAccessUseCases>();
         services.AddSingleton<ISettingsUseCases, SettingsCoordinator>();
         services.AddSingleton<ITranslationLanguageCatalog, BuiltInTranslationLanguageCatalog>();
@@ -53,8 +50,6 @@ public static class EasyChatApplicationServiceCollectionExtensions
         services.AddSingleton<IOcrRecognitionUseCases, OcrRecognitionUseCases>();
         services.AddSingleton<IOcrModelUseCases, OcrModelUseCases>();
         services.AddSingleton<IImageTranslationUseCases, ImageTranslationUseCases>();
-        services.AddSingleton<ImageTranslationMemoryBudget>();
-        services.AddSingleton<IImageTranslationEditSessionFactory, ImageTranslationEditSessionFactory>();
         services.AddSingleton<IInputDeliveryUseCases, InputDeliveryUseCases>();
         services.AddSingleton<IInputTranslationUseCases, InputTranslationUseCases>();
         services.AddSingleton<ISelectedTextUseCases, SelectedTextUseCases>();
