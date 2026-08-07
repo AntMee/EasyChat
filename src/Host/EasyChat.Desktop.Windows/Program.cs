@@ -52,10 +52,6 @@ internal static class Program
             },
             () => Velopack.VelopackApp.Build().Run(),
             builder => builder
-                .With(new Win32PlatformOptions
-                {
-                    RenderingMode = [Win32RenderingMode.AngleEgl]
-                })
                 .With(new SkiaOptions
                 {
                     MaxGpuResourceSizeBytes = 16L * 1024 * 1024
