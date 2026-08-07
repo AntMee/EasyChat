@@ -81,7 +81,10 @@ public sealed class TranslationUseCasesTests
         Assert.AreEqual("translated", selectedResponse.Text);
         StringAssert.StartsWith(
             context.Factory.Chat.LastRequest!.SystemPrompt,
-            "Selected English to Simplified Chinese");
+            "# User-selected role\nSelected English to Simplified Chinese");
+        StringAssert.Contains(
+            context.Factory.Chat.LastRequest.SystemPrompt,
+            "Runtime JSONL translation contract (highest priority)");
 
         var explicitSession = context.UseCases.Prepare(new TranslationProviderSelection(
             TranslationEngineNames.AiModel,
@@ -92,7 +95,7 @@ public sealed class TranslationUseCasesTests
 
         StringAssert.StartsWith(
             context.Factory.Chat.LastRequest!.SystemPrompt,
-            "Override English => Simplified Chinese");
+            "# User-selected role\nOverride English => Simplified Chinese");
         Assert.IsNotNull(context.Factory.AiOptions);
         Assert.AreEqual("ai-key", context.Factory.AiOptions.Provider.ApiKey);
         Assert.AreEqual("http://127.0.0.1:7890", context.Factory.AiOptions.ProxyUrl);
@@ -132,7 +135,7 @@ public sealed class TranslationUseCasesTests
 
         StringAssert.StartsWith(
             context.Factory.Chat.LastRequest!.SystemPrompt,
-            "Use the product term EasyChat when translating to Simplified Chinese.\n\n"
+            "# User-selected role\nUse the product term EasyChat when translating to Simplified Chinese.\n\n"
             + "Translate live subtitles from English to Simplified Chinese.");
     }
 
@@ -216,7 +219,7 @@ public sealed class TranslationUseCasesTests
         Assert.AreEqual("second", items[1].GetProperty("kind").GetString());
         Assert.AreEqual(2, items[1].GetProperty("count").GetInt32());
         var systemPrompt = context.Factory.Chat.LastRequest!.SystemPrompt;
-        StringAssert.StartsWith(systemPrompt, "Override English => Simplified Chinese");
+        StringAssert.StartsWith(systemPrompt, "# User-selected role\nOverride English => Simplified Chinese");
         StringAssert.Contains(systemPrompt, "Runtime structured JSONL contract (highest priority)");
         StringAssert.Contains(systemPrompt, "Emit kind for Simplified Chinese.");
     }

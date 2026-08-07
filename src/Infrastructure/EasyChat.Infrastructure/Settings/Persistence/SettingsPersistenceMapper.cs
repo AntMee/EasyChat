@@ -501,7 +501,8 @@ internal static class SettingsPersistenceMapper
         source.TranslationEnabled,
         source.CorrectionEnabled,
         source.PolishEnabled,
-        source.SummaryEnabled);
+        source.SummaryEnabled,
+        source.ExplanationEnabled ?? true);
 
     private static SelectionTranslationSettingsDto ToDto(
         SelectionTranslationSettings source) => new()
@@ -515,7 +516,8 @@ internal static class SettingsPersistenceMapper
             TranslationEnabled = source.TranslationEnabled,
             CorrectionEnabled = source.CorrectionEnabled,
             PolishEnabled = source.PolishEnabled,
-            SummaryEnabled = source.SummaryEnabled
+            SummaryEnabled = source.SummaryEnabled,
+            ExplanationEnabled = source.ExplanationEnabled
         };
 
     private static TtsSettings ToContract(TtsSettingsDto source) => new(

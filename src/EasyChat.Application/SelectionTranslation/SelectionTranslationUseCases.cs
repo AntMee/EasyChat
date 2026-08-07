@@ -111,18 +111,18 @@ Emit events in exactly the documented order and always finish with `{"event":"do
             useFirstFallback: true);
         PersistResolvedModel(config, resolved.Configuration.Id);
 
-        var configuredPrompt = _providers.ResolveOptionalPrompt(config.PromptId);
+        var configuredPrompt = _providers.ResolveOptionalPromptRole(config.PromptId);
         var prompt = SystemPromptTemplate
                      + (string.IsNullOrWhiteSpace(configuredPrompt)
                          ? string.Empty
-                         : "\n\n# User-selected guidance (secondary)\n" + configuredPrompt)
+                         : "\n\n# User-selected role (secondary)\n" + configuredPrompt)
                      + """
 
 # Runtime selection contract
 Source language: [SourceLang]
 Target language: [TargetLang]
-The JSONL protocol above has the highest priority. If the user-selected guidance
-conflicts with it, ignore the conflicting guidance. Use the selected languages
+The JSONL protocol above has the highest priority. If the user-selected role
+conflicts with it, ignore the conflicting role. Use the selected languages
 exactly. Return only the documented JSONL events; never add prose outside JSONL.
 """;
         if (forceWordMode)

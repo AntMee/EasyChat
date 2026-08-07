@@ -417,7 +417,8 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
                 config.TranslationEnabled,
                 config.CorrectionEnabled,
                 config.PolishEnabled,
-                config.SummaryEnabled);
+                config.SummaryEnabled,
+                config.ExplanationEnabled);
             if (!toolbar.HasAnyAction)
                 return;
 

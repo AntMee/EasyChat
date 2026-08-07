@@ -49,7 +49,7 @@ public sealed class PromptViewModel : NavigationPageViewModel
                     }
 
                     entry.Name = result.Name;
-                    entry.Content = result.Content;
+                    entry.Role = result.Content;
                 }
             })
             .TryShow();
@@ -57,24 +57,25 @@ public sealed class PromptViewModel : NavigationPageViewModel
 
     private void RemovePrompt(PromptEntryState entry)
     {
-        if (Prompts.Count <= 1 || entry.IsDefault)
-        {
-            _dialogs.CreateDialog()
-                .OfType(NotificationType.Warning)
-                .WithTitle(Resources.Delete)
-                .WithContent(Prompts.Count <= 1
-                    ? Resources.CannotDeleteLastPrompt
-                    : Resources.CannotDeleteDefaultPrompt)
-                .Dismiss().ByClickingBackground()
-                .TryShow();
-            return;
-        }
-
         _dialogs.CreateDialog()
             .OfType(NotificationType.Warning)
             .WithTitle(Resources.ConfirmDeletion)
             .WithContent(Resources.ConfirmDeletePrompt)
-            .WithActionButton(Resources.Delete, _ => Prompts.Remove(entry), true)
+            .WithActionButton(Resources.Delete, _ =>
+            {
+                var replacement = Prompts.FirstOrDefault(prompt =>
+                                      !ReferenceEquals(prompt, entry) && prompt.IsDefault)
+                                  ?? Prompts.FirstOrDefault(prompt => !ReferenceEquals(prompt, entry));
+                var wasDefault = entry.IsDefault;
+                var wasSelected = _settings.Prompts.SelectedPromptId == entry.Id;
+
+                if (wasDefault && replacement is not null)
+                    replacement.IsDefault = true;
+                Prompts.Remove(entry);
+
+                if (wasDefault || wasSelected)
+                    _settings.Prompts.SelectedPromptId = replacement?.Id ?? string.Empty;
+            }, true)
             .WithActionButton(Resources.Cancel, _ => { }, true)
             .TryShow();
     }
@@ -97,25 +98,25 @@ public sealed class PromptEditDialogViewModel : ConventionViewModelBase
     private readonly ISukiDialog _dialog;
     private readonly PromptEntryState? _existing;
     private string _name;
-    private string _content;
+    private string _role;
 
     public PromptEditDialogViewModel(ISukiDialog dialog, PromptEntryState? existing = null)
     {
         _dialog = dialog;
         _existing = existing;
         _name = existing?.Name ?? string.Empty;
-        _content = existing?.Content ?? string.Empty;
+        _role = existing?.Role ?? string.Empty;
         SaveCommand = ReactiveCommand.Create(
             Save,
             this.WhenAnyValue(
                 viewModel => viewModel.Name,
-                viewModel => viewModel.Content,
-                (name, content) => !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(content)));
+                viewModel => viewModel.Role,
+                (name, role) => !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(role)));
         CancelCommand = ReactiveCommand.Create(Cancel);
     }
 
     public string Name { get => _name; set => this.RaiseAndSetIfChanged(ref _name, value); }
-    public string Content { get => _content; set => this.RaiseAndSetIfChanged(ref _content, value); }
+    public string Role { get => _role; set => this.RaiseAndSetIfChanged(ref _role, value); }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelCommand { get; }
     public Action<PromptEntrySettings?>? OnClose { get; init; }
@@ -125,7 +126,7 @@ public sealed class PromptEditDialogViewModel : ConventionViewModelBase
         OnClose?.Invoke(new PromptEntrySettings(
             _existing?.Id ?? Guid.NewGuid().ToString(),
             Name,
-            Content,
+            Role,
             _existing?.IsDefault ?? false));
         _dialog.Dismiss();
     }

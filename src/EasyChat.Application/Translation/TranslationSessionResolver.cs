@@ -43,24 +43,24 @@ internal sealed class TranslationSessionResolver
 
     private ITranslationSession CreateAiSession(TranslationProviderSelection selected)
     {
-        var prompt = ResolvePrompt(selected);
+        var role = ResolvePromptRole(selected);
         var resolved = _providers.CreateSelectedAi(selected.AiModelId, selected.AiModelName);
-        return new AiTranslationSession(resolved.Provider, prompt);
+        return new AiTranslationSession(resolved.Provider, role);
     }
 
-    private string ResolvePrompt(TranslationProviderSelection selected)
+    private string ResolvePromptRole(TranslationProviderSelection selected)
     {
         if (string.IsNullOrWhiteSpace(selected.PromptId))
         {
             return string.IsNullOrWhiteSpace(selected.PromptOverride)
-                ? _providers.ResolvePrompt(null)
+                ? _providers.ResolvePromptRole(null)
                 : selected.PromptOverride;
         }
 
-        var prompt = _providers.ResolvePrompt(selected.PromptId);
+        var role = _providers.ResolvePromptRole(selected.PromptId);
         return string.IsNullOrWhiteSpace(selected.PromptOverride)
-            ? prompt
-            : prompt + "\n\n" + selected.PromptOverride;
+            ? role
+            : role + "\n\n" + selected.PromptOverride;
     }
 
     private static TranslationProviderSelection FromDefaults(GeneralSettings settings) => new(

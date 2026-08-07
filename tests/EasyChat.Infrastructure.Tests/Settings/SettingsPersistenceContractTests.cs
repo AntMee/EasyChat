@@ -57,6 +57,11 @@ public sealed class SettingsPersistenceContractTests
                 ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
                 result.Value.Screenshot.OcrIdleTimeoutSeconds);
             Assert.AreEqual("EdgeTTS", result.Value.Tts.Provider);
+            Assert.HasCount(4, result.Value.Prompts.Entries);
+            Assert.AreEqual("builtin-professional-translator", result.Value.Prompts.SelectedPromptId);
+            Assert.AreEqual(
+                "builtin-professional-translator",
+                result.Value.Prompts.Entries.Single(prompt => prompt.IsDefault).Id);
             StringAssert.Contains(
                 await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
                 "\"BaseTheme\": \"Default\"");
@@ -313,6 +318,99 @@ public sealed class SettingsPersistenceContractTests
 
             Assert.IsTrue(previous.IsSuccess, previous.Error.Message);
             Assert.IsNull(previous.Value.SpeechRecognition.PromptId);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task SelectionToolbarExplanation_RoundTripsAndOldFilesDefaultToEnabled()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            Assert.IsTrue(initial.Value.SelectionTranslation.ExplanationEnabled);
+
+            var changed = initial.Value with
+            {
+                SelectionTranslation = initial.Value.SelectionTranslation with
+                {
+                    ExplanationEnabled = false
+                }
+            };
+            var write = await gateway.WriteAsync(SettingsSection.SelectionTranslation, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.IsFalse(reread.Value.SelectionTranslation.ExplanationEnabled);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "SelectionTranslation.json")),
+                "\"ExplanationEnabled\": false");
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "SelectionTranslation.json"),
+                "{ \"Enabled\": true }");
+            var legacy = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(legacy.IsSuccess, legacy.Error.Message);
+            Assert.IsTrue(legacy.Value.SelectionTranslation.ExplanationEnabled);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task BuiltInPromptRoles_SeedOnceAndStayDeleted()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            Assert.IsTrue((await gateway.ReadAllAsync()).IsSuccess);
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "Prompts.json"),
+                """
+                {
+                  "SelectedPromptId": "legacy",
+                  "Entries": [
+                    {
+                      "Id": "legacy",
+                      "Name": "Legacy",
+                      "Content": "A legacy role.",
+                      "IsDefault": true
+                    }
+                  ]
+                }
+                """);
+
+            var seeded = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(seeded.IsSuccess, seeded.Error.Message);
+            Assert.HasCount(5, seeded.Value.Prompts.Entries);
+            Assert.IsTrue(seeded.Value.Prompts.Entries.Any(prompt =>
+                prompt.Id == "builtin-professional-translator"));
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "Prompts.json")),
+                "\"BuiltInPromptsSeeded\": true");
+
+            var deleted = seeded.Value with
+            {
+                Prompts = new PromptSettings(string.Empty, [])
+            };
+            var write = await gateway.WriteAsync(SettingsSection.Prompts, deleted);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.IsEmpty(reread.Value.Prompts.Entries);
         }
         finally
         {

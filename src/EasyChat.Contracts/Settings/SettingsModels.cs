@@ -278,7 +278,8 @@ public sealed record SelectionTranslationSettings(
     bool TranslationEnabled,
     bool CorrectionEnabled,
     bool PolishEnabled,
-    bool SummaryEnabled);
+    bool SummaryEnabled,
+    bool ExplanationEnabled = true);
 
 public sealed record TtsSettings(
     string Provider,

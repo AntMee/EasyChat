@@ -24,11 +24,11 @@
                      PlaceholderText="{x:Static lang:Resources.PromptName}" />
         </StackPanel>
 
-        <!-- Content Input -->
+        <!-- Role Input -->
         <StackPanel Spacing="5">
             <TextBlock Text="{x:Static lang:Resources.PromptContent}"
                        FontWeight="SemiBold" />
-            <TextBox Text="{Binding Content, Mode=TwoWay}"
+            <TextBox Text="{Binding Role, Mode=TwoWay}"
                      TextWrapping="Wrap"
                      VerticalContentAlignment="Top"
                      AcceptsReturn="True"

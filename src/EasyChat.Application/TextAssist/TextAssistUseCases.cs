@@ -190,32 +190,7 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var outputLanguage = ResolveOutputLanguage();
-        var prompt = BuildCorrectionPrompt(profile, """
-# Role
-You are a meticulous grammar, spelling, word-choice, and style editor.
-
-# Task
-Review the user's text in [Language].
-The corrected text and all alternative expressions must remain in [Language].
-Issue messages, suggestions, and the translations shown below each corrected
-version must be written in [OutputLanguage], matching the user's native language.
-Report every meaningful issue with UTF-16 `start` and `length` offsets into the original text.
-Then provide a complete corrected version in [Language], followed by its translation in [OutputLanguage].
-When a meaningful alternative expression exists, provide up to two additional
-complete corrected versions in [Language]. The first version must be
-the direct correction; alternatives should preserve the meaning while using
-different natural wording. If no alternative is useful, emit only variant 1.
-
-# Output protocol
-Return raw NDJSON only, one JSON object per line, no Markdown fences.
-Emit exactly this order:
-{"event":"start","mode":"correction","language":"[LanguageId]"}
-Zero or more {"event":"issue","start":0,"length":1,"category":"grammar|spelling|word_choice|style","message":"...","suggestion":"..."}
-One or more {"event":"corrected_delta","variant":1,"text":"..."} objects whose concatenated text is the complete corrected version in [Language].
-Optional variants 2 and 3 use their own concatenated corrected_delta sequence.
-After each corrected version, emit one or more {"event":"correction_translation_delta","variant":1,"text":"..."} objects containing its translation in [OutputLanguage].
-{"event":"done"}
-""")
+        var prompt = BuildCorrectionPrompt(profile)
             .Replace("[Language]", profile.Source.EnglishName, StringComparison.Ordinal)
             .Replace("[LanguageId]", profile.Source.Id, StringComparison.Ordinal)
             .Replace("[OutputLanguage]", outputLanguage, StringComparison.Ordinal)
@@ -244,18 +219,15 @@ After each corrected version, emit one or more {"event":"correction_translation_
     {
         var nativeLanguage = ResolveOutputLanguage();
         var prompt = $$"""
-# Role
-You are a precise writing editor.
+# User-selected role
+{{BuildRole(profile)}}
 
-# Task
+# Runtime polish contract (highest priority)
 Polish the user's text while preserving its meaning and input language.
 Detect the input language yourself unless the configured language is explicitly {{profile.Source.EnglishName}}.
 After the polished text, explain the meaningful changes in {{nativeLanguage}}.
 For each explanation, quote only the shortest useful original and revised snippets.
 Do not invent changes, and omit explanations when no meaningful change was made.
-
-# Optional user guidance
-{{BuildAssistGuidance(profile)}}
 
 # Output protocol
 Return raw NDJSON only, one JSON object per line, without Markdown fences.
@@ -290,15 +262,12 @@ Zero or more {"event":"polish_explanation","category":"a short category in {{nat
         var nativeLanguage = ResolveOutputLanguage();
         var instruction = $"First create a concise summary of the user's text, then translate that summary into {nativeLanguage}. Detect the input language yourself. Output only the final {nativeLanguage} summary, with no label or commentary.";
         var prompt = $$"""
-# Role
-You are a precise writing assistant.
+# User-selected role
+{{BuildRole(profile)}}
 
-# Task
+# Runtime summary contract (highest priority)
 {{instruction}}
 Use Markdown inline emphasis, lists, code spans, or blockquotes when they improve readability; do not wrap the entire response in a code fence.
-
-# Optional user guidance
-{{BuildAssistGuidance(profile)}}
 """;
         var emitted = false;
         await foreach (var chunk in CreateChatProvider(profile).StreamAsync(
@@ -326,18 +295,15 @@ Use Markdown inline emphasis, lists, code spans, or blockquotes when they improv
     {
         var outputLanguage = ResolveOutputLanguage();
         var prompt = $$"""
-# Role
-You are a precise language and context explainer.
+# User-selected role
+{{BuildRole(profile)}}
 
-# Task
+# Runtime explanation contract (highest priority)
 Explain the selected text in {{outputLanguage}}. Detect the input language yourself.
 Clarify its meaning in context, important terms, idioms, ambiguity, and implied intent when relevant.
 Be concise but complete. Do not translate mechanically unless a translation helps the explanation.
 Use Markdown inline emphasis, lists, code spans, or blockquotes when they improve readability; do not wrap the entire response in a code fence.
 Output only the explanation, without a heading or meta commentary.
-
-# Optional user guidance
-{{BuildAssistGuidance(profile)}}
 """;
         var emitted = false;
         await foreach (var chunk in CreateChatProvider(profile).StreamAsync(
@@ -424,10 +390,11 @@ Output only the explanation, without a heading or meta commentary.
         return general.NativeLanguage?.EnglishName ?? general.TargetLanguage.EnglishName;
     }
 
-    private string BuildTranslationPrompt(TextAssistProfile profile) =>
-        _providers.ResolvePrompt(profile.PromptId) + """
+    private string BuildTranslationPrompt(TextAssistProfile profile) => """
+# User-selected role
+""" + BuildRole(profile) + """
 
-# Runtime translation contract
+# Runtime translation contract (highest priority)
 Source language: [SourceLang]
 Target language: [TargetLang]
 Translate from the source language to the target language exactly.
@@ -436,13 +403,10 @@ The translated text must be plain text for direct input delivery. Do not use Mar
 """;
 
     private string BuildDetailedTranslationPrompt(TextAssistProfile profile) => """
-# Role
-You are a professional translator and language-learning annotator.
+# User-selected role
+""" + BuildRole(profile) + """
 
-# User-selected translation guidance (secondary)
-""" + _providers.ResolvePrompt(profile.PromptId) + """
-
-# Runtime detailed translation contract
+# Runtime detailed translation contract (highest priority)
 Source language: [SourceLang]
 Target language: [TargetLang]
 Annotation language: [AnnotationLanguage]
@@ -466,12 +430,18 @@ Annotation rules:
 - The protocol above has priority over the user-selected guidance. Never emit text outside the documented NDJSON events.
 """;
 
-    private string BuildCorrectionPrompt(TextAssistProfile profile, string fallback) => """
-# User-selected correction guidance
-""" + (_providers.ResolveOptionalPrompt(profile.PromptId) ?? fallback) + """
+    private string BuildCorrectionPrompt(TextAssistProfile profile) => """
+# User-selected role
+""" + BuildRole(profile) + """
 
-# Runtime correction contract
-The guidance above is secondary. You MUST follow this correction protocol even if it conflicts with the selected guidance.
+# Runtime correction contract (highest priority)
+Review the user's text in [Language] for grammar, spelling, word choice, and style.
+The corrected text and all alternative expressions must remain in [Language].
+Issue messages, suggestions, and the translations shown below each corrected version must be written in [OutputLanguage].
+Report every meaningful issue with UTF-16 `start` and `length` offsets into the original text.
+Then provide a complete corrected version in [Language], followed by its translation in [OutputLanguage].
+When a meaningful alternative expression exists, provide up to two additional complete corrected versions in [Language].
+The first version must be the direct correction; alternatives should preserve the meaning while using different natural wording.
 Return raw NDJSON only, one JSON object per line, with no Markdown fences or prose.
 Emit exactly this order:
 {"event":"start","mode":"correction","language":"[LanguageId]"}
@@ -482,8 +452,8 @@ After each corrected version, emit one or more {"event":"correction_translation_
 {"event":"done"}
 """;
 
-    private string BuildAssistGuidance(TextAssistProfile profile) =>
-        _providers.ResolveOptionalPrompt(profile.PromptId) ?? string.Empty;
+    private string BuildRole(TextAssistProfile profile) =>
+        _providers.ResolvePromptRole(profile.PromptId);
 
     private static string BuildOutputLanguageDirective(string outputLanguage) => """
 

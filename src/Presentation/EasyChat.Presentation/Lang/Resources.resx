@@ -420,7 +420,7 @@
         <value>Name</value>
     </data>
     <data name="PromptContent" xml:space="preserve">
-        <value>Content</value>
+        <value>Role</value>
     </data>
     <data name="SetAsDefault" xml:space="preserve">
         <value>Set as Default</value>
@@ -438,7 +438,7 @@
         <value>Cannot delete the default prompt. Please set another prompt as default first.</value>
     </data>
     <data name="PromptParametersHint" xml:space="preserve">
-        <value>Supported parameters: [SourceLang], [TargetLang], [源语言], [目标语言]</value>
+        <value>Describe the assistant's role, expertise, style, and domain. EasyChat adds the language, task, and output rules automatically.</value>
     </data>
     <data name="ResultAutoCloseDelay" xml:space="preserve">
         <value>Auto Close Delay</value>

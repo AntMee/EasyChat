@@ -49,13 +49,39 @@ internal static class SettingsDefaults
         };
     }
 
-    public static PromptEntrySettingsDto CreateDefaultPrompt() => new()
-    {
-        Id = Guid.NewGuid().ToString(),
-        Name = "Default",
-        Content = TranslationPromptDefaults.DefaultContent,
-        IsDefault = true
-    };
+    public const string DefaultPromptId = "builtin-professional-translator";
+
+    public static List<PromptEntrySettingsDto> CreateBuiltInPrompts() =>
+    [
+        new PromptEntrySettingsDto
+        {
+            Id = DefaultPromptId,
+            Name = GetLocalizedName("\u4e13\u4e1a\u7ffb\u8bd1", "Professional translator"),
+            Content = TranslationPromptDefaults.DefaultRole,
+            IsDefault = true
+        },
+        new PromptEntrySettingsDto
+        {
+            Id = "builtin-technical-translator",
+            Name = GetLocalizedName("\u6280\u672f\u7ffb\u8bd1", "Technical translator"),
+            Content = TranslationPromptDefaults.TechnicalTranslatorRole,
+            IsDefault = false
+        },
+        new PromptEntrySettingsDto
+        {
+            Id = "builtin-natural-localizer",
+            Name = GetLocalizedName("\u81ea\u7136\u672c\u5730\u5316", "Natural localizer"),
+            Content = TranslationPromptDefaults.NaturalLocalizerRole,
+            IsDefault = false
+        },
+        new PromptEntrySettingsDto
+        {
+            Id = "builtin-literary-translator",
+            Name = GetLocalizedName("\u6587\u5b66\u7ffb\u8bd1", "Literary translator"),
+            Content = TranslationPromptDefaults.LiteraryTranslatorRole,
+            IsDefault = false
+        }
+    ];
 
     private static string GetLocalizedName(string chineseName, string englishName) =>
         string.Equals(

@@ -101,6 +101,12 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
                     .ConfigureAwait(false)
             };
 
+            if (dto.Prompts.RequiresPersistence)
+            {
+                await WriteAsync(PromptsFileName, dto.Prompts, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             return Result<SettingsBundle>.Success(SettingsPersistenceMapper.ToContract(dto));
         }

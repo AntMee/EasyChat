@@ -45,8 +45,8 @@
                                                        Foreground="White" />
                                         </Border>
                                     </StackPanel>
-                                    <!-- Content Preview -->
-                                    <TextBlock Text="{Binding ContentPreview}"
+                                    <!-- Role Preview -->
+                                    <TextBlock Text="{Binding RolePreview}"
                                                FontSize="13"
                                                Opacity="0.7"
                                                TextWrapping="Wrap"

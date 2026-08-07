@@ -406,7 +406,7 @@
         <value>名称</value>
     </data>
     <data name="PromptContent" xml:space="preserve">
-        <value>内容</value>
+        <value>角色</value>
     </data>
     <data name="SetAsDefault" xml:space="preserve">
         <value>设为默认</value>
@@ -424,7 +424,7 @@
         <value>不能删除默认提示词。请先将其他提示词设为默认。</value>
     </data>
     <data name="PromptParametersHint" xml:space="preserve">
-        <value>支持参数: [SourceLang](源语言), [TargetLang](目标语言), [源语言], [目标语言]</value>
+        <value>描述助手的角色、专业领域、风格和偏好即可。语言、任务和输出规则由 EasyChat 自动添加。</value>
     </data>
     <data name="ResultAutoCloseDelay" xml:space="preserve">
         <value>自动关闭延迟</value>

@@ -8,7 +8,7 @@ namespace EasyChat.Presentation.Features.Settings.State;
 public sealed class PromptEntryState : LiveSettingsSection
 {
     private string _name;
-    private string _content;
+    private string _role;
     private bool _isDefault;
 
     public PromptEntryState(PromptEntrySettings value, Func<SettingsSection, EasyChat.Shared.Results.Result> commit)
@@ -16,24 +16,24 @@ public sealed class PromptEntryState : LiveSettingsSection
     {
         Id = value.Id;
         _name = value.Name;
-        _content = value.Content;
+        _role = value.Content;
         _isDefault = value.IsDefault;
     }
 
     public string Id { get; }
     public string Name { get => _name; set => Set(ref _name, value); }
-    public string Content
+    public string Role
     {
-        get => _content;
+        get => _role;
         set
         {
-            if (Set(ref _content, value))
-                this.RaisePropertyChanged(nameof(ContentPreview));
+            if (Set(ref _role, value))
+                this.RaisePropertyChanged(nameof(RolePreview));
         }
     }
     public bool IsDefault { get => _isDefault; set => Set(ref _isDefault, value); }
-    public string ContentPreview => Content.Length > 100 ? Content[..100] + "..." : Content;
-    public PromptEntrySettings ToContract() => new(Id, Name, Content, IsDefault);
+    public string RolePreview => Role.Length > 100 ? Role[..100] + "..." : Role;
+    public PromptEntrySettings ToContract() => new(Id, Name, Role, IsDefault);
 }
 
 public sealed class LivePromptSettings : LiveSettingsSection

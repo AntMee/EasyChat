@@ -61,15 +61,15 @@ internal sealed class ConfiguredTranslationProviderResolver
         return new ResolvedMachineTranslationProvider(provider, configuration);
     }
 
-    public string ResolvePrompt(string? promptId)
+    public string ResolvePromptRole(string? promptId)
     {
         var prompts = _settings.Current.Prompts;
-        return ResolveOptionalPrompt(promptId)
+        return ResolveOptionalPromptRole(promptId)
                ?? prompts.Entries.FirstOrDefault(prompt => prompt.IsDefault)?.Content
-               ?? TranslationPromptDefaults.DefaultContent;
+               ?? TranslationPromptDefaults.DefaultRole;
     }
 
-    public string? ResolveOptionalPrompt(string? promptId)
+    public string? ResolveOptionalPromptRole(string? promptId)
     {
         var prompts = _settings.Current.Prompts;
         if (!string.IsNullOrWhiteSpace(promptId))

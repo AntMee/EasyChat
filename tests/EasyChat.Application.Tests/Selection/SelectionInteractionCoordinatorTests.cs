@@ -26,7 +26,8 @@ public sealed class SelectionInteractionCoordinatorTests
                 true,
                 true,
                 false,
-                true)
+                true,
+                false)
         };
         var settings = new FakeSettings(bundle);
         var pointer = new FakePointerMonitor();
@@ -63,6 +64,7 @@ public sealed class SelectionInteractionCoordinatorTests
         Assert.IsTrue(capture.Toolbar.Correction);
         Assert.IsFalse(capture.Toolbar.Polish);
         Assert.IsTrue(capture.Toolbar.Summary);
+        Assert.IsFalse(capture.Toolbar.Explanation);
         Assert.AreEqual(new PhysicalScreenPoint(30, 40), selectedText.Command!.PointerPosition);
         Assert.AreEqual("foreground", selectedText.Command.ExpectedForegroundTarget.Value);
         Assert.AreEqual("focused", selectedText.Command.ExpectedFocusedTarget.Value);

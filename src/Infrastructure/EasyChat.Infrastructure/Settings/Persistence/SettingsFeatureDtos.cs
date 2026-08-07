@@ -125,15 +125,47 @@ internal sealed class ShortcutParameterSettingsDto
 internal sealed class PromptSettingsDto
 {
     [JsonProperty]
-    public string SelectedPromptId { get; set; } = string.Empty;
+    public string SelectedPromptId { get; set; } = SettingsDefaults.DefaultPromptId;
+
+    [JsonProperty]
+    public bool BuiltInPromptsSeeded { get; set; } = true;
+
+    [JsonIgnore]
+    public bool RequiresPersistence { get; private set; }
 
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
     public List<PromptEntrySettingsDto> Entries { get; set; } =
-        [SettingsDefaults.CreateDefaultPrompt()];
+        SettingsDefaults.CreateBuiltInPrompts();
+
+    [OnDeserializing]
+    internal void BeginDeserialization(StreamingContext context)
+    {
+        // Missing in a pre-role-prompt configuration means the catalog has not been seeded.
+        BuiltInPromptsSeeded = false;
+    }
 
     [OnDeserialized]
     internal void RemoveDuplicateEntries(StreamingContext context)
     {
+        if (!BuiltInPromptsSeeded)
+        {
+            var hasDefault = Entries.Any(entry => entry.IsDefault);
+            foreach (var prompt in SettingsDefaults.CreateBuiltInPrompts())
+            {
+                if (Entries.All(entry => !string.Equals(entry.Id, prompt.Id, StringComparison.Ordinal)))
+                {
+                    if (prompt.IsDefault && hasDefault)
+                        prompt.IsDefault = false;
+                    else if (prompt.IsDefault)
+                        hasDefault = true;
+                    Entries.Add(prompt);
+                }
+            }
+
+            BuiltInPromptsSeeded = true;
+            RequiresPersistence = true;
+        }
+
         Entries = Entries
             .GroupBy(entry => new { entry.Name, entry.Content, entry.IsDefault })
             .Select(group => group.First())
@@ -392,6 +424,9 @@ internal sealed class SelectionTranslationSettingsDto
 
     [JsonProperty]
     public bool SummaryEnabled { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? ExplanationEnabled { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]
