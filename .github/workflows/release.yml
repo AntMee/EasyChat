@@ -153,7 +153,7 @@ jobs:
         shell: pwsh
         run: |
           $names = @{
-            'EasyChat-win.msi' = "EasyChat-Win-${{ env.VERSION }}.msi"
+            'EasyChat-win.msi' = "EasyChat-Win-${{ env.VERSION }}-Setup.msi"
           }
 
           foreach ($entry in $names.GetEnumerator()) {
