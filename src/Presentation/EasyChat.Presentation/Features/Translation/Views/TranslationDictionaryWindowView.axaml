@@ -131,6 +131,52 @@
                 </Animation>
             </Style.Animations>
         </Style>
+
+        <!-- Dictionary translations keep heading emphasis without heading-scale text. -->
+        <Style Selector="md|MarkdownRenderer.DictionaryTranslationMarkdown">
+            <Style Selector="^ Border.Heading1Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="FontSize" Value="{DynamicResource FontSizeM}"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading2Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="FontSize" Value="{DynamicResource FontSizeM}"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading3Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="FontSize" Value="{DynamicResource FontSizeM}"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading4Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="FontSize" Value="{DynamicResource FontSizeM}"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading5Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="FontSize" Value="{DynamicResource FontSizeM}"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading6Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="FontSize" Value="{DynamicResource FontSizeM}"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Style>
+            </Style>
+        </Style>
     </Window.Styles>
 
     <Panel Margin="5">
@@ -387,7 +433,8 @@
                                             <Border Height="16" Width="320" HorizontalAlignment="Left"
                                                     Background="{DynamicResource SukiControlBorderBrush}" CornerRadius="4"/>
                                         </StackPanel>
-                                        <md:MarkdownRenderer MarkdownBuilder="{Binding TranslationMarkdown}"
+                                        <md:MarkdownRenderer Classes="DictionaryTranslationMarkdown"
+                                                              MarkdownBuilder="{Binding TranslationMarkdown}"
                                                               HorizontalAlignment="Stretch"
                                                               VerticalAlignment="Top" />
                                     </Panel>
