@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using Avalonia.Layout;
 using EasyChat.Presentation.Foundation.Navigation;
 
 namespace EasyChat.Desktop;
@@ -24,9 +23,6 @@ public sealed class ViewLocator : IDataTemplate
         if (!_views.TryGetValue(data, out var view))
         {
             view = (Control)Activator.CreateInstance(viewType)!;
-            // Pages must fill the side-menu content host or * rows never receive height.
-            view.HorizontalAlignment = HorizontalAlignment.Stretch;
-            view.VerticalAlignment = VerticalAlignment.Stretch;
             _views.Add(data, view);
         }
 

@@ -6,13 +6,13 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Threading;
 using EasyChat.Contracts.Settings;
+using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Shell.Views;
 using Material.Icons;
 using Material.Icons.Avalonia;
-using EasyChat.Presentation.Foundation.UiHost;
 using ReactiveUI;
+using SukiUI.Toasts;
 
 namespace EasyChat.Desktop;
 
@@ -48,16 +48,15 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
             _mainWindow = new MainWindow(
                 ui.MainWindowViewModel,
                 ui.Settings,
-                ui.Dialogs,
+                ui.DialogHost,
                 PrepareForTray);
             desktop.MainWindow = _mainWindow;
-            ComboBoxDropDownCoordinator.EnsureInstalled();
-            ComboBoxDropDownCoordinator.Attach(_mainWindow);
             desktop.Exit += OnExit;
             ActualThemeVariantChanged += OnThemeVariantChanged;
             ui.Settings.Changed += OnSettingsChanged;
             UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
             ui.Interactions.Start();
+            _ = WarmUpScreenshotCaptureAsync(ui.ScreenshotCapture);
             _ = CheckForUpdatesAsync();
         }
         base.OnFrameworkInitializationCompleted();
@@ -165,12 +164,6 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
 
     private void OnThemeVariantChanged(object? sender, EventArgs args)
     {
-        // Defer tray bitmap rebuild off the theme paint path (RenderTargetBitmap is expensive).
-        Dispatcher.UIThread.Post(RefreshTrayMenuIcons, DispatcherPriority.ApplicationIdle);
-    }
-
-    private void RefreshTrayMenuIcons()
-    {
         if (_trayIcon?.Menu is not { Items.Count: >= 3 } menu
             || menu.Items[0] is not NativeMenuItem show
             || menu.Items[2] is not NativeMenuItem exit)
@@ -236,27 +229,42 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
         var ui = RequireUi();
         var result = await ui.Updates.CheckAsync();
         if (result.IsFailure || !result.Value.IsUpdateAvailable) return;
-        ui.Toasts.ShowWithActions(
-            EasyChat.Presentation.Lang.Resources.NewVersionAvailable,
-            string.Format(EasyChat.Presentation.Lang.Resources.NewVersionContent, result.Value.LatestVersion),
-            new UiToastAction(EasyChat.Presentation.Lang.Resources.Later, static () => { }),
-            new UiToastAction(EasyChat.Presentation.Lang.Resources.Update, () => { _ = DownloadUpdateAsync(ui); }));
+        ui.Toasts
+            .CreateToast()
+            .WithTitle(EasyChat.Presentation.Lang.Resources.NewVersionAvailable)
+            .WithContent(string.Format(EasyChat.Presentation.Lang.Resources.NewVersionContent, result.Value.LatestVersion))
+            .WithActionButton(EasyChat.Presentation.Lang.Resources.Later, _ => { }, true)
+            .WithActionButton(EasyChat.Presentation.Lang.Resources.Update, toast => { _ = DownloadUpdateAsync(ui); }, true)
+            .Queue();
+    }
+
+    private static async Task WarmUpScreenshotCaptureAsync(IScreenshotCaptureSession capture)
+    {
+        try
+        {
+            await capture.WarmUpAsync();
+        }
+        catch
+        {
+            // Capture retries by rebuilding the worker when the shortcut is used.
+        }
     }
 
     private static async Task DownloadUpdateAsync(DesktopUiContext ui)
     {
         var progress = new ProgressBar { Value = 0, ShowProgressText = true };
-        var toast = ui.Toasts.ShowSticky(EasyChat.Presentation.Lang.Resources.Updating, progress);
+        var toast = ui.Toasts.CreateToast()
+            .WithTitle(EasyChat.Presentation.Lang.Resources.Updating)
+            .WithContent(progress)
+            .Queue();
         var result = await ui.Updates.DownloadAndRestartAsync(new Progress<int>(value => progress.Value = value));
-        toast.Dismiss();
+        ui.Toasts.Dismiss(toast);
         if (result.IsFailure)
-        {
-            ui.Toasts.Show(
-                EasyChat.Presentation.Lang.Resources.UpdateFailed,
-                EasyChat.Presentation.Lang.Resources.CheckNetwork,
-                UiMessageSeverity.Error,
-                TimeSpan.FromSeconds(5));
-        }
+            ui.Toasts.CreateToast()
+                .WithTitle(EasyChat.Presentation.Lang.Resources.UpdateFailed)
+                .WithContent(EasyChat.Presentation.Lang.Resources.CheckNetwork)
+                .Dismiss().After(TimeSpan.FromSeconds(5))
+                .Queue();
     }
 
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs args)

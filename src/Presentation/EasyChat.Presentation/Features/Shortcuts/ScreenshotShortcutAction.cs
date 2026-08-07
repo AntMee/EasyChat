@@ -7,9 +7,8 @@ using EasyChat.Contracts.Shortcuts;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Features.Capture;
+using EasyChat.Presentation.Features.ScreenshotOcr;
 using EasyChat.Presentation.Features.Settings.State;
-using EasyChat.Presentation.ImageTranslation;
-using EasyChat.Presentation.Features.Capture.Views;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.Shortcuts;
@@ -19,6 +18,7 @@ public sealed class ScreenshotShortcutAction(
     ScreenshotResultCoordinator results,
     IScreenshotUseCases screenshots,
     ITtsUseCases tts,
+    ScreenshotOcrWindowCoordinator ocrWorkbench,
     SettingsSession settings,
     ILogger<ScreenshotShortcutAction> logger) : IShortcutAction
 {
@@ -26,6 +26,7 @@ public sealed class ScreenshotShortcutAction(
     private readonly ScreenshotResultCoordinator _results = results;
     private readonly IScreenshotUseCases _screenshots = screenshots;
     private readonly ITtsUseCases _tts = tts;
+    private readonly ScreenshotOcrWindowCoordinator _ocrWorkbench = ocrWorkbench;
     private readonly SettingsSession _settings = settings;
     private readonly ILogger<ScreenshotShortcutAction> _logger = logger;
     private CancellationTokenSource? _imageTranslationCancellation;
@@ -39,14 +40,13 @@ public sealed class ScreenshotShortcutAction(
     {
         try
         {
-            using var selection = await _capture.CaptureAsync(
+            var selection = await _capture.CaptureAsync(
                 _settings.Screenshot.Mode,
-                cancellationToken);
+                cancellationToken: cancellationToken);
             if (selection is null)
                 return;
 
-            var frame = AvaloniaImageFrames.ToImageFrame(selection.Image);
-            _ = ProcessAsync(frame, selection.Action, selection.CompletionPoint);
+            _ = ProcessAsync(selection.Image, selection.Action, selection.CompletionPoint);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -58,14 +58,21 @@ public sealed class ScreenshotShortcutAction(
         }
     }
 
-    private async Task ProcessAsync(
+    internal async Task ProcessAsync(
         ImageFrame image,
         CaptureOverlayAction action,
         PhysicalScreenPoint completionPoint)
     {
         CancellationTokenSource? imageCancellation = null;
+        ScreenshotImageResultSession? imageWindow = null;
         try
         {
+            if (action == CaptureOverlayAction.OcrWorkbench)
+            {
+                await _ocrWorkbench.OpenAsync(image, completionPoint);
+                return;
+            }
+
             if (action == CaptureOverlayAction.CopyImageTranslated)
             {
                 imageCancellation = new CancellationTokenSource();
@@ -74,34 +81,55 @@ public sealed class ScreenshotShortcutAction(
                     imageCancellation);
                 previous?.Cancel();
                 previous?.Dispose();
+                imageWindow = await _results.OpenImageAsync(
+                    image,
+                    completionPoint,
+                    imageCancellation.Token);
             }
 
             var cancellationToken = imageCancellation?.Token ?? CancellationToken.None;
             var recognition = await _screenshots.RecognizeAsync(
                 image,
                 enableRotation: action == CaptureOverlayAction.CopyImageTranslated,
-                cancellationToken);
+                cancellationToken: cancellationToken);
             if (action == CaptureOverlayAction.CopyImageTranslated)
             {
-                await ProcessImageAsync(image, recognition, completionPoint, cancellationToken);
+                await ProcessImageAsync(imageWindow!, image, recognition, cancellationToken);
                 return;
             }
 
-            await ProcessTextAsync(recognition.Text, action, completionPoint);
+            var text = recognition.Text;
+            image = null!;
+            recognition = null!;
+            await ProcessTextAsync(text, action, completionPoint);
         }
         catch (OperationCanceledException) when (imageCancellation?.IsCancellationRequested == true)
         {
+            if (imageWindow is not null)
+                await _results.CloseImageAsync(imageWindow);
         }
         catch (OcrModelNotDownloadedException)
         {
-            await _results.ShowMessageAsync(
-                EasyChat.Presentation.Lang.Resources.OcrModelRequiredTitle,
-                EasyChat.Presentation.Lang.Resources.OcrModelRequiredMessage);
+            if (imageWindow is not null)
+            {
+                await _results.ShowImageFailureAsync(
+                    imageWindow,
+                    EasyChat.Presentation.Lang.Resources.OcrModelRequiredMessage);
+            }
+            else
+            {
+                await _results.ShowMessageAsync(
+                    EasyChat.Presentation.Lang.Resources.OcrModelRequiredTitle,
+                    EasyChat.Presentation.Lang.Resources.OcrModelRequiredMessage);
+            }
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Screenshot OCR processing failed.");
-            await _results.ShowMessageAsync("OCR Error", exception.Message);
+            if (imageWindow is not null)
+                await _results.ShowImageFailureAsync(imageWindow, exception.Message);
+            else
+                await _results.ShowMessageAsync("OCR Error", exception.Message);
         }
         finally
         {
@@ -190,33 +218,32 @@ public sealed class ScreenshotShortcutAction(
     }
 
     private async Task ProcessImageAsync(
+        ScreenshotImageResultSession window,
         ImageFrame image,
         OcrRecognitionResult recognition,
-        PhysicalScreenPoint completionPoint,
         CancellationToken cancellationToken)
     {
         if (recognition.Regions.Count == 0)
         {
-            await _results.ShowMessageAsync("OCR Warning", "No text detected.");
+            await _results.ShowImageFailureAsync(window, "No text detected.");
             return;
         }
 
-        var result = await _screenshots.TranslateImageAsync(
-            image,
-            recognition,
+        var result = await Task.Run(
+            () => _screenshots.TranslateImageAsync(image, recognition, cancellationToken),
             cancellationToken);
         if (result.TranslatedBlockCount == 0)
         {
-            await _results.ShowMessageAsync(
-                "Image Translation",
+            await _results.ShowImageFailureAsync(
+                window,
                 result.Warnings.FirstOrDefault() ?? "No text could be translated.");
             return;
         }
 
-        await _results.ShowImageAsync(
+        await _results.ShowImageResultAsync(
+            window,
             result.Image,
             result.Warnings,
-            completionPoint,
             cancellationToken);
     }
 

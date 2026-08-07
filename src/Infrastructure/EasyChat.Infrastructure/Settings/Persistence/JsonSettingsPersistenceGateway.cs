@@ -22,23 +22,52 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
     private const string TextAssistFileName = "TextAssist.json";
     private const string OcrFileName = "Ocr.json";
 
-    private readonly string _configurationDirectory;
+    private readonly Func<string> _configurationDirectory;
     private readonly ISettingsFileStore _fileStore;
+    private readonly BuiltInPromptAssetReader _builtInPromptAssetReader;
 
     public JsonSettingsPersistenceGateway(string configurationDirectory)
-        : this(configurationDirectory, new PhysicalSettingsFileStore())
+        : this(
+            () => configurationDirectory,
+            GetDefaultAssetsDirectory(),
+            new PhysicalSettingsFileStore())
+    {
+    }
+
+    internal JsonSettingsPersistenceGateway(Func<string> configurationDirectory)
+        : this(
+            configurationDirectory,
+            GetDefaultAssetsDirectory(),
+            new PhysicalSettingsFileStore())
     {
     }
 
     internal JsonSettingsPersistenceGateway(
         string configurationDirectory,
         ISettingsFileStore fileStore)
+        : this(() => configurationDirectory, GetDefaultAssetsDirectory(), fileStore)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(configurationDirectory);
+    }
+
+    internal JsonSettingsPersistenceGateway(
+        string configurationDirectory,
+        string assetsDirectory,
+        ISettingsFileStore fileStore)
+        : this(() => configurationDirectory, assetsDirectory, fileStore)
+    {
+    }
+
+    internal JsonSettingsPersistenceGateway(
+        Func<string> configurationDirectory,
+        string assetsDirectory,
+        ISettingsFileStore fileStore)
+    {
+        ArgumentNullException.ThrowIfNull(configurationDirectory);
         ArgumentNullException.ThrowIfNull(fileStore);
 
-        _configurationDirectory = Path.GetFullPath(configurationDirectory);
+        _configurationDirectory = configurationDirectory;
         _fileStore = fileStore;
+        _builtInPromptAssetReader = new BuiltInPromptAssetReader(assetsDirectory, fileStore);
     }
 
     public async ValueTask<Result<SettingsBundle>> ReadAllAsync(
@@ -48,11 +77,13 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
 
         try
         {
+            // General settings determine which prompt asset is used on first creation.
+            var general = await ReadAsync<GeneralSettingsDto>(
+                GeneralFileName,
+                cancellationToken).ConfigureAwait(false);
             var dto = new SettingsBundleDto
             {
-                General = await ReadAsync<GeneralSettingsDto>(
-                    GeneralFileName,
-                    cancellationToken).ConfigureAwait(false),
+                General = general,
                 AiModel = await ReadAsync<AiModelSettingsDto>(
                     AiModelFileName,
                     cancellationToken).ConfigureAwait(false),
@@ -64,8 +95,9 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
                 Shortcut = await ReadAsync<ShortcutSettingsDto>(
                     ShortcutFileName,
                     cancellationToken).ConfigureAwait(false),
-                Prompts = await ReadAsync<PromptSettingsDto>(
+                Prompts = await ReadPromptsAsync(
                     PromptsFileName,
+                    general.DisplayLanguage,
                     cancellationToken).ConfigureAwait(false),
                 Result = await ReadAsync<ResultSettingsDto>(ResultFileName, cancellationToken)
                     .ConfigureAwait(false),
@@ -266,7 +298,7 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
         CancellationToken cancellationToken)
         where T : new()
     {
-        var path = Path.Combine(_configurationDirectory, fileName);
+        var path = Path.Combine(ConfigurationDirectory, fileName);
         string json;
         try
         {
@@ -290,6 +322,36 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
         return dto;
     }
 
+    private async ValueTask<PromptSettingsDto> ReadPromptsAsync(
+        string fileName,
+        string? displayLanguage,
+        CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(ConfigurationDirectory, fileName);
+        string json;
+        try
+        {
+            json = await _fileStore.ReadAllTextAsync(path, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (
+            exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            var settings = await _builtInPromptAssetReader
+                .ReadAsync(displayLanguage, cancellationToken)
+                .ConfigureAwait(false);
+            await WriteAsync(fileName, settings, cancellationToken).ConfigureAwait(false);
+            return settings;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var dto = JsonConvert.DeserializeObject<PromptSettingsDto>(json)
+                  ?? throw new JsonSerializationException(
+                      $"Configuration file '{fileName}' deserialized to null.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return dto;
+    }
+
     private async ValueTask WriteAsync<T>(
         string fileName,
         T settings,
@@ -299,8 +361,13 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
         var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
         cancellationToken.ThrowIfCancellationRequested();
         await _fileStore.WriteAllTextAsync(
-            Path.Combine(_configurationDirectory, fileName),
+            Path.Combine(ConfigurationDirectory, fileName),
             json,
             cancellationToken).ConfigureAwait(false);
     }
+
+    private string ConfigurationDirectory => Path.GetFullPath(_configurationDirectory());
+
+    private static string GetDefaultAssetsDirectory() =>
+        Path.Combine(AppContext.BaseDirectory, "Assets");
 }

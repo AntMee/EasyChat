@@ -1,4 +1,5 @@
 using System.Globalization;
+using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Settings.Persistence;
 using EasyChat.Infrastructure.Settings.Persistence;
@@ -51,10 +52,64 @@ public sealed class SettingsPersistenceContractTests
             Assert.AreEqual(ThemeMode.System, result.Value.General.BaseTheme);
             Assert.AreEqual(5000, result.Value.Result.AutoCloseDelay);
             Assert.AreEqual(InputDeliveryMode.Paste, result.Value.Input.DeliveryMode);
+            Assert.AreEqual(OcrRecognitionMode.Normal, result.Value.Screenshot.OcrMode);
+            Assert.AreEqual(
+                ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
+                result.Value.Screenshot.OcrIdleTimeoutSeconds);
             Assert.AreEqual("EdgeTTS", result.Value.Tts.Provider);
+            var expectedPrompts = ReadBuiltInPrompts(result.Value.General.DisplayLanguage);
+            AssertPromptAssetWasImported(expectedPrompts, result.Value.Prompts);
             StringAssert.Contains(
                 await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
                 "\"BaseTheme\": \"Default\"");
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task ScreenshotOcrMode_RoundTripsAndOldFilesDefaultToNormal()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            var changed = initial.Value with
+            {
+                Screenshot = initial.Value.Screenshot with
+                {
+                    OcrMode = OcrRecognitionMode.IdleRelease,
+                    OcrIdleTimeoutSeconds = 45
+                }
+            };
+
+            var write = await gateway.WriteAsync(SettingsSection.Screenshot, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.AreEqual(OcrRecognitionMode.IdleRelease, reread.Value.Screenshot.OcrMode);
+            Assert.AreEqual(45, reread.Value.Screenshot.OcrIdleTimeoutSeconds);
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "Screenshot.json"),
+                """
+                {
+                  "Mode": "Precise",
+                  "FixedAreas": []
+                }
+                """);
+            var previous = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(previous.IsSuccess, previous.Error.Message);
+            Assert.AreEqual(OcrRecognitionMode.Normal, previous.Value.Screenshot.OcrMode);
+            Assert.AreEqual(
+                ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
+                previous.Value.Screenshot.OcrIdleTimeoutSeconds);
         }
         finally
         {
@@ -227,6 +282,209 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
+    public async Task SpeechRecognitionPromptId_RoundTripsAndOldFilesRemainCompatible()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            var changed = initial.Value with
+            {
+                SpeechRecognition = initial.Value.SpeechRecognition with
+                {
+                    PromptId = "speech-prompt"
+                }
+            };
+
+            var write = await gateway.WriteAsync(SettingsSection.SpeechRecognition, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.AreEqual("speech-prompt", reread.Value.SpeechRecognition.PromptId);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "SpeechRecognition.json")),
+                "\"PromptId\": \"speech-prompt\"");
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "SpeechRecognition.json"),
+                "{}");
+            var previous = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(previous.IsSuccess, previous.Error.Message);
+            Assert.IsNull(previous.Value.SpeechRecognition.PromptId);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task SelectionToolbarExplanation_RoundTripsAndOldFilesDefaultToEnabled()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            Assert.IsTrue(initial.Value.SelectionTranslation.ExplanationEnabled);
+
+            var changed = initial.Value with
+            {
+                SelectionTranslation = initial.Value.SelectionTranslation with
+                {
+                    ExplanationEnabled = false
+                }
+            };
+            var write = await gateway.WriteAsync(SettingsSection.SelectionTranslation, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.IsFalse(reread.Value.SelectionTranslation.ExplanationEnabled);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "SelectionTranslation.json")),
+                "\"ExplanationEnabled\": false");
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "SelectionTranslation.json"),
+                "{ \"Enabled\": true }");
+            var legacy = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(legacy.IsSuccess, legacy.Error.Message);
+            Assert.IsTrue(legacy.Value.SelectionTranslation.ExplanationEnabled);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    [DataRow("English")]
+    [DataRow("Simplified Chinese")]
+    public async Task BuiltInPromptAssets_UseDisplayLanguageOnFirstCreation(
+        string displayLanguage)
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "General.json"),
+                $$"""
+                {
+                  "DisplayLanguage": "{{displayLanguage}}"
+                }
+                """);
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+
+            var result = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(result.IsSuccess, result.Error.Message);
+            AssertPromptAssetWasImported(
+                ReadBuiltInPrompts(displayLanguage),
+                result.Value.Prompts);
+            var json = await File.ReadAllTextAsync(Path.Combine(directory, "Prompts.json"));
+            Assert.IsFalse(json.Contains("BuiltInPromptsSeeded", StringComparison.Ordinal));
+            Assert.IsFalse(json.Contains("BuiltInPromptCatalogVersion", StringComparison.Ordinal));
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task ExistingPromptSettings_AreNeverSeededOrRestored()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            Assert.IsTrue((await gateway.ReadAllAsync()).IsSuccess);
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "Prompts.json"),
+                """
+                {
+                  "SelectedPromptId": "custom",
+                  "BuiltInPromptsSeeded": true,
+                  "BuiltInPromptCatalogVersion": 2,
+                  "Entries": [
+                    {
+                      "Id": "custom",
+                      "Name": "Custom",
+                      "Content": "My custom role.",
+                      "IsDefault": true
+                    }
+                  ]
+                }
+                """);
+
+            var existing = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(existing.IsSuccess, existing.Error.Message);
+            Assert.HasCount(1, existing.Value.Prompts.Entries);
+            Assert.AreEqual("custom", existing.Value.Prompts.Entries.Single().Id);
+
+            var deleted = existing.Value with
+            {
+                Prompts = new PromptSettings(string.Empty, [])
+            };
+            Assert.IsTrue((await gateway.WriteAsync(SettingsSection.Prompts, deleted)).IsSuccess);
+
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.IsEmpty(reread.Value.Prompts.Entries);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task InvalidBuiltInPromptAsset_FailsWithoutCreatingPromptSettings()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var assetsDirectory = Path.Combine(directory, "Assets");
+            Directory.CreateDirectory(assetsDirectory);
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "General.json"),
+                "{ \"DisplayLanguage\": \"Simplified Chinese\" }");
+            await File.WriteAllTextAsync(
+                Path.Combine(assetsDirectory, "builtin.prompt.zh.json"),
+                """
+                [
+                  { "id": "one", "name": "One", "content": "First", "isDefault": true },
+                  { "id": "two", "name": "Two", "content": "Second", "isDefault": true }
+                ]
+                """);
+            var gateway = new JsonSettingsPersistenceGateway(
+                directory,
+                assetsDirectory,
+                new PhysicalSettingsFileStore());
+
+            var result = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(result.IsFailure);
+            Assert.AreEqual("settings.read-failed", result.Error.Code);
+            StringAssert.Contains(result.Error.Message, "exactly one default prompt");
+            Assert.IsFalse(File.Exists(Path.Combine(directory, "Prompts.json")));
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
     public async Task WriteAsync_ReplacesOnlyTheSelectedFileWithoutLeavingTemporaryFiles()
     {
         var directory = CreateTemporaryDirectory();
@@ -277,5 +535,51 @@ public sealed class SettingsPersistenceContractTests
         {
             Directory.Delete(fullPath, recursive: true);
         }
+    }
+
+    private static List<BuiltInPromptAssetDefinition> ReadBuiltInPrompts(string? displayLanguage)
+    {
+        var fileName = string.Equals(
+            displayLanguage,
+            "Simplified Chinese",
+            StringComparison.OrdinalIgnoreCase)
+            ? "builtin.prompt.zh.json"
+            : "builtin.prompt.en.json";
+        var path = Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
+        return JsonConvert.DeserializeObject<List<BuiltInPromptAssetDefinition>>(
+                   File.ReadAllText(path))
+               ?? throw new InvalidOperationException($"Asset '{fileName}' deserialized to null.");
+    }
+
+    private static void AssertPromptAssetWasImported(
+        IReadOnlyList<BuiltInPromptAssetDefinition> expected,
+        PromptSettings actual)
+    {
+        Assert.HasCount(expected.Count, actual.Entries);
+        CollectionAssert.AreEquivalent(
+            expected.Select(prompt => prompt.Id).ToArray(),
+            actual.Entries.Select(prompt => prompt.Id).ToArray());
+
+        foreach (var expectedPrompt in expected)
+        {
+            var actualPrompt = actual.Entries.Single(prompt => prompt.Id == expectedPrompt.Id);
+            Assert.AreEqual(expectedPrompt.Name, actualPrompt.Name);
+            Assert.AreEqual(expectedPrompt.Content, actualPrompt.Content);
+            Assert.AreEqual(expectedPrompt.IsDefault, actualPrompt.IsDefault);
+        }
+
+        var defaultPrompt = expected.Single(prompt => prompt.IsDefault);
+        Assert.AreEqual(defaultPrompt.Id, actual.SelectedPromptId);
+    }
+
+    private sealed class BuiltInPromptAssetDefinition
+    {
+        public string Id { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Content { get; set; } = string.Empty;
+
+        public bool IsDefault { get; set; }
     }
 }

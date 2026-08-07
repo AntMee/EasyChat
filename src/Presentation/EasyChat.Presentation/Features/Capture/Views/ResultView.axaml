@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -19,8 +20,24 @@
         Title="ResultView"
         SizeToContent="WidthAndHeight"
         KeyDown="OnKeyDown">
+    <Window.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="ClassicResultForeground" Color="#FFFFFFFF" />
+            <x:Double x:Key="ClassicResultFontSize">18</x:Double>
+        </ResourceDictionary>
+    </Window.Resources>
 
-    <Panel>
+    <Window.Styles>
+        <Style Selector="md|MarkdownRenderer.ClassicResultMarkdown">
+            <Style Selector="^ md|MarkdownTextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource ClassicResultForeground}" />
+                <Setter Property="FontSize" Value="{DynamicResource ClassicResultFontSize}" />
+                <Setter Property="FontFamily" Value="{DynamicResource ClassicResultFontFamily}" />
+            </Style>
+        </Style>
+    </Window.Styles>
+
+    <Panel x:Name="WindowBackground">
         <Border x:Name="MainCard"
                 Classes="EcFloatShell"
                 Padding="0">
@@ -32,13 +49,12 @@
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
                                   IsVisible="True" />
-                    <TextBlock TextWrapping="Wrap"
-                               x:Name="TextBlockResult"
-                               IsVisible="False"
-                               FontSize="14"
-                               LineHeight="22"
-                               MaxWidth="480"
-                               Foreground="{DynamicResource EcTextPrimary}" />
+                    <md:MarkdownRenderer x:Name="MarkdownResult"
+                                         Classes="ClassicResultMarkdown"
+                                         IsVisible="False"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Top"
+                                         MaxWidth="480" />
                 </Panel>
 
                 <!-- Action bar: Copy is primary, Close secondary. Esc closes. -->

@@ -1,4 +1,4 @@
-using System.Runtime.Serialization;
+using EasyChat.Contracts.Settings;
 using Newtonsoft.Json;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
@@ -28,6 +28,13 @@ internal enum InputDeliveryModeDto
     Type = 0,
     Paste = 1,
     Message = 2
+}
+
+internal enum OcrRecognitionModeDto
+{
+    Fast = 0,
+    Normal = 1,
+    IdleRelease = 2
 }
 
 internal enum FloatingDisplayModeDto
@@ -120,17 +127,7 @@ internal sealed class PromptSettingsDto
     public string SelectedPromptId { get; set; } = string.Empty;
 
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
-    public List<PromptEntrySettingsDto> Entries { get; set; } =
-        [SettingsDefaults.CreateDefaultPrompt()];
-
-    [OnDeserialized]
-    internal void RemoveDuplicateEntries(StreamingContext context)
-    {
-        Entries = Entries
-            .GroupBy(entry => new { entry.Name, entry.Content, entry.IsDefault })
-            .Select(group => group.First())
-            .ToList();
-    }
+    public List<PromptEntrySettingsDto> Entries { get; set; } = [];
 }
 
 [JsonObject(MemberSerialization.OptIn)]
@@ -165,7 +162,7 @@ internal sealed class ResultSettingsDto
     public int MsPerChar { get; set; } = 50;
 
     [JsonProperty]
-    public string TransparencyLevel { get; set; } = "AcrylicBlur";
+    public string TransparencyLevel { get; set; } = "Transparent";
 
     [JsonProperty]
     public string BackgroundColor { get; set; } = "#00000000";
@@ -190,7 +187,7 @@ internal sealed class ResultSettingsDto
 internal sealed class InputSettingsDto
 {
     [JsonProperty]
-    public string TransparencyLevel { get; set; } = "AcrylicBlur";
+    public string TransparencyLevel { get; set; } = "Transparent";
 
     [JsonProperty]
     public string BackgroundColor { get; set; } = "#CC000000";
@@ -231,6 +228,12 @@ internal sealed class ScreenshotSettingsDto
 
     [JsonProperty]
     public List<FixedAreaSettingsDto> FixedAreas { get; set; } = [];
+
+    [JsonProperty]
+    public OcrRecognitionModeDto OcrMode { get; set; } = OcrRecognitionModeDto.Normal;
+
+    [JsonProperty]
+    public int OcrIdleTimeoutSeconds { get; set; } = ScreenshotSettings.DefaultOcrIdleTimeoutSeconds;
 }
 
 [JsonObject(MemberSerialization.OptIn)]
@@ -278,6 +281,9 @@ internal sealed class SpeechRecognitionSettingsDto
 
     [JsonProperty]
     public int EngineType { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? PromptId { get; set; }
 
     [JsonProperty]
     public int MaxSentencesPerLine { get; set; } = 1;
@@ -375,6 +381,9 @@ internal sealed class SelectionTranslationSettingsDto
 
     [JsonProperty]
     public bool SummaryEnabled { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? ExplanationEnabled { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]

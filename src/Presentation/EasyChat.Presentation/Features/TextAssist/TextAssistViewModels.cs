@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Reactive;
 using System.Reactive.Threading.Tasks;
 using System.Text;
@@ -13,6 +12,7 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
+using LiveMarkdown.Avalonia;
 using Material.Icons;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
@@ -53,8 +53,6 @@ namespace EasyChat.Presentation.Features.TextAssist
             get => _selectedTabIndex;
             set
             {
-                if (_selectedTabIndex == value)
-                    return;
                 this.RaiseAndSetIfChanged(ref _selectedTabIndex, value);
                 this.RaisePropertyChanged(nameof(IsTranslationMode));
                 this.RaisePropertyChanged(nameof(IsCorrectionMode));
@@ -65,25 +63,8 @@ namespace EasyChat.Presentation.Features.TextAssist
             }
         }
 
-        public bool IsTranslationMode
-        {
-            get => SelectedTabIndex == 0;
-            set
-            {
-                if (value)
-                    SelectedTabIndex = 0;
-            }
-        }
-
-        public bool IsCorrectionMode
-        {
-            get => SelectedTabIndex == 1;
-            set
-            {
-                if (value)
-                    SelectedTabIndex = 1;
-            }
-        }
+        public bool IsTranslationMode => SelectedTabIndex == 0;
+        public bool IsCorrectionMode => SelectedTabIndex == 1;
         public string WindowTitle => IsCorrectionMode ? Resources.TextAssistCorrect : Resources.TextAssistTranslate;
         public MaterialIconKind WindowIcon => IsCorrectionMode ? MaterialIconKind.Spellcheck : MaterialIconKind.Translate;
         public bool IsCapturingInput { get => _isCapturingInput; private set => this.RaiseAndSetIfChanged(ref _isCapturingInput, value); }
@@ -115,6 +96,38 @@ namespace EasyChat.Presentation.Features.TextAssist
             Translation.CancelCurrent();
             Correction.CancelCurrent();
         }
+    }
+
+    public sealed class TextAssistTranslationPageViewModel : NavigationPageViewModel
+    {
+        public TextAssistTranslationPageViewModel(
+            SettingsSession settings,
+            TranslationLanguageOptions languages,
+            ITextAssistUseCases textAssist,
+            ITranslationWindowCoordinator dictionary,
+            ITtsUseCases tts,
+            ILogger<TextAssistTranslationPageViewModel> logger)
+            : base(Resources.TextAssistTranslate, MaterialIconKind.Translate, 5)
+        {
+            Translation = new TextAssistTranslationViewModel(settings, languages, textAssist, dictionary, tts, logger);
+        }
+
+        public TextAssistTranslationViewModel Translation { get; }
+    }
+
+    public sealed class TextAssistCorrectionPageViewModel : NavigationPageViewModel
+    {
+        public TextAssistCorrectionPageViewModel(
+            SettingsSession settings,
+            TranslationLanguageOptions languages,
+            ITextAssistUseCases textAssist,
+            ILogger<TextAssistCorrectionPageViewModel> logger)
+            : base(Resources.TextAssistCorrect, MaterialIconKind.Spellcheck, 6)
+        {
+            Correction = new TextAssistCorrectionViewModel(settings, languages, textAssist, logger);
+        }
+
+        public TextAssistCorrectionViewModel Correction { get; }
     }
 
     public abstract class TextAssistEditorViewModel : ViewModelBase
@@ -373,6 +386,7 @@ namespace EasyChat.Presentation.Features.TextAssist
 
         public string InputText { get => _inputText; set => this.RaiseAndSetIfChanged(ref _inputText, value); }
         public string TranslationResult { get => _translationResult; private set => this.RaiseAndSetIfChanged(ref _translationResult, value); }
+        public ObservableStringBuilder ResultMarkdown { get; } = new();
         public bool IsSourceSpeaking { get => _isSourceSpeaking; private set => this.RaiseAndSetIfChanged(ref _isSourceSpeaking, value); }
         public bool IsResultSpeaking { get => _isResultSpeaking; private set => this.RaiseAndSetIfChanged(ref _isResultSpeaking, value); }
         public bool DetailedExplanation
@@ -398,34 +412,64 @@ namespace EasyChat.Presentation.Features.TextAssist
         {
             if (string.IsNullOrWhiteSpace(InputText)) return;
             TranslationResult = string.Empty;
+            await Dispatcher.UIThread.InvokeAsync(
+                () => ResultMarkdown.Clear(),
+                DispatcherPriority.Background,
+                cancellationToken);
             Annotations.Clear();
             this.RaisePropertyChanged(nameof(ShowAnnotations));
             var profile = ResolveProfile(TextAssistOperation.Translation) with { DetailedExplanation = DetailedExplanation && IsAiProvider };
+            var refresh = new TextAssistStreamRefreshThrottle();
+            var pending = new StringBuilder();
             await foreach (var item in TextAssist.StreamAsync(
                                new TextAssistRequest(InputText, TextAssistOperation.Translation, profile),
                                cancellationToken))
             {
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                switch (item)
                 {
-                    switch (item)
-                    {
-                        case TextAssistTranslationDeltaEvent delta:
-                            TranslationResult += delta.Text;
-                            break;
-                        case TextAssistTranslationAnnotationEvent annotation:
-                            Annotations.Add(new TextAssistAnnotationViewModel(annotation));
-                            this.RaisePropertyChanged(nameof(ShowAnnotations));
-                            break;
-                    }
-                });
+                    case TextAssistTranslationDeltaEvent delta:
+                        pending.Append(delta.Text);
+                        if (!refresh.ShouldRefresh()) continue;
+                        await FlushTranslationChunkAsync(pending, cancellationToken);
+                        break;
+                    case TextAssistTranslationAnnotationEvent annotation:
+                        await Dispatcher.UIThread.InvokeAsync(
+                            () =>
+                            {
+                                Annotations.Add(new TextAssistAnnotationViewModel(annotation));
+                                this.RaisePropertyChanged(nameof(ShowAnnotations));
+                            },
+                            DispatcherPriority.Background,
+                            cancellationToken);
+                        break;
+                }
             }
+            if (pending.Length > 0)
+                await FlushTranslationChunkAsync(pending, cancellationToken);
+        }
+
+        private async Task FlushTranslationChunkAsync(StringBuilder pending, CancellationToken cancellationToken)
+        {
+            var chunk = pending.ToString();
+            pending.Clear();
+            await Dispatcher.UIThread.InvokeAsync(
+                () =>
+                {
+                    TranslationResult += chunk;
+                    ResultMarkdown.Append(chunk);
+                },
+                DispatcherPriority.Background,
+                cancellationToken);
         }
 
         private void SwapContent()
         {
+            CancelCurrent();
             var sourceText = InputText;
             InputText = TranslationResult;
             TranslationResult = sourceText;
+            ResultMarkdown.Clear();
+            ResultMarkdown.Append(TranslationResult);
             Annotations.Clear();
             this.RaisePropertyChanged(nameof(ShowAnnotations));
             var source = SelectedSourceLanguage;
@@ -509,15 +553,24 @@ namespace EasyChat.Presentation.Features.TextAssist
         {
             if (string.IsNullOrWhiteSpace(InputText)) return;
             ResetResults();
-            var projection = new TextAssistCorrectionProjection(InputText.Length);
+            var projection = new TextAssistCorrectionProjection(InputText);
+            var refresh = new TextAssistStreamRefreshThrottle();
             await foreach (var item in TextAssist.StreamAsync(
                                new TextAssistRequest(InputText, TextAssistOperation.Correction, ResolveProfile(TextAssistOperation.Correction)),
                                cancellationToken))
             {
                 projection.Apply(item);
-                await Dispatcher.UIThread.InvokeAsync(() => ApplyProjection(projection));
+                if (!refresh.ShouldRefresh()) continue;
+                await Dispatcher.UIThread.InvokeAsync(
+                    () => ApplyProjection(projection),
+                    DispatcherPriority.Background,
+                    cancellationToken);
             }
             projection.EnsureComplete();
+            await Dispatcher.UIThread.InvokeAsync(
+                () => ApplyProjection(projection),
+                DispatcherPriority.Background,
+                cancellationToken);
         }
 
         private void ApplyProjection(TextAssistCorrectionProjection projection)
@@ -529,9 +582,12 @@ namespace EasyChat.Presentation.Features.TextAssist
                 projection.Translations.TryGetValue(pair.Key, out var translation);
                 CorrectionVariants.Add(new CorrectionVariant(pair.Value, translation ?? string.Empty));
             }
-            Issues.Clear();
-            foreach (var issue in projection.Issues) Issues.Add(issue);
-            RebuildCorrectionSegments();
+            if (!TextAssistCorrectionProjection.HasSameIssueInstances(Issues, projection.Issues))
+            {
+                Issues.Clear();
+                foreach (var issue in projection.Issues) Issues.Add(issue);
+                RebuildCorrectionSegments();
+            }
             this.RaisePropertyChanged(nameof(HasCorrectedResults));
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
             this.RaisePropertyChanged(nameof(HasCorrectionOutput));
@@ -584,6 +640,7 @@ namespace EasyChat.Presentation.Features.TextAssist
 
     public sealed class TextAssistIssueViewModel(TextAssistIssueEvent value)
     {
+        internal TextAssistIssueEvent Event => value;
         public int Start => value.Start;
         public int Length => value.Length;
         public string Category => value.Category;
@@ -613,8 +670,10 @@ namespace EasyChat.Presentation.Features.TextAssist
         };
     }
 
-    internal sealed class TextAssistCorrectionProjection(int sourceLength)
+    internal sealed class TextAssistCorrectionProjection(string sourceText)
     {
+        private readonly string _sourceText = sourceText ?? string.Empty;
+        private readonly int _sourceLength = (sourceText ?? string.Empty).Length;
         private readonly Dictionary<int, StringBuilder> _corrected = [];
         private readonly Dictionary<int, StringBuilder> _translations = [];
         private bool _started;
@@ -625,6 +684,19 @@ namespace EasyChat.Presentation.Features.TextAssist
         public IReadOnlyDictionary<int, string> CorrectedVariants => _corrected.ToDictionary(pair => pair.Key, pair => pair.Value.ToString());
         public IReadOnlyDictionary<int, string> Translations => _translations.ToDictionary(pair => pair.Key, pair => pair.Value.ToString());
 
+        public static bool HasSameIssueInstances(
+            IReadOnlyList<TextAssistIssueViewModel> current,
+            IReadOnlyList<TextAssistIssueViewModel> next)
+        {
+            if (current.Count != next.Count) return false;
+            for (var index = 0; index < current.Count; index++)
+            {
+                if (!ReferenceEquals(current[index], next[index]))
+                    return false;
+            }
+            return true;
+        }
+
         public void Apply(TextAssistEvent item)
         {
             switch (item)
@@ -632,19 +704,21 @@ namespace EasyChat.Presentation.Features.TextAssist
                 case TextAssistStartedEvent:
                     _started = true;
                     break;
-                case TextAssistIssueEvent issue when issue.Start >= 0 && issue.Length >= 0
-                                                    && issue.Start <= sourceLength
-                                                    && issue.Length <= sourceLength - issue.Start:
+                case TextAssistIssueEvent issue:
                     _started = true;
-                    Issues.Add(new TextAssistIssueViewModel(issue));
+                    var resolved = TextAssistIssueRangeResolver.Normalize(_sourceText, issue);
+                    if (resolved.Start < 0 || resolved.Length <= 0 || resolved.Start > _sourceLength
+                        || resolved.Length > _sourceLength - resolved.Start)
+                        break;
+                    AddIssue(resolved);
                     break;
                 case TextAssistCorrectedDeltaEvent delta:
                     _started = true;
-                    Append(_corrected, delta.Variant, delta.Text);
+                    Append(_corrected, delta.Variant, delta.Text, delta.IsStreamingPartial);
                     break;
                 case TextAssistCorrectionTranslationDeltaEvent translation:
                     _started = true;
-                    Append(_translations, translation.Variant, translation.Text);
+                    Append(_translations, translation.Variant, translation.Text, translation.IsStreamingPartial);
                     break;
                 case TextAssistCompletedEvent:
                     _started = true;
@@ -653,17 +727,102 @@ namespace EasyChat.Presentation.Features.TextAssist
             }
         }
 
+        private void AddIssue(TextAssistIssueEvent issue)
+        {
+            var duplicateIndex = Issues.FindIndex(existing =>
+                TextAssistCorrectionIssueRules.HasSameIdentity(existing.Event, issue));
+            if (duplicateIndex >= 0)
+                return;
+
+            var relatedIndex = Issues.FindIndex(existing =>
+                TextAssistCorrectionIssueRules.DescribesSameCorrection(existing.Event, issue)
+                && TextAssistCorrectionIssueRules.RangesAreAdjacentOrOverlapping(existing.Event, issue));
+            if (relatedIndex >= 0)
+            {
+                var existing = Issues[relatedIndex].Event;
+                var start = Math.Min(existing.Start, issue.Start);
+                var end = Math.Max(existing.Start + existing.Length, issue.Start + issue.Length);
+                var merged = existing with
+                {
+                    Start = start,
+                    Length = end - start,
+                    Original = _sourceText[start..end]
+                };
+                Issues[relatedIndex] = new TextAssistIssueViewModel(merged);
+                return;
+            }
+
+            Issues.Add(new TextAssistIssueViewModel(issue));
+        }
+
         public void EnsureComplete()
         {
             if (!_started) throw new InvalidOperationException("Correction stream did not start.");
             if (!_completed) throw new InvalidOperationException("Correction stream did not complete.");
         }
 
-        private static void Append(Dictionary<int, StringBuilder> values, int variant, string text)
+        private static void Append(
+            Dictionary<int, StringBuilder> values,
+            int variant,
+            string text,
+            bool isStreamingPartial = false)
         {
             variant = Math.Clamp(variant, 1, 3);
-            if (!values.TryGetValue(variant, out var builder)) values[variant] = builder = new StringBuilder();
-            builder.Append(text);
+            if (string.IsNullOrEmpty(text))
+                return;
+            if (!values.TryGetValue(variant, out var builder))
+            {
+                values[variant] = new StringBuilder(text);
+                return;
+            }
+
+            if (isStreamingPartial)
+            {
+                builder.Append(text);
+                return;
+            }
+
+            var current = builder.ToString();
+            if (string.Equals(current, text, StringComparison.Ordinal)
+                || current.StartsWith(text, StringComparison.Ordinal))
+            {
+                return;
+            }
+            if (text.StartsWith(current, StringComparison.Ordinal))
+            {
+                builder.Clear();
+                builder.Append(text);
+                return;
+            }
+
+            builder.Append(text.AsSpan(FindSuffixPrefixOverlap(current, text)));
+        }
+
+        private static int FindSuffixPrefixOverlap(string current, string next)
+        {
+            for (var length = Math.Min(current.Length, next.Length); length > 0; length--)
+            {
+                if (current.AsSpan(current.Length - length).SequenceEqual(next.AsSpan(0, length)))
+                    return length;
+            }
+            return 0;
+        }
+
+    }
+
+    internal sealed class TextAssistStreamRefreshThrottle
+    {
+        private const int RefreshesPerSecond = 30;
+        private readonly long _minimumInterval = Math.Max(1, System.Diagnostics.Stopwatch.Frequency / RefreshesPerSecond);
+        private long _lastRefresh;
+
+        public bool ShouldRefresh()
+        {
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (_lastRefresh != 0 && now - _lastRefresh < _minimumInterval)
+                return false;
+            _lastRefresh = now;
+            return true;
         }
     }
 }
@@ -685,6 +844,7 @@ namespace EasyChat.Presentation.Features.TextAssist
         private bool _isCorrectionCorrect;
         private string _errorMessage = string.Empty;
         private bool _isBusy;
+        private bool _hasStreamingContent;
         private string _sourceLanguageId;
 
         public TextAssistResultWindowViewModel(
@@ -706,25 +866,29 @@ namespace EasyChat.Presentation.Features.TextAssist
         public bool IsCorrection => Operation == TextAssistOperation.Correction;
         public bool IsPolish => Operation == TextAssistOperation.Polish;
         public bool IsSummary => Operation == TextAssistOperation.Summary;
-        public bool ShowPlainResult => !IsCorrection;
+        public bool IsExplanation => Operation == TextAssistOperation.Explanation;
+        public bool ShowPlainResult => Operation is TextAssistOperation.Translation
+            or TextAssistOperation.Summary
+            or TextAssistOperation.Explanation;
         public MaterialIconKind WindowIcon => Operation switch
         {
             TextAssistOperation.Correction => MaterialIconKind.Spellcheck,
             TextAssistOperation.Polish => MaterialIconKind.FormatPaint,
             TextAssistOperation.Summary => MaterialIconKind.TextShort,
+            TextAssistOperation.Explanation => MaterialIconKind.LightbulbOnOutline,
             _ => MaterialIconKind.TextBoxEditOutline
         };
         public string Title => Operation switch
         {
+            TextAssistOperation.Explanation => Resources.TextAssistExplain,
             TextAssistOperation.Correction => Resources.TextAssistCorrect,
-            TextAssistOperation.Polish => IsChineseUi ? "润色" : "Polish",
-            TextAssistOperation.Summary => IsChineseUi ? "总结" : "Summarize",
-            _ => IsChineseUi ? "文本处理" : "Text assist"
+            TextAssistOperation.Polish => Resources.TextAssistPolish,
+            TextAssistOperation.Summary => Resources.TextAssistSummary,
+            _ => Resources.TextAssistProcessing
         };
-        public string PolishExplanationTitle => IsChineseUi ? "润色说明" : "Polish notes";
-        public string PolishOriginalLabel => IsChineseUi ? "原表达" : "Original";
-        public string PolishRevisedLabel => IsChineseUi ? "润色后" : "Revised";
-        private static bool IsChineseUi => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
+        public string PolishExplanationTitle => Resources.TextAssistPolishExplanationTitle;
+        public string PolishOriginalLabel => Resources.TextAssistPolishOriginalLabel;
+        public string PolishRevisedLabel => Resources.TextAssistPolishRevisedLabel;
 
         public LanguageSettings SelectedSourceLanguage
         {
@@ -738,6 +902,7 @@ namespace EasyChat.Presentation.Features.TextAssist
         }
 
         public string Result { get => _result; private set => this.RaiseAndSetIfChanged(ref _result, value); }
+        public ObservableStringBuilder ResultMarkdown { get; } = new();
         public string CorrectedResult { get => _correctedResult; private set => this.RaiseAndSetIfChanged(ref _correctedResult, value); }
         public string CorrectionTranslation { get => _correctionTranslation; private set => this.RaiseAndSetIfChanged(ref _correctionTranslation, value); }
         public ObservableCollection<TextAssistIssueViewModel> Issues { get; } = [];
@@ -751,7 +916,27 @@ namespace EasyChat.Presentation.Features.TextAssist
         public string CopyText => IsCorrection ? (IsCorrectionCorrect ? SourceText : CorrectedResult) : Result;
         public string SourceText { get => _sourceText; set => this.RaiseAndSetIfChanged(ref _sourceText, value); }
         public string ErrorMessage { get => _errorMessage; private set => this.RaiseAndSetIfChanged(ref _errorMessage, value); }
-        public bool IsBusy { get => _isBusy; private set => this.RaiseAndSetIfChanged(ref _isBusy, value); }
+        public bool IsBusy
+        {
+            get => _isBusy;
+            private set
+            {
+                if (_isBusy == value) return;
+                this.RaiseAndSetIfChanged(ref _isBusy, value);
+                this.RaisePropertyChanged(nameof(ShowLoadingIndicator));
+            }
+        }
+        public bool HasStreamingContent
+        {
+            get => _hasStreamingContent;
+            private set
+            {
+                if (_hasStreamingContent == value) return;
+                this.RaiseAndSetIfChanged(ref _hasStreamingContent, value);
+                this.RaisePropertyChanged(nameof(ShowLoadingIndicator));
+            }
+        }
+        public bool ShowLoadingIndicator => IsBusy && !HasStreamingContent;
         public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
         public Task InitializeAsync(string sourceText, TextAssistOperation operation)
@@ -777,7 +962,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             _request?.Dispose();
             _request = new CancellationTokenSource();
             var token = _request.Token;
-            ResetResults();
+            await ResetResultsAsync();
             IsBusy = true;
             try
             {
@@ -786,20 +971,49 @@ namespace EasyChat.Presentation.Features.TextAssist
                     Source = ToContract(SelectedSourceLanguage)
                 };
                 var correction = Operation == TextAssistOperation.Correction
-                    ? new TextAssistCorrectionProjection(SourceText.Length)
+                    ? new TextAssistCorrectionProjection(SourceText)
                     : null;
+                var refresh = new TextAssistStreamRefreshThrottle();
+                var pending = new StringBuilder();
                 await foreach (var item in _textAssist.StreamAsync(
                                    new TextAssistRequest(SourceText, Operation, profile), token))
                 {
-                    correction?.Apply(item);
-                    await Dispatcher.UIThread.InvokeAsync(() => Apply(item, correction));
+                    if (correction is null)
+                    {
+                        if (item is not TextAssistTranslationDeltaEvent delta)
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(
+                                () => ApplyPlain(item),
+                                DispatcherPriority.Background,
+                                token);
+                            continue;
+                        }
+
+                        pending.Append(delta.Text);
+                        if (!refresh.ShouldRefresh()) continue;
+                        await FlushPlainChunkAsync(pending, token);
+                        continue;
+                    }
+
+                    correction.Apply(item);
+                    if (!refresh.ShouldRefresh()) continue;
+                    await Dispatcher.UIThread.InvokeAsync(
+                        () => ApplyCorrection(correction),
+                        DispatcherPriority.Background,
+                        token);
                 }
+                if (correction is null && pending.Length > 0)
+                    await FlushPlainChunkAsync(pending, token);
                 correction?.EnsureComplete();
                 if (correction is not null)
                 {
-                    IsCorrectionCorrect = Issues.Count == 0
-                                          && string.Equals(CorrectedResult.Trim(), SourceText.Trim(), StringComparison.Ordinal);
-                    RaiseCorrectionProperties();
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        ApplyCorrection(correction);
+                        IsCorrectionCorrect = Issues.Count == 0
+                                              && string.Equals(CorrectedResult.Trim(), SourceText.Trim(), StringComparison.Ordinal);
+                        RaiseCorrectionProperties();
+                    }, DispatcherPriority.Background, token);
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -815,45 +1029,79 @@ namespace EasyChat.Presentation.Features.TextAssist
             }
         }
 
-        private void Apply(TextAssistEvent item, TextAssistCorrectionProjection? correction)
+        private void ApplyCorrection(TextAssistCorrectionProjection correction)
         {
-            if (correction is not null)
+            CorrectedResult = correction.CorrectedText;
+            CorrectionTranslation = correction.Translations.TryGetValue(1, out var translation) ? translation : string.Empty;
+            if (!TextAssistCorrectionProjection.HasSameIssueInstances(Issues, correction.Issues))
             {
-                CorrectedResult = correction.CorrectedText;
-                CorrectionTranslation = correction.Translations.TryGetValue(1, out var translation) ? translation : string.Empty;
                 Issues.Clear();
                 foreach (var issue in correction.Issues) Issues.Add(issue);
-                this.RaisePropertyChanged(nameof(HasCorrectionIssues));
-                this.RaisePropertyChanged(nameof(CopyText));
-                return;
             }
+            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
+            this.RaisePropertyChanged(nameof(CopyText));
+            UpdateStreamingContent();
+        }
 
+        private void ApplyPlain(TextAssistEvent item)
+        {
             switch (item)
             {
                 case TextAssistTranslationDeltaEvent delta:
                     Result += delta.Text;
+                    ResultMarkdown.Append(delta.Text);
                     this.RaisePropertyChanged(nameof(CopyText));
+                    UpdateStreamingContent();
                     break;
                 case TextAssistPolishExplanationEvent explanation:
                     PolishExplanations.Add(explanation);
                     this.RaisePropertyChanged(nameof(HasPolishExplanations));
+                    UpdateStreamingContent();
                     break;
             }
         }
 
-        private void ResetResults()
+        private async Task FlushPlainChunkAsync(StringBuilder pending, CancellationToken token)
+        {
+            var chunk = pending.ToString();
+            pending.Clear();
+            await Dispatcher.UIThread.InvokeAsync(
+                () =>
+                {
+                    Result += chunk;
+                    ResultMarkdown.Append(chunk);
+                    this.RaisePropertyChanged(nameof(CopyText));
+                    UpdateStreamingContent();
+                },
+                DispatcherPriority.Background,
+                token);
+        }
+
+        private async Task ResetResultsAsync()
         {
             Result = string.Empty;
+            if (Dispatcher.UIThread.CheckAccess())
+                ResultMarkdown.Clear();
+            else
+                await Dispatcher.UIThread.InvokeAsync(() => ResultMarkdown.Clear());
             CorrectedResult = string.Empty;
             CorrectionTranslation = string.Empty;
             Issues.Clear();
             PolishExplanations.Clear();
             IsCorrectionCorrect = false;
             ErrorMessage = string.Empty;
+            HasStreamingContent = false;
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
             this.RaisePropertyChanged(nameof(HasPolishExplanations));
             RaiseCorrectionProperties();
         }
+
+        private void UpdateStreamingContent() => HasStreamingContent =
+            !string.IsNullOrWhiteSpace(Result)
+            || !string.IsNullOrWhiteSpace(CorrectedResult)
+            || !string.IsNullOrWhiteSpace(CorrectionTranslation)
+            || Issues.Count > 0
+            || PolishExplanations.Count > 0;
 
         private void RaiseOperationProperties()
         {
@@ -861,6 +1109,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             this.RaisePropertyChanged(nameof(IsCorrection));
             this.RaisePropertyChanged(nameof(IsPolish));
             this.RaisePropertyChanged(nameof(IsSummary));
+            this.RaisePropertyChanged(nameof(IsExplanation));
             this.RaisePropertyChanged(nameof(ShowPlainResult));
             this.RaisePropertyChanged(nameof(WindowIcon));
             this.RaisePropertyChanged(nameof(Title));

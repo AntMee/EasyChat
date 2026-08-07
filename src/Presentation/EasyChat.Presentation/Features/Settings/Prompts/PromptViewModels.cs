@@ -1,21 +1,22 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
+using Avalonia.Controls.Notifications;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Navigation;
-using EasyChat.Presentation.Foundation.UiHost;
 using EasyChat.Presentation.Lang;
 using Material.Icons;
 using ReactiveUI;
+using SukiUI.Dialogs;
 
 namespace EasyChat.Presentation.Features.Settings.Prompts;
 
 public sealed class PromptViewModel : NavigationPageViewModel
 {
     private readonly SettingsSession _settings;
-    private readonly IUiDialogHost _dialogs;
+    private readonly ISukiDialogManager _dialogs;
 
-    public PromptViewModel(SettingsSession settings, IUiDialogHost dialogs)
+    public PromptViewModel(SettingsSession settings, ISukiDialogManager dialogs)
         : base(Resources.Prompts, MaterialIconKind.TextBox, 3)
     {
         _settings = settings;
@@ -41,9 +42,8 @@ public sealed class PromptViewModel : NavigationPageViewModel
 
     private void ShowEditor(PromptEntryState? entry)
     {
-        _dialogs.ShowContent(new UiContentDialogOptions
-        {
-            CreateContent = session => new PromptEditDialogViewModel(session, entry)
+        _dialogs.CreateDialog()
+            .WithViewModel(dialog => new PromptEditDialogViewModel(dialog, entry)
             {
                 OnClose = result =>
                 {
@@ -56,38 +56,35 @@ public sealed class PromptViewModel : NavigationPageViewModel
                     }
 
                     entry.Name = result.Name;
-                    entry.Content = result.Content;
+                    entry.Role = result.Content;
                 }
-            }
-        });
+            })
+            .TryShow();
     }
 
     private void RemovePrompt(PromptEntryState entry)
     {
-        if (Prompts.Count <= 1 || entry.IsDefault)
-        {
-            _dialogs.ShowMessage(new UiMessageDialogOptions
+        _dialogs.CreateDialog()
+            .OfType(NotificationType.Warning)
+            .WithTitle(Resources.ConfirmDeletion)
+            .WithContent(Resources.ConfirmDeletePrompt)
+            .WithActionButton(Resources.Delete, _ =>
             {
-                Title = Resources.Delete,
-                Message = Prompts.Count <= 1
-                    ? Resources.CannotDeleteLastPrompt
-                    : Resources.CannotDeleteDefaultPrompt,
-                Severity = UiMessageSeverity.Warning,
-                DismissOnBackgroundClick = true
-            });
-            return;
-        }
+                var replacement = Prompts.FirstOrDefault(prompt =>
+                                      !ReferenceEquals(prompt, entry) && prompt.IsDefault)
+                                  ?? Prompts.FirstOrDefault(prompt => !ReferenceEquals(prompt, entry));
+                var wasDefault = entry.IsDefault;
+                var wasSelected = _settings.Prompts.SelectedPromptId == entry.Id;
 
-        _dialogs.ShowMessage(new UiMessageDialogOptions
-        {
-            Title = Resources.ConfirmDeletion,
-            Message = Resources.ConfirmDeletePrompt,
-            Severity = UiMessageSeverity.Warning,
-            PrimaryText = Resources.Delete,
-            PrimaryIsDanger = true,
-            OnPrimary = () => Prompts.Remove(entry),
-            SecondaryText = Resources.Cancel
-        });
+                if (wasDefault && replacement is not null)
+                    replacement.IsDefault = true;
+                Prompts.Remove(entry);
+
+                if (wasDefault || wasSelected)
+                    _settings.Prompts.SelectedPromptId = replacement?.Id ?? string.Empty;
+            }, true)
+            .WithActionButton(Resources.Cancel, _ => { }, true)
+            .TryShow();
     }
 
     private void SetDefault(PromptEntryState entry)
@@ -105,17 +102,17 @@ public sealed class PromptViewModel : NavigationPageViewModel
 
 public sealed class PromptEditDialogViewModel : ConventionViewModelBase
 {
-    private readonly IUiDialogSession _dialog;
+    private readonly ISukiDialog _dialog;
     private readonly PromptEntryState? _existing;
     private string _name;
-    private string _content;
+    private string _role;
 
-    public PromptEditDialogViewModel(IUiDialogSession dialog, PromptEntryState? existing = null)
+    public PromptEditDialogViewModel(ISukiDialog dialog, PromptEntryState? existing = null)
     {
         _dialog = dialog;
         _existing = existing;
         _name = existing?.Name ?? string.Empty;
-        _content = existing?.Content ?? string.Empty;
+        _role = existing?.Role ?? string.Empty;
         SaveCommand = ReactiveCommand.Create(
             Save,
             this.WhenAnyValue(
@@ -126,7 +123,7 @@ public sealed class PromptEditDialogViewModel : ConventionViewModelBase
     }
 
     public string Name { get => _name; set => this.RaiseAndSetIfChanged(ref _name, value); }
-    public string Content { get => _content; set => this.RaiseAndSetIfChanged(ref _content, value); }
+    public string Content { get => _role; set => this.RaiseAndSetIfChanged(ref _role, value); }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelCommand { get; }
     public Action<PromptEntrySettings?>? OnClose { get; init; }

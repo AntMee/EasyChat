@@ -10,6 +10,8 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
     private readonly string _eventName;
     private readonly string _propertyName;
     private readonly Action<Exception, string>? _onInvalidLine;
+    private readonly bool _emitPartialDeltas;
+    private readonly Func<T, T>? _markPartial;
     private readonly StringBuilder _line = new();
     private int _cursor;
     private bool _isDelta;
@@ -20,12 +22,16 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
         Func<string, T> deserialize,
         string eventName,
         string propertyName,
-        Action<Exception, string>? onInvalidLine = null)
+        Action<Exception, string>? onInvalidLine = null,
+        bool emitPartialDeltas = true,
+        Func<T, T>? markPartial = null)
     {
         _deserialize = deserialize;
         _eventName = eventName;
         _propertyName = propertyName;
         _onInvalidLine = onInvalidLine;
+        _emitPartialDeltas = emitPartialDeltas;
+        _markPartial = markPartial;
     }
 
     public IEnumerable<T> Append(string chunk)
@@ -41,7 +47,10 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
             var line = content[start..newline].Trim();
             if (!string.IsNullOrEmpty(line) && !line.StartsWith("```", StringComparison.Ordinal))
             {
-                foreach (var item in ReadPartial(line)) yield return item;
+                if (_emitPartialDeltas)
+                {
+                    foreach (var item in ReadPartial(line)) yield return item;
+                }
                 foreach (var item in CompleteLine(line)) yield return item;
             }
             start = newline + 1;
@@ -54,7 +63,10 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
             _line.Append(content[start..]);
         }
 
-        foreach (var item in ReadPartial(_line.ToString())) yield return item;
+        if (_emitPartialDeltas)
+        {
+            foreach (var item in ReadPartial(_line.ToString())) yield return item;
+        }
     }
 
     public IEnumerable<T> Complete()
@@ -63,7 +75,10 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
         _line.Clear();
         if (!string.IsNullOrEmpty(line) && !line.StartsWith("```", StringComparison.Ordinal))
         {
-            foreach (var item in ReadPartial(line)) yield return item;
+            if (_emitPartialDeltas)
+            {
+                foreach (var item in ReadPartial(line)) yield return item;
+            }
             foreach (var item in CompleteLine(line)) yield return item;
         }
     }
@@ -94,6 +109,7 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
             _isDelta = true;
         }
 
+        var startedBefore = _started;
         if (!_started)
         {
             var key = content.IndexOf($"\"{_propertyName}\"", StringComparison.Ordinal);
@@ -136,6 +152,8 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
             var variant = ExtractVariant(content);
             var variantJson = variant.HasValue ? $",\"variant\":{variant.Value}" : string.Empty;
             var item = _deserialize($"{{\"event\":\"{_eventName}\",\"{_propertyName}\":{System.Text.Json.JsonSerializer.Serialize(builder.ToString())}{variantJson}}}");
+            if (_markPartial is not null && (startedBefore || !_completed))
+                item = _markPartial(item);
             yield return item;
         }
     }

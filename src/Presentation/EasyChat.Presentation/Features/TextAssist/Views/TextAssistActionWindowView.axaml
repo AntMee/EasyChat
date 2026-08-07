@@ -4,6 +4,7 @@
                  xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
                  xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+                 xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
                  xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
                  x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistActionWindowView"
                  x:DataType="vm:TextAssistResultWindowViewModel"
@@ -17,18 +18,11 @@
                 <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold"
                            Foreground="{DynamicResource EcTextPrimary}" />
             </StackPanel>
-            <ComboBox Grid.Column="1" Width="180" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedSourceLanguage}" IsVisible="{Binding ShowLanguageSelector}">
-                <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="7">
-                    <Panel Width="22" Height="16">
-                        <icons:MaterialIcon Kind="FlagOutline" Opacity="0.65"
-                                            IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasNoIcon}}" />
-                        <Image Width="22" Height="16"
-                               IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
-                               Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                    </Panel>
-                        <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center" />
-                </StackPanel></DataTemplate></ComboBox.ItemTemplate>
-            </ComboBox>
+            <sharedControls:LanguageSelector Grid.Column="1"
+                                             Width="180"
+                                             Languages="{Binding Languages}"
+                                             SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
+                                             IsVisible="{Binding ShowLanguageSelector}" />
         </Grid>
         <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="14">
             <Border Classes="EcSurface" Padding="12">

@@ -68,6 +68,15 @@
                         ToolTip.Tip="{x:Static lang:Resources.Copy}">
                     <icon:MaterialIcon Kind="ContentCopy" Width="22" Height="22" Foreground="{DynamicResource EcAccent}" />
                 </Button>
+                <Button x:Name="OcrButton"
+                        Classes="EcToolbarBtn"
+                        Width="44" Height="40"
+                        Padding="10,8"
+                        CornerRadius="0"
+                        Click="OcrButton_OnClick"
+                        ToolTip.Tip="OCR">
+                    <icon:MaterialIcon Kind="TextRecognition" Width="22" Height="22" Foreground="{DynamicResource EcAccent}" />
+                </Button>
                 <Button x:Name="ResetButton"
                         Classes="EcToolbarBtn"
                         Width="44" Height="40"

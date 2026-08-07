@@ -74,23 +74,9 @@
                                                Classes="EcFieldLabel"
                                                Margin="0"
                                                VerticalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding RecognitionLanguages}"
-                                              SelectedItem="{Binding SelectedRecognitionModel}"
-                                              MinWidth="210">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14">
-                                                        <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
-                                                               Stretch="UniformToFill" />
-                                                    </Border>
-                                                    <TextBlock Text="{Binding Converter={x:Static converts:SpeechRecognitionModelConverters.ToDisplayName}}"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource EcTextPrimary}" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
+                                    <ec:LanguageSelector Languages="{Binding RecognitionLanguages}"
+                                                         SelectedLanguage="{Binding SelectedRecognitionModel, Mode=TwoWay}"
+                                                         MinWidth="210" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,4,18,4" VerticalAlignment="Center" Spacing="12">
@@ -145,23 +131,9 @@
                                                Classes="EcFieldLabel"
                                                Margin="0"
                                                VerticalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding TargetLanguages}"
-                                              SelectedItem="{Binding SelectedTargetLanguage}"
-                                              MinWidth="160">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14">
-                                                        <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
-                                                               Stretch="UniformToFill" />
-                                                    </Border>
-                                                    <TextBlock Text="{Binding Converter={x:Static converts:LanguageSettingsConverters.ToDisplayName}}"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource EcTextPrimary}" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
+                                    <ec:LanguageSelector Languages="{Binding TargetLanguages}"
+                                                         SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}"
+                                                         MinWidth="160" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,4" VerticalAlignment="Center" Spacing="8">

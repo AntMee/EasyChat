@@ -1,3 +1,4 @@
+using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
@@ -96,8 +97,7 @@ internal static class SettingsPersistenceMapper
         source.CustomThemePrimaryColor,
         source.CustomThemeAccentColor,
         source.TitleBarVisible,
-        source.FullScreen,
-        source.HomeOnboardingDismissed);
+        source.FullScreen);
 
     private static GeneralSettingsDto ToDto(GeneralSettings source) => new()
     {
@@ -116,8 +116,7 @@ internal static class SettingsPersistenceMapper
         CustomThemePrimaryColor = source.CustomThemePrimaryColor,
         CustomThemeAccentColor = source.CustomThemeAccentColor,
         TitleBarVisible = source.TitleBarVisible,
-        FullScreen = source.FullScreen,
-        HomeOnboardingDismissed = source.HomeOnboardingDismissed
+        FullScreen = source.FullScreen
     };
 
     private static ThemeMode ToThemeMode(string? value)
@@ -391,12 +390,22 @@ internal static class SettingsPersistenceMapper
 
     private static ScreenshotSettings ToContract(ScreenshotSettingsDto source) => new(
         source.Mode,
-        source.FixedAreas.Select(ToContract).ToArray());
+        source.FixedAreas.Select(ToContract).ToArray(),
+        (OcrRecognitionMode)(int)source.OcrMode,
+        Math.Clamp(
+            source.OcrIdleTimeoutSeconds,
+            ScreenshotSettings.MinOcrIdleTimeoutSeconds,
+            ScreenshotSettings.MaxOcrIdleTimeoutSeconds));
 
     private static ScreenshotSettingsDto ToDto(ScreenshotSettings source) => new()
     {
         Mode = source.Mode,
-        FixedAreas = source.FixedAreas.Select(ToDto).ToList()
+        FixedAreas = source.FixedAreas.Select(ToDto).ToList(),
+        OcrMode = (OcrRecognitionModeDto)(int)source.OcrMode,
+        OcrIdleTimeoutSeconds = Math.Clamp(
+            source.OcrIdleTimeoutSeconds,
+            ScreenshotSettings.MinOcrIdleTimeoutSeconds,
+            ScreenshotSettings.MaxOcrIdleTimeoutSeconds)
     };
 
     private static FixedAreaSettings ToContract(FixedAreaSettingsDto source) => new(
@@ -446,7 +455,8 @@ internal static class SettingsPersistenceMapper
         source.WindowX,
         source.WindowY,
         source.WindowWidth,
-        source.WindowHeight);
+        source.WindowHeight,
+        source.PromptId);
 
     private static SpeechRecognitionSettingsDto ToDto(SpeechRecognitionSettings source) => new()
     {
@@ -456,6 +466,7 @@ internal static class SettingsPersistenceMapper
         TargetLanguage = source.TargetLanguage,
         EngineId = source.EngineId,
         EngineType = source.EngineType,
+        PromptId = source.PromptId,
         MaxSentencesPerLine = source.MaxSentencesPerLine,
         FloatingDisplayMode = (FloatingDisplayModeDto)(int)source.FloatingDisplayMode,
         MaxFloatingHistory = source.MaxFloatingHistory,
@@ -490,7 +501,8 @@ internal static class SettingsPersistenceMapper
         source.TranslationEnabled,
         source.CorrectionEnabled,
         source.PolishEnabled,
-        source.SummaryEnabled);
+        source.SummaryEnabled,
+        source.ExplanationEnabled ?? true);
 
     private static SelectionTranslationSettingsDto ToDto(
         SelectionTranslationSettings source) => new()
@@ -504,7 +516,8 @@ internal static class SettingsPersistenceMapper
             TranslationEnabled = source.TranslationEnabled,
             CorrectionEnabled = source.CorrectionEnabled,
             PolishEnabled = source.PolishEnabled,
-            SummaryEnabled = source.SummaryEnabled
+            SummaryEnabled = source.SummaryEnabled,
+            ExplanationEnabled = source.ExplanationEnabled
         };
 
     private static TtsSettings ToContract(TtsSettingsDto source) => new(

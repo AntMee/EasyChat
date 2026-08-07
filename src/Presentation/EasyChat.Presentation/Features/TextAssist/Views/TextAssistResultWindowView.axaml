@@ -4,6 +4,7 @@
         xmlns:controls="using:EasyChat.Presentation.Features.TextAssist.Controls"
         xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+        xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         xmlns:suki="https://github.com/kikipoulet/SukiUI"
         x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistResultWindowView"
@@ -27,19 +28,10 @@
                                Foreground="{DynamicResource EcTextPrimary}" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                    <ComboBox Width="150" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedSourceLanguage}"
-                              IsVisible="{Binding ShowLanguageSelector}">
-                        <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="7">
-                            <Panel Width="22" Height="16">
-                                <icons:MaterialIcon Kind="FlagOutline" Width="18" Height="18" Opacity="0.65"
-                                                    IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasNoIcon}}" />
-                                <Image Width="22" Height="16"
-                                       IsVisible="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.HasIcon}}"
-                                       Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                            </Panel>
-                            <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}" VerticalAlignment="Center" />
-                        </StackPanel></DataTemplate></ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <sharedControls:LanguageSelector Width="150"
+                                                     Languages="{Binding Languages}"
+                                                     SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
+                                                     IsVisible="{Binding ShowLanguageSelector}" />
                     <Button Classes="EcGhost" Padding="8,6" Command="{Binding RetryCommand}"
                             ToolTip.Tip="{x:Static lang:Resources.Retry}" IsEnabled="{Binding !IsBusy}">
                         <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
@@ -64,7 +56,7 @@
                 </StackPanel>
             </Grid>
             <Grid Grid.Row="1" MinHeight="100">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" IsVisible="{Binding !IsBusy}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="12">
                         <StackPanel Spacing="12" IsVisible="{Binding ShowCorrectionResult}">
                             <Border Padding="12" CornerRadius="8" Background="{DynamicResource EcBgMuted}"
@@ -188,7 +180,7 @@
                                    HorizontalAlignment="Stretch" VerticalAlignment="Top" />
                     </ScrollViewer>
                 </Border>
-                <suki:Loading Width="24" Height="24" IsVisible="{Binding IsBusy}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <suki:Loading Width="24" Height="24" IsVisible="{Binding ShowLoadingIndicator}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
             <!-- Header already owns Retry/Copy/Close; footer only surfaces errors. -->
             <TextBlock Grid.Row="2"

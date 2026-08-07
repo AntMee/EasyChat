@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 
 <root>
-    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root"
-                xmlns="">
+    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root" xmlns="">
         <xsd:element name="root" msdata:IsDataSet="true">
 
         </xsd:element>
@@ -138,7 +137,7 @@
         <value>Select a model</value>
     </data>
     <data name="ModelNotInListConfirmation" xml:space="preserve">
-        <value>The model &quot;{0}&quot; is not in the fetched model list. Save it anyway?</value>
+        <value>The model "{0}" is not in the fetched model list. Save it anyway?</value>
     </data>
     <data name="Baidu" xml:space="preserve">
         <value>Baidu</value>
@@ -420,7 +419,7 @@
         <value>Name</value>
     </data>
     <data name="PromptContent" xml:space="preserve">
-        <value>Content</value>
+        <value>Role</value>
     </data>
     <data name="SetAsDefault" xml:space="preserve">
         <value>Set as Default</value>
@@ -438,7 +437,7 @@
         <value>Cannot delete the default prompt. Please set another prompt as default first.</value>
     </data>
     <data name="PromptParametersHint" xml:space="preserve">
-        <value>Supported parameters: [SourceLang], [TargetLang], [源语言], [目标语言]</value>
+        <value>Describe the assistant's role, expertise, style, and domain. EasyChat adds the language, task, and output rules automatically.</value>
     </data>
     <data name="ResultAutoCloseDelay" xml:space="preserve">
         <value>Auto Close Delay</value>
@@ -1107,4 +1106,47 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="OpenReleases" xml:space="preserve">
     <value>Open releases</value>
   </data>
+  <data name="Speech_FontSizeDecrease" xml:space="preserve">
+        <value>Decrease Font Size</value>
+    </data>
+  <data name="Speech_FontSizeIncrease" xml:space="preserve">
+        <value>Increase Font Size</value>
+    </data>
+  <data name="TextAssistPolishExplanationTitle" xml:space="preserve"><value>Polish notes</value></data>
+  <data name="TextAssistPolishOriginalLabel" xml:space="preserve"><value>Original</value></data>
+  <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>Revised</value></data>
+  <data name="TextAssistProcessing" xml:space="preserve"><value>Text assist</value></data>
+  <data name="TextAssistExplain" xml:space="preserve"><value>Explain</value></data>
+  <data name="OcrModelsDescription" xml:space="preserve"><value>(Models used to extract text from screenshots; download one before using screenshot translation)</value></data>
+  <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR mode</value></data>
+  <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>Fast</value></data>
+  <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="OcrRecognitionMode_IdleRelease" xml:space="preserve"><value>Idle release</value></data>
+  <data name="OcrRecognitionModeDescription_Fast" xml:space="preserve"><value>Keeps OCR loaded and may use about 500 MB of memory for longer, but subsequent screenshot text recognition is faster. Recommended for users with ample memory who prioritize recognition speed.</value></data>
+  <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>Runs OCR in a temporary process only while recognizing screenshot text, then exits the process to reclaim its memory.</value></data>
+  <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>Keeps OCR loaded for faster consecutive recognition, then exits the process to reclaim memory after the configured period without a new screenshot recognition.</value></data>
+  <data name="OcrIdleTimeout" xml:space="preserve"><value>Close after idle</value></data>
+  <data name="Seconds" xml:space="preserve"><value>seconds</value></data>
+  <data name="ShowMoreAsrModels" xml:space="preserve"><value>Show more ASR models</value></data>
+  <data name="ShowLessAsrModels" xml:space="preserve"><value>Show fewer ASR models</value></data>
+  <data name="ApplicationData" xml:space="preserve"><value>Application data</value></data>
+  <data name="ApplicationDataDescription" xml:space="preserve"><value>All configuration, ASR models, and OCR models are stored together in this directory.</value></data>
+  <data name="ChangeApplicationDataLocation" xml:space="preserve"><value>Change storage location</value></data>
+  <data name="SelectApplicationDataLocation" xml:space="preserve"><value>Select an empty application data directory</value></data>
+  <data name="ApplicationDataMoved" xml:space="preserve"><value>Configuration and models were migrated to {0}.</value></data>
+  <data name="ApplicationDataMoveFailed" xml:space="preserve"><value>Unable to change storage location</value></data>
+  <data name="ApplicationDataMoveBusy" xml:space="preserve"><value>Finish the current model operation before changing the storage location.</value></data>
+  <data name="OcrUniversalModel" xml:space="preserve"><value>Universal model</value></data>
+  <data name="OcrUniversalModelDescription" xml:space="preserve"><value>Covers Chinese, English, Japanese, and Latin-script languages.</value></data>
+  <data name="OcrKoreanV4Model" xml:space="preserve"><value>Korean model</value></data>
+  <data name="OcrArabicV4Model" xml:space="preserve"><value>Arabic-script model</value></data>
+  <data name="OcrDevanagariV4Model" xml:space="preserve"><value>Devanagari model</value></data>
+  <data name="OcrTamilV4Model" xml:space="preserve"><value>Tamil model</value></data>
+  <data name="OcrTeluguV4Model" xml:space="preserve"><value>Telugu model</value></data>
+  <data name="OcrKannadaV4Model" xml:space="preserve"><value>Kannada model</value></data>
+  <data name="OcrCyrillicV3Model" xml:space="preserve"><value>Cyrillic model</value></data>
+  <data name="OcrSupportedLanguages" xml:space="preserve"><value>Supported languages: {0}</value></data>
+  <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>Supports {0} languages</value></data>
+  <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>View all supported languages</value></data>
+  <data name="Action_ScreenshotOcr" xml:space="preserve"><value>Screenshot OCR</value></data>
 </root>

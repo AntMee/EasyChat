@@ -6,6 +6,7 @@ using EasyChat.Presentation.Features.Input;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.TextAssist;
 using EasyChat.Presentation.Features.SelectionTranslation;
+using EasyChat.Presentation.Features.ScreenshotOcr;
 using EasyChat.Contracts.Selection;
 using EasyChat.Contracts.Shortcuts;
 using EasyChat.Presentation.Features.Settings.State;
@@ -39,6 +40,7 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddSingleton<IScreenRegionPicker, AvaloniaScreenRegionPicker>();
         services.AddSingleton<ScreenshotCaptureCoordinator>();
         services.AddSingleton<ScreenshotResultCoordinator>();
+        services.AddSingleton<ScreenshotOcrWindowCoordinator>();
         services.AddSingleton<SubtitleWindowCoordinator>();
         services.AddSingleton<ITypingWindowFactory, TypingWindowFactory>();
         services.AddSingleton<ITranslationWindowCoordinator, TranslationWindowCoordinator>();

@@ -81,7 +81,10 @@ public sealed class TranslationUseCasesTests
         Assert.AreEqual("translated", selectedResponse.Text);
         StringAssert.StartsWith(
             context.Factory.Chat.LastRequest!.SystemPrompt,
-            "Selected English to Simplified Chinese");
+            "# User-selected role\nSelected English to Simplified Chinese");
+        StringAssert.Contains(
+            context.Factory.Chat.LastRequest.SystemPrompt,
+            "Runtime JSONL translation contract (highest priority)");
 
         var explicitSession = context.UseCases.Prepare(new TranslationProviderSelection(
             TranslationEngineNames.AiModel,
@@ -92,10 +95,48 @@ public sealed class TranslationUseCasesTests
 
         StringAssert.StartsWith(
             context.Factory.Chat.LastRequest!.SystemPrompt,
-            "Override English => Simplified Chinese");
+            "# User-selected role\nOverride English => Simplified Chinese");
         Assert.IsNotNull(context.Factory.AiOptions);
         Assert.AreEqual("ai-key", context.Factory.AiOptions.Provider.ApiKey);
         Assert.AreEqual("http://127.0.0.1:7890", context.Factory.AiOptions.ProxyUrl);
+    }
+
+    [TestMethod]
+    public async Task Prepare_AppendsFeaturePromptOverrideToPromptSelectedById()
+    {
+        var bundle = CreateAiBundle() with
+        {
+            Prompts = new PromptSettings(
+                "selected",
+                [
+                    new PromptEntrySettings(
+                        "selected",
+                        "Selected",
+                        "Selected [SourceLang] to [TargetLang]",
+                        false),
+                    new PromptEntrySettings(
+                        "speech",
+                        "Speech",
+                        "Use the product term EasyChat when translating to [TargetLang].",
+                        false)
+                ])
+        };
+        var context = CreateContext(bundle);
+        context.Factory.Chat.CompleteResponse =
+            "{\"event\":\"translation_delta\",\"text\":\"translated\"}\n{\"event\":\"done\"}\n";
+        var session = context.UseCases.Prepare(new TranslationProviderSelection(
+            TranslationEngineNames.AiModel,
+            AiModelId: "ai-1",
+            PromptOverride: "Translate live subtitles from [SourceLang] to [TargetLang].",
+            PromptId: "speech"));
+        using var disposable = session as IDisposable;
+
+        await session.TranslateAsync(CreateRequest());
+
+        StringAssert.StartsWith(
+            context.Factory.Chat.LastRequest!.SystemPrompt,
+            "# User-selected role\nUse the product term EasyChat when translating to Simplified Chinese.\n\n"
+            + "Translate live subtitles from English to Simplified Chinese.");
     }
 
     [TestMethod]
@@ -178,7 +219,7 @@ public sealed class TranslationUseCasesTests
         Assert.AreEqual("second", items[1].GetProperty("kind").GetString());
         Assert.AreEqual(2, items[1].GetProperty("count").GetInt32());
         var systemPrompt = context.Factory.Chat.LastRequest!.SystemPrompt;
-        StringAssert.StartsWith(systemPrompt, "Override English => Simplified Chinese");
+        StringAssert.StartsWith(systemPrompt, "# User-selected role\nOverride English => Simplified Chinese");
         StringAssert.Contains(systemPrompt, "Runtime structured JSONL contract (highest priority)");
         StringAssert.Contains(systemPrompt, "Emit kind for Simplified Chinese.");
     }

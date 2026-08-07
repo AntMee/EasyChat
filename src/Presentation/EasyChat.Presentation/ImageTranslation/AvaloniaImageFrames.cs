@@ -8,6 +8,34 @@ namespace EasyChat.Presentation.ImageTranslation;
 
 public static class AvaloniaImageFrames
 {
+    public static void CopyToFramebuffer(
+        ImageFrame frame,
+        IntPtr destination,
+        int destinationRowBytes)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (frame.PixelFormat != ImagePixelFormat.Bgra32)
+            throw new NotSupportedException($"Pixel format '{frame.PixelFormat}' is not supported.");
+
+        var rowBytes = checked(frame.Width * 4);
+        if (frame.Stride < rowBytes)
+            throw new ArgumentException("The source stride is smaller than a pixel row.", nameof(frame));
+        if (destinationRowBytes < rowBytes)
+            throw new ArgumentOutOfRangeException(
+                nameof(destinationRowBytes),
+                "The destination stride is smaller than a pixel row.");
+
+        var source = frame.Pixels.Span;
+        for (var row = 0; row < frame.Height; row++)
+        {
+            Marshal.Copy(
+                source.Slice(row * frame.Stride, rowBytes).ToArray(),
+                0,
+                destination + row * destinationRowBytes,
+                rowBytes);
+        }
+    }
+
     public static Bitmap ToBitmap(ImageFrame frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
@@ -21,16 +49,7 @@ public static class AvaloniaImageFrames
             AlphaFormat.Opaque);
 
         using var locked = bitmap.Lock();
-        var source = frame.Pixels.Span;
-        var rowBytes = checked(frame.Width * 4);
-        for (var row = 0; row < frame.Height; row++)
-        {
-            Marshal.Copy(
-                source.Slice(row * frame.Stride, rowBytes).ToArray(),
-                0,
-                locked.Address + row * locked.RowBytes,
-                rowBytes);
-        }
+        CopyToFramebuffer(frame, locked.Address, locked.RowBytes);
 
         return bitmap;
     }

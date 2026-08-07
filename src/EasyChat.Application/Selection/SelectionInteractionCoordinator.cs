@@ -86,8 +86,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
             _sink = sink;
             _lifetime = new CancellationTokenSource();
             _settings.SettingsChanged += OnSettingsChanged;
-            if (_settings.Current.SelectionTranslation.Enabled)
-                Track(StartAfterInitialDelayAsync(_lifetime.Token));
+            Track(StartAfterInitialDelayAsync(_lifetime.Token));
         }
     }
 
@@ -138,8 +137,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         try
         {
             await _delay.WaitAsync(StartupDelay, cancellationToken).ConfigureAwait(false);
-            if (_settings.Current.SelectionTranslation.Enabled)
-                await EnableMonitoringAsync(cancellationToken).ConfigureAwait(false);
+            await EnableMonitoringAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -163,8 +161,6 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         {
             lock (_lifecycle)
             {
-                _registration?.Dispose();
-                _registration = null;
                 Interlocked.Increment(ref _generation);
                 _downPoint = null;
             }
@@ -247,7 +243,16 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     {
         var config = _settings.Current.SelectionTranslation;
         if (!config.Enabled)
+        {
+            if (pointerEvent.Action != PointerAction.PrimaryPressed)
+                return;
+
+            var sink = GetSink();
+            var surface = await sink.InspectSurfaceAsync(pointerEvent.Position, cancellationToken).ConfigureAwait(false);
+            if (!surface.IsPointerOverOwnedSurface)
+                await sink.OnExternalPointerPressedAsync(pointerEvent.Position, cancellationToken).ConfigureAwait(false);
             return;
+        }
 
         switch (pointerEvent.Action)
         {
@@ -417,7 +422,8 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
                 config.TranslationEnabled,
                 config.CorrectionEnabled,
                 config.PolishEnabled,
-                config.SummaryEnabled);
+                config.SummaryEnabled,
+                config.ExplanationEnabled);
             if (!toolbar.HasAnyAction)
                 return;
 

@@ -14,11 +14,150 @@ namespace EasyChat.Presentation.Tests;
 public sealed class TextAssistCommandTests
 {
     [TestMethod]
+    public void CorrectionProjection_IgnoresRepeatedIdenticalIssues()
+    {
+        var projection = new TextAssistCorrectionProjection("Hello, world");
+        var issue = new TextAssistIssueEvent(2, 3, "grammar", "Wrong form", "Use the correct form");
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(issue);
+        projection.Apply(issue);
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.HasCount(1, projection.Issues);
+    }
+
+    [TestMethod]
+    public void CorrectionProjection_MergesAdjacentIssuesForOneCorrection()
+    {
+        const string source = "There has a problem.";
+        var projection = new TextAssistCorrectionProjection(source);
+        const string message = "Use there are for plural nouns.";
+        const string suggestion = "Change there has to there are.";
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(new TextAssistIssueEvent(0, 5, "grammar", message, suggestion, "There"));
+        projection.Apply(new TextAssistIssueEvent(6, 3, "grammar", message, suggestion, "has"));
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.HasCount(1, projection.Issues);
+        Assert.AreEqual(0, projection.Issues[0].Start);
+        Assert.AreEqual(9, projection.Issues[0].Length);
+    }
+
+    [TestMethod]
+    public void CorrectionProjection_PreservesDistinctIssues()
+    {
+        var source = string.Join(" ", Enumerable.Repeat("x", 13));
+        var projection = new TextAssistCorrectionProjection(source);
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        for (var index = 0; index < 13; index++)
+        {
+            projection.Apply(new TextAssistIssueEvent(
+                index * 2,
+                1,
+                "grammar",
+                $"Issue {index}",
+                $"Fix {index}",
+                "x"));
+        }
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.HasCount(13, projection.Issues);
+    }
+
+    [TestMethod]
+    public void CorrectionProjection_MergesRepeatedCumulativeAndOverlappingPayloads()
+    {
+        var projection = new TextAssistCorrectionProjection("Hello, world");
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed text"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent(" text with detail"));
+        projection.Apply(new TextAssistCorrectionTranslationDeltaEvent("Corrected"));
+        projection.Apply(new TextAssistCorrectionTranslationDeltaEvent("Corrected translation"));
+        projection.Apply(new TextAssistCorrectionTranslationDeltaEvent(" translation"));
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.AreEqual("Fixed text with detail", projection.CorrectedText);
+        Assert.AreEqual("Corrected translation", projection.Translations[1]);
+    }
+
+    [TestMethod]
+    public void CorrectionProjection_PreservesRepeatedStreamingFragments()
+    {
+        var projection = new TextAssistCorrectionProjection("Hello, world");
+        var fragment = new TextAssistCorrectedDeltaEvent("very ") { IsStreamingPartial = true };
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(fragment);
+        projection.Apply(fragment);
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.AreEqual("very very ", projection.CorrectedText);
+    }
+
+    [TestMethod]
+    public void CorrectionProjection_UsesOriginalSnippetToCorrectAnIssueRange()
+    {
+        const string source = "She go to school.";
+        var projection = new TextAssistCorrectionProjection(source);
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(new TextAssistIssueEvent(
+            Start: 0,
+            Length: 1,
+            Category: "grammar",
+            Message: "Verb agreement",
+            Suggestion: "Use goes",
+            Original: "go"));
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.HasCount(1, projection.Issues);
+        Assert.AreEqual(4, projection.Issues[0].Start);
+        Assert.AreEqual(2, projection.Issues[0].Length);
+    }
+
+    [TestMethod]
+    public void StreamRefreshThrottle_AllowsFirstRefreshImmediately()
+    {
+        var throttle = new TextAssistStreamRefreshThrottle();
+        Assert.IsTrue(throttle.ShouldRefresh());
+    }
+
+    [TestMethod]
+    public void StreamRefreshThrottle_SuppressesRepeatedCallsWithinWindow()
+    {
+        var throttle = new TextAssistStreamRefreshThrottle();
+        Assert.IsTrue(throttle.ShouldRefresh());
+        for (var index = 0; index < 20; index++)
+            Assert.IsFalse(throttle.ShouldRefresh());
+    }
+
+    [TestMethod]
+    public void StreamRefreshThrottle_AllowsRefreshAfterInterval()
+    {
+        var throttle = new TextAssistStreamRefreshThrottle();
+        Assert.IsTrue(throttle.ShouldRefresh());
+        Thread.Sleep(80);
+        Assert.IsTrue(throttle.ShouldRefresh());
+    }
+
+    [TestMethod]
     public async Task AutomaticRun_CompletesCommandLifecycleAndAllowsManualRun()
     {
         var viewModel = CreateViewModel();
-        var executionStates = new List<bool>();
-        using var subscription = viewModel.RunCommand.IsExecuting.Subscribe(executionStates.Add);
+        var executionStates = new List<bool>();        using var subscription = viewModel.RunCommand.IsExecuting.Subscribe(executionStates.Add);
 
         await viewModel.RunNowAsync();
 

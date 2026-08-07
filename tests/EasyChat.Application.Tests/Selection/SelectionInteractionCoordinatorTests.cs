@@ -26,7 +26,8 @@ public sealed class SelectionInteractionCoordinatorTests
                 true,
                 true,
                 false,
-                true)
+                true,
+                false)
         };
         var settings = new FakeSettings(bundle);
         var pointer = new FakePointerMonitor();
@@ -63,6 +64,7 @@ public sealed class SelectionInteractionCoordinatorTests
         Assert.IsTrue(capture.Toolbar.Correction);
         Assert.IsFalse(capture.Toolbar.Polish);
         Assert.IsTrue(capture.Toolbar.Summary);
+        Assert.IsFalse(capture.Toolbar.Explanation);
         Assert.AreEqual(new PhysicalScreenPoint(30, 40), selectedText.Command!.PointerPosition);
         Assert.AreEqual("foreground", selectedText.Command.ExpectedForegroundTarget.Value);
         Assert.AreEqual("focused", selectedText.Command.ExpectedFocusedTarget.Value);
@@ -178,6 +180,40 @@ public sealed class SelectionInteractionCoordinatorTests
         Assert.AreEqual(nextPoint, capture.SelectedText.PointerPosition);
         Assert.AreEqual(1, sink.ExternalPointerPressCount);
         Assert.AreEqual(1, sink.DismissedSurfaceCount);
+    }
+
+    [TestMethod]
+    public async Task DisabledSelectionMonitoring_StillDismissesAnExternalToolbarClick()
+    {
+        var initial = SettingsTestData.CreateBundle();
+        var bundle = initial with
+        {
+            SelectionTranslation = initial.SelectionTranslation with { Enabled = false }
+        };
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        await using var coordinator = new SelectionInteractionCoordinator(
+            new FakeSettings(bundle),
+            new AvailablePlatformAccess(),
+            pointer,
+            new FakeWindowFocus(),
+            new FakeClipboardSnapshots(),
+            selectedText,
+            new FakeDelay(),
+            NullLogger<SelectionInteractionCoordinator>.Instance);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(100, 200),
+            DateTimeOffset.UtcNow));
+
+        await sink.ExternalPointerPressed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual(1, sink.ExternalPointerPressCount);
+        Assert.IsNull(selectedText.Command);
     }
 
     private static SelectionInteractionCoordinator CreateEnabledCoordinator(
@@ -298,6 +334,8 @@ public sealed class SelectionInteractionCoordinatorTests
     {
         public TaskCompletionSource<SelectionCapture> Captured { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource ExternalPointerPressed { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         public SelectionSurfaceState SurfaceState { get; set; }
         public bool DismissOnExternalPointerPress { get; init; }
         public int ExternalPointerPressCount { get; private set; }
@@ -316,6 +354,7 @@ public sealed class SelectionInteractionCoordinatorTests
             CancellationToken cancellationToken = default)
         {
             ExternalPointerPressCount++;
+            ExternalPointerPressed.TrySetResult();
             if (DismissOnExternalPointerPress)
             {
                 if (SurfaceState.BlocksSelectionCapture)

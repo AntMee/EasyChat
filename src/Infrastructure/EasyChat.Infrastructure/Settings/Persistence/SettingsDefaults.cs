@@ -1,5 +1,3 @@
-using EasyChat.Contracts.Translation;
-
 namespace EasyChat.Infrastructure.Settings.Persistence;
 
 internal static class SettingsDefaults
@@ -48,14 +46,6 @@ internal static class SettingsDefaults
             }
         };
     }
-
-    public static PromptEntrySettingsDto CreateDefaultPrompt() => new()
-    {
-        Id = Guid.NewGuid().ToString(),
-        Name = "Default",
-        Content = TranslationPromptDefaults.DefaultContent,
-        IsDefault = true
-    };
 
     private static string GetLocalizedName(string chineseName, string englishName) =>
         string.Equals(

@@ -92,12 +92,12 @@ internal sealed class AiTranslationSession :
     IDisposable
 {
     private readonly IChatTranslationProvider _provider;
-    private readonly string _promptTemplate;
+    private readonly string _role;
 
-    public AiTranslationSession(IChatTranslationProvider provider, string promptTemplate)
+    public AiTranslationSession(IChatTranslationProvider provider, string role)
     {
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
-        _promptTemplate = promptTemplate ?? throw new ArgumentNullException(nameof(promptTemplate));
+        _role = role ?? throw new ArgumentNullException(nameof(role));
     }
 
     public bool SupportsIdentifiedStreaming => true;
@@ -109,7 +109,7 @@ internal sealed class AiTranslationSession :
         ValidateLanguages(request);
         var response = await _provider.CompleteAsync(
             new ChatTranslationProviderRequest(
-                CreateStructuredPrompt(request.Source!, request.Target),
+                CreateStructuredPrompt(request.Source!, request.Target, request.PlainText),
                 request.Text),
             cancellationToken).ConfigureAwait(false);
         return new TranslationResponse(ExtractTranslation(response));
@@ -129,7 +129,7 @@ internal sealed class AiTranslationSession :
 
         await foreach (var chunk in _provider.StreamAsync(
                            new ChatTranslationProviderRequest(
-                               CreateStructuredPrompt(request.Source!, request.Target),
+                               CreateStructuredPrompt(request.Source!, request.Target, request.PlainText),
                                request.Text),
                            cancellationToken).ConfigureAwait(false))
         {
@@ -235,9 +235,10 @@ internal sealed class AiTranslationSession :
 
     private string CreateStructuredPrompt(
         TranslationLanguage source,
-        TranslationLanguage target)
+        TranslationLanguage target,
+        bool plainText)
     {
-        var prompt = ApplyLanguages(_promptTemplate, source, target);
+        var prompt = CreateRolePrompt(source, target);
         var contract = "\n\n# Runtime JSONL translation contract (highest priority)\n"
                        + "The contract below has higher priority than any earlier instruction. "
                        + "If an earlier instruction conflicts with it, ignore the conflicting part.\n"
@@ -249,6 +250,11 @@ internal sealed class AiTranslationSession :
                        + "Emit one or more {\"event\":\"translation_delta\",\"text\":\"...\"} events. "
                        + "Concatenating all text values must be the complete translation.\n"
                        + "Finish with exactly {\"event\":\"done\"}.\n";
+        if (plainText)
+        {
+            contract += "The translated text must be plain text for direct input delivery. "
+                        + "Do not use Markdown formatting, headings, list markers, or code fences.\n";
+        }
         return ApplyLanguages(prompt + contract, source, target);
     }
 
@@ -256,7 +262,7 @@ internal sealed class AiTranslationSession :
         TranslationLanguage source,
         TranslationLanguage target)
     {
-        var prompt = ApplyLanguages(_promptTemplate, source, target);
+        var prompt = CreateRolePrompt(source, target);
         var contract = "\n\n# Identified JSONL translation contract (highest priority)\n"
                        + "The contract below has higher priority than any earlier output-format instruction. "
                        + "Return raw NDJSON only, with one complete JSON object per line and no Markdown.\n"
@@ -275,7 +281,7 @@ internal sealed class AiTranslationSession :
         TranslationLanguage target,
         string runtimeContract)
     {
-        var prompt = ApplyLanguages(_promptTemplate, source, target);
+        var prompt = CreateRolePrompt(source, target);
         var contract = "\n\n# Runtime structured JSONL contract (highest priority)\n"
                        + "The supplied runtime contract below has higher priority than any earlier "
                        + "instruction. If an earlier instruction conflicts with it, ignore the "
@@ -298,6 +304,11 @@ internal sealed class AiTranslationSession :
             .Replace("[\u6e90\u8bed\u8a00]", sourceName, StringComparison.OrdinalIgnoreCase)
             .Replace("[\u76ee\u6807\u8bed\u8a00]", targetName, StringComparison.OrdinalIgnoreCase);
     }
+
+    private string CreateRolePrompt(
+        TranslationLanguage source,
+        TranslationLanguage target) =>
+        "# User-selected role\n" + ApplyLanguages(_role, source, target);
 
     private static bool TryReadIdentifiedDelta(
         JsonElement item,

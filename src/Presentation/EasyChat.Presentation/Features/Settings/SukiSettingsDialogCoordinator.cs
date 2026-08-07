@@ -132,6 +132,15 @@ public sealed class SukiSettingsDialogCoordinator(
             _dialogs, session, _toasts, _tts, _settings.Tts)
     });
 
+    public void ShowInformation(string title, string message) => _dialogs.ShowMessage(
+        new UiMessageDialogOptions
+        {
+            Title = title,
+            Message = message,
+            Severity = UiMessageSeverity.Information,
+            PrimaryText = Resources.Confirm
+        });
+
     private void SaveModel(CustomAiModelState? existing, CustomAiModelSettings? value)
     {
         if (value is null)

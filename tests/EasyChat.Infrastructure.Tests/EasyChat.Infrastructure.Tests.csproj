@@ -6,5 +6,13 @@
     <ProjectReference Include="..\..\src\Infrastructure\EasyChat.Infrastructure\EasyChat.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\MicroASR\MicroASR.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\Host\EasyChat.Desktop\Assets\builtin.prompt.zh.json"
+          Link="Assets\builtin.prompt.zh.json"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Host\EasyChat.Desktop\Assets\builtin.prompt.en.json"
+          Link="Assets\builtin.prompt.en.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
 

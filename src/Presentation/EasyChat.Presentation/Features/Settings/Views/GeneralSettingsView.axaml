@@ -22,45 +22,15 @@
                 Spacing="4">
 
         <ec:EcSettingRow Label="{x:Static lang:Resources.DisplayLanguage}">
-            <ComboBox ItemsSource="{Binding DisplayLanguages}"
-                      SelectedItem="{Binding SelectedDisplayLanguage}"
-                      HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14"
-                                    IsVisible="{Binding Icon, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}">
-                                <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
-                                       Stretch="UniformToFill" />
-                            </Border>
-                            <TextBlock Text="{Binding Converter={x:Static converts:LanguageSettingsConverters.ToDisplayName}}"
-                                       VerticalAlignment="Center"
-                                       Foreground="{DynamicResource EcTextPrimary}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+            <ec:LanguageSelector Languages="{Binding DisplayLanguages}"
+                                 SelectedLanguage="{Binding SelectedDisplayLanguage, Mode=TwoWay}"
+                                 HorizontalAlignment="Stretch" />
         </ec:EcSettingRow>
 
         <ec:EcSettingRow Label="{x:Static lang:Resources.NativeLanguage}">
-            <ComboBox ItemsSource="{Binding NativeLanguages}"
-                      SelectedItem="{Binding SelectedNativeLanguage}"
-                      HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Border ClipToBounds="True" CornerRadius="2" Width="20" Height="14"
-                                    IsVisible="{Binding Icon, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}">
-                                <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
-                                       Stretch="UniformToFill" />
-                            </Border>
-                            <TextBlock Text="{Binding Converter={x:Static converts:LanguageSettingsConverters.ToDisplayName}}"
-                                       VerticalAlignment="Center"
-                                       Foreground="{DynamicResource EcTextPrimary}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+            <ec:LanguageSelector Languages="{Binding NativeLanguages}"
+                                 SelectedLanguage="{Binding SelectedNativeLanguage, Mode=TwoWay}"
+                                 HorizontalAlignment="Stretch" />
         </ec:EcSettingRow>
 
         <ec:EcSettingRow Label="{x:Static lang:Resources.ClosingBehavior}">
@@ -74,6 +44,28 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
+        </ec:EcSettingRow>
+
+        <Separator Classes="EcDivider" Margin="8,12" />
+
+        <TextBlock Classes="EcSectionTitle"
+                   Text="{x:Static lang:Resources.ApplicationData}"
+                   Margin="12,4,12,8" />
+        <TextBlock Classes="EcMuted"
+                   Margin="12,0,12,8"
+                   Text="{x:Static lang:Resources.ApplicationDataDescription}"
+                   TextWrapping="Wrap" />
+        <ec:EcSettingRow Label="{x:Static lang:Resources.ApplicationData}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBox IsReadOnly="True" Text="{Binding ApplicationDataRoot}" />
+                <Button Grid.Column="1"
+                        Classes="EcToolbarBtn"
+                        Click="ChangeApplicationDataLocation_OnClick"
+                        IsEnabled="{Binding CanChangeDataLocation}"
+                        ToolTip.Tip="{x:Static lang:Resources.ChangeApplicationDataLocation}">
+                    <avalonia:MaterialIcon Kind="FolderEdit" Width="16" Height="16" />
+                </Button>
+            </Grid>
         </ec:EcSettingRow>
 
         <Separator Classes="EcDivider" Margin="8,12" />
@@ -111,6 +103,37 @@
                                 <TextBlock FontWeight="SemiBold"
                                            Foreground="{DynamicResource EcTextPrimary}"
                                            Text="{Binding DisplayName}" />
+                                <TextBlock FontSize="12"
+                                           Foreground="{DynamicResource EcTextMuted}"
+                                           Text="{Binding Description}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock FontSize="12"
+                                           Foreground="{DynamicResource EcTextMuted}"
+                                           Text="{Binding SupportedLanguagesSummary}"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding IsSupportedLanguageListInline}" />
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="2"
+                                            IsVisible="{Binding IsSupportedLanguageListCompact}">
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource EcTextMuted}"
+                                               Text="{Binding SupportedLanguagesSummary}" />
+                                    <Button Width="28"
+                                            Height="28"
+                                            Padding="4"
+                                            Background="Transparent"
+                                            BorderBrush="Transparent"
+                                            BorderThickness="0"
+                                            Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).ShowOcrModelLanguagesCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="{x:Static lang:Resources.ViewOcrSupportedLanguages}">
+                                        <avalonia:MaterialIcon Kind="HelpCircleOutline"
+                                                               Width="16"
+                                                               Height="16"
+                                                               Foreground="{DynamicResource EcTextMuted}" />
+                                    </Button>
+                                </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBlock FontSize="12"
                                                Foreground="{DynamicResource EcTextSecondary}"
@@ -229,7 +252,7 @@
                    Margin="0,8" />
 
         <ItemsControl Classes="EcStackList"
-                      ItemsSource="{Binding AsrModels}"
+                      ItemsSource="{Binding VisibleAsrModels}"
                       IsVisible="{Binding HasAsrModels}"
                       Margin="4,0,4,0">
             <ItemsControl.ItemTemplate>
@@ -268,5 +291,12 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <Button HorizontalAlignment="Center"
+                Classes="EcToolbarBtn"
+                Command="{Binding ToggleAsrModelListCommand}"
+                ToolTip.Tip="{Binding AsrModelListToggleText}"
+                IsVisible="{Binding IsAsrModelListToggleVisible}">
+            <avalonia:MaterialIcon Kind="{Binding AsrModelListToggleIcon}" />
+        </Button>
     </StackPanel>
 </UserControl>

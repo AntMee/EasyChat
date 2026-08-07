@@ -5,6 +5,7 @@
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
         xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Input"
         xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
+        xmlns:controls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
         xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="148"
         Height="148" MinWidth="560" SizeToContent="Width"
@@ -56,24 +57,11 @@
                                                        Foreground="{DynamicResource EcTextSecondary}" />
                             </Border>
 
-                            <ComboBox IsEnabled="{Binding !FollowGlobalLanguage}"
-                                      ItemsSource="{Binding SourceLanguages}"
-                                      SelectedItem="{Binding SelectedSourceLanguage}"
-                                      MinWidth="110"
-                                      Classes="Outline"
-                                      VerticalAlignment="Center">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Image Width="18" Height="18"
-                                                   Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                            <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource EcTextPrimary}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                            <controls:LanguageSelector IsEnabled="{Binding !FollowGlobalLanguage}"
+                                                       Languages="{Binding SourceLanguages}"
+                                                       SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
+                                                       MinWidth="110"
+                                                       VerticalAlignment="Center" />
 
                             <Button Classes="EcIconRound"
                                     Width="34" Height="34"
@@ -84,24 +72,11 @@
                                 <avalonia:MaterialIcon Kind="SwapHorizontal" Width="14" Height="14" />
                             </Button>
 
-                            <ComboBox IsEnabled="{Binding !FollowGlobalLanguage}"
-                                      ItemsSource="{Binding TargetLanguages}"
-                                      SelectedItem="{Binding SelectedTargetLanguage}"
-                                      MinWidth="110"
-                                      Classes="Outline"
-                                      VerticalAlignment="Center">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Image Width="18" Height="18"
-                                                   Source="{Binding Icon, Converter={x:Static converters:LanguageFlagConverters.ToIcon}}" />
-                                            <TextBlock Text="{Binding Converter={x:Static converters:LanguageSettingsConverters.ToDisplayName}}"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource EcTextPrimary}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                            <controls:LanguageSelector IsEnabled="{Binding !FollowGlobalLanguage}"
+                                                       Languages="{Binding TargetLanguages}"
+                                                       SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}"
+                                                       MinWidth="110"
+                                                       VerticalAlignment="Center" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="1"

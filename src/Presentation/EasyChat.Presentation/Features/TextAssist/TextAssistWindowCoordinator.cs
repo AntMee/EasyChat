@@ -87,7 +87,10 @@ public sealed class TextAssistWindowCoordinator(
         var window = await OnUiAsync(() =>
         {
             _result?.Close();
-            var viewModel = new TextAssistResultWindowViewModel(settings, languages, textAssist);
+            var viewModel = new TextAssistResultWindowViewModel(
+                settings,
+                languages,
+                textAssist);
             _result = new TextAssistResultWindowView(
                 viewModel,
                 platformWindowBehavior,

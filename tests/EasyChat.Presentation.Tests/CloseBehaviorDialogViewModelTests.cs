@@ -85,8 +85,6 @@ public sealed class CloseBehaviorDialogViewModelTests
 
     private sealed class NullDialogSession : IUiDialogSession
     {
-        public void Dismiss()
-        {
-        }
+        public void Dismiss() { }
     }
 }

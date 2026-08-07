@@ -28,7 +28,9 @@ First trim whitespace and trailing punctuation.
 Do not override these rules based on meaning or grammar.
 
 # Output Protocol: JSON Lines
-Return raw NDJSON only: one complete JSON object per line, no Markdown or explanatory text.
+Return raw NDJSON only: one complete JSON object per line, with no prose outside the documented JSONL events.
+Markdown is allowed inside translation, meaning, tips, and other text fields when it improves readability.
+Never wrap the JSONL response in a Markdown code fence.
 Every line must contain the `event` property shown below. Escape all JSON strings correctly.
 Emit events in exactly the documented order and always finish with `{"event":"done"}`.
 
@@ -109,18 +111,18 @@ Emit events in exactly the documented order and always finish with `{"event":"do
             useFirstFallback: true);
         PersistResolvedModel(config, resolved.Configuration.Id);
 
-        var configuredPrompt = _providers.ResolveOptionalPrompt(config.PromptId);
+        var configuredPrompt = _providers.ResolveOptionalPromptRole(config.PromptId);
         var prompt = SystemPromptTemplate
                      + (string.IsNullOrWhiteSpace(configuredPrompt)
                          ? string.Empty
-                         : "\n\n# User-selected guidance (secondary)\n" + configuredPrompt)
+                         : "\n\n# User-selected role (secondary)\n" + configuredPrompt)
                      + """
 
 # Runtime selection contract
 Source language: [SourceLang]
 Target language: [TargetLang]
-The JSONL protocol above has the highest priority. If the user-selected guidance
-conflicts with it, ignore the conflicting guidance. Use the selected languages
+The JSONL protocol above has the highest priority. If the user-selected role
+conflicts with it, ignore the conflicting role. Use the selected languages
 exactly. Return only the documented JSONL events; never add prose outside JSONL.
 """;
         if (forceWordMode)

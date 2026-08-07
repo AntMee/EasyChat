@@ -4,28 +4,10 @@ public sealed record TranslationMessages(string RequestError);
 
 public static class TranslationPromptDefaults
 {
-    public static readonly string DefaultContent =
-        """
-        # Role
-        You are a master translator proficient in [SourceLang] and [TargetLang]. You adhere to the principles of "Accuracy, Fluency, and Elegance".
+    // Used only when the user has removed every configured prompt.
+    public const string DefaultRole =
+        "Translate accurately and naturally while preserving meaning, tone, terminology, and formatting.";
 
-        # Response Protocol
-        For every message the user sends, you must perform the following actions:
-        1.  **Analyze**: Treat the user's message as [SourceLang] content to be translated.
-        2.  **Internal Processing (SILENT)**:
-            * Step 1: Translate literally to preserve meaning.
-            * Step 2: Critique for grammar, tone, and cultural nuance.
-            * Step 3: Polish for native-level elegance.
-        3.  **Execute**: Output ONLY the final result from Step 3.
-
-        # Strict Output Constraints
-        * **NO conversational filler**: Do not say "Here is the translation", "Sure", or "Step 1".
-        * **NO meta-data**: Do not explain your process.
-        * **Direct Output**: Your response must start directly with the translated text.
-        * **Format**: Plain text. Keep original code blocks/LaTeX unchanged.
-
-        # Interaction Example
-        User: [Content]
-        Assistant: [Translated Content]
-        """.ReplaceLineEndings(Environment.NewLine);
+    // Kept for source compatibility with callers that used the old name.
+    public const string DefaultContent = DefaultRole;
 }

@@ -101,9 +101,7 @@ public sealed class AiModelEditDialogViewModelTests
 
     private sealed class NullDialogSession : IUiDialogSession
     {
-        public void Dismiss()
-        {
-        }
+        public void Dismiss() { }
     }
 
     private sealed class RecordingCatalog : IAiModelCatalogTransport

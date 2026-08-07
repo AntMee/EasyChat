@@ -250,6 +250,7 @@ public sealed class LiveSelectionTranslationSettings : LiveSettingsSection
     private bool _correctionEnabled;
     private bool _polishEnabled;
     private bool _summaryEnabled;
+    private bool _explanationEnabled;
 
     public LiveSelectionTranslationSettings(
         SelectionTranslationSettings value,
@@ -266,6 +267,7 @@ public sealed class LiveSelectionTranslationSettings : LiveSettingsSection
         _correctionEnabled = value.CorrectionEnabled;
         _polishEnabled = value.PolishEnabled;
         _summaryEnabled = value.SummaryEnabled;
+        _explanationEnabled = value.ExplanationEnabled;
     }
 
     public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
@@ -278,8 +280,9 @@ public sealed class LiveSelectionTranslationSettings : LiveSettingsSection
     public bool CorrectionEnabled { get => _correctionEnabled; set => Set(ref _correctionEnabled, value); }
     public bool PolishEnabled { get => _polishEnabled; set => Set(ref _polishEnabled, value); }
     public bool SummaryEnabled { get => _summaryEnabled; set => Set(ref _summaryEnabled, value); }
+    public bool ExplanationEnabled { get => _explanationEnabled; set => Set(ref _explanationEnabled, value); }
 
     public SelectionTranslationSettings ToContract() => new(
         Enabled, Provider, MachineProvider, AiModelId, PromptId, TriggerMode,
-        TranslationEnabled, CorrectionEnabled, PolishEnabled, SummaryEnabled);
+        TranslationEnabled, CorrectionEnabled, PolishEnabled, SummaryEnabled, ExplanationEnabled);
 }
