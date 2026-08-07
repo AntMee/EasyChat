@@ -29,6 +29,27 @@ public sealed class TextAssistCommandTests
     }
 
     [TestMethod]
+    public void CorrectionProjection_MergesRepeatedCumulativeAndOverlappingPayloads()
+    {
+        var projection = new TextAssistCorrectionProjection(12);
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed text"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        projection.Apply(new TextAssistCorrectedDeltaEvent(" text with detail"));
+        projection.Apply(new TextAssistCorrectionTranslationDeltaEvent("Corrected"));
+        projection.Apply(new TextAssistCorrectionTranslationDeltaEvent("Corrected translation"));
+        projection.Apply(new TextAssistCorrectionTranslationDeltaEvent(" translation"));
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.AreEqual("Fixed text with detail", projection.CorrectedText);
+        Assert.AreEqual("Corrected translation", projection.Translations[1]);
+    }
+
+    [TestMethod]
     public async Task AutomaticRun_CompletesCommandLifecycleAndAllowsManualRun()
     {
         var viewModel = CreateViewModel();

@@ -10,6 +10,7 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
     private readonly string _eventName;
     private readonly string _propertyName;
     private readonly Action<Exception, string>? _onInvalidLine;
+    private readonly bool _emitPartialDeltas;
     private readonly StringBuilder _line = new();
     private int _cursor;
     private bool _isDelta;
@@ -20,12 +21,14 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
         Func<string, T> deserialize,
         string eventName,
         string propertyName,
-        Action<Exception, string>? onInvalidLine = null)
+        Action<Exception, string>? onInvalidLine = null,
+        bool emitPartialDeltas = true)
     {
         _deserialize = deserialize;
         _eventName = eventName;
         _propertyName = propertyName;
         _onInvalidLine = onInvalidLine;
+        _emitPartialDeltas = emitPartialDeltas;
     }
 
     public IEnumerable<T> Append(string chunk)
@@ -41,7 +44,10 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
             var line = content[start..newline].Trim();
             if (!string.IsNullOrEmpty(line) && !line.StartsWith("```", StringComparison.Ordinal))
             {
-                foreach (var item in ReadPartial(line)) yield return item;
+                if (_emitPartialDeltas)
+                {
+                    foreach (var item in ReadPartial(line)) yield return item;
+                }
                 foreach (var item in CompleteLine(line)) yield return item;
             }
             start = newline + 1;
@@ -54,7 +60,10 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
             _line.Append(content[start..]);
         }
 
-        foreach (var item in ReadPartial(_line.ToString())) yield return item;
+        if (_emitPartialDeltas)
+        {
+            foreach (var item in ReadPartial(_line.ToString())) yield return item;
+        }
     }
 
     public IEnumerable<T> Complete()
@@ -63,7 +72,10 @@ public sealed class JsonLinesDeltaStreamDecoder<T>
         _line.Clear();
         if (!string.IsNullOrEmpty(line) && !line.StartsWith("```", StringComparison.Ordinal))
         {
-            foreach (var item in ReadPartial(line)) yield return item;
+            if (_emitPartialDeltas)
+            {
+                foreach (var item in ReadPartial(line)) yield return item;
+            }
             foreach (var item in CompleteLine(line)) yield return item;
         }
     }

@@ -76,6 +76,50 @@ public sealed class TextAssistUseCasesTests
     }
 
     [TestMethod]
+    public async Task StreamAsync_CorrectionWaitsForCompleteEventsAndFiltersRepeatedPayloads()
+    {
+        var bundle = SettingsTestData.CreateBundle() with
+        {
+            AiModel = new AiModelSettings([CreateAiModel("first")]),
+            TextAssist = SettingsTestData.CreateBundle().TextAssist with
+            {
+                SourceLanguageId = "en",
+                AiModelId = "first"
+            }
+        };
+        var settings = new MutableSettingsUseCases(bundle);
+        var factory = new RecordingTranslationProviderFactory();
+        factory.Chat.StreamChunks =
+        [
+            "{\"event\":\"start\",\"mode\":\"correction\",\"language\":\"en\"}\n"
+            + "{\"event\":\"corrected_delta\",\"variant\":1,\"text\":\"Fixed",
+            " text\"}\n"
+            + "{\"event\":\"corrected_delta\",\"variant\":1,\"text\":\"Fixed text\"}\n"
+            + "{\"event\":\"correction_translation_delta\",\"variant\":1,\"text\":\"Corrected translation\"}\n"
+            + "{\"event\":\"correction_translation_delta\",\"variant\":1,\"text\":\"Corrected translation\"}\n"
+            + "{\"event\":\"done\"}\n"
+        ];
+        var useCases = Create(settings, factory);
+
+        var events = await useCases.StreamAsync(new TextAssistRequest(
+            "bad text",
+            TextAssistOperation.Correction)).ToListAsync();
+
+        var corrected = events.OfType<TextAssistCorrectedDeltaEvent>().ToArray();
+        var translations = events.OfType<TextAssistCorrectionTranslationDeltaEvent>().ToArray();
+        Assert.HasCount(1, corrected);
+        Assert.AreEqual("Fixed text", corrected[0].Text);
+        Assert.HasCount(1, translations);
+        Assert.AreEqual("Corrected translation", translations[0].Text);
+        StringAssert.Contains(
+            factory.Chat.LastRequest!.SystemPrompt,
+            "Exactly one {\"event\":\"corrected_delta\",\"variant\":1,\"text\":\"...\"} object");
+        StringAssert.Contains(
+            factory.Chat.LastRequest.SystemPrompt,
+            "Do not split, repeat, retransmit, restate, or emit a second corrected_delta");
+    }
+
+    [TestMethod]
     public void CorrectionAccumulator_PreservesVariantsAndRejectsInvalidRanges()
     {
         var accumulator = new TextAssistCorrectionAccumulator(5);
@@ -92,6 +136,27 @@ public sealed class TextAssistUseCasesTests
         Assert.AreEqual("fixed", accumulator.CorrectedText);
         Assert.AreEqual("alternative", accumulator.CorrectedVariants[2]);
         Assert.AreEqual("修正", accumulator.CorrectedTranslations[1]);
+    }
+
+    [TestMethod]
+    public void CorrectionAccumulator_MergesRepeatedCumulativeAndOverlappingPayloads()
+    {
+        var accumulator = new TextAssistCorrectionAccumulator(5);
+
+        accumulator.Apply(new TextAssistStartedEvent("correction", "English", null));
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent("Fixed text"));
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent("Fixed"));
+        accumulator.Apply(new TextAssistCorrectedDeltaEvent(" text with detail"));
+        accumulator.Apply(new TextAssistCorrectionTranslationDeltaEvent("Corrected"));
+        accumulator.Apply(new TextAssistCorrectionTranslationDeltaEvent("Corrected translation"));
+        accumulator.Apply(new TextAssistCorrectionTranslationDeltaEvent(" translation"));
+        accumulator.Apply(new TextAssistCompletedEvent());
+
+        accumulator.EnsureComplete();
+        Assert.AreEqual("Fixed text with detail", accumulator.CorrectedText);
+        Assert.AreEqual("Corrected translation", accumulator.CorrectedTranslations[1]);
     }
 
     private static TextAssistUseCases Create(

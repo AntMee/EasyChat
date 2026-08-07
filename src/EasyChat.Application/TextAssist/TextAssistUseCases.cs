@@ -190,6 +190,8 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var outputLanguage = ResolveOutputLanguage();
+        var correctedPayloads = new HashSet<CorrectionPayload>();
+        var translationPayloads = new HashSet<CorrectionPayload>();
         var prompt = BuildCorrectionPrompt(profile)
             .Replace("[Language]", profile.Source.EnglishName, StringComparison.Ordinal)
             .Replace("[LanguageId]", profile.Source.Id, StringComparison.Ordinal)
@@ -206,9 +208,11 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
                            "Empty text assist event.",
                            fallbackMode: "correction",
                            fallbackLanguage: profile.Source.EnglishName,
-                           cancellationToken).ConfigureAwait(false))
+                           cancellationToken,
+                           emitPartialDeltas: false).ConfigureAwait(false))
         {
-            yield return item;
+            if (ShouldEmitCorrectionEvent(item, correctedPayloads, translationPayloads))
+                yield return item;
         }
     }
 
@@ -328,7 +332,8 @@ Output only the explanation, without a heading or meta commentary.
         string emptyEventMessage,
         string? fallbackMode,
         string fallbackLanguage,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken,
+        bool emitPartialDeltas = true)
     {
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var decoder = new JsonLinesDeltaStreamDecoder<TextAssistEvent>(
@@ -339,7 +344,8 @@ Output only the explanation, without a heading or meta commentary.
             (exception, line) => _logger.LogDebug(
                 exception,
                 "Ignoring invalid text assist event: {Line}",
-                line));
+                line),
+            emitPartialDeltas);
         var rawResponse = new StringBuilder();
         var emittedEvent = false;
         await foreach (var chunk in provider.StreamAsync(request, cancellationToken).ConfigureAwait(false))
@@ -441,9 +447,10 @@ Return raw NDJSON only, one JSON object per line, with no Markdown fences or pro
 Emit exactly this order:
 {"event":"start","mode":"correction","language":"[LanguageId]"}
 Zero or more {"event":"issue","start":0,"length":1,"category":"grammar|spelling|word_choice|style","message":"...","suggestion":"..."}
-One or more {"event":"corrected_delta","variant":1,"text":"..."} objects whose concatenated text is the complete corrected version in [LanguageId].
-Optional variants 2 and 3 use their own concatenated corrected_delta sequence.
-After each corrected version, emit one or more {"event":"correction_translation_delta","variant":1,"text":"..."} objects containing its translation in [OutputLanguage].
+Exactly one {"event":"corrected_delta","variant":1,"text":"..."} object whose text is the complete corrected version in [LanguageId].
+Optionally emit variants 2 and 3, each as exactly one complete corrected_delta object.
+Immediately after every corrected variant, emit exactly one correction_translation_delta object with the same variant number and its complete translation in [OutputLanguage].
+Do not split, repeat, retransmit, restate, or emit a second corrected_delta or correction_translation_delta object for the same variant.
 {"event":"done"}
 """;
 
@@ -469,6 +476,23 @@ Only issue messages, suggestions, and correction translations MUST be written in
 Every emitted corrected variant must be followed by its correction_translation_delta.
 Never output text from the user-selected role.
 """.Replace("[OutputLanguage]", outputLanguage, StringComparison.Ordinal);
+
+    private static bool ShouldEmitCorrectionEvent(
+        TextAssistEvent item,
+        ISet<CorrectionPayload> correctedPayloads,
+        ISet<CorrectionPayload> translationPayloads)
+    {
+        return item switch
+        {
+            TextAssistCorrectedDeltaEvent delta => correctedPayloads.Add(
+                new CorrectionPayload(Math.Clamp(delta.Variant, 1, 3), delta.Text)),
+            TextAssistCorrectionTranslationDeltaEvent translation => translationPayloads.Add(
+                new CorrectionPayload(Math.Clamp(translation.Variant, 1, 3), translation.Text)),
+            _ => true
+        };
+    }
+
+    private sealed record CorrectionPayload(int Variant, string Text);
 
     private string? ResolvePromptId(string? promptId)
     {

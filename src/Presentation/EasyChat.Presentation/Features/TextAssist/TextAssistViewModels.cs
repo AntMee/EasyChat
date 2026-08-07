@@ -680,8 +680,38 @@ namespace EasyChat.Presentation.Features.TextAssist
         private static void Append(Dictionary<int, StringBuilder> values, int variant, string text)
         {
             variant = Math.Clamp(variant, 1, 3);
-            if (!values.TryGetValue(variant, out var builder)) values[variant] = builder = new StringBuilder();
-            builder.Append(text);
+            if (string.IsNullOrEmpty(text))
+                return;
+            if (!values.TryGetValue(variant, out var builder))
+            {
+                values[variant] = new StringBuilder(text);
+                return;
+            }
+
+            var current = builder.ToString();
+            if (string.Equals(current, text, StringComparison.Ordinal)
+                || current.StartsWith(text, StringComparison.Ordinal))
+            {
+                return;
+            }
+            if (text.StartsWith(current, StringComparison.Ordinal))
+            {
+                builder.Clear();
+                builder.Append(text);
+                return;
+            }
+
+            builder.Append(text.AsSpan(FindSuffixPrefixOverlap(current, text)));
+        }
+
+        private static int FindSuffixPrefixOverlap(string current, string next)
+        {
+            for (var length = Math.Min(current.Length, next.Length); length > 0; length--)
+            {
+                if (current.AsSpan(current.Length - length).SequenceEqual(next.AsSpan(0, length)))
+                    return length;
+            }
+            return 0;
         }
 
         private sealed record CorrectionIssueKey(
