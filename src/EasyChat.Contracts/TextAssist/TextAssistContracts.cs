@@ -100,7 +100,73 @@ public sealed record TextAssistIssueEvent(
     int Length,
     string Category,
     string Message,
-    string Suggestion) : TextAssistEvent;
+    string Suggestion,
+    string? Original = null) : TextAssistEvent;
+
+public static class TextAssistIssueRangeResolver
+{
+    public static TextAssistIssueEvent Normalize(string sourceText, TextAssistIssueEvent issue)
+    {
+        ArgumentNullException.ThrowIfNull(sourceText);
+        ArgumentNullException.ThrowIfNull(issue);
+        if (string.IsNullOrEmpty(issue.Original))
+            return issue;
+
+        var original = issue.Original;
+        var requestedStart = Math.Clamp(issue.Start, 0, sourceText.Length);
+        if (MatchesAt(sourceText, original, requestedStart))
+            return issue with { Start = requestedStart, Length = original.Length };
+
+        var resolvedStart = FindNearestOccurrence(sourceText, original, requestedStart);
+        return resolvedStart < 0
+            ? issue
+            : issue with { Start = resolvedStart, Length = original.Length };
+    }
+
+    private static bool MatchesAt(string sourceText, string original, int start) =>
+        start <= sourceText.Length - original.Length
+        && sourceText.AsSpan(start, original.Length).SequenceEqual(original.AsSpan());
+
+    private static int FindNearestOccurrence(string sourceText, string original, int requestedStart)
+    {
+        var bestStart = -1;
+        var bestDistance = int.MaxValue;
+        var searchStart = 0;
+        while (searchStart <= sourceText.Length - original.Length)
+        {
+            var candidate = sourceText.IndexOf(original, searchStart, StringComparison.Ordinal);
+            if (candidate < 0) break;
+            var distance = Math.Abs(candidate - requestedStart);
+            if (distance < bestDistance)
+            {
+                bestStart = candidate;
+                bestDistance = distance;
+            }
+            searchStart = candidate + 1;
+        }
+        return bestStart;
+    }
+}
+
+public static class TextAssistCorrectionIssueRules
+{
+    public static bool HasSameIdentity(TextAssistIssueEvent first, TextAssistIssueEvent second) =>
+        first.Start == second.Start
+        && first.Length == second.Length
+        && DescribesSameCorrection(first, second);
+
+    public static bool DescribesSameCorrection(TextAssistIssueEvent first, TextAssistIssueEvent second) =>
+        string.Equals(first.Category?.Trim(), second.Category?.Trim(), StringComparison.OrdinalIgnoreCase)
+        && string.Equals(first.Message?.Trim(), second.Message?.Trim(), StringComparison.Ordinal)
+        && string.Equals(first.Suggestion?.Trim(), second.Suggestion?.Trim(), StringComparison.Ordinal);
+
+    public static bool RangesAreAdjacentOrOverlapping(TextAssistIssueEvent first, TextAssistIssueEvent second)
+    {
+        var firstEnd = (long)first.Start + first.Length;
+        var secondEnd = (long)second.Start + second.Length;
+        return first.Start <= secondEnd + 1 && second.Start <= firstEnd + 1;
+    }
+}
 
 public sealed record TextAssistCorrectedDeltaEvent(string Text, int Variant = 1) : TextAssistEvent
 {

@@ -116,9 +116,47 @@ public sealed class TextAssistUseCasesTests
         StringAssert.Contains(
             factory.Chat.LastRequest!.SystemPrompt,
             "Exactly one {\"event\":\"corrected_delta\",\"variant\":1,\"text\":\"...\"} object");
+        StringAssert.Contains(factory.Chat.LastRequest.SystemPrompt, "\"original\":\"exact source substring\"");
+        StringAssert.Contains(factory.Chat.LastRequest.SystemPrompt, "Report every distinct meaningful issue");
+        StringAssert.Contains(factory.Chat.LastRequest.SystemPrompt, "Each underlying correction must produce exactly one issue object");
         StringAssert.Contains(
             factory.Chat.LastRequest.SystemPrompt,
             "Do not split, repeat, retransmit, restate, or emit a second corrected_delta");
+    }
+
+    [TestMethod]
+    public async Task StreamAsync_CorrectionDoesNotLimitDistinctIssueGroups()
+    {
+        var bundle = SettingsTestData.CreateBundle() with
+        {
+            AiModel = new AiModelSettings([CreateAiModel("first")]),
+            TextAssist = SettingsTestData.CreateBundle().TextAssist with
+            {
+                SourceLanguageId = "en",
+                AiModelId = "first"
+            }
+        };
+        var settings = new MutableSettingsUseCases(bundle);
+        var factory = new RecordingTranslationProviderFactory();
+        var source = string.Join(" ", Enumerable.Repeat("x", 13));
+        var issueLines = string.Join(
+            "\n",
+            Enumerable.Range(0, 13).Select(index =>
+                $"{{\"event\":\"issue\",\"start\":{index * 2},\"length\":1,\"original\":\"x\",\"category\":\"grammar\",\"message\":\"Issue {index}\",\"suggestion\":\"Fix {index}\"}}"));
+        factory.Chat.StreamChunks =
+        [
+            "{\"event\":\"start\",\"mode\":\"correction\",\"language\":\"en\"}\n"
+            + issueLines
+            + "\n{\"event\":\"corrected_delta\",\"variant\":1,\"text\":\"fixed\"}\n"
+            + "{\"event\":\"done\"}\n"
+        ];
+        var useCases = Create(settings, factory);
+
+        var events = await useCases.StreamAsync(new TextAssistRequest(
+            source,
+            TextAssistOperation.Correction)).ToListAsync();
+
+        Assert.HasCount(13, events.OfType<TextAssistIssueEvent>());
     }
 
     [TestMethod]
@@ -138,6 +176,19 @@ public sealed class TextAssistUseCasesTests
         Assert.AreEqual("fixed", accumulator.CorrectedText);
         Assert.AreEqual("alternative", accumulator.CorrectedVariants[2]);
         Assert.AreEqual("修正", accumulator.CorrectedTranslations[1]);
+    }
+
+    [TestMethod]
+    public void CorrectionAccumulator_IgnoresAdjacentIssuesForTheSameCorrection()
+    {
+        var accumulator = new TextAssistCorrectionAccumulator(9);
+        const string message = "Use there are for plural nouns.";
+        const string suggestion = "Change there has to there are.";
+
+        accumulator.Apply(new TextAssistIssueEvent(0, 5, "grammar", message, suggestion));
+        accumulator.Apply(new TextAssistIssueEvent(6, 3, "grammar", message, suggestion));
+
+        Assert.HasCount(1, accumulator.Issues);
     }
 
     [TestMethod]

@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -50,7 +52,31 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
 
     public partial class TextAssistCorrectionView : UserControl
     {
-        public TextAssistCorrectionView() => InitializeComponent();
+        public TextAssistCorrectionView()
+        {
+            InitializeComponent();
+            Loaded += OnCorrectionViewLoaded;
+            Unloaded += OnCorrectionViewUnloaded;
+            AnnotatedTextBox.TemplateApplied += OnAnnotatedTextBoxTemplateApplied;
+        }
+
+        private void OnCorrectionViewLoaded(object? sender, RoutedEventArgs e) => ConnectAnnotationLayout();
+
+        private void OnCorrectionViewUnloaded(object? sender, RoutedEventArgs e)
+        {
+            var annotation = AnnotationLayer ?? this.FindControl<CorrectionAnnotationLayer>("AnnotationLayer");
+            if (annotation is not null) annotation.LayoutPresenter = null;
+        }
+
+        private void OnAnnotatedTextBoxTemplateApplied(object? sender, TemplateAppliedEventArgs e) => ConnectAnnotationLayout();
+
+        private void ConnectAnnotationLayout()
+        {
+            var annotation = AnnotationLayer ?? this.FindControl<CorrectionAnnotationLayer>("AnnotationLayer");
+            var textBox = AnnotatedTextBox ?? this.FindControl<TextBox>("AnnotatedTextBox");
+            if (annotation is null || textBox is null) return;
+            annotation.LayoutPresenter = textBox.GetVisualDescendants().OfType<TextPresenter>().FirstOrDefault();
+        }
 
         private void OnOriginalPointerMoved(object? sender, PointerEventArgs e)
         {

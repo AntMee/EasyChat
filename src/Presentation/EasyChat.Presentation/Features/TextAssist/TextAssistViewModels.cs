@@ -521,15 +521,24 @@ namespace EasyChat.Presentation.Features.TextAssist
         {
             if (string.IsNullOrWhiteSpace(InputText)) return;
             ResetResults();
-            var projection = new TextAssistCorrectionProjection(InputText.Length);
+            var projection = new TextAssistCorrectionProjection(InputText);
+            var refresh = new TextAssistCorrectionStreamRefreshThrottle();
             await foreach (var item in TextAssist.StreamAsync(
                                new TextAssistRequest(InputText, TextAssistOperation.Correction, ResolveProfile(TextAssistOperation.Correction)),
                                cancellationToken))
             {
                 projection.Apply(item);
-                await Dispatcher.UIThread.InvokeAsync(() => ApplyProjection(projection));
+                if (!refresh.ShouldRefresh()) continue;
+                await Dispatcher.UIThread.InvokeAsync(
+                    () => ApplyProjection(projection),
+                    DispatcherPriority.Background,
+                    cancellationToken);
             }
             projection.EnsureComplete();
+            await Dispatcher.UIThread.InvokeAsync(
+                () => ApplyProjection(projection),
+                DispatcherPriority.Background,
+                cancellationToken);
         }
 
         private void ApplyProjection(TextAssistCorrectionProjection projection)
@@ -541,9 +550,12 @@ namespace EasyChat.Presentation.Features.TextAssist
                 projection.Translations.TryGetValue(pair.Key, out var translation);
                 CorrectionVariants.Add(new CorrectionVariant(pair.Value, translation ?? string.Empty));
             }
-            Issues.Clear();
-            foreach (var issue in projection.Issues) Issues.Add(issue);
-            RebuildCorrectionSegments();
+            if (!TextAssistCorrectionProjection.HasSameIssueInstances(Issues, projection.Issues))
+            {
+                Issues.Clear();
+                foreach (var issue in projection.Issues) Issues.Add(issue);
+                RebuildCorrectionSegments();
+            }
             this.RaisePropertyChanged(nameof(HasCorrectedResults));
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
         }
@@ -594,6 +606,7 @@ namespace EasyChat.Presentation.Features.TextAssist
 
     public sealed class TextAssistIssueViewModel(TextAssistIssueEvent value)
     {
+        internal TextAssistIssueEvent Event => value;
         public int Start => value.Start;
         public int Length => value.Length;
         public string Category => value.Category;
@@ -623,11 +636,12 @@ namespace EasyChat.Presentation.Features.TextAssist
         };
     }
 
-    internal sealed class TextAssistCorrectionProjection(int sourceLength)
+    internal sealed class TextAssistCorrectionProjection(string sourceText)
     {
+        private readonly string _sourceText = sourceText ?? string.Empty;
+        private readonly int _sourceLength = (sourceText ?? string.Empty).Length;
         private readonly Dictionary<int, StringBuilder> _corrected = [];
         private readonly Dictionary<int, StringBuilder> _translations = [];
-        private readonly HashSet<CorrectionIssueKey> _issueKeys = [];
         private bool _started;
         private bool _completed;
 
@@ -636,6 +650,19 @@ namespace EasyChat.Presentation.Features.TextAssist
         public IReadOnlyDictionary<int, string> CorrectedVariants => _corrected.ToDictionary(pair => pair.Key, pair => pair.Value.ToString());
         public IReadOnlyDictionary<int, string> Translations => _translations.ToDictionary(pair => pair.Key, pair => pair.Value.ToString());
 
+        public static bool HasSameIssueInstances(
+            IReadOnlyList<TextAssistIssueViewModel> current,
+            IReadOnlyList<TextAssistIssueViewModel> next)
+        {
+            if (current.Count != next.Count) return false;
+            for (var index = 0; index < current.Count; index++)
+            {
+                if (!ReferenceEquals(current[index], next[index]))
+                    return false;
+            }
+            return true;
+        }
+
         public void Apply(TextAssistEvent item)
         {
             switch (item)
@@ -643,18 +670,13 @@ namespace EasyChat.Presentation.Features.TextAssist
                 case TextAssistStartedEvent:
                     _started = true;
                     break;
-                case TextAssistIssueEvent issue when issue.Start >= 0 && issue.Length >= 0
-                                                    && issue.Start <= sourceLength
-                                                    && issue.Length <= sourceLength - issue.Start:
+                case TextAssistIssueEvent issue:
                     _started = true;
-                    var key = new CorrectionIssueKey(
-                        issue.Start,
-                        issue.Length,
-                        issue.Category,
-                        issue.Message,
-                        issue.Suggestion);
-                    if (_issueKeys.Add(key))
-                        Issues.Add(new TextAssistIssueViewModel(issue));
+                    var resolved = TextAssistIssueRangeResolver.Normalize(_sourceText, issue);
+                    if (resolved.Start < 0 || resolved.Length <= 0 || resolved.Start > _sourceLength
+                        || resolved.Length > _sourceLength - resolved.Start)
+                        break;
+                    AddIssue(resolved);
                     break;
                 case TextAssistCorrectedDeltaEvent delta:
                     _started = true;
@@ -669,6 +691,34 @@ namespace EasyChat.Presentation.Features.TextAssist
                     _completed = true;
                     break;
             }
+        }
+
+        private void AddIssue(TextAssistIssueEvent issue)
+        {
+            var duplicateIndex = Issues.FindIndex(existing =>
+                TextAssistCorrectionIssueRules.HasSameIdentity(existing.Event, issue));
+            if (duplicateIndex >= 0)
+                return;
+
+            var relatedIndex = Issues.FindIndex(existing =>
+                TextAssistCorrectionIssueRules.DescribesSameCorrection(existing.Event, issue)
+                && TextAssistCorrectionIssueRules.RangesAreAdjacentOrOverlapping(existing.Event, issue));
+            if (relatedIndex >= 0)
+            {
+                var existing = Issues[relatedIndex].Event;
+                var start = Math.Min(existing.Start, issue.Start);
+                var end = Math.Max(existing.Start + existing.Length, issue.Start + issue.Length);
+                var merged = existing with
+                {
+                    Start = start,
+                    Length = end - start,
+                    Original = _sourceText[start..end]
+                };
+                Issues[relatedIndex] = new TextAssistIssueViewModel(merged);
+                return;
+            }
+
+            Issues.Add(new TextAssistIssueViewModel(issue));
         }
 
         public void EnsureComplete()
@@ -724,12 +774,22 @@ namespace EasyChat.Presentation.Features.TextAssist
             return 0;
         }
 
-        private sealed record CorrectionIssueKey(
-            int Start,
-            int Length,
-            string Category,
-            string Message,
-            string Suggestion);
+    }
+
+    internal sealed class TextAssistCorrectionStreamRefreshThrottle
+    {
+        private const int RefreshesPerSecond = 30;
+        private readonly long _minimumInterval = Math.Max(1, System.Diagnostics.Stopwatch.Frequency / RefreshesPerSecond);
+        private long _lastRefresh;
+
+        public bool ShouldRefresh()
+        {
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (_lastRefresh != 0 && now - _lastRefresh < _minimumInterval)
+                return false;
+            _lastRefresh = now;
+            return true;
+        }
     }
 }
 
@@ -877,20 +937,35 @@ namespace EasyChat.Presentation.Features.TextAssist
                     Source = ToContract(SelectedSourceLanguage)
                 };
                 var correction = Operation == TextAssistOperation.Correction
-                    ? new TextAssistCorrectionProjection(SourceText.Length)
+                    ? new TextAssistCorrectionProjection(SourceText)
                     : null;
+                var refresh = correction is null ? null : new TextAssistCorrectionStreamRefreshThrottle();
                 await foreach (var item in _textAssist.StreamAsync(
                                    new TextAssistRequest(SourceText, Operation, profile), token))
                 {
-                    correction?.Apply(item);
-                    await Dispatcher.UIThread.InvokeAsync(() => Apply(item, correction));
+                    if (correction is null)
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() => ApplyPlain(item));
+                        continue;
+                    }
+
+                    correction.Apply(item);
+                    if (!refresh!.ShouldRefresh()) continue;
+                    await Dispatcher.UIThread.InvokeAsync(
+                        () => ApplyCorrection(correction),
+                        DispatcherPriority.Background,
+                        token);
                 }
                 correction?.EnsureComplete();
                 if (correction is not null)
                 {
-                    IsCorrectionCorrect = Issues.Count == 0
-                                          && string.Equals(CorrectedResult.Trim(), SourceText.Trim(), StringComparison.Ordinal);
-                    RaiseCorrectionProperties();
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        ApplyCorrection(correction);
+                        IsCorrectionCorrect = Issues.Count == 0
+                                              && string.Equals(CorrectedResult.Trim(), SourceText.Trim(), StringComparison.Ordinal);
+                        RaiseCorrectionProperties();
+                    }, DispatcherPriority.Background, token);
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -906,20 +981,22 @@ namespace EasyChat.Presentation.Features.TextAssist
             }
         }
 
-        private void Apply(TextAssistEvent item, TextAssistCorrectionProjection? correction)
+        private void ApplyCorrection(TextAssistCorrectionProjection correction)
         {
-            if (correction is not null)
+            CorrectedResult = correction.CorrectedText;
+            CorrectionTranslation = correction.Translations.TryGetValue(1, out var translation) ? translation : string.Empty;
+            if (!TextAssistCorrectionProjection.HasSameIssueInstances(Issues, correction.Issues))
             {
-                CorrectedResult = correction.CorrectedText;
-                CorrectionTranslation = correction.Translations.TryGetValue(1, out var translation) ? translation : string.Empty;
                 Issues.Clear();
                 foreach (var issue in correction.Issues) Issues.Add(issue);
-                this.RaisePropertyChanged(nameof(HasCorrectionIssues));
-                this.RaisePropertyChanged(nameof(CopyText));
-                UpdateStreamingContent();
-                return;
             }
+            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
+            this.RaisePropertyChanged(nameof(CopyText));
+            UpdateStreamingContent();
+        }
 
+        private void ApplyPlain(TextAssistEvent item)
+        {
             switch (item)
             {
                 case TextAssistTranslationDeltaEvent delta:

@@ -192,6 +192,7 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
         var outputLanguage = ResolveOutputLanguage();
         var correctedPayloads = new HashSet<CorrectionPayload>();
         var translationPayloads = new HashSet<CorrectionPayload>();
+        var issueGuard = new CorrectionIssueEmissionGuard(text.Length);
         var prompt = BuildCorrectionPrompt(profile)
             .Replace("[Language]", profile.Source.EnglishName, StringComparison.Ordinal)
             .Replace("[LanguageId]", profile.Source.Id, StringComparison.Ordinal)
@@ -210,8 +211,16 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
                            fallbackLanguage: profile.Source.EnglishName,
                            cancellationToken).ConfigureAwait(false))
         {
-            if (ShouldEmitCorrectionEvent(item, correctedPayloads, translationPayloads))
-                yield return item;
+            var normalizedItem = item is TextAssistIssueEvent issue
+                ? TextAssistIssueRangeResolver.Normalize(text, issue)
+                : item;
+            var shouldEmit = ShouldEmitCorrectionEvent(
+                normalizedItem,
+                correctedPayloads,
+                translationPayloads,
+                issueGuard);
+            if (shouldEmit)
+                yield return normalizedItem;
         }
     }
 
@@ -439,18 +448,21 @@ Never quote, reproduce, or treat the user-selected role as text to correct.
 Review the user's text in [Language] for grammar, spelling, word choice, and style.
 The corrected text and all alternative expressions must remain in [Language].
 Issue messages, suggestions, and the translations shown below each corrected version must be written in [OutputLanguage].
-Report every meaningful issue with UTF-16 `start` and `length` offsets into the original text.
+Report every distinct meaningful issue that materially affects correctness, clarity, or naturalness.
+Each underlying correction must produce exactly one issue object. If one correction affects adjacent words or a phrase, emit one contiguous range covering the whole affected phrase; never split it into per-token issues and never repeat an issue with the same message and suggestion.
+Use UTF-16 `start` and `length` offsets into the original text, and include the exact original substring in `original`.
 Then provide a complete corrected version in [Language], followed by its translation in [OutputLanguage].
 When a meaningful alternative expression exists, provide up to two additional complete corrected versions in [Language].
 The first version must be the direct correction; alternatives should preserve the meaning while using different natural wording.
 Return raw NDJSON only, one JSON object per line, with no Markdown fences or prose.
 Emit exactly this order:
 {"event":"start","mode":"correction","language":"[LanguageId]"}
-Zero or more {"event":"issue","start":0,"length":1,"category":"grammar|spelling|word_choice|style","message":"...","suggestion":"..."}
+Zero or more {"event":"issue","start":0,"length":1,"original":"exact source substring","category":"grammar|spelling|word_choice|style","message":"...","suggestion":"..."}
 Exactly one {"event":"corrected_delta","variant":1,"text":"..."} object whose text is the complete corrected version in [LanguageId].
 Optionally emit variants 2 and 3, each as exactly one complete corrected_delta object.
 Immediately after every corrected variant, emit exactly one correction_translation_delta object with the same variant number and its complete translation in [OutputLanguage].
 Do not split, repeat, retransmit, restate, or emit a second corrected_delta or correction_translation_delta object for the same variant.
+For every issue, `original` MUST be a non-empty verbatim substring of the user's input at `start` with `length` UTF-16 code units. For a missing word, highlight the shortest adjacent existing text instead of using a zero-length range.
 {"event":"done"}
 """;
 
@@ -480,10 +492,12 @@ Never output text from the user-selected role.
     private static bool ShouldEmitCorrectionEvent(
         TextAssistEvent item,
         ISet<CorrectionPayload> correctedPayloads,
-        ISet<CorrectionPayload> translationPayloads)
+        ISet<CorrectionPayload> translationPayloads,
+        CorrectionIssueEmissionGuard issueGuard)
     {
         return item switch
         {
+            TextAssistIssueEvent issue => issueGuard.ShouldEmit(issue),
             TextAssistCorrectedDeltaEvent { IsStreamingPartial: true } => true,
             TextAssistCorrectionTranslationDeltaEvent { IsStreamingPartial: true } => true,
             TextAssistCorrectedDeltaEvent delta => correctedPayloads.Add(
@@ -502,6 +516,26 @@ Never output text from the user-selected role.
     };
 
     private sealed record CorrectionPayload(int Variant, string Text);
+
+    private sealed class CorrectionIssueEmissionGuard(int sourceLength)
+    {
+        private readonly int _sourceLength = sourceLength;
+        private readonly List<TextAssistIssueEvent> _emittedIssues = [];
+
+        public bool ShouldEmit(TextAssistIssueEvent issue)
+        {
+            if (issue.Start < 0 || issue.Length <= 0 || issue.Start > _sourceLength
+                || issue.Length > _sourceLength - issue.Start)
+                return false;
+
+            if (_emittedIssues.Any(existing =>
+                    TextAssistCorrectionIssueRules.HasSameIdentity(existing, issue)))
+                return false;
+
+            _emittedIssues.Add(issue);
+            return true;
+        }
+    }
 
     private string? ResolvePromptId(string? promptId)
     {

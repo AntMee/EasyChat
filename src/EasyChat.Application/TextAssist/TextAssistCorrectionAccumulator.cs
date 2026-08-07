@@ -7,7 +7,6 @@ public sealed class TextAssistCorrectionAccumulator
 {
     private readonly int _sourceLength;
     private readonly List<TextAssistIssueEvent> _issues = [];
-    private readonly HashSet<CorrectionIssueKey> _issueKeys = [];
     private readonly Dictionary<int, StringBuilder> _corrected = [];
     private readonly Dictionary<int, StringBuilder> _translations = [];
     private readonly Action<TextAssistIssueEvent>? _onInvalidIssue;
@@ -49,16 +48,14 @@ public sealed class TextAssistCorrectionAccumulator
                 break;
             case TextAssistIssueEvent issue:
                 _started = true;
-                if (issue.Start >= 0 && issue.Length >= 0 && issue.Start <= _sourceLength
+                if (issue.Start >= 0 && issue.Length > 0 && issue.Start <= _sourceLength
                     && issue.Length <= _sourceLength - issue.Start)
                 {
-                    var key = new CorrectionIssueKey(
-                        issue.Start,
-                        issue.Length,
-                        issue.Category,
-                        issue.Message,
-                        issue.Suggestion);
-                    if (_issueKeys.Add(key))
+                    var isDuplicate = _issues.Any(existing =>
+                        TextAssistCorrectionIssueRules.HasSameIdentity(existing, issue)
+                        || (TextAssistCorrectionIssueRules.DescribesSameCorrection(existing, issue)
+                            && TextAssistCorrectionIssueRules.RangesAreAdjacentOrOverlapping(existing, issue)));
+                    if (!isDuplicate)
                         _issues.Add(issue);
                 }
                 else
@@ -145,10 +142,4 @@ public sealed class TextAssistCorrectionAccumulator
     private string GetCorrectedText(int variant) =>
         _corrected.TryGetValue(variant, out var builder) ? builder.ToString() : string.Empty;
 
-    private sealed record CorrectionIssueKey(
-        int Start,
-        int Length,
-        string Category,
-        string Message,
-        string Suggestion);
 }
