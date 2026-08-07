@@ -129,11 +129,35 @@ public sealed class TextAssistCommandTests
     }
 
     [TestMethod]
+    public void StreamRefreshThrottle_AllowsFirstRefreshImmediately()
+    {
+        var throttle = new TextAssistStreamRefreshThrottle();
+        Assert.IsTrue(throttle.ShouldRefresh());
+    }
+
+    [TestMethod]
+    public void StreamRefreshThrottle_SuppressesRepeatedCallsWithinWindow()
+    {
+        var throttle = new TextAssistStreamRefreshThrottle();
+        Assert.IsTrue(throttle.ShouldRefresh());
+        for (var index = 0; index < 20; index++)
+            Assert.IsFalse(throttle.ShouldRefresh());
+    }
+
+    [TestMethod]
+    public void StreamRefreshThrottle_AllowsRefreshAfterInterval()
+    {
+        var throttle = new TextAssistStreamRefreshThrottle();
+        Assert.IsTrue(throttle.ShouldRefresh());
+        Thread.Sleep(80);
+        Assert.IsTrue(throttle.ShouldRefresh());
+    }
+
+    [TestMethod]
     public async Task AutomaticRun_CompletesCommandLifecycleAndAllowsManualRun()
     {
         var viewModel = CreateViewModel();
-        var executionStates = new List<bool>();
-        using var subscription = viewModel.RunCommand.IsExecuting.Subscribe(executionStates.Add);
+        var executionStates = new List<bool>();        using var subscription = viewModel.RunCommand.IsExecuting.Subscribe(executionStates.Add);
 
         await viewModel.RunNowAsync();
 

@@ -386,6 +386,7 @@ namespace EasyChat.Presentation.Features.TextAssist
 
         public string InputText { get => _inputText; set => this.RaiseAndSetIfChanged(ref _inputText, value); }
         public string TranslationResult { get => _translationResult; private set => this.RaiseAndSetIfChanged(ref _translationResult, value); }
+        public ObservableStringBuilder ResultMarkdown { get; } = new();
         public bool IsSourceSpeaking { get => _isSourceSpeaking; private set => this.RaiseAndSetIfChanged(ref _isSourceSpeaking, value); }
         public bool IsResultSpeaking { get => _isResultSpeaking; private set => this.RaiseAndSetIfChanged(ref _isResultSpeaking, value); }
         public bool DetailedExplanation
@@ -411,34 +412,64 @@ namespace EasyChat.Presentation.Features.TextAssist
         {
             if (string.IsNullOrWhiteSpace(InputText)) return;
             TranslationResult = string.Empty;
+            await Dispatcher.UIThread.InvokeAsync(
+                () => ResultMarkdown.Clear(),
+                DispatcherPriority.Background,
+                cancellationToken);
             Annotations.Clear();
             this.RaisePropertyChanged(nameof(ShowAnnotations));
             var profile = ResolveProfile(TextAssistOperation.Translation) with { DetailedExplanation = DetailedExplanation && IsAiProvider };
+            var refresh = new TextAssistStreamRefreshThrottle();
+            var pending = new StringBuilder();
             await foreach (var item in TextAssist.StreamAsync(
                                new TextAssistRequest(InputText, TextAssistOperation.Translation, profile),
                                cancellationToken))
             {
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                switch (item)
                 {
-                    switch (item)
-                    {
-                        case TextAssistTranslationDeltaEvent delta:
-                            TranslationResult += delta.Text;
-                            break;
-                        case TextAssistTranslationAnnotationEvent annotation:
-                            Annotations.Add(new TextAssistAnnotationViewModel(annotation));
-                            this.RaisePropertyChanged(nameof(ShowAnnotations));
-                            break;
-                    }
-                });
+                    case TextAssistTranslationDeltaEvent delta:
+                        pending.Append(delta.Text);
+                        if (!refresh.ShouldRefresh()) continue;
+                        await FlushTranslationChunkAsync(pending, cancellationToken);
+                        break;
+                    case TextAssistTranslationAnnotationEvent annotation:
+                        await Dispatcher.UIThread.InvokeAsync(
+                            () =>
+                            {
+                                Annotations.Add(new TextAssistAnnotationViewModel(annotation));
+                                this.RaisePropertyChanged(nameof(ShowAnnotations));
+                            },
+                            DispatcherPriority.Background,
+                            cancellationToken);
+                        break;
+                }
             }
+            if (pending.Length > 0)
+                await FlushTranslationChunkAsync(pending, cancellationToken);
+        }
+
+        private async Task FlushTranslationChunkAsync(StringBuilder pending, CancellationToken cancellationToken)
+        {
+            var chunk = pending.ToString();
+            pending.Clear();
+            await Dispatcher.UIThread.InvokeAsync(
+                () =>
+                {
+                    TranslationResult += chunk;
+                    ResultMarkdown.Append(chunk);
+                },
+                DispatcherPriority.Background,
+                cancellationToken);
         }
 
         private void SwapContent()
         {
+            CancelCurrent();
             var sourceText = InputText;
             InputText = TranslationResult;
             TranslationResult = sourceText;
+            ResultMarkdown.Clear();
+            ResultMarkdown.Append(TranslationResult);
             Annotations.Clear();
             this.RaisePropertyChanged(nameof(ShowAnnotations));
             var source = SelectedSourceLanguage;
@@ -522,7 +553,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             if (string.IsNullOrWhiteSpace(InputText)) return;
             ResetResults();
             var projection = new TextAssistCorrectionProjection(InputText);
-            var refresh = new TextAssistCorrectionStreamRefreshThrottle();
+            var refresh = new TextAssistStreamRefreshThrottle();
             await foreach (var item in TextAssist.StreamAsync(
                                new TextAssistRequest(InputText, TextAssistOperation.Correction, ResolveProfile(TextAssistOperation.Correction)),
                                cancellationToken))
@@ -776,7 +807,7 @@ namespace EasyChat.Presentation.Features.TextAssist
 
     }
 
-    internal sealed class TextAssistCorrectionStreamRefreshThrottle
+    internal sealed class TextAssistStreamRefreshThrottle
     {
         private const int RefreshesPerSecond = 30;
         private readonly long _minimumInterval = Math.Max(1, System.Diagnostics.Stopwatch.Frequency / RefreshesPerSecond);
@@ -939,23 +970,37 @@ namespace EasyChat.Presentation.Features.TextAssist
                 var correction = Operation == TextAssistOperation.Correction
                     ? new TextAssistCorrectionProjection(SourceText)
                     : null;
-                var refresh = correction is null ? null : new TextAssistCorrectionStreamRefreshThrottle();
+                var refresh = new TextAssistStreamRefreshThrottle();
+                var pending = new StringBuilder();
                 await foreach (var item in _textAssist.StreamAsync(
                                    new TextAssistRequest(SourceText, Operation, profile), token))
                 {
                     if (correction is null)
                     {
-                        await Dispatcher.UIThread.InvokeAsync(() => ApplyPlain(item));
+                        if (item is not TextAssistTranslationDeltaEvent delta)
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(
+                                () => ApplyPlain(item),
+                                DispatcherPriority.Background,
+                                token);
+                            continue;
+                        }
+
+                        pending.Append(delta.Text);
+                        if (!refresh.ShouldRefresh()) continue;
+                        await FlushPlainChunkAsync(pending, token);
                         continue;
                     }
 
                     correction.Apply(item);
-                    if (!refresh!.ShouldRefresh()) continue;
+                    if (!refresh.ShouldRefresh()) continue;
                     await Dispatcher.UIThread.InvokeAsync(
                         () => ApplyCorrection(correction),
                         DispatcherPriority.Background,
                         token);
                 }
+                if (correction is null && pending.Length > 0)
+                    await FlushPlainChunkAsync(pending, token);
                 correction?.EnsureComplete();
                 if (correction is not null)
                 {
@@ -1011,6 +1056,22 @@ namespace EasyChat.Presentation.Features.TextAssist
                     UpdateStreamingContent();
                     break;
             }
+        }
+
+        private async Task FlushPlainChunkAsync(StringBuilder pending, CancellationToken token)
+        {
+            var chunk = pending.ToString();
+            pending.Clear();
+            await Dispatcher.UIThread.InvokeAsync(
+                () =>
+                {
+                    Result += chunk;
+                    ResultMarkdown.Append(chunk);
+                    this.RaisePropertyChanged(nameof(CopyText));
+                    UpdateStreamingContent();
+                },
+                DispatcherPriority.Background,
+                token);
         }
 
         private async Task ResetResultsAsync()

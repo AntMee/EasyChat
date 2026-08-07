@@ -7,6 +7,7 @@
              xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
              xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistTranslationView"
              x:Name="TranslationView"
@@ -63,6 +64,13 @@
         <Style Selector="UserControl.Compact TextBox.EditorTextBox">
             <Setter Property="MinHeight" Value="80" />
         </Style>
+        <!-- Quick translation result keeps theme-aware text color and compact size. -->
+        <Style Selector="md|MarkdownRenderer.TextAssistResultMarkdown">
+            <Style Selector="^ md|MarkdownTextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+                <Setter Property="FontSize" Value="18" />
+            </Style>
+        </Style>
         <Style Selector="Grid.EditorFooter">
             <Setter Property="Margin" Value="0,10,0,0" />
         </Style>
@@ -115,10 +123,11 @@
                         </Grid>
                         <sharedControls:LanguageSelector Grid.Row="1" Languages="{Binding Languages}" SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}" />
                         <Grid Grid.Row="2">
-                            <TextBox x:Name="ResultTextBox" Classes="EditorTextBox" Text="{Binding TranslationResult}" IsReadOnly="True"
-                                     AcceptsReturn="True" TextWrapping="Wrap" FontSize="18"
-                                     VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent"
-                                     PlaceholderText="{x:Static lang:Resources.Loading}" />
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <md:MarkdownRenderer x:Name="ResultMarkdownRenderer" Classes="TextAssistResultMarkdown"
+                                                     MarkdownBuilder="{Binding ResultMarkdown}"
+                                                     HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                            </ScrollViewer>
                         </Grid>
                     </Grid>
                 </suki:GlassCard>
