@@ -19,13 +19,30 @@
         Title="ResultView"
         SizeToContent="WidthAndHeight">
 
+    <Window.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="ClassicResultForeground" Color="#FFFFFFFF"/>
+            <x:Double x:Key="ClassicResultFontSize">18</x:Double>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="md|MarkdownRenderer.ClassicResultMarkdown">
+            <Style Selector="^ md|MarkdownTextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource ClassicResultForeground}"/>
+                <Setter Property="FontSize" Value="{DynamicResource ClassicResultFontSize}"/>
+                <Setter Property="FontFamily" Value="{DynamicResource ClassicResultFontFamily}"/>
+            </Style>
+        </Style>
+    </Window.Styles>
+
     <Border x:Name="WindowBackground" Margin="5" CornerRadius="5" Background="Transparent"
             ClipToBounds="True">
         <Border x:Name="MainCard" Padding="10" Background="Transparent" CornerRadius="5"
                 ClipToBounds="True">
             <Panel>
                 <suki:Loading x:Name="LoadingIndicator" Width="20" Height="20" IsVisible="True" />
-                <md:MarkdownRenderer x:Name="MarkdownResult" IsVisible="False"
+                <md:MarkdownRenderer x:Name="MarkdownResult" Classes="ClassicResultMarkdown" IsVisible="False"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Top" />
             </Panel>

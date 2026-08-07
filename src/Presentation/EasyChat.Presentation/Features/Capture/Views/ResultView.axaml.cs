@@ -18,7 +18,7 @@ public partial class ResultView : Window
     public ResultView()
     {
         InitializeComponent();
-        MarkdownResult.MarkdownBuilder = _markdown;
+        InitializeMarkdown();
     }
 
     public ResultView(
@@ -26,6 +26,7 @@ public partial class ResultView : Window
         PhysicalScreenPoint completionPoint)
     {
         InitializeComponent();
+        InitializeMarkdown();
         ApplyConfiguration(settings.Result);
         ShowLoading();
         IsVisible = false;
@@ -80,18 +81,29 @@ public partial class ResultView : Window
     {
         TrySetBrush(settings.BackgroundColor, brush => MainCard.Background = brush);
         TrySetBrush(settings.WindowBackgroundColor, brush => WindowBackground.Background = brush);
-        TrySetBrush(settings.FontColor, brush => MarkdownResult.SetValue(TextElement.ForegroundProperty, brush));
+        TrySetColor(settings.FontColor, color => MarkdownResult.Resources["ForegroundColor"] = color);
+        TrySetBrush(settings.FontColor, brush => MarkdownResult.Resources["ClassicResultForeground"] = brush);
+        MarkdownResult.Resources["ClassicResultFontSize"] = settings.FontSize;
         MarkdownResult.SetValue(TextElement.FontSizeProperty, settings.FontSize);
+        var fontFamily = FontFamily.Default;
         if (!string.IsNullOrWhiteSpace(settings.FontFamily))
         {
             try
             {
-                MarkdownResult.SetValue(TextElement.FontFamilyProperty, new FontFamily(settings.FontFamily));
+                fontFamily = new FontFamily(settings.FontFamily);
             }
             catch
             {
             }
         }
+        MarkdownResult.Resources["ClassicResultFontFamily"] = fontFamily;
+        MarkdownResult.SetValue(TextElement.FontFamilyProperty, fontFamily);
+    }
+
+    private void InitializeMarkdown()
+    {
+        MarkdownResult.MarkdownBuilder = _markdown;
+        MarkdownResult.Resources["ClassicResultFontFamily"] = FontFamily.Default;
     }
 
     private static void TrySetBrush(string? value, Action<IBrush> apply)
@@ -101,6 +113,19 @@ public partial class ResultView : Window
         try
         {
             apply(Brush.Parse(value));
+        }
+        catch
+        {
+        }
+    }
+
+    private static void TrySetColor(string? value, Action<Color> apply)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+        try
+        {
+            apply(Color.Parse(value));
         }
         catch
         {

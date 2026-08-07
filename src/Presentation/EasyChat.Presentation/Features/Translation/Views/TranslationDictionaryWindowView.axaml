@@ -134,6 +134,9 @@
 
         <!-- Dictionary translations keep heading emphasis without heading-scale text. -->
         <Style Selector="md|MarkdownRenderer.DictionaryTranslationMarkdown">
+            <Style Selector="^ md|MarkdownTextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource SukiText}"/>
+            </Style>
             <Style Selector="^ Border.Heading1Block">
                 <Style Selector="^ md|MarkdownTextBlock">
                     <Setter Property="Margin" Value="0"/>

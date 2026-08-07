@@ -15,20 +15,20 @@
         <Canvas Name="MainCanvas">
         <!-- Main Selection Box -->
         <Rectangle x:Name="SelectionRectangle"
-                   Stroke="{DynamicResource SukiPrimaryColor}"
+                   Stroke="#FF2196F3"
                    StrokeThickness="2"
                    Fill="#1A2196F3"
                    IsVisible="False" />
         
         <!-- Resize Handles -->
-        <Border x:Name="HandleTopLeft" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="TopLeftCorner" />
-        <Border x:Name="HandleTopCenter" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeNorthSouth" />
-        <Border x:Name="HandleTopRight" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="TopRightCorner" />
-        <Border x:Name="HandleRightCenter" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeWestEast" />
-        <Border x:Name="HandleBottomRight" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="BottomRightCorner" />
-        <Border x:Name="HandleBottomCenter" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeNorthSouth" />
-        <Border x:Name="HandleBottomLeft" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="BottomLeftCorner" />
-        <Border x:Name="HandleLeftCenter" Width="14" Height="14" Background="White" BorderBrush="{DynamicResource SukiPrimaryColor}" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeWestEast" />
+        <Border x:Name="HandleTopLeft" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="TopLeftCorner" />
+        <Border x:Name="HandleTopCenter" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeNorthSouth" />
+        <Border x:Name="HandleTopRight" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="TopRightCorner" />
+        <Border x:Name="HandleRightCenter" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeWestEast" />
+        <Border x:Name="HandleBottomRight" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="BottomRightCorner" />
+        <Border x:Name="HandleBottomCenter" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeNorthSouth" />
+        <Border x:Name="HandleBottomLeft" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="BottomLeftCorner" />
+        <Border x:Name="HandleLeftCenter" Width="14" Height="14" Background="White" BorderBrush="#FF2196F3" BorderThickness="1" CornerRadius="7" IsVisible="False" Cursor="SizeWestEast" />
 
         <Border x:Name="HintBorder"
                 Background="#CC000000"
