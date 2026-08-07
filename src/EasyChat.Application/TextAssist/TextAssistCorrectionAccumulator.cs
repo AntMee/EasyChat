@@ -7,6 +7,7 @@ public sealed class TextAssistCorrectionAccumulator
 {
     private readonly int _sourceLength;
     private readonly List<TextAssistIssueEvent> _issues = [];
+    private readonly HashSet<CorrectionIssueKey> _issueKeys = [];
     private readonly Dictionary<int, StringBuilder> _corrected = [];
     private readonly Dictionary<int, StringBuilder> _translations = [];
     private readonly Action<TextAssistIssueEvent>? _onInvalidIssue;
@@ -51,7 +52,14 @@ public sealed class TextAssistCorrectionAccumulator
                 if (issue.Start >= 0 && issue.Length >= 0 && issue.Start <= _sourceLength
                     && issue.Length <= _sourceLength - issue.Start)
                 {
-                    _issues.Add(issue);
+                    var key = new CorrectionIssueKey(
+                        issue.Start,
+                        issue.Length,
+                        issue.Category,
+                        issue.Message,
+                        issue.Suggestion);
+                    if (_issueKeys.Add(key))
+                        _issues.Add(issue);
                 }
                 else
                 {
@@ -97,4 +105,11 @@ public sealed class TextAssistCorrectionAccumulator
 
     private string GetCorrectedText(int variant) =>
         _corrected.TryGetValue(variant, out var builder) ? builder.ToString() : string.Empty;
+
+    private sealed record CorrectionIssueKey(
+        int Start,
+        int Length,
+        string Category,
+        string Message,
+        string Suggestion);
 }

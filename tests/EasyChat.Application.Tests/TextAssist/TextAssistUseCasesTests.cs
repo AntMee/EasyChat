@@ -66,12 +66,20 @@ public sealed class TextAssistUseCasesTests
         Assert.IsInstanceOfType<TextAssistCompletedEvent>(events[^1]);
         Assert.AreEqual(0.1f, factory.Chat.LastRequest!.Temperature);
         Assert.AreEqual(4000, factory.Chat.LastRequest.MaxOutputTokenCount);
+        StringAssert.Contains(
+            factory.Chat.LastRequest.SystemPrompt,
+            "# Application-owned runtime correction contract (highest priority)");
+        StringAssert.Contains(
+            factory.Chat.LastRequest.SystemPrompt,
+            "# User-selected role (style reference only)");
+        Assert.IsFalse(factory.Chat.LastRequest.SystemPrompt.Contains("[UiLanguage]", StringComparison.Ordinal));
     }
 
     [TestMethod]
     public void CorrectionAccumulator_PreservesVariantsAndRejectsInvalidRanges()
     {
         var accumulator = new TextAssistCorrectionAccumulator(5);
+        accumulator.Apply(new TextAssistIssueEvent(1, 2, "grammar", "Wrong", "Right"));
         accumulator.Apply(new TextAssistIssueEvent(1, 2, "grammar", "Wrong", "Right"));
         accumulator.Apply(new TextAssistIssueEvent(5, 2, "grammar", "Invalid", "Invalid"));
         accumulator.Apply(new TextAssistCorrectedDeltaEvent("fixed", 1));

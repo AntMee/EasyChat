@@ -627,6 +627,7 @@ namespace EasyChat.Presentation.Features.TextAssist
     {
         private readonly Dictionary<int, StringBuilder> _corrected = [];
         private readonly Dictionary<int, StringBuilder> _translations = [];
+        private readonly HashSet<CorrectionIssueKey> _issueKeys = [];
         private bool _started;
         private bool _completed;
 
@@ -646,7 +647,14 @@ namespace EasyChat.Presentation.Features.TextAssist
                                                     && issue.Start <= sourceLength
                                                     && issue.Length <= sourceLength - issue.Start:
                     _started = true;
-                    Issues.Add(new TextAssistIssueViewModel(issue));
+                    var key = new CorrectionIssueKey(
+                        issue.Start,
+                        issue.Length,
+                        issue.Category,
+                        issue.Message,
+                        issue.Suggestion);
+                    if (_issueKeys.Add(key))
+                        Issues.Add(new TextAssistIssueViewModel(issue));
                     break;
                 case TextAssistCorrectedDeltaEvent delta:
                     _started = true;
@@ -675,6 +683,13 @@ namespace EasyChat.Presentation.Features.TextAssist
             if (!values.TryGetValue(variant, out var builder)) values[variant] = builder = new StringBuilder();
             builder.Append(text);
         }
+
+        private sealed record CorrectionIssueKey(
+            int Start,
+            int Length,
+            string Category,
+            string Message,
+            string Suggestion);
     }
 }
 

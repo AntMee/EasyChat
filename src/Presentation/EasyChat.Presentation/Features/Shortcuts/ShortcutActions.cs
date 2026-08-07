@@ -147,7 +147,8 @@ public sealed class SelectionTranslateShortcutAction(
                         toolbar.TranslationEnabled,
                         toolbar.CorrectionEnabled,
                         toolbar.PolishEnabled,
-                        toolbar.SummaryEnabled)),
+                        toolbar.SummaryEnabled,
+                        toolbar.ExplanationEnabled)),
                 cancellationToken);
             return;
         }

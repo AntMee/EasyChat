@@ -14,6 +14,21 @@ namespace EasyChat.Presentation.Tests;
 public sealed class TextAssistCommandTests
 {
     [TestMethod]
+    public void CorrectionProjection_IgnoresRepeatedIdenticalIssues()
+    {
+        var projection = new TextAssistCorrectionProjection(12);
+        var issue = new TextAssistIssueEvent(2, 3, "grammar", "Wrong form", "Use the correct form");
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(issue);
+        projection.Apply(issue);
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.HasCount(1, projection.Issues);
+    }
+
+    [TestMethod]
     public async Task AutomaticRun_CompletesCommandLifecycleAndAllowsManualRun()
     {
         var viewModel = CreateViewModel();
