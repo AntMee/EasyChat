@@ -60,25 +60,28 @@ public sealed class WindowsOpenVinoOcr : IOcrRecognizer, IOcrModelStore, IDispos
         if (request.Language is null)
             throw new ArgumentException("The application must resolve the OCR language.", nameof(request));
 
-        var language = OpenVinoOcrModelCatalog.ResolveLanguage(request.Language);
-        var backendRegions = _backend.Recognize(
-            request.Image,
-            language,
-            request.EnableRotation,
-            request.Mode,
-            request.IdleTimeoutSeconds,
-            cancellationToken);
+        return new ValueTask<OcrRecognitionResult>(Task.Run(() =>
+        {
+            var language = OpenVinoOcrModelCatalog.ResolveLanguage(request.Language);
+            var backendRegions = _backend.Recognize(
+                request.Image,
+                language,
+                request.EnableRotation,
+                request.Mode,
+                request.IdleTimeoutSeconds,
+                cancellationToken);
 
-        var regions = backendRegions
-            .Where(region => !string.IsNullOrWhiteSpace(region.Text))
-            .Select(MapRegion)
-            .ToArray();
+            var regions = backendRegions
+                .Where(region => !string.IsNullOrWhiteSpace(region.Text))
+                .Select(MapRegion)
+                .ToArray();
 
-        _logger?.LogDebug(
-            "OCR ({Language}) recognized {RegionCount} regions.",
-            language.Language.DisplayName,
-            regions.Length);
-        return ValueTask.FromResult(new OcrRecognitionResult(regions));
+            _logger?.LogDebug(
+                "OCR ({Language}) recognized {RegionCount} regions.",
+                language.Language.DisplayName,
+                regions.Length);
+            return new OcrRecognitionResult(regions);
+        }, cancellationToken));
     }
 
     public void Dispose() => _backend.Dispose();

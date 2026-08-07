@@ -21,6 +21,14 @@ public sealed class ScreenshotResultSession(ResultView view)
     public void Close() => _view.Close();
 }
 
+public sealed class ScreenshotImageResultSession(ImageTranslationResultWindow view)
+{
+    internal ImageTranslationResultWindow View { get; } = view;
+    public bool IsClosed { get; private set; }
+
+    internal void ObserveLifetime() => View.Closed += (_, _) => IsClosed = true;
+}
+
 public sealed class ScreenshotResultCoordinator(
     SettingsSession settings,
     ITranslationWindowCoordinator translationWindow,
@@ -57,19 +65,52 @@ public sealed class ScreenshotResultCoordinator(
             showCloseButton: true,
             cancellationToken);
 
-    public ValueTask ShowImageAsync(
+    public ValueTask<ScreenshotImageResultSession> OpenImageAsync(
         ImageFrame image,
-        IReadOnlyList<string> warnings,
         PhysicalScreenPoint completionPoint,
         CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>
         {
             var bitmap = AvaloniaImageFrames.ToBitmap(image);
-            new ImageTranslationResultWindow(
+            var view = new ImageTranslationResultWindow(
                 bitmap,
-                warnings,
                 completionPoint,
-                _loggerFactory.CreateLogger<ImageTranslationResultWindow>()).Show();
+                _loggerFactory.CreateLogger<ImageTranslationResultWindow>());
+            var session = new ScreenshotImageResultSession(view);
+            session.ObserveLifetime();
+            view.Show();
+            return session;
+        }, cancellationToken);
+
+    public ValueTask ShowImageResultAsync(
+        ScreenshotImageResultSession session,
+        ImageFrame image,
+        IReadOnlyList<string> warnings,
+        CancellationToken cancellationToken = default) =>
+        OnUiAsync(() =>
+        {
+            if (session.IsClosed)
+                return;
+            session.View.ShowResult(AvaloniaImageFrames.ToBitmap(image), warnings);
+        }, cancellationToken);
+
+    public ValueTask ShowImageFailureAsync(
+        ScreenshotImageResultSession session,
+        string message,
+        CancellationToken cancellationToken = default) =>
+        OnUiAsync(() =>
+        {
+            if (!session.IsClosed)
+                session.View.ShowFailure(message);
+        }, cancellationToken);
+
+    public ValueTask CloseImageAsync(
+        ScreenshotImageResultSession session,
+        CancellationToken cancellationToken = default) =>
+        OnUiAsync(() =>
+        {
+            if (!session.IsClosed)
+                session.View.Close();
         }, cancellationToken);
 
     public async ValueTask CopyTextAsync(

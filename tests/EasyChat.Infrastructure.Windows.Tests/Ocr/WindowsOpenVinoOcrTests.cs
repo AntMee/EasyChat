@@ -44,6 +44,34 @@ public sealed class WindowsOpenVinoOcrTests
         Assert.AreEqual(0.84, result.Regions[0].Confidence, 0.001);
     }
 
+    [TestMethod]
+    public async Task RecognizeAsync_DoesNotRunBackendOnCallingThread()
+    {
+        using var started = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var backend = new FakeOcrBackend
+        {
+            OnRecognize = () =>
+            {
+                started.Set();
+                release.Wait(TimeSpan.FromSeconds(5));
+            }
+        };
+        using var ocr = new WindowsOpenVinoOcr(backend);
+        var frame = new ImageFrame(1, 1, 4, 96, 96, new byte[] { 1, 2, 3, 255 });
+        var callingThread = Environment.CurrentManagedThreadId;
+
+        var recognition = ocr.RecognizeAsync(new OcrRecognitionRequest(
+            frame,
+            OcrLanguages.English)).AsTask();
+
+        Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+        Assert.AreNotEqual(callingThread, backend.RecognitionThreadId);
+        Assert.IsFalse(recognition.IsCompleted);
+        release.Set();
+        await recognition;
+    }
+
     private sealed class FakeOcrBackend : IWindowsOcrBackend
     {
         public IReadOnlyList<WindowsOcrBackendRegion> Regions { get; init; } = [];
@@ -52,6 +80,8 @@ public sealed class WindowsOpenVinoOcrTests
         public OcrRecognitionMode? Mode { get; private set; }
         public int? IdleTimeoutSeconds { get; private set; }
         public byte[]? Pixels { get; private set; }
+        public Action? OnRecognize { get; init; }
+        public int RecognitionThreadId { get; private set; }
 
         public bool IsModelAvailable(OpenVinoOcrModelPackageSpec package) => true;
 
@@ -73,6 +103,8 @@ public sealed class WindowsOpenVinoOcrTests
             int idleTimeoutSeconds,
             CancellationToken cancellationToken)
         {
+            RecognitionThreadId = Environment.CurrentManagedThreadId;
+            OnRecognize?.Invoke();
             Language = language;
             EnableRotation = enableRotation;
             Mode = mode;

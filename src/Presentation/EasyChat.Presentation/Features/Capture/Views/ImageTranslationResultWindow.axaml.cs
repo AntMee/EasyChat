@@ -20,32 +20,50 @@ public partial class ImageTranslationResultWindow : SukiWindow
     public ImageTranslationResultWindow() => InitializeComponent();
 
     public ImageTranslationResultWindow(
-        Bitmap bitmap,
-        IReadOnlyList<string> warnings,
+        Bitmap sourceBitmap,
         PhysicalScreenPoint completionPoint,
         ILogger<ImageTranslationResultWindow> logger)
     {
         InitializeComponent();
-        _bitmap = bitmap;
+        _bitmap = sourceBitmap;
         _logger = logger;
-        TranslatedImage.Source = bitmap;
+        TranslatedImage.Source = sourceBitmap;
         PositionOnScreen(completionPoint);
-
-        var visibleWarnings = warnings
-            .Where(warning => !string.IsNullOrWhiteSpace(warning))
-            .Take(3)
-            .ToArray();
-        if (visibleWarnings.Length > 0)
-        {
-            WarningText.Text = string.Join("\n", visibleWarnings);
-            WarningPanel.IsVisible = true;
-        }
 
         Closed += (_, _) =>
         {
             _bitmap?.Dispose();
             _bitmap = null;
         };
+    }
+
+    internal void ShowResult(Bitmap bitmap, IReadOnlyList<string> warnings)
+    {
+        var previous = _bitmap;
+        _bitmap = bitmap;
+        TranslatedImage.Source = bitmap;
+        previous?.Dispose();
+
+        ShowWarnings(warnings);
+        LoadingPanel.IsVisible = false;
+        CopyButton.IsEnabled = true;
+        SaveButton.IsEnabled = true;
+    }
+
+    internal void ShowFailure(string message)
+    {
+        ShowWarnings([message]);
+        LoadingPanel.IsVisible = false;
+    }
+
+    private void ShowWarnings(IReadOnlyList<string> warnings)
+    {
+        var visibleWarnings = warnings
+            .Where(warning => !string.IsNullOrWhiteSpace(warning))
+            .Take(3)
+            .ToArray();
+        WarningText.Text = string.Join("\n", visibleWarnings);
+        WarningPanel.IsVisible = visibleWarnings.Length > 0;
     }
 
     private async void Copy_OnClick(object? sender, RoutedEventArgs e)

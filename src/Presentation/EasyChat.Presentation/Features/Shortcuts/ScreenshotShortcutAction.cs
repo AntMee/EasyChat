@@ -64,6 +64,7 @@ public sealed class ScreenshotShortcutAction(
         PhysicalScreenPoint completionPoint)
     {
         CancellationTokenSource? imageCancellation = null;
+        ScreenshotImageResultSession? imageWindow = null;
         try
         {
             if (action == CaptureOverlayAction.OcrWorkbench)
@@ -80,6 +81,10 @@ public sealed class ScreenshotShortcutAction(
                     imageCancellation);
                 previous?.Cancel();
                 previous?.Dispose();
+                imageWindow = await _results.OpenImageAsync(
+                    image,
+                    completionPoint,
+                    imageCancellation.Token);
             }
 
             var cancellationToken = imageCancellation?.Token ?? CancellationToken.None;
@@ -89,7 +94,7 @@ public sealed class ScreenshotShortcutAction(
                 cancellationToken: cancellationToken);
             if (action == CaptureOverlayAction.CopyImageTranslated)
             {
-                await ProcessImageAsync(image, recognition, completionPoint, cancellationToken);
+                await ProcessImageAsync(imageWindow!, image, recognition, cancellationToken);
                 return;
             }
 
@@ -100,17 +105,31 @@ public sealed class ScreenshotShortcutAction(
         }
         catch (OperationCanceledException) when (imageCancellation?.IsCancellationRequested == true)
         {
+            if (imageWindow is not null)
+                await _results.CloseImageAsync(imageWindow);
         }
         catch (OcrModelNotDownloadedException)
         {
-            await _results.ShowMessageAsync(
-                EasyChat.Presentation.Lang.Resources.OcrModelRequiredTitle,
-                EasyChat.Presentation.Lang.Resources.OcrModelRequiredMessage);
+            if (imageWindow is not null)
+            {
+                await _results.ShowImageFailureAsync(
+                    imageWindow,
+                    EasyChat.Presentation.Lang.Resources.OcrModelRequiredMessage);
+            }
+            else
+            {
+                await _results.ShowMessageAsync(
+                    EasyChat.Presentation.Lang.Resources.OcrModelRequiredTitle,
+                    EasyChat.Presentation.Lang.Resources.OcrModelRequiredMessage);
+            }
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Screenshot OCR processing failed.");
-            await _results.ShowMessageAsync("OCR Error", exception.Message);
+            if (imageWindow is not null)
+                await _results.ShowImageFailureAsync(imageWindow, exception.Message);
+            else
+                await _results.ShowMessageAsync("OCR Error", exception.Message);
         }
         finally
         {
@@ -199,33 +218,32 @@ public sealed class ScreenshotShortcutAction(
     }
 
     private async Task ProcessImageAsync(
+        ScreenshotImageResultSession window,
         ImageFrame image,
         OcrRecognitionResult recognition,
-        PhysicalScreenPoint completionPoint,
         CancellationToken cancellationToken)
     {
         if (recognition.Regions.Count == 0)
         {
-            await _results.ShowMessageAsync("OCR Warning", "No text detected.");
+            await _results.ShowImageFailureAsync(window, "No text detected.");
             return;
         }
 
-        var result = await _screenshots.TranslateImageAsync(
-            image,
-            recognition,
+        var result = await Task.Run(
+            () => _screenshots.TranslateImageAsync(image, recognition, cancellationToken),
             cancellationToken);
         if (result.TranslatedBlockCount == 0)
         {
-            await _results.ShowMessageAsync(
-                "Image Translation",
+            await _results.ShowImageFailureAsync(
+                window,
                 result.Warnings.FirstOrDefault() ?? "No text could be translated.");
             return;
         }
 
-        await _results.ShowImageAsync(
+        await _results.ShowImageResultAsync(
+            window,
             result.Image,
             result.Warnings,
-            completionPoint,
             cancellationToken);
     }
 
