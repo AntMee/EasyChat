@@ -228,6 +228,9 @@ try {
     }
 
     $statements = @(
+        # Velopack 1.2.0 writes this localization resource key into the shortcut
+        # comment field instead of resolving it, which Windows shows on hover.
+        'UPDATE `Shortcut` SET `Description` = ''EasyChat'' WHERE `Description` = ''MsiDesktopShortcutDescription''',
         'INSERT INTO `Dialog` (`Dialog`, `HCentering`, `VCentering`, `Width`, `Height`, `Attributes`, `Title`, `Control_First`, `Control_Default`, `Control_Cancel`) VALUES (''LanguageDlg'', 50, 50, 370, 270, 7, ''EasyChat Setup / __ZH_SETUP__'', ''Chinese'', ''Chinese'', ''Cancel'')',
         'INSERT INTO `Control` (`Dialog_`, `Control`, `Type`, `X`, `Y`, `Width`, `Height`, `Attributes`, `Property`, `Text`, `Control_Next`, `Help`) VALUES (''LanguageDlg'', ''DialogBitmap'', ''Bitmap'', 0, 0, 115, 234, 1, '''', ''EasyChat_Language_Dialog_Bmp'', '''', '''')',
         'INSERT INTO `Control` (`Dialog_`, `Control`, `Type`, `X`, `Y`, `Width`, `Height`, `Attributes`, `Property`, `Text`, `Control_Next`, `Help`) VALUES (''LanguageDlg'', ''BottomLine'', ''Line'', 0, 234, 370, 0, 1, '''', '''', '''', '''')',
