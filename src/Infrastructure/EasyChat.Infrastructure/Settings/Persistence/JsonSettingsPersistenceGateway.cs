@@ -24,26 +24,42 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
 
     private readonly Func<string> _configurationDirectory;
     private readonly ISettingsFileStore _fileStore;
+    private readonly BuiltInPromptAssetReader _builtInPromptAssetReader;
 
     public JsonSettingsPersistenceGateway(string configurationDirectory)
-        : this(() => configurationDirectory, new PhysicalSettingsFileStore())
+        : this(
+            () => configurationDirectory,
+            GetDefaultAssetsDirectory(),
+            new PhysicalSettingsFileStore())
     {
     }
 
     internal JsonSettingsPersistenceGateway(Func<string> configurationDirectory)
-        : this(configurationDirectory, new PhysicalSettingsFileStore())
+        : this(
+            configurationDirectory,
+            GetDefaultAssetsDirectory(),
+            new PhysicalSettingsFileStore())
     {
     }
 
     internal JsonSettingsPersistenceGateway(
         string configurationDirectory,
         ISettingsFileStore fileStore)
-        : this(() => configurationDirectory, fileStore)
+        : this(() => configurationDirectory, GetDefaultAssetsDirectory(), fileStore)
+    {
+    }
+
+    internal JsonSettingsPersistenceGateway(
+        string configurationDirectory,
+        string assetsDirectory,
+        ISettingsFileStore fileStore)
+        : this(() => configurationDirectory, assetsDirectory, fileStore)
     {
     }
 
     internal JsonSettingsPersistenceGateway(
         Func<string> configurationDirectory,
+        string assetsDirectory,
         ISettingsFileStore fileStore)
     {
         ArgumentNullException.ThrowIfNull(configurationDirectory);
@@ -51,6 +67,7 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
 
         _configurationDirectory = configurationDirectory;
         _fileStore = fileStore;
+        _builtInPromptAssetReader = new BuiltInPromptAssetReader(assetsDirectory, fileStore);
     }
 
     public async ValueTask<Result<SettingsBundle>> ReadAllAsync(
@@ -60,11 +77,13 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
 
         try
         {
+            // General settings determine which prompt asset is used on first creation.
+            var general = await ReadAsync<GeneralSettingsDto>(
+                GeneralFileName,
+                cancellationToken).ConfigureAwait(false);
             var dto = new SettingsBundleDto
             {
-                General = await ReadAsync<GeneralSettingsDto>(
-                    GeneralFileName,
-                    cancellationToken).ConfigureAwait(false),
+                General = general,
                 AiModel = await ReadAsync<AiModelSettingsDto>(
                     AiModelFileName,
                     cancellationToken).ConfigureAwait(false),
@@ -76,8 +95,9 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
                 Shortcut = await ReadAsync<ShortcutSettingsDto>(
                     ShortcutFileName,
                     cancellationToken).ConfigureAwait(false),
-                Prompts = await ReadAsync<PromptSettingsDto>(
+                Prompts = await ReadPromptsAsync(
                     PromptsFileName,
+                    general.DisplayLanguage,
                     cancellationToken).ConfigureAwait(false),
                 Result = await ReadAsync<ResultSettingsDto>(ResultFileName, cancellationToken)
                     .ConfigureAwait(false),
@@ -100,12 +120,6 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
                 Ocr = await ReadAsync<OcrSettingsDto>(OcrFileName, cancellationToken)
                     .ConfigureAwait(false)
             };
-
-            if (dto.Prompts.RequiresPersistence)
-            {
-                await WriteAsync(PromptsFileName, dto.Prompts, cancellationToken)
-                    .ConfigureAwait(false);
-            }
 
             cancellationToken.ThrowIfCancellationRequested();
             return Result<SettingsBundle>.Success(SettingsPersistenceMapper.ToContract(dto));
@@ -308,6 +322,36 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
         return dto;
     }
 
+    private async ValueTask<PromptSettingsDto> ReadPromptsAsync(
+        string fileName,
+        string? displayLanguage,
+        CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(ConfigurationDirectory, fileName);
+        string json;
+        try
+        {
+            json = await _fileStore.ReadAllTextAsync(path, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (
+            exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            var settings = await _builtInPromptAssetReader
+                .ReadAsync(displayLanguage, cancellationToken)
+                .ConfigureAwait(false);
+            await WriteAsync(fileName, settings, cancellationToken).ConfigureAwait(false);
+            return settings;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var dto = JsonConvert.DeserializeObject<PromptSettingsDto>(json)
+                  ?? throw new JsonSerializationException(
+                      $"Configuration file '{fileName}' deserialized to null.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return dto;
+    }
+
     private async ValueTask WriteAsync<T>(
         string fileName,
         T settings,
@@ -323,4 +367,7 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
     }
 
     private string ConfigurationDirectory => Path.GetFullPath(_configurationDirectory());
+
+    private static string GetDefaultAssetsDirectory() =>
+        Path.Combine(AppContext.BaseDirectory, "Assets");
 }

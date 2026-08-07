@@ -1,4 +1,3 @@
-using System.Runtime.Serialization;
 using EasyChat.Contracts.Settings;
 using Newtonsoft.Json;
 
@@ -125,79 +124,10 @@ internal sealed class ShortcutParameterSettingsDto
 internal sealed class PromptSettingsDto
 {
     [JsonProperty]
-    public string SelectedPromptId { get; set; } = SettingsDefaults.DefaultPromptId;
-
-    [JsonProperty]
-    public bool BuiltInPromptsSeeded { get; set; } = true;
-
-    [JsonProperty]
-    public int BuiltInPromptCatalogVersion { get; set; } = SettingsDefaults.BuiltInPromptCatalogVersion;
-
-    [JsonIgnore]
-    public bool RequiresPersistence { get; private set; }
+    public string SelectedPromptId { get; set; } = string.Empty;
 
     [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
-    public List<PromptEntrySettingsDto> Entries { get; set; } =
-        SettingsDefaults.CreateBuiltInPrompts();
-
-    [OnDeserializing]
-    internal void BeginDeserialization(StreamingContext context)
-    {
-        // Missing in a pre-role-prompt configuration means the catalog has not been seeded.
-        BuiltInPromptsSeeded = false;
-        BuiltInPromptCatalogVersion = 0;
-    }
-
-    [OnDeserialized]
-    internal void RemoveDuplicateEntries(StreamingContext context)
-    {
-        if (!BuiltInPromptsSeeded)
-        {
-            AddMissingEntries(SettingsDefaults.CreateBuiltInPrompts());
-            BuiltInPromptsSeeded = true;
-            BuiltInPromptCatalogVersion = SettingsDefaults.BuiltInPromptCatalogVersion;
-            RequiresPersistence = true;
-        }
-        else
-        {
-            // Versioned catalogs were introduced after the initial role presets.
-            // A seeded file without a version is therefore version 1, which lets
-            // us add only newly introduced presets without restoring deletions.
-            if (BuiltInPromptCatalogVersion <= 0)
-                BuiltInPromptCatalogVersion = 1;
-
-            if (BuiltInPromptCatalogVersion < SettingsDefaults.BuiltInPromptCatalogVersion)
-            {
-                foreach (var entry in Entries)
-                    SettingsDefaults.UpgradeLegacyBuiltInPrompt(entry);
-
-                AddMissingEntries(SettingsDefaults.CreateBuiltInPromptsAddedAfter(BuiltInPromptCatalogVersion));
-                BuiltInPromptCatalogVersion = SettingsDefaults.BuiltInPromptCatalogVersion;
-                RequiresPersistence = true;
-            }
-        }
-
-        Entries = Entries
-            .GroupBy(entry => new { entry.Name, entry.Content, entry.IsDefault })
-            .Select(group => group.First())
-            .ToList();
-    }
-
-    private void AddMissingEntries(IEnumerable<PromptEntrySettingsDto> prompts)
-    {
-        var hasDefault = Entries.Any(entry => entry.IsDefault);
-        foreach (var prompt in prompts)
-        {
-            if (Entries.Any(entry => string.Equals(entry.Id, prompt.Id, StringComparison.Ordinal)))
-                continue;
-
-            if (prompt.IsDefault && hasDefault)
-                prompt.IsDefault = false;
-            else if (prompt.IsDefault)
-                hasDefault = true;
-            Entries.Add(prompt);
-        }
-    }
+    public List<PromptEntrySettingsDto> Entries { get; set; } = [];
 }
 
 [JsonObject(MemberSerialization.OptIn)]

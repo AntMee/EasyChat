@@ -57,13 +57,8 @@ public sealed class SettingsPersistenceContractTests
                 ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
                 result.Value.Screenshot.OcrIdleTimeoutSeconds);
             Assert.AreEqual("EdgeTTS", result.Value.Tts.Provider);
-            Assert.HasCount(8, result.Value.Prompts.Entries);
-            Assert.AreEqual("builtin-professional-translator", result.Value.Prompts.SelectedPromptId);
-            Assert.AreEqual(
-                "builtin-professional-translator",
-                result.Value.Prompts.Entries.Single(prompt => prompt.IsDefault).Id);
-            Assert.IsTrue(result.Value.Prompts.Entries.Any(prompt =>
-                prompt.Id == "builtin-professional-translator-zh"));
+            var expectedPrompts = ReadBuiltInPrompts(result.Value.General.DisplayLanguage);
+            AssertPromptAssetWasImported(expectedPrompts, result.Value.Prompts);
             StringAssert.Contains(
                 await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
                 "\"BaseTheme\": \"Default\"");
@@ -370,7 +365,41 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
-    public async Task BuiltInPromptRoles_SeedOnceAndStayDeleted()
+    [DataRow("English")]
+    [DataRow("Simplified Chinese")]
+    public async Task BuiltInPromptAssets_UseDisplayLanguageOnFirstCreation(
+        string displayLanguage)
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "General.json"),
+                $$"""
+                {
+                  "DisplayLanguage": "{{displayLanguage}}"
+                }
+                """);
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+
+            var result = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(result.IsSuccess, result.Error.Message);
+            AssertPromptAssetWasImported(
+                ReadBuiltInPrompts(displayLanguage),
+                result.Value.Prompts);
+            var json = await File.ReadAllTextAsync(Path.Combine(directory, "Prompts.json"));
+            Assert.IsFalse(json.Contains("BuiltInPromptsSeeded", StringComparison.Ordinal));
+            Assert.IsFalse(json.Contains("BuiltInPromptCatalogVersion", StringComparison.Ordinal));
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
+    public async Task ExistingPromptSettings_AreNeverSeededOrRestored()
     {
         var directory = CreateTemporaryDirectory();
         try
@@ -381,38 +410,34 @@ public sealed class SettingsPersistenceContractTests
                 Path.Combine(directory, "Prompts.json"),
                 """
                 {
-                  "SelectedPromptId": "legacy",
+                  "SelectedPromptId": "custom",
+                  "BuiltInPromptsSeeded": true,
+                  "BuiltInPromptCatalogVersion": 2,
                   "Entries": [
                     {
-                      "Id": "legacy",
-                      "Name": "Legacy",
-                      "Content": "A legacy role.",
+                      "Id": "custom",
+                      "Name": "Custom",
+                      "Content": "My custom role.",
                       "IsDefault": true
                     }
                   ]
                 }
                 """);
 
-            var seeded = await gateway.ReadAllAsync();
+            var existing = await gateway.ReadAllAsync();
 
-            Assert.IsTrue(seeded.IsSuccess, seeded.Error.Message);
-            Assert.HasCount(9, seeded.Value.Prompts.Entries);
-            Assert.IsTrue(seeded.Value.Prompts.Entries.Any(prompt =>
-                prompt.Id == "builtin-professional-translator"));
-            Assert.IsTrue(seeded.Value.Prompts.Entries.Any(prompt =>
-                prompt.Id == "builtin-professional-translator-zh"));
-            StringAssert.Contains(
-                await File.ReadAllTextAsync(Path.Combine(directory, "Prompts.json")),
-                "\"BuiltInPromptsSeeded\": true");
+            Assert.IsTrue(existing.IsSuccess, existing.Error.Message);
+            Assert.HasCount(1, existing.Value.Prompts.Entries);
+            Assert.AreEqual("custom", existing.Value.Prompts.Entries.Single().Id);
 
-            var deleted = seeded.Value with
+            var deleted = existing.Value with
             {
                 Prompts = new PromptSettings(string.Empty, [])
             };
-            var write = await gateway.WriteAsync(SettingsSection.Prompts, deleted);
+            Assert.IsTrue((await gateway.WriteAsync(SettingsSection.Prompts, deleted)).IsSuccess);
+
             var reread = await gateway.ReadAllAsync();
 
-            Assert.IsTrue(write.IsSuccess, write.Error.Message);
             Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
             Assert.IsEmpty(reread.Value.Prompts.Entries);
         }
@@ -423,66 +448,35 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
-    public async Task BuiltInPromptRoles_UpgradeV1WithoutRestoringDeletedEntries()
+    public async Task InvalidBuiltInPromptAsset_FailsWithoutCreatingPromptSettings()
     {
         var directory = CreateTemporaryDirectory();
         try
         {
-            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var assetsDirectory = Path.Combine(directory, "Assets");
+            Directory.CreateDirectory(assetsDirectory);
             await File.WriteAllTextAsync(
-                Path.Combine(directory, "Prompts.json"),
+                Path.Combine(directory, "General.json"),
+                "{ \"DisplayLanguage\": \"Simplified Chinese\" }");
+            await File.WriteAllTextAsync(
+                Path.Combine(assetsDirectory, "builtin.prompt.zh.json"),
                 """
-                {
-                  "SelectedPromptId": "builtin-professional-translator",
-                  "BuiltInPromptsSeeded": true,
-                  "Entries": [
-                    {
-                      "Id": "builtin-professional-translator",
-                      "Name": "Professional translator",
-                      "Content": "You are a professional translator. Produce accurate, fluent translations that preserve meaning, tone, terminology, formatting, and intent.",
-                      "IsDefault": true
-                    },
-                    {
-                      "Id": "custom",
-                      "Name": "Custom",
-                      "Content": "My custom role.",
-                      "IsDefault": false
-                    }
-                  ]
-                }
+                [
+                  { "id": "one", "name": "One", "content": "First", "isDefault": true },
+                  { "id": "two", "name": "Two", "content": "Second", "isDefault": true }
+                ]
                 """);
+            var gateway = new JsonSettingsPersistenceGateway(
+                directory,
+                assetsDirectory,
+                new PhysicalSettingsFileStore());
 
-            var upgraded = await gateway.ReadAllAsync();
+            var result = await gateway.ReadAllAsync();
 
-            Assert.IsTrue(upgraded.IsSuccess, upgraded.Error.Message);
-            Assert.HasCount(6, upgraded.Value.Prompts.Entries);
-            var professional = upgraded.Value.Prompts.Entries.Single(prompt =>
-                prompt.Id == "builtin-professional-translator");
-            StringAssert.Contains(professional.Content, "senior professional translator");
-            Assert.IsFalse(upgraded.Value.Prompts.Entries.Any(prompt =>
-                prompt.Id == "builtin-technical-translator"));
-            Assert.IsTrue(upgraded.Value.Prompts.Entries.Any(prompt =>
-                prompt.Id == "builtin-technical-translator-zh"));
-            StringAssert.Contains(
-                await File.ReadAllTextAsync(Path.Combine(directory, "Prompts.json")),
-                "\"BuiltInPromptCatalogVersion\": 2");
-
-            var removedChinesePreset = upgraded.Value with
-            {
-                Prompts = upgraded.Value.Prompts with
-                {
-                    Entries = upgraded.Value.Prompts.Entries
-                        .Where(prompt => prompt.Id != "builtin-professional-translator-zh")
-                        .ToArray()
-                }
-            };
-            Assert.IsTrue((await gateway.WriteAsync(SettingsSection.Prompts, removedChinesePreset)).IsSuccess);
-
-            var reread = await gateway.ReadAllAsync();
-
-            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
-            Assert.IsFalse(reread.Value.Prompts.Entries.Any(prompt =>
-                prompt.Id == "builtin-professional-translator-zh"));
+            Assert.IsTrue(result.IsFailure);
+            Assert.AreEqual("settings.read-failed", result.Error.Code);
+            StringAssert.Contains(result.Error.Message, "exactly one default prompt");
+            Assert.IsFalse(File.Exists(Path.Combine(directory, "Prompts.json")));
         }
         finally
         {
@@ -541,5 +535,51 @@ public sealed class SettingsPersistenceContractTests
         {
             Directory.Delete(fullPath, recursive: true);
         }
+    }
+
+    private static List<BuiltInPromptAssetDefinition> ReadBuiltInPrompts(string? displayLanguage)
+    {
+        var fileName = string.Equals(
+            displayLanguage,
+            "Simplified Chinese",
+            StringComparison.OrdinalIgnoreCase)
+            ? "builtin.prompt.zh.json"
+            : "builtin.prompt.en.json";
+        var path = Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
+        return JsonConvert.DeserializeObject<List<BuiltInPromptAssetDefinition>>(
+                   File.ReadAllText(path))
+               ?? throw new InvalidOperationException($"Asset '{fileName}' deserialized to null.");
+    }
+
+    private static void AssertPromptAssetWasImported(
+        IReadOnlyList<BuiltInPromptAssetDefinition> expected,
+        PromptSettings actual)
+    {
+        Assert.HasCount(expected.Count, actual.Entries);
+        CollectionAssert.AreEquivalent(
+            expected.Select(prompt => prompt.Id).ToArray(),
+            actual.Entries.Select(prompt => prompt.Id).ToArray());
+
+        foreach (var expectedPrompt in expected)
+        {
+            var actualPrompt = actual.Entries.Single(prompt => prompt.Id == expectedPrompt.Id);
+            Assert.AreEqual(expectedPrompt.Name, actualPrompt.Name);
+            Assert.AreEqual(expectedPrompt.Content, actualPrompt.Content);
+            Assert.AreEqual(expectedPrompt.IsDefault, actualPrompt.IsDefault);
+        }
+
+        var defaultPrompt = expected.Single(prompt => prompt.IsDefault);
+        Assert.AreEqual(defaultPrompt.Id, actual.SelectedPromptId);
+    }
+
+    private sealed class BuiltInPromptAssetDefinition
+    {
+        public string Id { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Content { get; set; } = string.Empty;
+
+        public bool IsDefault { get; set; }
     }
 }
