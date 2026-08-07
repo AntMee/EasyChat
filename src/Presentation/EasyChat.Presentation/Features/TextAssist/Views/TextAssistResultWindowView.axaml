@@ -83,7 +83,7 @@
                 </Button>
             </Grid>
             <Grid Grid.Row="1" MinHeight="100">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" IsVisible="{Binding !IsBusy}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="12">
                         <StackPanel Spacing="12" IsVisible="{Binding ShowCorrectionResult}">
                             <Border Padding="12" CornerRadius="8" Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
@@ -200,7 +200,7 @@
                         </Grid>
                     </ScrollViewer>
                 </Border>
-                <suki:Loading Width="24" Height="24" IsVisible="{Binding IsBusy}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <suki:Loading Width="24" Height="24" IsVisible="{Binding ShowLoadingIndicator}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
             <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Foreground="IndianRed" TextWrapping="Wrap" />
         </Grid>

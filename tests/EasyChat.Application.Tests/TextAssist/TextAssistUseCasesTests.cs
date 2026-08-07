@@ -76,7 +76,7 @@ public sealed class TextAssistUseCasesTests
     }
 
     [TestMethod]
-    public async Task StreamAsync_CorrectionWaitsForCompleteEventsAndFiltersRepeatedPayloads()
+    public async Task StreamAsync_CorrectionStreamsPartialEventsAndFiltersRepeatedPayloads()
     {
         var bundle = SettingsTestData.CreateBundle() with
         {
@@ -107,8 +107,10 @@ public sealed class TextAssistUseCasesTests
 
         var corrected = events.OfType<TextAssistCorrectedDeltaEvent>().ToArray();
         var translations = events.OfType<TextAssistCorrectionTranslationDeltaEvent>().ToArray();
-        Assert.HasCount(1, corrected);
-        Assert.AreEqual("Fixed text", corrected[0].Text);
+        CollectionAssert.AreEqual(new[] { "Fixed", " text", "Fixed text" }, corrected.Select(item => item.Text).ToArray());
+        Assert.IsTrue(corrected[0].IsStreamingPartial);
+        Assert.IsTrue(corrected[1].IsStreamingPartial);
+        Assert.IsFalse(corrected[2].IsStreamingPartial);
         Assert.HasCount(1, translations);
         Assert.AreEqual("Corrected translation", translations[0].Text);
         StringAssert.Contains(
@@ -157,6 +159,21 @@ public sealed class TextAssistUseCasesTests
         accumulator.EnsureComplete();
         Assert.AreEqual("Fixed text with detail", accumulator.CorrectedText);
         Assert.AreEqual("Corrected translation", accumulator.CorrectedTranslations[1]);
+    }
+
+    [TestMethod]
+    public void CorrectionAccumulator_PreservesRepeatedStreamingFragments()
+    {
+        var accumulator = new TextAssistCorrectionAccumulator(5);
+        var fragment = new TextAssistCorrectedDeltaEvent("very ") { IsStreamingPartial = true };
+
+        accumulator.Apply(new TextAssistStartedEvent("correction", "English", null));
+        accumulator.Apply(fragment);
+        accumulator.Apply(fragment);
+        accumulator.Apply(new TextAssistCompletedEvent());
+
+        accumulator.EnsureComplete();
+        Assert.AreEqual("very very ", accumulator.CorrectedText);
     }
 
     private static TextAssistUseCases Create(

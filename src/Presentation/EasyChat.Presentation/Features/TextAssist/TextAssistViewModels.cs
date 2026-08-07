@@ -658,11 +658,11 @@ namespace EasyChat.Presentation.Features.TextAssist
                     break;
                 case TextAssistCorrectedDeltaEvent delta:
                     _started = true;
-                    Append(_corrected, delta.Variant, delta.Text);
+                    Append(_corrected, delta.Variant, delta.Text, delta.IsStreamingPartial);
                     break;
                 case TextAssistCorrectionTranslationDeltaEvent translation:
                     _started = true;
-                    Append(_translations, translation.Variant, translation.Text);
+                    Append(_translations, translation.Variant, translation.Text, translation.IsStreamingPartial);
                     break;
                 case TextAssistCompletedEvent:
                     _started = true;
@@ -677,7 +677,11 @@ namespace EasyChat.Presentation.Features.TextAssist
             if (!_completed) throw new InvalidOperationException("Correction stream did not complete.");
         }
 
-        private static void Append(Dictionary<int, StringBuilder> values, int variant, string text)
+        private static void Append(
+            Dictionary<int, StringBuilder> values,
+            int variant,
+            string text,
+            bool isStreamingPartial = false)
         {
             variant = Math.Clamp(variant, 1, 3);
             if (string.IsNullOrEmpty(text))
@@ -685,6 +689,12 @@ namespace EasyChat.Presentation.Features.TextAssist
             if (!values.TryGetValue(variant, out var builder))
             {
                 values[variant] = new StringBuilder(text);
+                return;
+            }
+
+            if (isStreamingPartial)
+            {
+                builder.Append(text);
                 return;
             }
 
@@ -740,6 +750,7 @@ namespace EasyChat.Presentation.Features.TextAssist
         private bool _isCorrectionCorrect;
         private string _errorMessage = string.Empty;
         private bool _isBusy;
+        private bool _hasStreamingContent;
         private string _sourceLanguageId;
 
         public TextAssistResultWindowViewModel(
@@ -811,7 +822,27 @@ namespace EasyChat.Presentation.Features.TextAssist
         public string CopyText => IsCorrection ? (IsCorrectionCorrect ? SourceText : CorrectedResult) : Result;
         public string SourceText { get => _sourceText; set => this.RaiseAndSetIfChanged(ref _sourceText, value); }
         public string ErrorMessage { get => _errorMessage; private set => this.RaiseAndSetIfChanged(ref _errorMessage, value); }
-        public bool IsBusy { get => _isBusy; private set => this.RaiseAndSetIfChanged(ref _isBusy, value); }
+        public bool IsBusy
+        {
+            get => _isBusy;
+            private set
+            {
+                if (_isBusy == value) return;
+                this.RaiseAndSetIfChanged(ref _isBusy, value);
+                this.RaisePropertyChanged(nameof(ShowLoadingIndicator));
+            }
+        }
+        public bool HasStreamingContent
+        {
+            get => _hasStreamingContent;
+            private set
+            {
+                if (_hasStreamingContent == value) return;
+                this.RaiseAndSetIfChanged(ref _hasStreamingContent, value);
+                this.RaisePropertyChanged(nameof(ShowLoadingIndicator));
+            }
+        }
+        public bool ShowLoadingIndicator => IsBusy && !HasStreamingContent;
         public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
         public Task InitializeAsync(string sourceText, TextAssistOperation operation)
@@ -885,6 +916,7 @@ namespace EasyChat.Presentation.Features.TextAssist
                 foreach (var issue in correction.Issues) Issues.Add(issue);
                 this.RaisePropertyChanged(nameof(HasCorrectionIssues));
                 this.RaisePropertyChanged(nameof(CopyText));
+                UpdateStreamingContent();
                 return;
             }
 
@@ -894,10 +926,12 @@ namespace EasyChat.Presentation.Features.TextAssist
                     Result += delta.Text;
                     ResultMarkdown.Append(delta.Text);
                     this.RaisePropertyChanged(nameof(CopyText));
+                    UpdateStreamingContent();
                     break;
                 case TextAssistPolishExplanationEvent explanation:
                     PolishExplanations.Add(explanation);
                     this.RaisePropertyChanged(nameof(HasPolishExplanations));
+                    UpdateStreamingContent();
                     break;
             }
         }
@@ -915,10 +949,18 @@ namespace EasyChat.Presentation.Features.TextAssist
             PolishExplanations.Clear();
             IsCorrectionCorrect = false;
             ErrorMessage = string.Empty;
+            HasStreamingContent = false;
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
             this.RaisePropertyChanged(nameof(HasPolishExplanations));
             RaiseCorrectionProperties();
         }
+
+        private void UpdateStreamingContent() => HasStreamingContent =
+            !string.IsNullOrWhiteSpace(Result)
+            || !string.IsNullOrWhiteSpace(CorrectedResult)
+            || !string.IsNullOrWhiteSpace(CorrectionTranslation)
+            || Issues.Count > 0
+            || PolishExplanations.Count > 0;
 
         private void RaiseOperationProperties()
         {

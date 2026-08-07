@@ -50,6 +50,21 @@ public sealed class TextAssistCommandTests
     }
 
     [TestMethod]
+    public void CorrectionProjection_PreservesRepeatedStreamingFragments()
+    {
+        var projection = new TextAssistCorrectionProjection(12);
+        var fragment = new TextAssistCorrectedDeltaEvent("very ") { IsStreamingPartial = true };
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(fragment);
+        projection.Apply(fragment);
+        projection.Apply(new TextAssistCompletedEvent());
+
+        projection.EnsureComplete();
+        Assert.AreEqual("very very ", projection.CorrectedText);
+    }
+
+    [TestMethod]
     public async Task AutomaticRun_CompletesCommandLifecycleAndAllowsManualRun()
     {
         var viewModel = CreateViewModel();

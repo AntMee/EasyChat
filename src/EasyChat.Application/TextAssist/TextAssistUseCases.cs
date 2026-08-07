@@ -208,8 +208,7 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
                            "Empty text assist event.",
                            fallbackMode: "correction",
                            fallbackLanguage: profile.Source.EnglishName,
-                           cancellationToken,
-                           emitPartialDeltas: false).ConfigureAwait(false))
+                           cancellationToken).ConfigureAwait(false))
         {
             if (ShouldEmitCorrectionEvent(item, correctedPayloads, translationPayloads))
                 yield return item;
@@ -345,7 +344,8 @@ Output only the explanation, without a heading or meta commentary.
                 exception,
                 "Ignoring invalid text assist event: {Line}",
                 line),
-            emitPartialDeltas);
+            emitPartialDeltas,
+            MarkStreamingPartial);
         var rawResponse = new StringBuilder();
         var emittedEvent = false;
         await foreach (var chunk in provider.StreamAsync(request, cancellationToken).ConfigureAwait(false))
@@ -484,6 +484,8 @@ Never output text from the user-selected role.
     {
         return item switch
         {
+            TextAssistCorrectedDeltaEvent { IsStreamingPartial: true } => true,
+            TextAssistCorrectionTranslationDeltaEvent { IsStreamingPartial: true } => true,
             TextAssistCorrectedDeltaEvent delta => correctedPayloads.Add(
                 new CorrectionPayload(Math.Clamp(delta.Variant, 1, 3), delta.Text)),
             TextAssistCorrectionTranslationDeltaEvent translation => translationPayloads.Add(
@@ -491,6 +493,13 @@ Never output text from the user-selected role.
             _ => true
         };
     }
+
+    private static TextAssistEvent MarkStreamingPartial(TextAssistEvent item) => item switch
+    {
+        TextAssistCorrectedDeltaEvent delta => delta with { IsStreamingPartial = true },
+        TextAssistCorrectionTranslationDeltaEvent translation => translation with { IsStreamingPartial = true },
+        _ => item
+    };
 
     private sealed record CorrectionPayload(int Variant, string Text);
 

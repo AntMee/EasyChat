@@ -95,6 +95,8 @@
                                  AcceptsReturn="True" TextWrapping="Wrap"
                                  PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
                                  VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent"
+                                 FontFamily="{DynamicResource ContentControlThemeFontFamily}"
+                                 FontSize="16" FontWeight="Normal" LineHeight="23" LetterSpacing="0"
                                  PointerMoved="OnOriginalPointerMoved"
                                  PointerExited="OnOriginalPointerExited" />
                         <controls:CorrectionAnnotationLayer x:Name="AnnotationLayer" Classes="OriginalAnnotation" IsHitTestVisible="False"

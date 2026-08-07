@@ -68,11 +68,11 @@ public sealed class TextAssistCorrectionAccumulator
                 break;
             case TextAssistCorrectedDeltaEvent delta:
                 _started = true;
-                Append(_corrected, delta.Variant, delta.Text);
+                Append(_corrected, delta.Variant, delta.Text, delta.IsStreamingPartial);
                 break;
             case TextAssistCorrectionTranslationDeltaEvent translation:
                 _started = true;
-                Append(_translations, translation.Variant, translation.Text);
+                Append(_translations, translation.Variant, translation.Text, translation.IsStreamingPartial);
                 break;
             case TextAssistCompletedEvent:
                 _started = true;
@@ -95,7 +95,11 @@ public sealed class TextAssistCorrectionAccumulator
             _completed = true;
     }
 
-    private static void Append(Dictionary<int, StringBuilder> values, int variant, string text)
+    private static void Append(
+        Dictionary<int, StringBuilder> values,
+        int variant,
+        string text,
+        bool isStreamingPartial = false)
     {
         variant = variant <= 0 ? 1 : Math.Min(3, variant);
         if (string.IsNullOrEmpty(text))
@@ -103,6 +107,12 @@ public sealed class TextAssistCorrectionAccumulator
         if (!values.TryGetValue(variant, out var builder))
         {
             values[variant] = new StringBuilder(text);
+            return;
+        }
+
+        if (isStreamingPartial)
+        {
+            builder.Append(text);
             return;
         }
 

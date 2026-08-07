@@ -102,8 +102,17 @@ public sealed record TextAssistIssueEvent(
     string Message,
     string Suggestion) : TextAssistEvent;
 
-public sealed record TextAssistCorrectedDeltaEvent(string Text, int Variant = 1) : TextAssistEvent;
-public sealed record TextAssistCorrectionTranslationDeltaEvent(string Text, int Variant = 1) : TextAssistEvent;
+public sealed record TextAssistCorrectedDeltaEvent(string Text, int Variant = 1) : TextAssistEvent
+{
+    [JsonIgnore]
+    public bool IsStreamingPartial { get; init; }
+}
+
+public sealed record TextAssistCorrectionTranslationDeltaEvent(string Text, int Variant = 1) : TextAssistEvent
+{
+    [JsonIgnore]
+    public bool IsStreamingPartial { get; init; }
+}
 public sealed record TextAssistCompletedEvent : TextAssistEvent;
 
 public interface ITextAssistUseCases
