@@ -5,7 +5,6 @@ using EasyChat.Contracts.Selection;
 using EasyChat.Presentation.Foundation.Platform;
 using Material.Icons.Avalonia;
 using Microsoft.Extensions.Logging;
-using SukiUI.Controls;
 
 namespace EasyChat.Presentation.Features.SelectionTranslation.Views;
 
@@ -19,7 +18,7 @@ public partial class SelectionIconWindowView : Window
 
     private IPlatformWindowBehavior? _platformWindowBehavior;
     private ILogger<SelectionIconWindowView>? _logger;
-    private readonly Loading? _loadingSpinner;
+    private readonly ShadUI.Loading? _loadingSpinner;
     private readonly Control? _toolbar;
     private readonly Button? _translateButton;
     private readonly Button? _correctionButton;
@@ -30,7 +29,7 @@ public partial class SelectionIconWindowView : Window
     public SelectionIconWindowView()
     {
         InitializeComponent();
-        _loadingSpinner = this.FindControl<Loading>("LoadingSpinner");
+        _loadingSpinner = this.FindControl<ShadUI.Loading>("LoadingSpinner");
         _toolbar = this.FindControl<Control>("Toolbar");
         _translateButton = this.FindControl<Button>("TranslateButton");
         _correctionButton = this.FindControl<Button>("CorrectionButton");

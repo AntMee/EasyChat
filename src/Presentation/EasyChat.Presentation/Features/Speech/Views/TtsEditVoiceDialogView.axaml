@@ -1,15 +1,15 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Speech.Views.TtsEditVoiceDialogView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Speech.Views.TtsEditVoiceDialogView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Speech"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:dataConverters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="600"
              x:DataType="viewModels:TtsEditVoiceDialogViewModel"
              MinWidth="460"
@@ -17,28 +17,28 @@
              Width="500"
              Height="600">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Classes="EcDialogHeader">
+        <Border Padding="22,18,22,0">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Border Width="40" Height="40" CornerRadius="11"
-                        Background="{DynamicResource EcAccentSoft}">
+                        Background="{DynamicResource PrimaryColor10}">
                     <avalonia:MaterialIcon Kind="AccountVoice"
                                            Width="20" Height="20"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
-                                           Foreground="{DynamicResource EcAccent}" />
+                                           Foreground="{DynamicResource PrimaryColor}" />
                 </Border>
                 <TextBlock Grid.Column="1"
-                           Classes="EcDialogTitle"
+                           Classes="Large" TextWrapping="Wrap"
                            Text="{x:Static lang:Resources.Tts_EditVoiceMapping}"
                            VerticalAlignment="Center" />
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" Classes="EcDialogScroll" MaxHeight="480">
-            <StackPanel Classes="EcDialogBody">
+        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" Padding="22,0" MaxHeight="480" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
                 <!-- Language Selection -->
                 <StackPanel>
-                    <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.Language}"/>
+                    <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.Language}"/>
                     <sharedControls:LanguageSelector Languages="{Binding AvailableLanguages}"
                                                      SelectedLanguage="{Binding SelectedLanguage, Mode=TwoWay}"
                                                      HorizontalAlignment="Stretch" />
@@ -46,15 +46,11 @@
 
                 <!-- Voice Selection -->
                 <StackPanel>
-                    <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.Tts_Voice}"/>
+                    <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.Tts_Voice}"/>
                     <TextBox Text="{Binding SearchText}"
-                             PlaceholderText="{x:Static lang:Resources.Tts_SearchVoices}"
+                             shad:ControlAssist.Label="{x:Static lang:Resources.Tts_SearchVoices}"
                              Margin="0,0,0,8"/>
-                    <Border Background="{DynamicResource EcBgMuted}"
-                            BorderBrush="{DynamicResource EcBorder}"
-                            BorderThickness="1"
-                            CornerRadius="10"
-                            Padding="4">
+                    <shad:Card HasShadow="False">
                         <ListBox ItemsSource="{Binding FilteredVoices}"
                                  SelectedItem="{Binding SelectedVoice}"
                                  Height="300"
@@ -64,39 +60,36 @@
                                     <StackPanel Spacing="2" Margin="4,6">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <avalonia:MaterialIcon Kind="AccountVoice" Width="16" Height="16"
-                                                                   Foreground="{DynamicResource EcAccent}" />
+                                                                   Foreground="{DynamicResource PrimaryColor}" />
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource EcTextPrimary}"/>
+                                                       Foreground="{DynamicResource ForegroundColor}"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="{Binding LanguageId}" FontSize="11"
-                                                       Foreground="{DynamicResource EcTextSecondary}"/>
-                                            <TextBlock Text="{Binding Gender}" FontSize="11"
-                                                       Foreground="{DynamicResource EcTextSecondary}"/>
-                                            <TextBlock Text="{Binding Id}" FontSize="11"
-                                                       Foreground="{DynamicResource EcTextMuted}"/>
+                                            <TextBlock Text="{Binding LanguageId}" Classes="Muted"/>
+                                            <TextBlock Text="{Binding Gender}" Classes="Muted"/>
+                                            <TextBlock Text="{Binding Id}" Classes="Muted"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                    </Border>
+                    </shad:Card>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Classes="EcDialogFooter">
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="22,14,22,18" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundColor}" CornerRadius="{DynamicResource LgCornerRadius}">
             <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-                <Button Command="{Binding CancelCommand}" Classes="EcGhost" MinWidth="88"
+                <Button Command="{Binding CancelCommand}" Classes="Ghost" MinWidth="88"
                         Content="{x:Static lang:Resources.Cancel}" />
-                <Button Command="{Binding PreviewCommand}" Classes="EcGhost"
+                <Button Command="{Binding PreviewCommand}" Classes="Ghost"
                         ToolTip.Tip="{x:Static lang:Resources.Tts_PreviewVoice}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <avalonia:MaterialIcon Kind="PlayCircleOutline" Width="16" Height="16" />
                         <TextBlock Text="{x:Static lang:Resources.Tts_PreviewVoice}" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding SaveCommand}" Classes="EcPrimary" MinWidth="96"
+                <Button Command="{Binding SaveCommand}" Classes="Primary" MinWidth="96"
                         Content="{x:Static lang:Resources.Save}" />
             </StackPanel>
         </Border>

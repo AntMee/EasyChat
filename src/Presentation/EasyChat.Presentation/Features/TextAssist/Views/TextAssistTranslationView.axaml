@@ -1,11 +1,11 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
              xmlns:textAssist="using:EasyChat.Presentation.Features.TextAssist"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
              xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
              xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistTranslationView"
@@ -13,33 +13,17 @@
              x:DataType="vm:TextAssistTranslationViewModel">
     <UserControl.Styles>
         <Style Selector="ComboBox /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Foreground" Value="{DynamicResource EcTextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
         </Style>
         <Style Selector="ComboBoxItem">
-            <Setter Property="Foreground" Value="{DynamicResource EcTextPrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
         </Style>
 
-        <Style Selector="Border.EditorCard">
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="16" />
-        </Style>
-        <Style Selector="UserControl.Compact Border.EditorCard">
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="10" />
-        </Style>
         <Style Selector="Grid.EditorContent">
             <Setter Property="RowSpacing" Value="8" />
         </Style>
         <Style Selector="UserControl.Compact Grid.EditorContent">
             <Setter Property="RowSpacing" Value="5" />
-        </Style>
-        <Style Selector="TextBlock.SectionTitle">
-            <Setter Property="FontSize" Value="15" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource EcTextPrimary}" />
-        </Style>
-        <Style Selector="UserControl.Compact TextBlock.SectionTitle">
-            <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="Grid.EditorPair">
             <Setter Property="MinHeight" Value="150" />
@@ -56,7 +40,7 @@
         <!-- Quick translation result keeps theme-aware text color and compact size. -->
         <Style Selector="md|MarkdownRenderer.TextAssistResultMarkdown">
             <Style Selector="^ md|MarkdownTextBlock">
-                <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
                 <Setter Property="FontSize" Value="18" />
             </Style>
         </Style>
@@ -79,11 +63,11 @@
                 <RowDefinition Height="{Binding ShowAnnotations, Converter={x:Static converters:BoolToGridLengthConverter.Instance}, ConverterParameter=160}" />
             </Grid.RowDefinitions>
         <Grid Grid.Row="0" Classes="EditorPair" ColumnDefinitions="*,Auto,*" ColumnSpacing="4" VerticalAlignment="Stretch">
-                <Border Classes="EditorCard EcSurface">
+                <shad:Card HasShadow="True" ClipToBounds="True">
                     <Grid Classes="EditorContent" RowDefinitions="Auto,Auto,*">
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Classes="SectionTitle" Text="{x:Static lang:Resources.SourceLang}" />
-                            <Button Grid.Column="1" Classes="EcToolbarBtn" Command="{Binding SpeakSourceCommand}" ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Source}">
+                            <TextBlock Classes="Small" Text="{x:Static lang:Resources.SourceLang}" />
+                            <Button Grid.Column="1" Classes="Icon" Command="{Binding SpeakSourceCommand}" ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Source}">
                                 <avalonia:MaterialIcon Kind="VolumeHigh" />
                             </Button>
                         </Grid>
@@ -93,32 +77,32 @@
                         <Grid Grid.Row="2">
                             <TextBox x:Name="SourceTextBox" Classes="EditorTextBox" Text="{Binding InputText, Mode=TwoWay}"
                                      AcceptsReturn="True" TextWrapping="Wrap"
-                                     PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
+                                     shad:ControlAssist.Label="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
                                      VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent"
                                      />
                         </Grid>
                     </Grid>
-                </Border>
+                </shad:Card>
 
-                <Button Grid.Column="1" Classes="EcToolbarBtn" Width="36" Height="36" Padding="4"
+                <Button Grid.Column="1" Classes="Icon"
                         VerticalAlignment="Center" Command="{Binding SwapContentCommand}"
                         ToolTip.Tip="{x:Static lang:Resources.ReverseTranslateLanguageTip}">
                     <Border Width="28" Height="28" CornerRadius="999"
-                            Background="{DynamicResource EcAccentMuted}">
+                            Background="{DynamicResource PrimaryColor10}">
                         <avalonia:MaterialIcon Kind="SwapHorizontal" Width="16" Height="16"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcAccent}" />
+                                               Foreground="{DynamicResource PrimaryColor}" />
                     </Border>
                 </Button>
 
-                <Border Grid.Column="2" Classes="EditorCard EcSurface">
+                <shad:Card Grid.Column="2" HasShadow="True" ClipToBounds="True">
                     <Grid Classes="EditorContent" RowDefinitions="Auto,Auto,*">
                         <Grid ColumnDefinitions="*,Auto,Auto">
-                            <TextBlock Classes="SectionTitle" Text="{x:Static lang:Resources.TargetLang}" />
-                            <Button Grid.Column="1" Classes="EcToolbarBtn" Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
+                            <TextBlock Classes="Small" Text="{x:Static lang:Resources.TargetLang}" />
+                            <Button Grid.Column="1" Classes="Icon" Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
                                 <avalonia:MaterialIcon Kind="ContentCopy" />
                             </Button>
-                            <Button Grid.Column="2" Classes="EcToolbarBtn" Command="{Binding SpeakResultCommand}" ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Target}">
+                            <Button Grid.Column="2" Classes="Icon" Command="{Binding SpeakResultCommand}" ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Target}">
                                 <avalonia:MaterialIcon Kind="VolumeHigh" />
                             </Button>
                         </Grid>
@@ -133,59 +117,58 @@
                             </ScrollViewer>
                         </Grid>
                     </Grid>
-                </Border>
+                </shad:Card>
         </Grid>
 
             <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
                           Margin="0,6,0,6"
-                          Background="{DynamicResource EcBorder}"
+                          Background="{DynamicResource BorderColor}"
                           Opacity="0.85" Cursor="SizeNorthSouth"
                           ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                           IsVisible="{Binding ShowAnnotations}" />
 
-            <Border Grid.Row="2" Classes="EditorCard EcSurface" MinHeight="80"
+            <shad:Card Grid.Row="2" MinHeight="80" HasShadow="True" ClipToBounds="True"
                             IsVisible="{Binding ShowAnnotations}">
                 <Grid RowDefinitions="Auto,*" RowSpacing="10">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <avalonia:MaterialIcon Kind="BookOpenVariant" Width="18" Height="18"
-                                               Foreground="{DynamicResource EcAccent}" />
+                                               Foreground="{DynamicResource PrimaryColor}" />
                         <TextBlock Text="{x:Static lang:Resources.TextAssistAnnotations}"
-                                   Classes="SectionTitle" VerticalAlignment="Center" />
+                                   Classes="Small" VerticalAlignment="Center" />
                     </StackPanel>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Annotations}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="textAssist:TextAssistAnnotationViewModel">
-                                                <Border Margin="0,0,0,8" Padding="10" CornerRadius="10"
-                                                        Background="{DynamicResource EcBgMuted}"
-                                                        BorderBrush="{DynamicResource EcBorder}"
-                                                        BorderThickness="1">
+                                                <Border Margin="0,0,0,8"
+                                                        Background="{DynamicResource GhostColor}"
+                                                        BorderBrush="{DynamicResource BorderColor}"
+                                                        BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
                                                     <StackPanel Spacing="5">
                                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                                            <Button Classes="EcToolbarBtn" Padding="0"
+                                                            <Button Classes="Icon"
                                                                     Command="{Binding #TranslationView.((vm:TextAssistTranslationViewModel)DataContext).LookupAnnotationCommand}"
                                                                     CommandParameter="{Binding Term}"
                                                                     ToolTip.Tip="{x:Static lang:Resources.ResultWindowMode_Dictionary}">
                                                                 <TextBlock Text="{Binding Term}" FontWeight="SemiBold"
-                                                                           Foreground="{DynamicResource EcAccent}"
+                                                                           Foreground="{DynamicResource PrimaryColor}"
                                                                            TextDecorations="Underline" />
                                                             </Button>
                                                             <Border Padding="6,2" CornerRadius="999"
-                                                                    Background="{DynamicResource EcAccentMuted}">
-                                                                <TextBlock Text="{Binding DisplayCategory}" FontSize="11"
-                                                                           Foreground="{DynamicResource EcTextSecondary}" />
+                                                                    Background="{DynamicResource PrimaryColor10}">
+                                                                <TextBlock Text="{Binding DisplayCategory}" Classes="Caption"
+                                                                           Foreground="{DynamicResource MutedColor}" />
                                                             </Border>
                                                         </StackPanel>
                                                         <TextBlock Text="{Binding Meaning}" TextWrapping="Wrap"
-                                                                   Foreground="{DynamicResource EcTextPrimary}" />
+                                                                   Foreground="{DynamicResource ForegroundColor}" />
                                                         <TextBlock Text="{Binding Note}" TextWrapping="Wrap"
-                                                                   Foreground="{DynamicResource EcTextSecondary}"
+                                                                   Foreground="{DynamicResource MutedColor}"
                                                                    IsVisible="{Binding HasNote}" />
                                                         <StackPanel Orientation="Horizontal" Spacing="6"
                                                                     IsVisible="{Binding HasRelatedTerms}">
                                                             <TextBlock Text="{x:Static lang:Resources.TextAssistRelatedTerms}"
-                                                                       FontSize="12"
-                                                                       Foreground="{DynamicResource EcTextMuted}"
+                                                                       Classes="Muted"
                                                                        VerticalAlignment="Center" />
                                                             <ItemsControl ItemsSource="{Binding RelatedTerms}">
                                                                 <ItemsControl.ItemsPanel>
@@ -193,12 +176,12 @@
                                                                 </ItemsControl.ItemsPanel>
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate x:DataType="x:String">
-                                                                        <Button Classes="EcToolbarBtn" Padding="3,0"
+                                                                        <Button Classes="Icon"
                                                                                 Command="{Binding #TranslationView.((vm:TextAssistTranslationViewModel)DataContext).LookupAnnotationCommand}"
                                                                                 CommandParameter="{Binding}">
                                                                             <TextBlock Text="{Binding}"
-                                                                                       Foreground="{DynamicResource EcAccent}"
-                                                                                       TextDecorations="Underline" FontSize="12" />
+                                                                                       Foreground="{DynamicResource PrimaryColor}"
+                                                                                       TextDecorations="Underline" Classes="Caption" />
                                                                         </Button>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
@@ -211,31 +194,30 @@
                     </ItemsControl>
                     </ScrollViewer>
                 </Grid>
-            </Border>
+            </shad:Card>
         </Grid>
 
             <!-- Always-visible config toggle (no hover-to-discover) -->
             <Border Grid.Row="1" Padding="0,6">
-                <Button Classes="EcGhost"
+                <Button Classes="Ghost"
                         HorizontalAlignment="Left"
                         Command="{Binding ToggleConfigurationCommand}"
-                        ToolTip.Tip="{Binding ConfigurationToggleText}"
-                        Padding="12,6">
+                        ToolTip.Tip="{Binding ConfigurationToggleText}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <avalonia:MaterialIcon Kind="{Binding ConfigurationToggleIcon}" Width="16" Height="16" />
                         <TextBlock Text="{Binding ConfigurationToggleText}"
                                    VerticalAlignment="Center"
-                                   FontSize="12.5" />
+                                   Classes="Caption" />
                     </StackPanel>
                 </Button>
             </Border>
 
-            <Border Grid.Row="2" Classes="EditorCard EcSurface"
+            <shad:Card Grid.Row="2" HasShadow="True" ClipToBounds="True"
                             IsVisible="{Binding IsConfigurationExpanded}">
                 <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="{x:Static lang:Resources.TransEngine}" FontSize="12" Opacity="0.7" />
+                            <TextBlock Text="{x:Static lang:Resources.TransEngine}" Classes="Muted" Opacity="0.7" />
                             <ComboBox ItemsSource="{Binding AvailableProviders}" SelectedItem="{Binding SelectedProvider}">
                             <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="6">
                                 <avalonia:MaterialIcon Kind="{Binding Converter={x:Static converters:TranslationEngineStringToIconKindConverter.Instance}}" Width="18" />
@@ -244,7 +226,7 @@
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="4" IsVisible="{Binding IsAiProvider}">
-                            <TextBlock Text="{x:Static lang:Resources.UsingAiModel}" FontSize="12" Opacity="0.7" />
+                            <TextBlock Text="{x:Static lang:Resources.UsingAiModel}" Classes="Muted" Opacity="0.7" />
                             <ComboBox ItemsSource="{Binding AvailableAiModels}" SelectedItem="{Binding SelectedAiModel}">
                             <ComboBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Spacing="6">
                                 <Panel Width="18" Height="18"><avalonia:MaterialIcon Kind="Translate" Opacity="0.65" /><Image Width="18" Height="18" Source="{Binding ModelType, Converter={x:Static converters:AiModelTypeConverters.ToIcon}}" /></Panel>
@@ -253,7 +235,7 @@
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Grid.Column="2" Spacing="4">
-                            <TextBlock Text="{x:Static lang:Resources.Prompts}" FontSize="12" Opacity="0.7" />
+                            <TextBlock Text="{x:Static lang:Resources.Prompts}" Classes="Muted" Opacity="0.7" />
                             <ComboBox ItemsSource="{Binding PromptEntries}" SelectedValue="{Binding SelectedPromptId}" SelectedValueBinding="{Binding Id}">
                             <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
                             </ComboBox>
@@ -279,20 +261,20 @@
                                       IsEnabled="{Binding IsAiProvider}" OnContent="" OffContent="" />
                     </Grid>
                 </StackPanel>
-            </Border>
+            </shad:Card>
 
             <Grid Grid.Row="3" Classes="EditorFooter" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-                <Button Command="{Binding RunCommand}" Classes="EcPrimary EditorInlineRun">
+                <Button Command="{Binding RunCommand}" Classes="Primary EditorInlineRun">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <avalonia:MaterialIcon Kind="Translate" IsVisible="{Binding !IsBusy}" />
-                        <suki:Loading Width="18" Height="18" IsVisible="{Binding IsBusy}" />
+                        <shad:Loading Width="18" Height="18" IsVisible="{Binding IsBusy}" />
                         <TextBlock Text="{x:Static lang:Resources.TextAssistTranslate}" />
                     </StackPanel>
                 </Button>
-                <Button Grid.Column="1" Command="{Binding CancelCommand}" Classes="EcGhost" IsVisible="{Binding IsBusy}">
+                <Button Grid.Column="1" Command="{Binding CancelCommand}" Classes="Ghost" IsVisible="{Binding IsBusy}">
                     <StackPanel Orientation="Horizontal" Spacing="6"><avalonia:MaterialIcon Kind="Stop" /><TextBlock Text="{x:Static lang:Resources.Cancel}" /></StackPanel>
                 </Button>
-                <TextBlock Grid.Column="2" Text="{Binding ErrorMessage}" Foreground="{DynamicResource EcDanger}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="{Binding ErrorMessage}" Foreground="{DynamicResource DestructiveColor}" TextWrapping="Wrap" VerticalAlignment="Center" />
             </Grid>
     </Grid>
 </UserControl>

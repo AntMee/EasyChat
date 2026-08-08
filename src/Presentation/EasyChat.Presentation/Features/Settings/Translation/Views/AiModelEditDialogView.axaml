@@ -1,41 +1,41 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Settings.Translation.Views.AiModelEditDialogView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Translation.Views.AiModelEditDialogView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings.Translation"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:config="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="440" d:DesignHeight="520"
              x:DataType="viewModels:AiModelEditDialogViewModel"
              MinWidth="400"
              MaxWidth="480"
              Width="440">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Classes="EcDialogHeader">
+        <Border Padding="22,18,22,0">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Border Width="40" Height="40" CornerRadius="11"
-                        Background="{DynamicResource EcAccentSoft}">
+                        Background="{DynamicResource PrimaryColor10}">
                     <avalonia:MaterialIcon Kind="RobotOutline"
                                            Width="20" Height="20"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
-                                           Foreground="{DynamicResource EcAccent}" />
+                                           Foreground="{DynamicResource PrimaryColor}" />
                 </Border>
                 <TextBlock Grid.Column="1"
-                           Classes="EcDialogTitle"
-                           Text="{Binding ButtonText}"
+                           Classes="Large" TextWrapping="Wrap"
+                           Text="{Binding Title}"
                            VerticalAlignment="Center" />
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" Classes="EcDialogScroll">
-        <StackPanel Classes="EcDialogBody">
+        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" Padding="22,0" MaxHeight="480" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="14">
             <StackPanel>
-                <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.ModelType}" />
+                <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.ModelType}" />
                 <ComboBox ItemsSource="{Binding AvailableModelTypes}"
                           SelectedItem="{Binding SelectedModelType}"
                           HorizontalAlignment="Stretch">
@@ -48,7 +48,7 @@
                                 </Border>
                                 <TextBlock Text="{Binding}"
                                            VerticalAlignment="Center"
-                                           Foreground="{DynamicResource EcTextPrimary}" />
+                                           Foreground="{DynamicResource ForegroundColor}" />
                             </StackPanel>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
@@ -56,29 +56,29 @@
             </StackPanel>
 
             <StackPanel>
-                <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.ModelName}" />
+                <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.ModelName}" />
                 <TextBox Text="{Binding Name}"
-                         PlaceholderText="{x:Static lang:Resources.ModelName}"
-                         suki:TextBoxExtensions.AddDeleteButton="True" />
+                         shad:ControlAssist.Label="{x:Static lang:Resources.ModelName}"
+                         Classes="Clearable" />
             </StackPanel>
 
             <StackPanel>
-                <TextBlock Classes="EcFieldLabel" Text="API URL" />
+                <TextBlock Classes="Small" Margin="0,0,0,6" Text="API URL" />
                 <TextBox Text="{Binding ApiUrl}"
-                         PlaceholderText="https://api.example.com"
-                         suki:TextBoxExtensions.AddDeleteButton="True" />
+                         shad:ControlAssist.Label="https://api.example.com"
+                         Classes="Clearable" />
             </StackPanel>
 
             <StackPanel>
-                <TextBlock Classes="EcFieldLabel" Text="API Key" />
+                <TextBlock Classes="Small" Margin="0,0,0,6" Text="API Key" />
                 <TextBox Text="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         PlaceholderText="sk-..."
+                         shad:ControlAssist.Label="sk-..."
                          PasswordChar="*"
-                         suki:TextBoxExtensions.AddDeleteButton="True" />
+                         Classes="Clearable" />
             </StackPanel>
 
             <StackPanel>
-                <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.Model}" />
+                <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.Model}" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                     <AutoCompleteBox Grid.Column="0"
                                      ItemsSource="{Binding AvailableModels}"
@@ -92,38 +92,36 @@
                                      PointerPressed="OnModelSelectorPointerPressed"
                                      HorizontalAlignment="Stretch" />
                     <Button Grid.Column="1"
-                            Classes="EcToolbarBtn"
+                            Classes="Icon"
                             VerticalAlignment="Center"
                             Command="{Binding FetchModelsCommand}"
                             ToolTip.Tip="{x:Static lang:Resources.FetchModels}"
                             ToolTip.Placement="Top">
                         <avalonia:MaterialIcon Kind="Download" Width="16" Height="16"
-                                               Foreground="{DynamicResource EcTextSecondary}" />
+                                               Foreground="{DynamicResource MutedColor}" />
                     </Button>
                 </Grid>
                 <TextBlock Text="{Binding FetchModelsError}"
                            IsVisible="{Binding FetchModelsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                           Foreground="{DynamicResource EcDanger}"
+                           Foreground="{DynamicResource DestructiveColor}"
                            TextWrapping="Wrap"
                            Margin="0,6,0,0" />
             </StackPanel>
 
-            <Border IsVisible="{Binding IsModelConfirmationRequired}"
-                    Padding="12,10"
-                    CornerRadius="{DynamicResource EcRadiusMd}"
-                    Background="{DynamicResource EcBgMuted}"
-                    BorderBrush="{DynamicResource EcWarning}"
-                    BorderThickness="1">
+            <shad:Card IsVisible="{Binding IsModelConfirmationRequired}"
+                       HasShadow="False"
+                       Background="{DynamicResource GhostColor}"
+                       BorderBrush="{DynamicResource WarningColor}">
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                     <avalonia:MaterialIcon Kind="AlertOutline"
                                            Width="18" Height="18"
-                                           Foreground="{DynamicResource EcWarning}" />
+                                           Foreground="{DynamicResource WarningColor}" />
                     <TextBlock Grid.Column="1"
                                Text="{Binding ModelConfirmationMessage}"
                                TextWrapping="Wrap"
-                               Foreground="{DynamicResource EcTextPrimary}" />
+                               Foreground="{DynamicResource ForegroundColor}" />
                 </Grid>
-            </Border>
+            </shad:Card>
 
             <CheckBox Content="{x:Static lang:Resources.EnableThinking}"
                       IsChecked="{Binding EnableThinking}" />
@@ -132,23 +130,23 @@
         </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Classes="EcDialogFooter">
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="22,14,22,18" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundColor}" CornerRadius="{DynamicResource LgCornerRadius}">
             <StackPanel Orientation="Horizontal"
                         Spacing="10"
                         HorizontalAlignment="Right">
                 <Button Content="{x:Static lang:Resources.Cancel}"
                         Command="{Binding CancelCommand}"
-                        Classes="EcGhost"
+                        Classes="Ghost"
                         MinWidth="88" />
                 <Button Content="{Binding ButtonText}"
                         Command="{Binding SaveCommand}"
                         IsVisible="{Binding IsModelConfirmationNotRequired}"
-                        Classes="EcPrimary"
+                        Classes="Primary"
                         MinWidth="96" />
                 <Button Content="{x:Static lang:Resources.Confirm}"
                         Command="{Binding ConfirmSaveCommand}"
                         IsVisible="{Binding IsModelConfirmationRequired}"
-                        Classes="EcPrimary"
+                        Classes="Primary"
                         MinWidth="96" />
             </StackPanel>
         </Border>

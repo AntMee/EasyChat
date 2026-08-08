@@ -7,12 +7,13 @@ using EasyChat.Presentation.Foundation.Navigation;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Foundation.UiHost;
 using ReactiveUI;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Settings.Translation
 {
     public sealed class AiModelEditDialogViewModel : ConventionViewModelBase
     {
-        private readonly IUiDialogSession _dialog;
+        private readonly DialogManager _dialogManager;
         private readonly IAiModelCatalogTransport _catalog;
         private readonly CustomAiModelState? _existing;
         private CancellationTokenSource? _scheduledModelFetch;
@@ -30,11 +31,11 @@ namespace EasyChat.Presentation.Features.Settings.Translation
         private bool _enableThinking;
 
         public AiModelEditDialogViewModel(
-            IUiDialogSession dialog,
+            DialogManager dialogManager,
             IAiModelCatalogTransport catalog,
             CustomAiModelState? existing = null)
         {
-            _dialog = dialog;
+            _dialogManager = dialogManager;
             _catalog = catalog;
             _existing = existing;
             if (existing is null)
@@ -72,6 +73,7 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                     (url, fetching) => !fetching && !string.IsNullOrWhiteSpace(url)));
         }
 
+        public string Title => _existing is null ? Resources.AddModel : Resources.EditModel;
         public string ButtonText => _existing is null ? Resources.Add : Resources.Save;
         public List<AiModelType> AvailableModelTypes { get; } = Enum.GetValues<AiModelType>().ToList();
         public ObservableCollection<string> AvailableModels { get; } = [];
@@ -190,14 +192,14 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                 Model,
                 UseProxy,
                 EnableThinking));
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private void Cancel()
         {
             CancelModelFetches();
             OnClose?.Invoke(null);
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private Task FetchModelsManuallyAsync()
@@ -358,23 +360,23 @@ namespace EasyChat.Presentation.Features.Settings.Translation
 
     public sealed class KeyListEditorViewModel : ConventionViewModelBase
     {
-        private readonly IUiDialogSession _dialog;
+        private readonly DialogManager _dialogManager;
         private readonly KeyListType _type;
 
         public KeyListEditorViewModel(
-            IUiDialogSession dialog,
+            DialogManager dialogManager,
             string title,
             KeyListType type,
             IEnumerable<KeyItemViewModelBase> items)
         {
-            _dialog = dialog;
+            _dialogManager = dialogManager;
             _type = type;
             Title = title;
             Items = new ObservableCollection<KeyItemViewModelBase>(items);
             AddCommand = ReactiveCommand.Create(Add);
             RemoveCommand = ReactiveCommand.Create<KeyItemViewModelBase>(item => Items.Remove(item));
             SaveCommand = ReactiveCommand.Create(Save);
-            CancelCommand = ReactiveCommand.Create(dialog.Dismiss);
+            CancelCommand = ReactiveCommand.Create(() => dialogManager.Close(this));
         }
 
         public string Title { get; }
@@ -395,7 +397,7 @@ namespace EasyChat.Presentation.Features.Settings.Translation
         private void Save()
         {
             OnSave?.Invoke(Items);
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
     }
 }

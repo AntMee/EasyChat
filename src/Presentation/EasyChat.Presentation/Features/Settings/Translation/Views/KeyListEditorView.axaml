@@ -1,11 +1,11 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Settings.Translation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:theme="https://github.com/kikipoulet/SukiUI"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
              x:Class="EasyChat.Presentation.Features.Settings.Translation.Views.KeyListEditorView"
              x:DataType="vm:KeyListEditorViewModel"
@@ -14,55 +14,48 @@
              Width="480">
 
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Classes="EcDialogHeader">
+        <Border Padding="22,18,22,0">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Border Width="40" Height="40" CornerRadius="11"
-                        Background="{DynamicResource EcAccentSoft}">
+                        Background="{DynamicResource PrimaryColor10}">
                     <avalonia:MaterialIcon Kind="KeyVariant"
                                            Width="20" Height="20"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
-                                           Foreground="{DynamicResource EcAccent}" />
+                                           Foreground="{DynamicResource PrimaryColor}" />
                 </Border>
                 <TextBlock Grid.Column="1"
-                           Classes="EcDialogTitle"
+                           Classes="Large" TextWrapping="Wrap"
                            Text="{Binding Title}"
                            VerticalAlignment="Center" />
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" Classes="EcDialogScroll" MaxHeight="320">
-            <StackPanel Classes="EcDialogBody">
+        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" Padding="22,0" MaxHeight="320" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
                 <ItemsControl ItemsSource="{Binding Items}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="0,0,0,10"
-                                    Padding="12"
-                                    Background="{DynamicResource EcBgMuted}"
-                                    BorderBrush="{DynamicResource EcBorder}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource EcRadiusMd}">
+                            <shad:Card Margin="0,0,0,10"
+                                       HasShadow="False"
+                                       Background="{DynamicResource GhostColor}">
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                     <ContentControl Content="{Binding}">
                                         <ContentControl.DataTemplates>
                                             <DataTemplate DataType="vm:StringKeyItemViewModel">
-                                                <TextBox Text="{Binding Value}" PlaceholderText="API Key" />
+                                                <TextBox Text="{Binding Value}" shad:ControlAssist.Label="API Key" />
                                             </DataTemplate>
                                             <DataTemplate DataType="vm:BaiduKeyItemViewModel">
                                                 <StackPanel Spacing="8">
-                                                    <TextBox Text="{Binding AppId}" PlaceholderText="App ID"
-                                                             theme:TextBoxExtensions.AddDeleteButton="True" />
-                                                    <TextBox Text="{Binding AppKey}" PlaceholderText="App Key"
-                                                             theme:TextBoxExtensions.AddDeleteButton="True"
+                                                    <TextBox Classes="Clearable" Text="{Binding AppId}" shad:ControlAssist.Label="App ID" />
+                                                    <TextBox Classes="Clearable" Text="{Binding AppKey}" shad:ControlAssist.Label="App Key"
                                                              PasswordChar="*" />
                                                 </StackPanel>
                                             </DataTemplate>
                                             <DataTemplate DataType="vm:TencentKeyItemViewModel">
                                                 <StackPanel Spacing="8">
-                                                    <TextBox Text="{Binding SecretId}" PlaceholderText="Secret ID"
-                                                             theme:TextBoxExtensions.AddDeleteButton="True" />
-                                                    <TextBox Text="{Binding SecretKey}" PlaceholderText="Secret Key"
-                                                             theme:TextBoxExtensions.AddDeleteButton="True"
+                                                    <TextBox Classes="Clearable" Text="{Binding SecretId}" shad:ControlAssist.Label="Secret ID" />
+                                                    <TextBox Classes="Clearable" Text="{Binding SecretKey}" shad:ControlAssist.Label="Secret Key"
                                                              PasswordChar="*" />
                                                 </StackPanel>
                                             </DataTemplate>
@@ -70,43 +63,41 @@
                                     </ContentControl>
 
                                     <Button Grid.Column="1"
-                                            Classes="EcDanger"
+                                            Classes="Destructive"
                                             VerticalAlignment="Top"
                                             Command="{Binding $parent[UserControl].((vm:KeyListEditorViewModel)DataContext).RemoveCommand}"
                                             CommandParameter="{Binding}">
                                         <avalonia:MaterialIcon Kind="TrashCan" Width="16" Height="16" />
                                     </Button>
                                 </Grid>
-                            </Border>
+                            </shad:Card>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
                 <Button Command="{Binding AddCommand}"
+                        Classes="Outline"
                         HorizontalAlignment="Stretch"
-                        Classes="EcAddRow"
-                        Margin="0">
+                        Margin="0" MinHeight="72" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
                         <avalonia:MaterialIcon Kind="Plus" Width="18" Height="18"
-                                               Foreground="{DynamicResource EcAccent}" />
+                                               Foreground="{DynamicResource PrimaryColor}" />
                         <TextBlock Text="{x:Static lang:Resources.AddKey}"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource EcTextPrimary}" />
+                                   VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Classes="EcDialogFooter">
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="22,14,22,18" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundColor}" CornerRadius="{DynamicResource LgCornerRadius}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                 <Button Content="{x:Static lang:Resources.Cancel}"
                         Command="{Binding CancelCommand}"
-                        Classes="EcGhost"
+                        Classes="Ghost"
                         MinWidth="88" />
                 <Button Content="{x:Static lang:Resources.Save}"
                         Command="{Binding SaveCommand}"
-                        Classes="EcPrimary"
+                        Classes="Primary"
                         MinWidth="96" />
             </StackPanel>
         </Border>

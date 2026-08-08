@@ -1,37 +1,33 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
 using EasyChat.Contracts.Settings;
-using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Capture;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Navigation;
-using EasyChat.Presentation.Foundation.UiHost;
 using ReactiveUI;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Capture;
 
 public sealed class FixedAreaEditDialogViewModel : ConventionViewModelBase
 {
-    private readonly IUiDialogHost _dialogs;
-    private readonly IUiDialogSession _dialog;
+    private readonly DialogManager _dialogManager;
     private readonly SettingsSession _settings;
     private readonly IScreenRegionPicker _regionPicker;
 
     public FixedAreaEditDialogViewModel(
-        IUiDialogHost dialogs,
-        IUiDialogSession dialog,
+        DialogManager dialogManager,
         SettingsSession settings,
         IScreenRegionPicker regionPicker)
     {
-        _dialogs = dialogs;
-        _dialog = dialog;
+        _dialogManager = dialogManager;
         _settings = settings;
         _regionPicker = regionPicker;
         FixedAreas.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasAreas));
         AddAreaCommand = ReactiveCommand.CreateFromTask(AddAreaAsync);
         DeleteAreaCommand = ReactiveCommand.Create<FixedAreaState>(DeleteArea);
         EditAreaCommand = ReactiveCommand.Create<FixedAreaState>(EditArea);
-        CloseCommand = ReactiveCommand.Create(dialog.Dismiss);
+        CloseCommand = ReactiveCommand.Create(() => dialogManager.Close(this));
     }
 
     public ObservableCollection<FixedAreaState> FixedAreas => _settings.Screenshot.FixedAreas;
@@ -45,17 +41,13 @@ public sealed class FixedAreaEditDialogViewModel : ConventionViewModelBase
 
     public void EditArea(FixedAreaState area)
     {
-        _dialog.Dismiss();
-        _dialogs.ShowContent(new UiContentDialogOptions
-        {
-            Title = Resources.Edit,
-            CreateContent = session => new FixedAreaFormDialogViewModel(
-                session,
-                _dialogs,
-                _regionPicker,
-                area,
-                Reopen)
-        });
+        _dialogManager.Close(this);
+        var viewModel = new FixedAreaFormDialogViewModel(
+            _dialogManager,
+            _regionPicker,
+            area,
+            Reopen);
+        _dialogManager.CreateDialog(viewModel).Show();
     }
 
     private async Task AddAreaAsync()
@@ -75,18 +67,12 @@ public sealed class FixedAreaEditDialogViewModel : ConventionViewModelBase
             _settings.FlushSection));
     }
 
-    private void Reopen() => _dialogs.ShowContent(new UiContentDialogOptions
-    {
-        Title = Resources.FixedAreas,
-        CreateContent = session => new FixedAreaEditDialogViewModel(
-            _dialogs, session, _settings, _regionPicker)
-    });
+    private void Reopen() => _dialogManager.CreateDialog(this).Show();
 }
 
 public sealed class FixedAreaFormDialogViewModel : ConventionViewModelBase
 {
-    private readonly IUiDialogSession _dialog;
-    private readonly IUiDialogHost _dialogs;
+    private readonly DialogManager _dialogManager;
     private readonly IScreenRegionPicker _regionPicker;
     private readonly FixedAreaState _area;
     private readonly Action _onFinished;
@@ -97,14 +83,12 @@ public sealed class FixedAreaFormDialogViewModel : ConventionViewModelBase
     private int _height;
 
     public FixedAreaFormDialogViewModel(
-        IUiDialogSession dialog,
-        IUiDialogHost dialogs,
+        DialogManager dialogManager,
         IScreenRegionPicker regionPicker,
         FixedAreaState area,
         Action onFinished)
     {
-        _dialog = dialog;
-        _dialogs = dialogs;
+        _dialogManager = dialogManager;
         _regionPicker = regionPicker;
         _area = area;
         _onFinished = onFinished;
@@ -138,7 +122,7 @@ public sealed class FixedAreaFormDialogViewModel : ConventionViewModelBase
 
     private async Task ReselectAsync()
     {
-        _dialog.Dismiss();
+        _dialogManager.Close(this);
         var selected = await _regionPicker.PickAsync();
         if (selected is { IsEmpty: false } region)
         {
@@ -147,22 +131,8 @@ public sealed class FixedAreaFormDialogViewModel : ConventionViewModelBase
             Width = region.Width;
             Height = region.Height;
         }
-        Reopen();
+        _dialogManager.CreateDialog(this).Show();
     }
-
-    private void Reopen() => _dialogs.ShowContent(new UiContentDialogOptions
-    {
-        Title = Resources.Edit,
-        CreateContent = session => new FixedAreaFormDialogViewModel(
-            session, _dialogs, _regionPicker, _area, _onFinished)
-        {
-            Name = Name,
-            X = X,
-            Y = Y,
-            Width = Width,
-            Height = Height
-        }
-    });
 
     private void Confirm()
     {
@@ -171,13 +141,13 @@ public sealed class FixedAreaFormDialogViewModel : ConventionViewModelBase
         _area.Y = Y;
         _area.Width = Width;
         _area.Height = Height;
-        _dialog.Dismiss();
+        _dialogManager.Close(this);
         _onFinished();
     }
 
     private void Cancel()
     {
-        _dialog.Dismiss();
+        _dialogManager.Close(this);
         _onFinished();
     }
 }

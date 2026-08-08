@@ -9,12 +9,9 @@ using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.DependencyInjection;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Shell;
-using EasyChat.Presentation.Foundation.UiHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using SukiUI.Dialogs;
-using SukiUI.Toasts;
 
 namespace EasyChat.Desktop;
 
@@ -90,15 +87,17 @@ public static class DesktopApplication
         });
     }
 
-    private static DesktopUiContext CreateUiContext(IServiceProvider services) => new(
-        services.GetRequiredService<SettingsSession>(),
-        services.GetRequiredService<MainWindowViewModel>(),
-        services.GetRequiredService<ISukiDialogManager>(),
-        services.GetRequiredService<IUiDialogHost>(),
-        services.GetRequiredService<DesktopInteractionLifecycle>(),
-        services.GetRequiredService<IApplicationUpdateService>(),
-        services.GetRequiredService<ISukiToastManager>(),
-        services.GetRequiredService<EasyChat.Presentation.Features.Capture.IScreenshotCaptureSession>());
+    private static DesktopUiContext CreateUiContext(IServiceProvider services)
+    {
+        var mainWindowViewModel = services.GetRequiredService<MainWindowViewModel>();
+        return new DesktopUiContext(
+            services.GetRequiredService<SettingsSession>(),
+            mainWindowViewModel,
+            services.GetRequiredService<DesktopInteractionLifecycle>(),
+            services.GetRequiredService<IApplicationUpdateService>(),
+            mainWindowViewModel.UpdateToastManager,
+            services.GetRequiredService<EasyChat.Presentation.Features.Capture.IScreenshotCaptureSession>());
+    }
 
     private static IShellLifecycle StartShell(IServiceProvider services)
     {

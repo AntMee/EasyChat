@@ -11,7 +11,7 @@ namespace EasyChat.Presentation.Foundation.UiHost;
 /// <summary>
 /// Global overlay hygiene for ComboBox dropdowns and Button/attached Flyouts
 /// (color pickers, menus): one coherent light-dismiss path.
-/// Suki/Fluent light-dismiss is unreliable across overlays and nested scrollers.
+/// Fluent light-dismiss is unreliable across overlays and nested scrollers.
 /// </summary>
 public static class ComboBoxDropDownCoordinator
 {

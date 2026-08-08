@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -23,9 +23,8 @@
 
     <Panel>
         <Border x:Name="MainCard"
-                Classes="EcFloatShell"
-                Padding="0">
-            <Border Classes="EcFloatClip">
+                Padding="0" Background="{DynamicResource DialogBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" ClipToBounds="False">
+            <Border CornerRadius="{DynamicResource LgCornerRadius}" ClipToBounds="True">
             <Grid RowDefinitions="*,Auto">
                 <TextBox Name="InputBox"
                          Grid.Row="0"
@@ -41,10 +40,10 @@
 
                 <!-- Action bar: language controls left, Submit primary + Close right -->
                 <Border Grid.Row="1"
-                        Background="{DynamicResource EcBgElevated}"
-                        BorderBrush="{DynamicResource EcBorder}"
+                        Background="{DynamicResource CardBackgroundColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
                         BorderThickness="0,1,0,0"
-                        Padding="12,8">
+                        Padding="12,8" CornerRadius="{DynamicResource LgCornerRadius}">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <CheckBox Content="{x:Static lang:Resources.FollowConfig}"
@@ -54,7 +53,7 @@
                                     ToolTip.Tip="{x:Static lang:Resources.TypingFollowConfigTooltip}"
                                     VerticalAlignment="Center">
                                 <avalonia:MaterialIcon Kind="InformationOutline" Width="15" Height="15" Opacity="0.55"
-                                                       Foreground="{DynamicResource EcTextSecondary}" />
+                                                       Foreground="{DynamicResource MutedColor}" />
                             </Border>
 
                             <controls:LanguageSelector IsEnabled="{Binding !FollowGlobalLanguage}"
@@ -63,7 +62,7 @@
                                                        MinWidth="110"
                                                        VerticalAlignment="Center" />
 
-                            <Button Classes="EcIconRound"
+                            <Button Classes="Icon"
                                     Width="34" Height="34"
                                     IsEnabled="{Binding !FollowGlobalLanguage}"
                                     Command="{Binding SwapLanguagesCommand}"
@@ -83,12 +82,11 @@
                                     Orientation="Horizontal"
                                     Spacing="8"
                                     VerticalAlignment="Center">
-                            <TextBlock Classes="EcMuted"
+                            <TextBlock Classes="Caption" Foreground="{DynamicResource MutedColor}"
                                        Text="{x:Static lang:Resources.TypingEnterHint}"
                                        VerticalAlignment="Center"
-                                       FontSize="11"
                                        Margin="0,0,4,0" />
-                            <Button Classes="EcGhost" 
+                            <Button Classes="Ghost" 
                                     Padding="10,6"
                                     Click="OnCloseClick"
                                     ToolTip.Tip="{x:Static lang:Resources.Close}">
@@ -99,7 +97,7 @@
                                                VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
-                            <Button Classes="EcPrimary" 
+                            <Button Classes="Primary" 
                                     Padding="14,6"
                                     Click="OnSubmitClick"
                                     ToolTip.Tip="{x:Static lang:Resources.Action_InputTranslate}">

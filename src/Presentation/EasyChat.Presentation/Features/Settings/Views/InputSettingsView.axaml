@@ -1,4 +1,4 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.InputSettingsView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.InputSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,7 +7,8 @@
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Features.Settings;assembly=EasyChat.Presentation"
              xmlns:formatting="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
-             xmlns:ec="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
     <UserControl.Resources>
@@ -16,106 +17,189 @@
         <converts:DeliveryModeToStringConverter x:Key="DeliveryModeToStringConverter" />
     </UserControl.Resources>
 
-    <StackPanel Classes="EcSettingsList"
+    <StackPanel
                 VerticalAlignment="Top"
-                HorizontalAlignment="Stretch">
-            <ec:EcSettingRow Label="{x:Static lang:Resources.TransparencyLevel}"
-                             IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='transparency acrylic blur 透明'}">
-                <ComboBox ItemsSource="{Binding TransparencyLevels}"
-                          SelectedItem="{Binding InputConf.TransparencyLevel}"
-                          HorizontalAlignment="Stretch" />
-            </ec:EcSettingRow>
+                HorizontalAlignment="Stretch" Spacing="0">
+            <Grid ColumnDefinitions="*,*"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='transparency acrylic blur 透明'}">
+                <TextBlock Text="{x:Static lang:Resources.TransparencyLevel}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Grid.Column="1"
+                                MinWidth="280"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox ItemsSource="{Binding TransparencyLevels}"
+                              SelectedItem="{Binding InputConf.TransparencyLevel}"
+                              HorizontalAlignment="Stretch" />
+                </ContentControl>
+            </Grid>
 
-            <ec:EcSettingRow Label="{x:Static lang:Resources.BackgroundColor}"
-                             IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='background color 背景'}">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBox Text="{Binding InputConf.BackgroundColor}"
-                             PlaceholderText="#CC000000"
-                             HorizontalAlignment="Stretch"
-                             VerticalAlignment="Center" />
-                    <Button Grid.Column="1"
-                            Classes="EcColorSwatch"
-                            VerticalAlignment="Center">
-                        <Button.Background>
-                            <SolidColorBrush Color="{Binding InputConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
-                        </Button.Background>
-                        <Button.Flyout>
-                            <Flyout Placement="Bottom" ShowMode="Standard">
-                                <Border CornerRadius="12" Padding="12"
-                                        Background="{DynamicResource EcBgElevated}"
-                                        BorderBrush="{DynamicResource EcBorder}"
-                                        BorderThickness="1">
-                                    <ColorView Color="{Binding InputConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}"
-                                               IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
-                                </Border>
-                            </Flyout>
-                        </Button.Flyout>
-                    </Button>
-                </Grid>
-            </ec:EcSettingRow>
+            <Grid ColumnDefinitions="*,*"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='background color 背景'}">
+                <TextBlock Text="{x:Static lang:Resources.BackgroundColor}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Grid.Column="1"
+                                MinWidth="280"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <TextBox Text="{Binding InputConf.BackgroundColor}"
+                                 shad:ControlAssist.Label="#CC000000"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="Icon"
+                                VerticalAlignment="Center"
+                                BorderThickness="2"
+                                BorderBrush="{DynamicResource BorderColor60}">
+                            <Button.Background>
+                                <SolidColorBrush Color="{Binding InputConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
+                            </Button.Background>
+                            <Button.Flyout>
+                                <Flyout Placement="Bottom" ShowMode="Standard">
+                                    <shad:Card HasShadow="True">
+                                        <ColorView Color="{Binding InputConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}"
+                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
+                                    </shad:Card>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </Grid>
+                </ContentControl>
+            </Grid>
 
-            <ec:EcSettingRow Label="{x:Static lang:Resources.FontColor}"
-                             IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font color 字体 颜色'}">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBox Text="{Binding InputConf.FontColor}"
-                             PlaceholderText="#FFFFFFFF"
-                             HorizontalAlignment="Stretch"
-                             VerticalAlignment="Center" />
-                    <Button Grid.Column="1"
-                            Classes="EcColorSwatch"
-                            VerticalAlignment="Center">
-                        <Button.Background>
-                            <SolidColorBrush Color="{Binding InputConf.FontColor, Converter={StaticResource ColorToHexConverter}}" />
-                        </Button.Background>
-                        <Button.Flyout>
-                            <Flyout Placement="Bottom" ShowMode="Standard">
-                                <Border CornerRadius="12" Padding="12"
-                                        Background="{DynamicResource EcBgElevated}"
-                                        BorderBrush="{DynamicResource EcBorder}"
-                                        BorderThickness="1">
-                                    <ColorView Color="{Binding InputConf.FontColor, Converter={StaticResource ColorToHexConverter}}"
-                                               IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
-                                </Border>
-                            </Flyout>
-                        </Button.Flyout>
-                    </Button>
-                </Grid>
-            </ec:EcSettingRow>
+            <Grid ColumnDefinitions="*,*"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font color 字体 颜色'}">
+                <TextBlock Text="{x:Static lang:Resources.FontColor}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Grid.Column="1"
+                                MinWidth="280"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <TextBox Text="{Binding InputConf.FontColor}"
+                                 shad:ControlAssist.Label="#FFFFFFFF"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="Icon"
+                                VerticalAlignment="Center"
+                                BorderThickness="2"
+                                BorderBrush="{DynamicResource BorderColor60}">
+                            <Button.Background>
+                                <SolidColorBrush Color="{Binding InputConf.FontColor, Converter={StaticResource ColorToHexConverter}}" />
+                            </Button.Background>
+                            <Button.Flyout>
+                                <Flyout Placement="Bottom" ShowMode="Standard">
+                                    <shad:Card HasShadow="True">
+                                        <ColorView Color="{Binding InputConf.FontColor, Converter={StaticResource ColorToHexConverter}}"
+                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
+                                    </shad:Card>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </Grid>
+                </ContentControl>
+            </Grid>
 
-            <ec:EcSettingRow Label="{x:Static lang:Resources.InputDeliveryMode}"
-                             IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='delivery paste type message 投递 粘贴'}">
-                <ComboBox ItemsSource="{Binding InputDeliveryModes}"
-                          SelectedItem="{Binding InputConf.DeliveryMode}"
-                          HorizontalAlignment="Stretch">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Converter={StaticResource DeliveryModeToStringConverter}}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </ec:EcSettingRow>
+            <Grid ColumnDefinitions="*,*"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='delivery paste type message 投递 粘贴'}">
+                <TextBlock Text="{x:Static lang:Resources.InputDeliveryMode}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Grid.Column="1"
+                                MinWidth="280"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox ItemsSource="{Binding InputDeliveryModes}"
+                              SelectedItem="{Binding InputConf.DeliveryMode}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource DeliveryModeToStringConverter}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ContentControl>
+            </Grid>
 
-            <ec:EcSettingRow Label="{x:Static lang:Resources.KeySendDelay}"
-                             IsVisible="{Binding InputConf.DeliveryMode, Converter={StaticResource DeliveryModeToBoolConverter}}">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <NumericUpDown Value="{Binding InputConf.KeySendDelay}"
-                                   Minimum="0" Maximum="1000" Increment="10"
-                                   FormatString="N0"
-                                   HorizontalAlignment="Stretch" />
-                    <TextBlock Grid.Column="1"
-                               Text="ms"
+            <Grid ColumnDefinitions="*,*"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding InputConf.DeliveryMode, Converter={StaticResource DeliveryModeToBoolConverter}}">
+                <TextBlock Text="{x:Static lang:Resources.KeySendDelay}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Grid.Column="1"
+                                MinWidth="280"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <NumericUpDown Value="{Binding InputConf.KeySendDelay}"
+                                       Minimum="0" Maximum="1000" Increment="10"
+                                       FormatString="N0"
+                                       HorizontalAlignment="Stretch" />
+                        <TextBlock Grid.Column="1"
+                                   Text="ms"
+                                   Classes="Muted"
+                                   VerticalAlignment="Center"
+                                   MinWidth="28" />
+                    </Grid>
+                </ContentControl>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,*"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='reverse translate language 反转 语向'}">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Static lang:Resources.ReverseTranslateLanguage}"
+                               Classes="Small"
                                VerticalAlignment="Center"
-                               Classes="EcMuted"
-                               MinWidth="28" />
-                </Grid>
-            </ec:EcSettingRow>
-
-            <ec:EcSettingRow Label="{x:Static lang:Resources.ReverseTranslateLanguage}"
-                             Helper="{x:Static lang:Resources.ReverseTranslateLanguageTip}"
-                             IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='reverse translate language 反转 语向'}">
-                <ToggleSwitch IsChecked="{Binding InputConf.ReverseTranslateLanguage}"
-                              OnContent="" OffContent=""
-                              HorizontalAlignment="Right" />
-            </ec:EcSettingRow>
+                               TextWrapping="Wrap" />
+                    <Border Width="28" Height="28"
+                            CornerRadius="8"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            Cursor="Help"
+                            ToolTip.Tip="{x:Static lang:Resources.ReverseTranslateLanguageTip}">
+                        <avalonia:MaterialIcon Kind="HelpCircleOutline"
+                                               Width="15" Height="15"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MutedColor}" />
+                    </Border>
+                </StackPanel>
+                <ContentControl Grid.Column="1"
+                                MinWidth="280"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ToggleSwitch IsChecked="{Binding InputConf.ReverseTranslateLanguage}"
+                                  OnContent="" OffContent=""
+                                  HorizontalAlignment="Right" />
+                </ContentControl>
+            </Grid>
     </StackPanel>
 </UserControl>

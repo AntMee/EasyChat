@@ -14,8 +14,7 @@ using EasyChat.Presentation.Foundation.Navigation;
 using EasyChat.Presentation.ImageTranslation;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
-using SukiUI.Dialogs;
-using SukiUI.Toasts;
+using ShadUI;
 using EasyChat.Shared.Results;
 
 namespace EasyChat.Presentation.Features.ScreenshotOcr;
@@ -39,7 +38,7 @@ public sealed class ScreenshotOcrWindowCoordinator(
     ITranslationWindowCoordinator translation,
     ScreenshotCaptureCoordinator capture,
     TranslationLanguageOptions translationLanguages,
-    ISukiToastManager toasts,
+    ToastManager toasts,
     ILoggerFactory loggerFactory)
 {
     private readonly HashSet<ScreenshotOcrWindowView> _windows = [];
@@ -102,10 +101,9 @@ public sealed class ScreenshotOcrWindowCoordinator(
     }
 
     private ValueTask ShowErrorAsync(string message, CancellationToken cancellationToken) =>
-        OnUiAsync(() => toasts.CreateSimpleInfoToast()
-            .WithTitle("Screenshot OCR")
+        OnUiAsync(() => toasts.CreateToast("Screenshot OCR")
             .WithContent(message)
-            .Queue(), cancellationToken);
+            .ShowError(), cancellationToken);
 
     private static async ValueTask OnUiAsync(Action action, CancellationToken cancellationToken)
     {
@@ -197,7 +195,8 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
     }
 
     public IReadOnlyList<ScreenshotOcrLanguageOption> Languages { get; }
-    public ISukiDialogManager DialogManager { get; } = new SukiDialogManager();
+    public DialogManager DialogManager { get; } = new DialogManager()
+        .Register<ScreenshotOcrResetConfirmationDialogView, ScreenshotOcrResetConfirmationDialogViewModel>();
     public Bitmap Bitmap => _bitmap;
     public IReadOnlyList<OcrTextRegion> Regions => _recognition.Regions;
     public Func<string, Task<bool>>? ConfirmResetAsync { get; set; }
@@ -780,4 +779,39 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
     }
 
     private void RaiseBusy() => this.RaisePropertyChanged(nameof(IsBusy));
+}
+
+public sealed class ScreenshotOcrResetConfirmationDialogViewModel : ConventionViewModelBase
+{
+    private readonly DialogManager _dialogManager;
+    private readonly TaskCompletionSource<bool> _completion =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public ScreenshotOcrResetConfirmationDialogViewModel(DialogManager dialogManager, string message)
+    {
+        _dialogManager = dialogManager;
+        Message = message;
+        ContinueCommand = ReactiveCommand.Create(() => Complete(true));
+        CancelCommand = ReactiveCommand.Create(() => Complete(false));
+    }
+
+    public string Message { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ContinueCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> CancelCommand { get; }
+    public Task<bool> Result => _completion.Task;
+
+    internal void CompleteCancellation() => _completion.TrySetResult(false);
+
+    internal void Cancel()
+    {
+        CompleteCancellation();
+        _dialogManager.Close(this);
+    }
+
+    private void Complete(bool result)
+    {
+        if (!_completion.TrySetResult(result))
+            return;
+        _dialogManager.Close(this, new CloseDialogOptions { Success = result });
+    }
 }

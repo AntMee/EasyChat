@@ -8,11 +8,10 @@ using Avalonia.Platform.Storage;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Shared.Feedback;
 using Microsoft.Extensions.Logging;
-using SukiUI.Controls;
 
 namespace EasyChat.Presentation.Features.Capture.Views;
 
-public partial class ImageTranslationResultWindow : SukiWindow
+public partial class ImageTranslationResultWindow : ShadUI.Window
 {
     private Bitmap? _bitmap;
     private readonly ILogger<ImageTranslationResultWindow>? _logger;

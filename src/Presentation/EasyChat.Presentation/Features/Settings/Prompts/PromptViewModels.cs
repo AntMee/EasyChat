@@ -1,22 +1,21 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
-using Avalonia.Controls.Notifications;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Navigation;
 using EasyChat.Presentation.Lang;
 using Material.Icons;
 using ReactiveUI;
-using SukiUI.Dialogs;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Settings.Prompts;
 
 public sealed class PromptViewModel : NavigationPageViewModel
 {
     private readonly SettingsSession _settings;
-    private readonly ISukiDialogManager _dialogs;
+    private readonly DialogManager _dialogs;
 
-    public PromptViewModel(SettingsSession settings, ISukiDialogManager dialogs)
+    public PromptViewModel(SettingsSession settings, DialogManager dialogs)
         : base(Resources.Prompts, MaterialIconKind.TextBox, 3)
     {
         _settings = settings;
@@ -42,33 +41,29 @@ public sealed class PromptViewModel : NavigationPageViewModel
 
     private void ShowEditor(PromptEntryState? entry)
     {
-        _dialogs.CreateDialog()
-            .WithViewModel(dialog => new PromptEditDialogViewModel(dialog, entry)
+        var viewModel = new PromptEditDialogViewModel(_dialogs, entry)
+        {
+            OnClose = result =>
             {
-                OnClose = result =>
+                if (result is null)
+                    return;
+                if (entry is null)
                 {
-                    if (result is null)
-                        return;
-                    if (entry is null)
-                    {
-                        Prompts.Add(new PromptEntryState(result, _settings.FlushSection));
-                        return;
-                    }
-
-                    entry.Name = result.Name;
-                    entry.Role = result.Content;
+                    Prompts.Add(new PromptEntryState(result, _settings.FlushSection));
+                    return;
                 }
-            })
-            .TryShow();
+
+                entry.Name = result.Name;
+                entry.Role = result.Content;
+            }
+        };
+        _dialogs.CreateDialog(viewModel).Show();
     }
 
     private void RemovePrompt(PromptEntryState entry)
     {
-        _dialogs.CreateDialog()
-            .OfType(NotificationType.Warning)
-            .WithTitle(Resources.ConfirmDeletion)
-            .WithContent(Resources.ConfirmDeletePrompt)
-            .WithActionButton(Resources.Delete, _ =>
+        _dialogs.CreateDialog(Resources.ConfirmDeletion, Resources.ConfirmDeletePrompt)
+            .WithPrimaryButton(Resources.Delete, () =>
             {
                 var replacement = Prompts.FirstOrDefault(prompt =>
                                       !ReferenceEquals(prompt, entry) && prompt.IsDefault)
@@ -82,9 +77,9 @@ public sealed class PromptViewModel : NavigationPageViewModel
 
                 if (wasDefault || wasSelected)
                     _settings.Prompts.SelectedPromptId = replacement?.Id ?? string.Empty;
-            }, true)
-            .WithActionButton(Resources.Cancel, _ => { }, true)
-            .TryShow();
+            }, DialogButtonStyle.Destructive)
+            .WithCancelButton(Resources.Cancel)
+            .Show();
     }
 
     private void SetDefault(PromptEntryState entry)
@@ -102,14 +97,14 @@ public sealed class PromptViewModel : NavigationPageViewModel
 
 public sealed class PromptEditDialogViewModel : ConventionViewModelBase
 {
-    private readonly ISukiDialog _dialog;
+    private readonly DialogManager _dialogManager;
     private readonly PromptEntryState? _existing;
     private string _name;
     private string _role;
 
-    public PromptEditDialogViewModel(ISukiDialog dialog, PromptEntryState? existing = null)
+    public PromptEditDialogViewModel(DialogManager dialogManager, PromptEntryState? existing = null)
     {
-        _dialog = dialog;
+        _dialogManager = dialogManager;
         _existing = existing;
         _name = existing?.Name ?? string.Empty;
         _role = existing?.Role ?? string.Empty;
@@ -135,12 +130,12 @@ public sealed class PromptEditDialogViewModel : ConventionViewModelBase
             Name,
             Content,
             _existing?.IsDefault ?? false));
-        _dialog.Dismiss();
+        _dialogManager.Close(this);
     }
 
     private void Cancel()
     {
         OnClose?.Invoke(null);
-        _dialog.Dismiss();
+        _dialogManager.Close(this);
     }
 }

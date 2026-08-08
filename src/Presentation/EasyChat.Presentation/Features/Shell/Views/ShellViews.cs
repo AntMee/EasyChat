@@ -2,12 +2,11 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Shell;
-using EasyChat.Presentation.Foundation.UiHost;
-using SukiUI.Controls;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Shell.Views
 {
-    public partial class MainWindow : SukiWindow
+    public partial class MainWindow : ShadUI.Window
     {
         private readonly Action _ensureTrayVisible = null!;
 
@@ -16,7 +15,7 @@ namespace EasyChat.Presentation.Features.Shell.Views
         public MainWindow(
             MainWindowViewModel viewModel,
             SettingsSession settings,
-            IUiDialogHost dialogs,
+            ShadUI.DialogManager dialogs,
             Action ensureTrayVisible)
             : this()
         {
@@ -38,7 +37,7 @@ namespace EasyChat.Presentation.Features.Shell.Views
         private void HandleClosing(
             WindowClosingEventArgs args,
             SettingsSession settings,
-            IUiDialogHost dialogs)
+            ShadUI.DialogManager dialogs)
         {
             if (IsExiting) return;
             switch (settings.General.ClosingBehavior)
@@ -55,20 +54,19 @@ namespace EasyChat.Presentation.Features.Shell.Views
                     args.Cancel = true;
                     // Title is painted inside CloseBehaviorDialogView (ViewModel-only shell).
                     // Window close is already cancelled; Cancel / background click keeps the app open.
-                    dialogs.ShowContent(new UiContentDialogOptions
-                    {
-                        DismissOnBackgroundClick = true,
-                        CreateContent = session => new CloseBehaviorDialogViewModel(
-                            session,
-                            settings.General,
-                            _ensureTrayVisible,
-                            Hide,
-                            () =>
-                            {
-                                IsExiting = true;
-                                Close();
-                            })
-                    });
+                    var viewModel = new CloseBehaviorDialogViewModel(
+                        dialogs,
+                        settings.General,
+                        _ensureTrayVisible,
+                        Hide,
+                        () =>
+                        {
+                            IsExiting = true;
+                            Close();
+                        });
+                    dialogs.CreateDialog(viewModel)
+                        .Dismissible()
+                        .Show();
                     return;
             }
         }

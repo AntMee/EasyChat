@@ -1,12 +1,12 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Speech.Views.TtsVoiceSettingsDialogView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Speech.Views.TtsVoiceSettingsDialogView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Speech"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="500"
              x:DataType="viewModels:TtsVoiceSettingsDialogViewModel"
              MinWidth="560"
@@ -14,24 +14,24 @@
              Width="640"
              Height="500">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Classes="EcDialogHeader">
+        <Border Padding="22,18,22,0">
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                 <Border Width="40" Height="40" CornerRadius="11"
-                        Background="{DynamicResource EcAccentSoft}">
+                        Background="{DynamicResource PrimaryColor10}">
                     <avalonia:MaterialIcon Kind="VolumeHigh"
                                            Width="20" Height="20"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
-                                           Foreground="{DynamicResource EcAccent}" />
+                                           Foreground="{DynamicResource PrimaryColor}" />
                 </Border>
                 <TextBlock Grid.Column="1"
-                           Classes="EcDialogTitle"
+                           Classes="Large" TextWrapping="Wrap"
                            Text="{x:Static lang:Resources.Tts_Configuration}"
                            VerticalAlignment="Center" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <TextBlock Text="{x:Static lang:Resources.Tts_Provider}"
                                VerticalAlignment="Center"
-                               Foreground="{DynamicResource EcTextSecondary}" />
+                               Foreground="{DynamicResource MutedColor}" />
                     <ComboBox ItemsSource="{Binding AvailableProviders}"
                               SelectedItem="{Binding SelectedProvider}"
                               MinWidth="140" />
@@ -39,18 +39,14 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1"
+        <shad:Card Grid.Row="1"
                 Margin="22,14,22,0"
-                Padding="8"
-                Background="{DynamicResource EcBgMuted}"
-                BorderBrush="{DynamicResource EcBorder}"
-                BorderThickness="1"
-                CornerRadius="{DynamicResource EcRadiusMd}">
+                HasShadow="False">
             <Grid>
                 <TextBlock Text="{x:Static lang:Resources.Tts_NoVoicesConfigured}"
                            IsVisible="{Binding !ConfiguredVoices.Count}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                           Classes="EcMuted" />
+                           Classes="Muted" />
                 <ListBox ItemsSource="{Binding ConfiguredVoices}"
                          SelectedItem="{Binding SelectedConfiguredVoice}"
                          Background="Transparent">
@@ -59,43 +55,41 @@
                             <Grid ColumnDefinitions="*,2*,*" MinHeight="36">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBlock Text="{Binding Language.EnglishName}" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource EcTextPrimary}" />
-                                    <TextBlock Text="{Binding Language.ChineseName}" FontSize="12"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextMuted}" />
+                                               Foreground="{DynamicResource ForegroundColor}" />
+                                    <TextBlock Text="{Binding Language.ChineseName}" Classes="Muted"
+                                               VerticalAlignment="Center" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="8" Grid.Column="1">
                                     <avalonia:MaterialIcon Kind="AccountVoice" Width="16" Height="16"
-                                                           Foreground="{DynamicResource EcTextSecondary}" />
+                                                           Foreground="{DynamicResource MutedColor}" />
                                     <TextBlock Text="{Binding VoiceName}"
-                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                               Foreground="{DynamicResource ForegroundColor}" />
                                 </StackPanel>
                                 <TextBlock Text="{Binding VoiceLocale}" Grid.Column="2"
-                                           HorizontalAlignment="Right" FontSize="12"
-                                           Foreground="{DynamicResource EcTextMuted}" />
+                                           HorizontalAlignment="Right" Classes="Muted" />
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
-        </Border>
+        </shad:Card>
 
-        <Border Grid.Row="2" Classes="EcDialogFooter">
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="22,14,22,18" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundColor}" CornerRadius="{DynamicResource LgCornerRadius}">
             <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Classes="EcPrimary" Command="{Binding AddCommand}" Content="{x:Static lang:Resources.Add}" />
-                    <Button Classes="EcGhost" Command="{Binding EditCommand}"
+                    <Button Classes="Primary" Command="{Binding AddCommand}" Content="{x:Static lang:Resources.Add}" />
+                    <Button Classes="Ghost" Command="{Binding EditCommand}"
                             CommandParameter="{Binding SelectedConfiguredVoice}"
                             IsEnabled="{Binding SelectedConfiguredVoice, Converter={x:Static ObjectConverters.IsNotNull}}"
                             Content="{x:Static lang:Resources.Edit}" />
-                    <Button Classes="EcDanger" Command="{Binding DeleteCommand}"
+                    <Button Classes="Destructive" Command="{Binding DeleteCommand}"
                             CommandParameter="{Binding SelectedConfiguredVoice}"
                             IsEnabled="{Binding SelectedConfiguredVoice, Converter={x:Static ObjectConverters.IsNotNull}}"
                             Content="{x:Static lang:Resources.Delete}" />
                 </StackPanel>
                 <Button Grid.Column="1"
                         Content="{x:Static lang:Resources.Close}"
-                        Classes="EcGhost"
+                        Classes="Ghost"
                         MinWidth="88"
                         Command="{Binding CloseCommand}" />
             </Grid>

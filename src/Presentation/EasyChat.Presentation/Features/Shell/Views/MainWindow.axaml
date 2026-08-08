@@ -1,10 +1,13 @@
-<suki:SukiWindow xmlns="https://github.com/avaloniaui"
+﻿<shad:Window xmlns="https://github.com/avaloniaui"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:vm="using:EasyChat.Presentation.Features.Shell"
+                 xmlns:theme="using:EasyChat.Presentation.Features.Settings.Theme"
+                 xmlns:navigation="using:EasyChat.Presentation.Foundation.Navigation"
                  xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
-                 xmlns:suki="https://github.com/kikipoulet/SukiUI"
+                 xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
                  xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  IsTitleBarVisible="{Binding TitleBarVisible, Mode=TwoWay}"
+                 TransparencyLevelHint="None"
                  Width="1180"
                  Height="740"
                  MinWidth="960"
@@ -13,32 +16,30 @@
                  x:DataType="vm:MainWindowViewModel"
                  Icon="avares://EasyChat.Desktop/Assets/easychat-logo.ico"
                  WindowStartupLocation="CenterScreen"
-                 Title="EasyChat"
-                 BackgroundAnimationEnabled="False"
-                 BackgroundTransitionsEnabled="False">
+                 Title="EasyChat">
 
     <Design.DataContext>
         <!-- ReSharper disable once Xaml.ConstructorWarning -->
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <suki:SukiWindow.LogoContent>
+    <shad:Window.LogoContent>
         <Border Width="28" Height="28"
                 CornerRadius="8"
-                Background="{DynamicResource EcAccentMuted}"
+                Background="{DynamicResource PrimaryColor10}"
                 VerticalAlignment="Center">
             <avalonia:MaterialIcon Width="16"
                                    Height="16"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
-                                   Foreground="{DynamicResource EcAccent}"
+                                   Foreground="{DynamicResource PrimaryColor}"
                                    Kind="Translate" />
         </Border>
-    </suki:SukiWindow.LogoContent>
+    </shad:Window.LogoContent>
 
-    <suki:SukiWindow.RightWindowTitleBarControls>
+    <shad:Window.RightWindowTitleBarContent>
         <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="0,0,4,0">
-            <Button Classes="EcToolbarBtn"
+            <Button Classes="Icon"
                     Command="{Binding CycleBaseThemeCommand}"
                     ToolTip.Tip="{Binding CurrentThemeModeName}"
                     AutomationProperties.Name="{Binding CurrentThemeModeName}"
@@ -48,7 +49,7 @@
                                        Width="18"
                                        Height="18" />
             </Button>
-            <Button Classes="EcToolbarBtn"
+            <Button Classes="Icon"
                     ToolTip.Tip="{x:Static lang:Resources.Settings}"
                     AutomationProperties.Name="{x:Static lang:Resources.Settings}"
                     HorizontalContentAlignment="Center"
@@ -58,16 +59,19 @@
                                        Height="18" />
                 <Button.Flyout>
                     <Flyout Placement="BottomEdgeAlignedRight" ShowMode="Standard">
-                        <Border Width="268"
-                                Padding="12"
-                                Classes="EcFloatShell">
+                        <shad:Card Width="268"
+                                   Padding="16"
+                                   HasShadow="False"
+                                   Background="{DynamicResource DialogBackgroundColor}"
+                                   BorderBrush="{DynamicResource BorderColor}"
+                                   BorderThickness="1">
                             <StackPanel Spacing="4">
-                                <TextBlock Classes="EcSectionTitle"
+                                <TextBlock Classes="Caption" FontWeight="Bold"
                                            Text="{x:Static lang:Resources.Settings}"
                                            Margin="8,2,8,6" />
 
-                                <Button Classes="EcMenuItem"
-                                        Command="{Binding ToggleFullScreenCommand}">
+                                <Button
+                                        Command="{Binding ToggleFullScreenCommand}" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <avalonia:MaterialIcon Kind="Fullscreen" Width="18" Height="18" />
                                         <TextBlock VerticalAlignment="Center"
@@ -75,31 +79,31 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Separator Classes="EcDivider" Margin="4,8" />
-                                <TextBlock Classes="EcSectionTitle"
+                                <Separator Margin="4,8" />
+                                <TextBlock Classes="Caption" FontWeight="Bold"
                                            Text="{x:Static lang:Resources.Theme}"
                                            Margin="8,2,8,4" />
-                                <ItemsControl Classes="EcStackList" ItemsSource="{Binding Themes}">
+                                <ItemsControl ItemsSource="{Binding Themes}">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type suki:SukiColorTheme}">
-                                            <Button Classes="EcMenuItem"
+                                        <DataTemplate DataType="{x:Type theme:ColorThemeOption}">
+                                            <Button
                                                     Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ChangeThemeCommand}"
-                                                    CommandParameter="{Binding}">
+                                                    CommandParameter="{Binding}" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
                                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                                     <Ellipse Width="12" Height="12"
                                                              Fill="{Binding PrimaryBrush}"
-                                                             Stroke="{DynamicResource EcBorderStrong}"
+                                                             Stroke="{DynamicResource BorderColor60}"
                                                              StrokeThickness="1" />
                                                     <TextBlock Text="{Binding DisplayName}"
                                                                VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                                               Foreground="{DynamicResource ForegroundColor}" />
                                                 </StackPanel>
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Classes="EcMenuItem"
-                                        Command="{Binding CreateCustomThemeCommand}">
+                                <Button
+                                        Command="{Binding CreateCustomThemeCommand}" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <avalonia:MaterialIcon Kind="Colorize" Width="18" Height="18" />
                                         <TextBlock VerticalAlignment="Center"
@@ -107,40 +111,82 @@
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
-                        </Border>
+                        </shad:Card>
                     </Flyout>
                 </Button.Flyout>
             </Button>
         </StackPanel>
-    </suki:SukiWindow.RightWindowTitleBarControls>
+    </shad:Window.RightWindowTitleBarContent>
 
-    <suki:SukiWindow.Hosts>
-        <suki:SukiToastHost Manager="{Binding ToastManager}" />
-        <suki:SukiDialogHost Manager="{Binding DialogManager}" />
-    </suki:SukiWindow.Hosts>
+    <shad:Window.Hosts>
+        <shad:ToastHost Manager="{Binding ShadToastManager}" />
+        <shad:ToastHost Manager="{Binding UpdateToastManager}" />
+        <shad:DialogHost Manager="{Binding ShadDialogManager}" />
+    </shad:Window.Hosts>
 
-    <suki:SukiSideMenu IsSearchEnabled="False"
-                       OpenPaneLength="232"
-                       ItemsSource="{Binding Pages}"
-                       SelectedItem="{Binding ActivePage}">
+    <Grid ColumnDefinitions="Auto,*">
+        <shad:Sidebar x:Name="NavigationSidebar"
+                      Grid.Column="0"
+                      Width="232"
+                      MinWidth="56"
+                      Padding="8"
+                      Background="{DynamicResource SidebarBackgroundColor}"
+                      BorderThickness="0,0,1,0"
+                      ItemIconContentSpacing="12"
+                      CurrentRoute="{Binding ActivePage.Route}">
+            <shad:Sidebar.Footer>
+                <ToggleButton Classes="Icon"
+                              HorizontalAlignment="Center"
+                              IsChecked="{Binding #NavigationSidebar.Expanded, Mode=TwoWay}"
+                              AutomationProperties.Name="Toggle navigation sidebar">
+                    <Panel Width="18" Height="18">
+                        <avalonia:MaterialIcon Kind="ChevronLeft"
+                                               Width="18" Height="18"
+                                               IsVisible="{Binding #NavigationSidebar.Expanded}" />
+                        <avalonia:MaterialIcon Kind="ChevronRight"
+                                               Width="18" Height="18"
+                                               IsVisible="{Binding !#NavigationSidebar.Expanded}" />
+                    </Panel>
+                </ToggleButton>
+            </shad:Sidebar.Footer>
 
-        <suki:SukiSideMenu.ItemTemplate>
-            <DataTemplate>
-                <suki:SukiSideMenuItem Header="{Binding DisplayName}"
-                                       AutomationProperties.Name="{Binding DisplayName}">
-                    <suki:SukiSideMenuItem.Icon>
-                        <Panel Width="22" Height="22">
-                            <Border Width="22" Height="22"
-                                    CornerRadius="6"
-                                    Background="{DynamicResource EcAccentSoft}" />
-                            <avalonia:MaterialIcon Kind="{Binding Icon}"
-                                                   Width="15" Height="15"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center" />
-                        </Panel>
-                    </suki:SukiSideMenuItem.Icon>
-                </suki:SukiSideMenuItem>
-            </DataTemplate>
-        </suki:SukiSideMenu.ItemTemplate>
-    </suki:SukiSideMenu>
-</suki:SukiWindow>
+            <ItemsControl ItemsSource="{Binding Pages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type navigation:NavigationPageViewModel}">
+                        <shad:SidebarItem Route="{Binding Route}"
+                                          Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectPageCommand}"
+                                          CommandParameter="{Binding}"
+                                          Foreground="{DynamicResource ForegroundColor}"
+                                          AutomationProperties.Name="{Binding DisplayName}">
+                            <shad:SidebarItem.Icon>
+                                <Panel Width="22" Height="22">
+                                    <Border Width="22" Height="22"
+                                            CornerRadius="6"
+                                            Background="{DynamicResource PrimaryColor10}" />
+                                    <avalonia:MaterialIcon Kind="{Binding Icon}"
+                                                           Width="15" Height="15"
+                                                           Foreground="{DynamicResource ForegroundColor}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                    <Border Width="7" Height="7"
+                                            CornerRadius="4"
+                                            Background="{DynamicResource WarningColor}"
+                                            BorderBrush="{DynamicResource SidebarBackgroundColor}"
+                                            BorderThickness="1"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            IsVisible="{Binding ShowAttentionBadge}" />
+                                </Panel>
+                            </shad:SidebarItem.Icon>
+                            <TextBlock Text="{Binding DisplayName}"
+                                       Foreground="{DynamicResource ForegroundColor}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </shad:SidebarItem>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </shad:Sidebar>
+
+        <ContentControl Grid.Column="1" Content="{Binding ActivePage}" />
+    </Grid>
+</shad:Window>

@@ -1,4 +1,4 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Shortcuts.Views.ShortcutEditDialogView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Shortcuts.Views.ShortcutEditDialogView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,37 +8,37 @@
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:dialogs="clr-namespace:EasyChat.Presentation.Features.Shortcuts"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
              x:DataType="dialogs:ShortcutEditDialogViewModel"
              MinWidth="400"
              MaxWidth="440"
              Width="420">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Classes="EcDialogHeader">
+        <Border Padding="22,18,22,0">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Border Width="40" Height="40" CornerRadius="11"
-                        Background="{DynamicResource EcAccentSoft}">
+                        Background="{DynamicResource PrimaryColor10}">
                     <avalonia:MaterialIcon Kind="{Binding Icon}"
                                            Width="20" Height="20"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
-                                           Foreground="{DynamicResource EcAccent}" />
+                                           Foreground="{DynamicResource PrimaryColor}" />
                 </Border>
                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Classes="EcDialogTitle" Text="{Binding DialogTitle}" />
+                    <TextBlock Classes="Large" TextWrapping="Wrap" Text="{Binding DialogTitle}" />
                     <TextBlock Text="{Binding SelectedAction.DisplayName}"
-                               FontSize="12"
-                               Foreground="{DynamicResource EcTextMuted}"
+                               Classes="Muted"
                                TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" Classes="EcDialogScroll">
-        <StackPanel Classes="EcDialogBody">
+        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" Padding="22,0" MaxHeight="480" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="14">
         <!-- Action Type Selection -->
         <StackPanel>
-            <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.ActionType}" />
+            <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.ActionType}" />
             <ComboBox ItemsSource="{Binding AvailableActions}"
                       SelectedItem="{Binding SelectedAction}"
                       Classes="Outline"
@@ -52,10 +52,10 @@
         </StackPanel>
 
         <StackPanel>
-            <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.ShortcutRemark}" />
+            <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.ShortcutRemark}" />
             <TextBox Text="{Binding Remark, Mode=TwoWay}"
                      MaxLength="100"
-                     PlaceholderText="{x:Static lang:Resources.ShortcutRemarkPlaceholder}" />
+                     shad:ControlAssist.Label="{x:Static lang:Resources.ShortcutRemarkPlaceholder}" />
         </StackPanel>
 
         <!-- Parameter Input (Standard) -->
@@ -64,10 +64,10 @@
             <!-- Standard Parameter UI -->
             <StackPanel Spacing="10" IsVisible="{Binding !IsComplexSwitchAction}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.Parameter}" Margin="0" />
+                    <TextBlock Classes="Small"
+                               Text="{x:Static lang:Resources.Parameter}" Margin="0" />
                     <TextBlock Text="{Binding SelectedAction.ParameterHint, StringFormat='({0})'}"
-                               FontSize="12"
-                               Foreground="{DynamicResource EcTextSecondary}"
+                               Classes="Muted"
                                VerticalAlignment="Center" />
                 </StackPanel>
 
@@ -78,7 +78,7 @@
                           HorizontalAlignment="Stretch" />
 
                 <TextBox Text="{Binding Parameter}"
-                         PlaceholderText="{Binding SelectedAction.ParameterHint}"
+                         shad:ControlAssist.Label="{Binding SelectedAction.ParameterHint}"
                          IsVisible="{Binding AvailableParameterOptions, Converter={x:Static ObjectConverters.IsNull}}" />
             </StackPanel>
 
@@ -86,7 +86,7 @@
             <StackPanel Spacing="10" IsVisible="{Binding IsComplexSwitchAction}">
                 <!-- Engine -->
                 <StackPanel>
-                    <TextBlock Text="{x:Static lang:Resources.TransEngine}" FontWeight="SemiBold" Margin="0 0 0 5"/>
+                    <TextBlock Text="{x:Static lang:Resources.TransEngine}" Classes="Small" Margin="0 0 0 5"/>
                     <ComboBox ItemsSource="{Binding AvailableEngineOptions}"
                               SelectedItem="{Binding SelectedEngineOption}"
                               HorizontalAlignment="Stretch">
@@ -100,11 +100,11 @@
                                                    Stretch="UniformToFill" />
                                         </Border>
                                         <avalonia:MaterialIcon Kind="Robot" Width="20" Height="20"
-                                                               Foreground="{DynamicResource EcTextPrimary}"
+                                                               Foreground="{DynamicResource ForegroundColor}"
                                                                IsVisible="{Binding Name, Converter={x:Static converts:EngineConverters.HasNoIcon}}" />
                                     </Panel>
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                               Foreground="{DynamicResource ForegroundColor}" />
                                 </StackPanel>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
@@ -114,7 +114,7 @@
                 <Grid ColumnDefinitions="*, 10, *">
                     <!-- Source -->
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="{x:Static lang:Resources.Action_SwitchSourceLang}" FontWeight="SemiBold" Margin="0 0 0 5"/>
+                        <TextBlock Text="{x:Static lang:Resources.Action_SwitchSourceLang}" Classes="Small" Margin="0 0 0 5"/>
                         <controls:LanguageSelector Languages="{Binding AvailableLanguages}"
                                                    SelectedLanguage="{Binding SelectedSourceLang, Mode=TwoWay}"
                                                    HorizontalAlignment="Stretch" />
@@ -122,7 +122,7 @@
 
                     <!-- Target -->
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="{x:Static lang:Resources.Action_SwitchTargetLang}" FontWeight="SemiBold" Margin="0 0 0 5"/>
+                        <TextBlock Text="{x:Static lang:Resources.Action_SwitchTargetLang}" Classes="Small" Margin="0 0 0 5"/>
                         <controls:LanguageSelector Languages="{Binding AvailableLanguages}"
                                                    SelectedLanguage="{Binding SelectedTargetLang, Mode=TwoWay}"
                                                    HorizontalAlignment="Stretch" />
@@ -137,7 +137,7 @@
                   IsVisible="{Binding IsTextAssistAction}" />
 
         <StackPanel Spacing="4" IsVisible="{Binding IsModeSelectableTextAssistAction}">
-            <TextBlock Text="Mode" FontWeight="SemiBold" />
+            <TextBlock Text="Mode" Classes="Small" />
             <ComboBox ItemsSource="{Binding TextAssistModes}" SelectedItem="{Binding TextAssistMode}" />
         </StackPanel>
 
@@ -173,7 +173,7 @@
 
             <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="{x:Static lang:Resources.InputTranslateSimulatedKeys}"
-                           FontWeight="SemiBold"
+                           Classes="Small"
                            VerticalAlignment="Center" />
                 <Border Background="Transparent"
                         Padding="2"
@@ -194,8 +194,8 @@
                 <Button Grid.Column="1"
                         Command="{Binding ToggleBeforeInputKeyRecordingCommand}"
                         HorizontalAlignment="Stretch"
-                        Background="{DynamicResource EcBgMuted}"
-                        BorderBrush="{DynamicResource EcBorderStrong}"
+                        Background="{DynamicResource GhostColor}"
+                        BorderBrush="{DynamicResource BorderColor60}"
                         BorderThickness="1"
                         ToolTip.Tip="{x:Static lang:Resources.RecordShortcut}">
                     <Grid ColumnDefinitions="*,Auto">
@@ -205,19 +205,13 @@
                         <TextBlock Grid.Column="0"
                                    Text="{x:Static lang:Resources.RecordingShortcut}"
                                    IsVisible="{Binding IsBeforeInputRecordingPromptVisible}"
-                                   Foreground="{DynamicResource EcAccent}"
+                                   Foreground="{DynamicResource PrimaryColor}"
                                    HorizontalAlignment="Center" />
                         <avalonia:MaterialIcon Grid.Column="1" Kind="Keyboard" Opacity="0.5" />
                     </Grid>
                 </Button>
                 <Button Grid.Column="2"
-                        Classes="EcDanger"
-                        Width="26"
-                        Height="26"
-                        Padding="0"
-                        CornerRadius="13"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
+                        Classes="Destructive"
                         Command="{Binding ClearBeforeInputKeyCommand}"
                         ToolTip.Tip="{x:Static lang:Resources.Delete}">
                     <avalonia:MaterialIcon Kind="Close" Width="14" Height="14" />
@@ -231,8 +225,8 @@
                 <Button Grid.Column="1"
                         Command="{Binding ToggleAfterInputKeyRecordingCommand}"
                         HorizontalAlignment="Stretch"
-                        Background="{DynamicResource EcBgMuted}"
-                        BorderBrush="{DynamicResource EcBorderStrong}"
+                        Background="{DynamicResource GhostColor}"
+                        BorderBrush="{DynamicResource BorderColor60}"
                         BorderThickness="1"
                         ToolTip.Tip="{x:Static lang:Resources.RecordShortcut}">
                     <Grid ColumnDefinitions="*,Auto">
@@ -242,19 +236,13 @@
                         <TextBlock Grid.Column="0"
                                    Text="{x:Static lang:Resources.RecordingShortcut}"
                                    IsVisible="{Binding IsAfterInputRecordingPromptVisible}"
-                                   Foreground="{DynamicResource EcAccent}"
+                                   Foreground="{DynamicResource PrimaryColor}"
                                    HorizontalAlignment="Center" />
                         <avalonia:MaterialIcon Grid.Column="1" Kind="Keyboard" Opacity="0.5" />
                     </Grid>
                 </Button>
                 <Button Grid.Column="2"
-                        Classes="EcDanger"
-                        Width="26"
-                        Height="26"
-                        Padding="0"
-                        CornerRadius="13"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
+                        Classes="Destructive"
                         Command="{Binding ClearAfterInputKeyCommand}"
                         ToolTip.Tip="{x:Static lang:Resources.Delete}">
                     <avalonia:MaterialIcon Kind="Close" Width="14" Height="14" />
@@ -264,26 +252,26 @@
 
         <!-- Hotkey Recording: focusable Border (not Button) so keys are not eaten by button chrome. -->
         <StackPanel Spacing="10">
-            <TextBlock Text="{x:Static lang:Resources.KeyCombination}" FontWeight="SemiBold" />
+            <TextBlock Text="{x:Static lang:Resources.KeyCombination}" Classes="Small" />
             <Border x:Name="HotkeyCapturePad"
                     Focusable="True"
                     IsTabStop="True"
                     Cursor="Hand"
-                    Background="{DynamicResource EcBgMuted}"
-                    CornerRadius="{DynamicResource EcRadiusMd}"
+                    Background="{DynamicResource GhostColor}"
+                    CornerRadius="{DynamicResource MdCornerRadius}"
                     Padding="16,14"
                     MinHeight="56"
                     HorizontalAlignment="Stretch"
                     PointerPressed="OnCapturePadPointerPressed"
                     KeyDown="OnCapturePadKeyDown"
-                    BorderBrush="{DynamicResource EcBorderStrong}"
+                    BorderBrush="{DynamicResource BorderColor60}"
                     BorderThickness="1"
                     Classes.Recording="{Binding IsRecording}">
                 <Border.Styles>
                     <Style Selector="Border#HotkeyCapturePad.Recording">
-                        <Setter Property="BorderBrush" Value="{DynamicResource EcAccent}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
                         <Setter Property="BorderThickness" Value="2" />
-                        <Setter Property="Background" Value="{DynamicResource EcAccentSoft}" />
+                        <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
                     </Style>
                 </Border.Styles>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
@@ -293,8 +281,7 @@
                                                      HorizontalAlignment="Center" />
                         <TextBlock Text="{x:Static lang:Resources.RecordingShortcut}"
                                    IsVisible="{Binding DisplayedKeyCombination, Converter={x:Static StringConverters.IsNullOrEmpty}}"
-                                   Foreground="{DynamicResource EcAccent}"
-                                   FontSize="15"
+                                   Foreground="{DynamicResource PrimaryColor}"
                                    FontWeight="SemiBold"
                                    HorizontalAlignment="Center" />
                     </StackPanel>
@@ -307,23 +294,22 @@
             </Border>
             <TextBlock Text="{x:Static lang:Resources.ClickToRecord}"
                        IsVisible="{Binding IsNotRecording}"
-                       FontSize="12"
-                       Opacity="0.6"
+                       Classes="Muted"
                        HorizontalAlignment="Center" />
         </StackPanel>
 
         </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Classes="EcDialogFooter">
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="22,14,22,18" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundColor}" CornerRadius="{DynamicResource LgCornerRadius}">
             <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
                 <Button Content="{x:Static lang:Resources.Cancel}"
-                        Classes="EcGhost"
+                        Classes="Ghost"
                         MinWidth="88"
                         Command="{Binding CancelCommand}" />
                 <Button Content="{Binding ButtonText}"
                         Command="{Binding SaveCommand}"
-                        Classes="EcPrimary"
+                        Classes="Primary"
                         MinWidth="96" />
             </StackPanel>
         </Border>

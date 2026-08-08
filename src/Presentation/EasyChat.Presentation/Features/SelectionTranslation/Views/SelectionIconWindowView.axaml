@@ -1,10 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
-        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
         mc:Ignorable="d" d:DesignWidth="168" d:DesignHeight="44"
         x:Class="EasyChat.Presentation.Features.SelectionTranslation.Views.SelectionIconWindowView"
         Width="168" Height="44"
@@ -19,61 +19,52 @@
         ShowActivated="False"
         WindowStartupLocation="Manual">
 
-    <Border CornerRadius="999"
-            Background="{DynamicResource EcFloatBg}"
-            BorderBrush="{DynamicResource EcFloatBorder}"
+    <Border Background="{DynamicResource DialogBackgroundColor}"
+            BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="1"
-            Padding="5,4"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center">
+            VerticalAlignment="Center" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
         <Grid>
             <!-- Translate is the primary action (filled); others are secondary icon buttons. -->
             <StackPanel x:Name="Toolbar" Orientation="Horizontal" Spacing="3">
                 <Button x:Name="TranslateButton"
-                        Classes="EcPrimary"
+                        Classes="Primary"
                         MinWidth="36"
-                        Height="34"
-                        Padding="10,6"
-                        CornerRadius="999"
                         ToolTip.Tip="{x:Static lang:Resources.TextAssistTranslate}"
                         Click="OnTranslateClick">
                     <StackPanel Orientation="Horizontal" Spacing="5">
                         <icons:MaterialIcon Kind="Translate" Width="16" Height="16" />
                         <TextBlock x:Name="TranslateLabel"
                                    Text="{x:Static lang:Resources.TextAssistTranslate}"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
+                                   Classes="Caption"
                                    VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
                 <Button x:Name="CorrectionButton"
-                        Classes="EcToolbarBtn"
-                        Width="34" Height="34" Padding="6"
+                        Classes="Icon"
                         ToolTip.Tip="{x:Static lang:Resources.TextAssistCorrect}"
                         Click="OnCorrectionClick">
                     <icons:MaterialIcon Kind="Spellcheck" Width="17" Height="17"
-                                        Foreground="{DynamicResource EcTextPrimary}" />
+                                        Foreground="{DynamicResource ForegroundColor}" />
                 </Button>
                 <Button x:Name="PolishButton"
-                        Classes="EcToolbarBtn"
-                        Width="34" Height="34" Padding="6"
+                        Classes="Icon"
                         ToolTip.Tip="{x:Static lang:Resources.TextAssistPolish}"
                         Click="OnPolishClick">
                     <icons:MaterialIcon Kind="FormatPaint" Width="17" Height="17"
-                                        Foreground="{DynamicResource EcTextPrimary}" />
+                                        Foreground="{DynamicResource ForegroundColor}" />
                 </Button>
                 <Button x:Name="SummaryButton"
-                        Classes="EcToolbarBtn"
-                        Width="34" Height="34" Padding="6"
+                        Classes="Icon"
                         ToolTip.Tip="{x:Static lang:Resources.TextAssistSummary}"
                         Click="OnSummaryClick">
                     <icons:MaterialIcon Kind="TextShort" Width="17" Height="17"
-                                        Foreground="{DynamicResource EcTextPrimary}" />
+                                        Foreground="{DynamicResource ForegroundColor}" />
                 </Button>
             </StackPanel>
-            <suki:Loading x:Name="LoadingSpinner"
+            <shad:Loading x:Name="LoadingSpinner"
                           Width="18" Height="18"
-                          Foreground="{DynamicResource EcAccent}"
+                          Foreground="{DynamicResource PrimaryColor}"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center"
                           IsVisible="False" />

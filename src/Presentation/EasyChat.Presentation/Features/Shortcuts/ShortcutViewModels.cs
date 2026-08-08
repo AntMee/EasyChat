@@ -6,9 +6,9 @@ using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
-using EasyChat.Presentation.Foundation.UiHost;
 using Material.Icons;
 using ReactiveUI;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Shortcuts
 {
@@ -46,7 +46,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
         private static readonly string[] TextAssistTypes = ["QuickTranslate", "QuickCorrect"];
         private static readonly string[] LanguageTypes = ["SwitchEngineSourceTarget"];
         private readonly SettingsSession _settings;
-        private readonly IUiDialogHost _dialogs;
+        private readonly DialogManager _dialogManager;
         private readonly TranslationLanguageOptions _languages;
         private ObservableCollection<ShortcutEntryState> _basicShortcuts = [];
         private ObservableCollection<ShortcutEntryState> _languageShortcuts = [];
@@ -55,12 +55,12 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
         public ShortcutViewModel(
             SettingsSession settings,
-            IUiDialogHost dialogs,
+            DialogManager dialogManager,
             TranslationLanguageOptions languages)
             : base(Resources.Shortcut, MaterialIconKind.Keyboard, 2)
         {
             _settings = settings;
-            _dialogs = dialogs;
+            _dialogManager = dialogManager;
             _languages = languages;
             Refresh();
             settings.Shortcut.Entries.CollectionChanged += (_, _) => Refresh();
@@ -172,35 +172,31 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
         private void ShowEditor(ShortcutEntryState? entry, IReadOnlyList<string> allowed, string defaultAction)
         {
-            _dialogs.ShowContent(new UiContentDialogOptions
+            var viewModel = new ShortcutEditDialogViewModel(
+                _dialogManager, _settings, _languages, allowed, entry, defaultAction)
             {
-                CreateContent = session => new EasyChat.Presentation.Features.Shortcuts.ShortcutEditDialogViewModel(
-                    session, _settings, _languages, allowed, entry, defaultAction)
+                OnClose = result =>
                 {
-                    OnClose = result =>
-                    {
-                        if (result is null)
-                            return;
-                        var replacement = new ShortcutEntryState(result, _settings.FlushSection);
-                        if (entry is null)
-                            _settings.Shortcut.Entries.Add(replacement);
-                        else
-                            _settings.Shortcut.Entries[_settings.Shortcut.Entries.IndexOf(entry)] = replacement;
-                    }
+                    if (result is null)
+                        return;
+                    var replacement = new ShortcutEntryState(result, _settings.FlushSection);
+                    if (entry is null)
+                        _settings.Shortcut.Entries.Add(replacement);
+                    else
+                        _settings.Shortcut.Entries[_settings.Shortcut.Entries.IndexOf(entry)] = replacement;
                 }
-            });
+            };
+            _dialogManager.CreateDialog(viewModel).Show();
         }
 
-        private void RemoveEntry(ShortcutEntryState entry) => _dialogs.ShowMessage(new UiMessageDialogOptions
-        {
-            Title = Resources.ConfirmDeletion,
-            Message = Resources.AreYouSureDelete,
-            Severity = UiMessageSeverity.Warning,
-            PrimaryText = Resources.Delete,
-            PrimaryIsDanger = true,
-            OnPrimary = () => _settings.Shortcut.Entries.Remove(entry),
-            SecondaryText = Resources.Cancel
-        });
+        private void RemoveEntry(ShortcutEntryState entry) => _dialogManager
+            .CreateDialog(Resources.ConfirmDeletion, Resources.AreYouSureDelete)
+            .WithPrimaryButton(
+                Resources.Delete,
+                () => _settings.Shortcut.Entries.Remove(entry),
+                DialogButtonStyle.Destructive)
+            .WithCancelButton(Resources.Cancel)
+            .Show();
     }
 }
 
@@ -210,7 +206,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
     public sealed class ShortcutEditDialogViewModel : ConventionViewModelBase
     {
-        private readonly IUiDialogSession _dialog;
+        private readonly DialogManager _dialogManager;
         private readonly ShortcutEntryState? _existing;
         private readonly SettingsSession _settings;
         private readonly TranslationLanguageOptions _languageOptions;
@@ -233,14 +229,14 @@ namespace EasyChat.Presentation.Features.Shortcuts
         private string _remark = string.Empty;
 
         public ShortcutEditDialogViewModel(
-            IUiDialogSession dialog,
+            DialogManager dialogManager,
             SettingsSession settings,
             TranslationLanguageOptions languageOptions,
             IReadOnlyList<string> allowedActionTypes,
             ShortcutEntryState? existing = null,
             string? defaultAction = null)
         {
-            _dialog = dialog;
+            _dialogManager = dialogManager;
             _settings = settings;
             _languageOptions = languageOptions;
             _existing = existing;
@@ -290,7 +286,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
             SaveCommand = ReactiveCommand.Create(Save, canSave);
             CancelCommand = ReactiveCommand.Create(Cancel);
             // Do not auto-start recording here: the view must be attached and focused first,
-            // otherwise key events never reach the capture handlers under Suki dialog chrome.
+            // otherwise key events never reach the capture handlers under dialog chrome.
         }
 
         public sealed record EngineOption(string Name, string Id, bool IsMachine);
@@ -558,13 +554,13 @@ namespace EasyChat.Presentation.Features.Shortcuts
                 KeyCombination,
                 _existing?.IsEnabled ?? true,
                 NullIfEmpty(Remark)?.Trim()));
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private void Cancel()
         {
             OnClose?.Invoke(null);
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private static string? NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value;

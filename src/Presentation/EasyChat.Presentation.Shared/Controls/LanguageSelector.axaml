@@ -3,17 +3,16 @@
              xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:converters="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
              x:Class="EasyChat.Presentation.Shared.Controls.LanguageSelector"
              x:Name="Root"
              x:CompileBindings="False">
     <Grid>
-        <suki:GlassCard Classes="Discrete"
-                        Padding="0"
-                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{DynamicResource SmallCornerRadius}"
-                        ClipToBounds="True">
+        <Border Padding="0"
+                Background="{DynamicResource BackgroundColor}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="1"
+                CornerRadius="6"
+                ClipToBounds="True">
             <sharedControls:LanguageAutoCompleteBox x:Name="LanguageAutoCompleteBox"
                                                 ItemsSource="{Binding SortedLanguages, ElementName=Root}"
                                                 SelectedItem="{Binding SelectedLanguage, ElementName=Root, Mode=TwoWay}"
@@ -47,7 +46,7 @@
                     </DataTemplate>
                 </sharedControls:LanguageAutoCompleteBox.ItemTemplate>
             </sharedControls:LanguageAutoCompleteBox>
-        </suki:GlassCard>
+        </Border>
 
         <Panel ZIndex="10" Width="22" Height="16" Margin="8,0,0,0"
                HorizontalAlignment="Left" VerticalAlignment="Center"

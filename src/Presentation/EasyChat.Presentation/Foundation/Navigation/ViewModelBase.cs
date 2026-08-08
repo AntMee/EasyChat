@@ -36,6 +36,8 @@ public abstract class NavigationPageViewModel(
         set => this.RaiseAndSetIfChanged(ref _index, value);
     }
 
+    public string Route => GetType().FullName ?? GetType().Name;
+
     /// <summary>Optional sidebar attention dot for incomplete setup.</summary>
     public bool ShowAttentionBadge
     {

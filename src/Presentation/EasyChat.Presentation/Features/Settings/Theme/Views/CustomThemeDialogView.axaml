@@ -1,4 +1,4 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Settings.Theme.Views.CustomThemeDialogView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Theme.Views.CustomThemeDialogView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,6 +7,7 @@
              xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Settings.Theme"
              xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
              xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              d:DesignHeight="420"
              d:DesignWidth="400"
              x:DataType="vm:CustomThemeDialogViewModel"
@@ -19,44 +20,45 @@
     </UserControl.Resources>
 
     <Grid RowDefinitions="Auto,*,Auto">
-        <Border Classes="EcDialogHeader">
+        <Border Padding="22,18,22,0">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                 <Border Width="40" Height="40" CornerRadius="11"
-                        Background="{DynamicResource EcAccentSoft}">
+                        Background="{DynamicResource PrimaryColor10}">
                     <icons:MaterialIcon Kind="PaletteOutline"
                                         Width="20" Height="20"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        Foreground="{DynamicResource EcAccent}" />
+                                        Foreground="{DynamicResource PrimaryColor}" />
                 </Border>
                 <TextBlock Grid.Column="1"
-                           Classes="EcDialogTitle"
+                           Classes="Large" TextWrapping="Wrap"
                            Text="{x:Static lang:Resources.CreateCustom}"
                            VerticalAlignment="Center" />
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" Classes="EcDialogScroll">
-            <StackPanel Classes="EcDialogBody">
+        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" Padding="22,0" MaxHeight="480" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
                 <StackPanel>
-                    <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.ThemeName}" />
-                    <TextBox Text="{Binding DisplayName}" />
+                    <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.ThemeName}" />
+                    <TextBox Text="{Binding DisplayName}" shad:ControlAssist.Label="{x:Static lang:Resources.ThemeName}" />
                 </StackPanel>
 
                 <StackPanel>
-                    <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.PrimaryColor}" />
+                    <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.PrimaryColor}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <TextBox Text="{Binding PrimaryColor, Converter={StaticResource ColorToHexConverter}}"
-                                 HorizontalAlignment="Stretch" />
-                        <Button Grid.Column="1" Classes="EcColorSwatch">
+                                 HorizontalAlignment="Stretch"
+                                 shad:ControlAssist.Label="{x:Static lang:Resources.PrimaryColor}" />
+                        <Button Grid.Column="1" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
                             <Button.Background>
                                 <SolidColorBrush Color="{Binding PrimaryColor}" />
                             </Button.Background>
                             <Button.Flyout>
                                 <Flyout Placement="Bottom" ShowMode="Standard">
                                     <Border CornerRadius="12" Padding="12"
-                                            Background="{DynamicResource EcBgElevated}"
-                                            BorderBrush="{DynamicResource EcBorder}"
+                                            Background="{DynamicResource CardBackgroundColor}"
+                                            BorderBrush="{DynamicResource BorderColor}"
                                             BorderThickness="1">
                                         <ColorView Color="{Binding PrimaryColor}" IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
                                     </Border>
@@ -67,19 +69,20 @@
                 </StackPanel>
 
                 <StackPanel>
-                    <TextBlock Classes="EcFieldLabel" Text="{x:Static lang:Resources.AccentColor}" />
+                    <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.AccentColor}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <TextBox Text="{Binding AccentColor, Converter={StaticResource ColorToHexConverter}}"
-                                 HorizontalAlignment="Stretch" />
-                        <Button Grid.Column="1" Classes="EcColorSwatch">
+                                 HorizontalAlignment="Stretch"
+                                 shad:ControlAssist.Label="{x:Static lang:Resources.AccentColor}" />
+                        <Button Grid.Column="1" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
                             <Button.Background>
                                 <SolidColorBrush Color="{Binding AccentColor}" />
                             </Button.Background>
                             <Button.Flyout>
                                 <Flyout Placement="Bottom" ShowMode="Standard">
                                     <Border CornerRadius="12" Padding="12"
-                                            Background="{DynamicResource EcBgElevated}"
-                                            BorderBrush="{DynamicResource EcBorder}"
+                                            Background="{DynamicResource CardBackgroundColor}"
+                                            BorderBrush="{DynamicResource BorderColor}"
                                             BorderThickness="1">
                                         <ColorView Color="{Binding AccentColor}" IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
                                     </Border>
@@ -91,14 +94,14 @@
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Classes="EcDialogFooter">
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="22,14,22,18" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundColor}" CornerRadius="{DynamicResource LgCornerRadius}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                 <Button Command="{Binding CancelCommand}"
-                        Classes="EcGhost"
+                        Classes="Ghost"
                         MinWidth="88"
                         Content="{x:Static lang:Resources.Cancel}" />
                 <Button Command="{Binding TryCreateThemeCommand}"
-                        Classes="EcPrimary"
+                        Classes="Primary"
                         MinWidth="96"
                         Content="{x:Static lang:Resources.Create}" />
             </StackPanel>

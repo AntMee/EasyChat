@@ -13,9 +13,10 @@ using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
-using EasyChat.Presentation.Foundation.UiHost;
 using Material.Icons;
 using ReactiveUI;
+using ShadUI;
+using ToastNotification = ShadUI.Notification;
 
 namespace EasyChat.Presentation.Features.Settings;
 
@@ -33,7 +34,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly ISpeechRecognitionModelRemover _speechModelRemover;
     private readonly IExternalUriLauncher _uriLauncher;
     private readonly ISettingsDialogCoordinator _dialogs;
-    private readonly IUiToastHost _toasts;
+    private readonly ToastManager _toasts;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
     private bool _isOcrModelListExpanded;
     private bool _isAsrModelListExpanded;
@@ -63,7 +64,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ISpeechRecognitionModelRemover speechModelRemover,
         IExternalUriLauncher uriLauncher,
         ISettingsDialogCoordinator dialogs,
-        IUiToastHost toasts)
+        ToastManager toasts)
         : base(Resources.Settings, MaterialIconKind.Settings, 1)
     {
         _settings = settings;
@@ -408,7 +409,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
             CultureInfo.CurrentCulture = culture;
             CultureInfo.CurrentUICulture = culture;
             this.RaisePropertyChanged();
-            ShowToast(Resources.LanguageChanged, Resources.RestartToTakeEffect, UiMessageSeverity.Success);
+            ShowToast(Resources.LanguageChanged, Resources.RestartToTakeEffect, ToastNotification.Success);
         }
     }
 
@@ -593,12 +594,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 Resources.AsrModels,
                 string.Join(Environment.NewLine, messages),
                 result.SkippedModels.Count > 0
-                    ? UiMessageSeverity.Information
-                    : UiMessageSeverity.Success);
+                    ? ToastNotification.Info
+                    : ToastNotification.Success);
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.AsrModelImportFailed, exception.Message, UiMessageSeverity.Error);
+            ShowToast(Resources.AsrModelImportFailed, exception.Message, ToastNotification.Error);
         }
         finally
         {
@@ -613,7 +614,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         if (!CanChangeDataLocation)
         {
-            ShowToast(Resources.ApplicationData, Resources.ApplicationDataMoveBusy, UiMessageSeverity.Information);
+            ShowToast(Resources.ApplicationData, Resources.ApplicationDataMoveBusy, ToastNotification.Info);
             return;
         }
 
@@ -623,7 +624,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
             var result = await _applicationData.ChangeLocationAsync(rootDirectory);
             if (result.IsFailure)
             {
-                ShowToast(Resources.ApplicationDataMoveFailed, result.Error.Message, UiMessageSeverity.Error);
+                ShowToast(Resources.ApplicationDataMoveFailed, result.Error.Message, ToastNotification.Error);
                 return;
             }
 
@@ -632,11 +633,11 @@ public sealed class SettingViewModel : NavigationPageViewModel
             ShowToast(
                 Resources.ApplicationData,
                 string.Format(Resources.ApplicationDataMoved, result.Value.RootDirectory),
-                UiMessageSeverity.Success);
+                ToastNotification.Success);
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.ApplicationDataMoveFailed, exception.Message, UiMessageSeverity.Error);
+            ShowToast(Resources.ApplicationDataMoveFailed, exception.Message, ToastNotification.Error);
         }
         finally
         {
@@ -658,12 +659,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 ShowToast(
                     Resources.AsrModels,
                     string.Format(Resources.AsrModelDeleted, model.Id),
-                    UiMessageSeverity.Success);
+                    ToastNotification.Success);
             }
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.AsrModelDeleteFailed, exception.Message, UiMessageSeverity.Error);
+            ShowToast(Resources.AsrModelDeleteFailed, exception.Message, ToastNotification.Error);
         }
         finally
         {
@@ -685,7 +686,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.AsrModels, exception.Message, UiMessageSeverity.Error);
+            ShowToast(Resources.AsrModels, exception.Message, ToastNotification.Error);
         }
     }
 
@@ -693,7 +694,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         var result = _uriLauncher.Open(AsrModelDownloadsUri);
         if (result.IsFailure)
-            ShowToast(Resources.AsrModels, result.Error.Message, UiMessageSeverity.Error);
+            ShowToast(Resources.AsrModels, result.Error.Message, ToastNotification.Error);
     }
 
     private void StartDownloadOcrModel(OcrModelDownloadItemViewModel item) => _ = DownloadOcrModelAsync(item);
@@ -810,13 +811,13 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 _languages.Get("zh-Hans"),
                 Provider: provider));
             if (result.IsSuccess)
-                ShowToast(providerName, Resources.ConnectionSuccess, UiMessageSeverity.Success);
+                ShowToast(providerName, Resources.ConnectionSuccess, ToastNotification.Success);
             else
-                ShowToast(Resources.ConnectionFailed, $"{providerName}: {result.Error.Message}", UiMessageSeverity.Error);
+                ShowToast(Resources.ConnectionFailed, $"{providerName}: {result.Error.Message}", ToastNotification.Error);
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.ConnectionFailed, $"{providerName}: {exception.Message}", UiMessageSeverity.Error);
+            ShowToast(Resources.ConnectionFailed, $"{providerName}: {exception.Message}", ToastNotification.Error);
         }
         finally
         {
@@ -856,8 +857,25 @@ public sealed class SettingViewModel : NavigationPageViewModel
             language.ProviderCodes ?? new Dictionary<string, string>());
     }
 
-    private void ShowToast(string title, string content, UiMessageSeverity severity) =>
-        _toasts.Show(title, content, severity);
+    private void ShowToast(string title, string content, ToastNotification severity)
+    {
+        var toast = _toasts.CreateToast(title).WithContent(content);
+        switch (severity)
+        {
+            case ToastNotification.Success:
+                toast.ShowSuccess();
+                break;
+            case ToastNotification.Warning:
+                toast.ShowWarning();
+                break;
+            case ToastNotification.Error:
+                toast.ShowError();
+                break;
+            default:
+                toast.ShowInfo();
+                break;
+        }
+    }
 }
 
 public enum SettingsPaneId

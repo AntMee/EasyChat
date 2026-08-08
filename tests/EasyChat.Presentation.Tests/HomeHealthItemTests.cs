@@ -1,5 +1,4 @@
 using EasyChat.Presentation.Features.Shell;
-using EasyChat.Presentation.Shared.Controls;
 using Material.Icons;
 using ReactiveUI;
 using System.Reactive;
@@ -23,7 +22,7 @@ public sealed class HomeHealthItemTests
 
         Assert.IsTrue(item.IsDone);
         Assert.IsFalse(item.NeedsAction);
-        Assert.AreEqual(EcStatusKind.Success, item.StatusKind);
+        Assert.AreEqual(HomeStatusKind.Success, item.StatusKind);
     }
 
     [TestMethod]
@@ -40,7 +39,7 @@ public sealed class HomeHealthItemTests
 
         Assert.IsFalse(item.IsDone);
         Assert.IsTrue(item.NeedsAction);
-        Assert.AreEqual(EcStatusKind.Warning, item.StatusKind);
+        Assert.AreEqual(HomeStatusKind.Warning, item.StatusKind);
         Assert.AreEqual("Open shortcuts", item.ActionText);
         Assert.AreSame(command, item.ActionCommand);
     }

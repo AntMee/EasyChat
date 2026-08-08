@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using EasyChat.Contracts.Platform;
-using EasyChat.Presentation.Foundation.UiHost;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Capture;
 
@@ -14,11 +14,11 @@ public interface IScreenRegionPicker
 public sealed class AvaloniaScreenRegionPicker(
     IPlatformAccessUseCases platformAccess,
     CaptureOverlayCoordinator overlays,
-    IUiToastHost toasts) : IScreenRegionPicker
+    ToastManager toasts) : IScreenRegionPicker
 {
     private readonly IPlatformAccessUseCases _platformAccess = platformAccess;
     private readonly CaptureOverlayCoordinator _overlays = overlays;
-    private readonly IUiToastHost _toasts = toasts;
+    private readonly ToastManager _toasts = toasts;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public async ValueTask<PhysicalScreenRegion?> PickAsync(CancellationToken cancellationToken = default)
@@ -73,5 +73,5 @@ public sealed class AvaloniaScreenRegionPicker(
     }
 
     private void ShowError(string message) =>
-        _toasts.Show(Lang.Resources.RequestError, message, UiMessageSeverity.Error);
+        _toasts.CreateToast(Lang.Resources.RequestError).WithContent(message).ShowError();
 }

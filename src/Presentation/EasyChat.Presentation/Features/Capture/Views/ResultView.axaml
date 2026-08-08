@@ -1,8 +1,8 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
         xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
@@ -39,12 +39,11 @@
 
     <Panel x:Name="WindowBackground">
         <Border x:Name="MainCard"
-                Classes="EcFloatShell"
-                Padding="0">
-            <Border Classes="EcFloatClip">
+                Background="{DynamicResource DialogBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" ClipToBounds="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
+            <Border ClipToBounds="True">
             <Grid RowDefinitions="*,Auto" MinWidth="160" MinHeight="44">
                 <Panel Margin="16,14,16,10">
-                    <suki:Loading x:Name="LoadingIndicator"
+                    <shad:Loading x:Name="LoadingIndicator"
                                   Width="22" Height="22"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
@@ -61,15 +60,12 @@
                 <Border Grid.Row="1"
                         x:Name="ResultToolbar"
                         IsVisible="False"
-                        Background="{DynamicResource EcBgElevated}"
-                        BorderBrush="{DynamicResource EcBorder}"
-                        BorderThickness="0,1,0,0"
-                        Padding="10,8">
+                        Background="{DynamicResource CardBackgroundColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="0,1,0,0" CornerRadius="{DynamicResource LgCornerRadius}" Padding="24">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock x:Name="CopyHint"
-                                   Classes="EcMuted"
+                        <TextBlock x:Name="CopyHint" FontSize="11" Foreground="{DynamicResource MutedColor}"
                                    VerticalAlignment="Center"
-                                   FontSize="11"
                                    Text="{x:Static lang:Resources.ResultCopyHint}"
                                    IsVisible="False" />
                         <StackPanel Grid.Column="1"
@@ -77,9 +73,7 @@
                                     Spacing="8"
                                     HorizontalAlignment="Right">
                             <Button x:Name="CopyButton"
-                                    Classes="EcPrimary"
-                                    Width="34" Height="34"
-                                    Padding="0"
+                                    Classes="Icon"
                                     ToolTip.Tip="{x:Static lang:Resources.Copy}"
                                     Click="OnCopyClick"
                                     HorizontalContentAlignment="Center"
@@ -87,7 +81,7 @@
                                     AutomationProperties.Name="{x:Static lang:Resources.Copy}">
                                 <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
                             </Button>
-                            <Button Classes="EcToolbarBtn"
+                            <Button Classes="Icon"
                                     ToolTip.Tip="{x:Static lang:Resources.Close}"
                                     Click="OnCloseClick"
                                     AutomationProperties.Name="{x:Static lang:Resources.Close}">

@@ -1,6 +1,6 @@
-<suki:SukiWindow xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:suki="https://github.com/kikipoulet/SukiUI"
+                 xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
                  xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
                  xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
@@ -13,55 +13,46 @@
                  ExtendClientAreaToDecorationsHint="True"
                  TransparencyLevelHint="Blur"
                  Background="Transparent"
-                 Foreground="{DynamicResource EcTextPrimary}"
-                 IsTitleBarVisible="False"
-                 RootCornerRadius="14"
+                 Foreground="{DynamicResource ForegroundColor}"
                  Topmost="True"
                  ShowInTaskbar="False"
-                 CornerRadius="14"
                  Title="{Binding WindowTitle}">
     <Grid>
         <Border x:Name="MainCard"
-                Classes="EcFloatShell"
-                Padding="0">
-            <Border Classes="EcFloatClip">
+                Background="{DynamicResource DialogBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" ClipToBounds="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
+            <Border ClipToBounds="True">
             <Grid RowDefinitions="Auto,*">
                 <Border Grid.Row="0"
                         Padding="10,8"
-                        Background="{DynamicResource EcBgElevated}"
-                        BorderBrush="{DynamicResource EcBorder}"
+                        Background="{DynamicResource CardBackgroundColor}"
+                        BorderBrush="{DynamicResource BorderColor}"
                         BorderThickness="0,0,0,1"
-                        PointerPressed="OnHeaderPointerPressed">
+                        PointerPressed="OnHeaderPointerPressed" CornerRadius="{DynamicResource LgCornerRadius}">
                     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <avalonia:MaterialIcon Kind="{Binding WindowIcon}" Width="16" Height="16" Foreground="{DynamicResource EcAccent}" />
-                            <TextBlock Text="{Binding WindowTitle}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource EcTextPrimary}" />
+                            <avalonia:MaterialIcon Kind="{Binding WindowIcon}" Width="16" Height="16" Foreground="{DynamicResource PrimaryColor}" />
+                            <TextBlock Text="{Binding WindowTitle}" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundColor}" />
                         </StackPanel>
                         <!-- Mode switch: translate <-> correct without closing the float -->
-                        <Border Grid.Column="1"
-                                Classes="EcSegmented"
+                        <shad:Card Grid.Column="1"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                PointerPressed="OnHeaderChromePointerPressed">
+                                PointerPressed="OnHeaderChromePointerPressed" HasShadow="False" Padding="16">
                             <StackPanel Orientation="Horizontal" Spacing="2">
-                                <RadioButton Classes="EcSegment"
+                                <RadioButton
                                              GroupName="TextAssistFloatMode"
                                              Content="{x:Static lang:Resources.TextAssistTranslate}"
-                                             IsChecked="{Binding IsTranslationMode}"
-                                             FontSize="12"
-                                             Padding="12,5" />
-                                <RadioButton Classes="EcSegment"
+                                             IsChecked="{Binding IsTranslationMode}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                                <RadioButton
                                              GroupName="TextAssistFloatMode"
                                              Content="{x:Static lang:Resources.TextAssistCorrect}"
-                                             IsChecked="{Binding IsCorrectionMode}"
-                                             FontSize="12"
-                                             Padding="12,5" />
+                                             IsChecked="{Binding IsCorrectionMode}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
                             </StackPanel>
-                        </Border>
-                        <suki:Loading Grid.Column="2" Width="14" Height="14"
+                        </shad:Card>
+                        <shad:Loading Grid.Column="2" Width="14" Height="14"
                                       IsVisible="{Binding IsCapturingInput}"
                                       VerticalAlignment="Center" />
-                        <Button Grid.Column="3" Click="OnCloseClick" Classes="EcToolbarBtn"
+                        <Button Grid.Column="3" Click="OnCloseClick" Classes="Icon"
                                 ToolTip.Tip="{x:Static lang:Resources.Close}">
                             <avalonia:MaterialIcon Kind="Close" Width="16" Height="16" />
                         </Button>
@@ -99,4 +90,4 @@
                                    Margin="0,0,2,2" Opacity="0.45" IsHitTestVisible="False" />
         </Border>
     </Grid>
-</suki:SukiWindow>
+</Window>

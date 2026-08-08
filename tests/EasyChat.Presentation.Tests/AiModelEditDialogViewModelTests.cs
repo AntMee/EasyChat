@@ -87,7 +87,7 @@ public sealed class AiModelEditDialogViewModelTests
         IAiModelCatalogTransport catalog,
         Action<CustomAiModelSettings?>? onClose = null,
         CustomAiModelState? existing = null) =>
-        new(new NullDialogSession(), catalog, existing)
+        new(new ShadUI.DialogManager(), catalog, existing)
         {
             OnClose = onClose
         };
@@ -97,11 +97,6 @@ public sealed class AiModelEditDialogViewModelTests
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         while (!condition())
             await Task.Delay(25, timeout.Token);
-    }
-
-    private sealed class NullDialogSession : IUiDialogSession
-    {
-        public void Dismiss() { }
     }
 
     private sealed class RecordingCatalog : IAiModelCatalogTransport

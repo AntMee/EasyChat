@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Notifications;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -9,15 +8,15 @@ using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.ScreenshotOcr.Controls;
 using Material.Icons;
 using Material.Icons.Avalonia;
-using SukiUI.Controls;
-using SukiUI.Dialogs;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.ScreenshotOcr.Views;
 
-public sealed partial class ScreenshotOcrWindowView : SukiWindow
+public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
 {
     private readonly ScreenshotOcrWindowViewModel? _viewModel;
     private readonly OcrImageViewport? _viewport;
+    private ScreenshotOcrResetConfirmationDialogViewModel? _resetConfirmation;
     private bool _disposed;
 
     public ScreenshotOcrWindowView() => InitializeComponent();
@@ -72,6 +71,8 @@ public sealed partial class ScreenshotOcrWindowView : SukiWindow
         _viewport.ZoomChanged -= OnZoomChanged;
         _viewModel.BitmapChanged -= _viewport.SetBitmap;
         _viewModel.RegionsChanged -= _viewport.SetRegions;
+        _resetConfirmation?.Cancel();
+        _viewModel.DialogManager.Dispose();
         await _viewModel.DisposeAsync();
     }
 
@@ -156,18 +157,30 @@ public sealed partial class ScreenshotOcrWindowView : SukiWindow
         return new PhysicalScreenPoint(screen.X, screen.Y);
     }
 
-    private async Task<bool> ShowResetConfirmationAsync(string message) =>
-        await _viewModel!.DialogManager.CreateDialog()
-            .WithTitle("Confirm replacement")
-            .WithContent(message)
-            .OfType(NotificationType.Warning)
-            .Dismiss().ByClickingBackground()
-            .WithYesNoResult("Continue", "Cancel", "Flat")
-            .TryShowAsync();
+    private async Task<bool> ShowResetConfirmationAsync(string message)
+    {
+        var confirmation = new ScreenshotOcrResetConfirmationDialogViewModel(
+            _viewModel!.DialogManager,
+            message);
+        _resetConfirmation = confirmation;
+        try
+        {
+            _viewModel.DialogManager.CreateDialog(confirmation)
+                .WithCancelCallback(confirmation.CompleteCancellation)
+                .Dismissible()
+                .Show();
+            return await confirmation.Result;
+        }
+        finally
+        {
+            if (ReferenceEquals(_resetConfirmation, confirmation))
+                _resetConfirmation = null;
+        }
+    }
 
     private async Task ShowErrorAsync(string message)
     {
-        var dialog = new Window
+        var dialog = new Avalonia.Controls.Window
         {
             Title = "Screenshot OCR",
             Width = 430,

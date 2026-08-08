@@ -14,14 +14,12 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Settings.Theme;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
-using EasyChat.Presentation.Foundation.UiHost;
 using EasyChat.Presentation.Shared.Controls;
 using Material.Icons;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
-using SukiUI;
-using SukiUI.Dialogs;
-using SukiUI.Models;
-using SukiUI.Toasts;
+using ShadUI;
+using ThemeMode = EasyChat.Contracts.Settings.ThemeMode;
 
 namespace EasyChat.Presentation.Features.Shell
 {
@@ -48,14 +46,14 @@ namespace EasyChat.Presentation.Features.Shell
 
     public sealed class MainWindowViewModel : ViewModelBase
     {
-        private readonly SukiTheme _theme;
+        public const string UpdateToastManagerKey = "Update";
+
         private readonly SettingsSession _settings;
         private readonly IExternalUriLauncher _uriLauncher;
-        private readonly IUiToastHost _toasts;
-        private readonly IUiDialogHost _dialogs;
+        private readonly ShadUI.ToastManager _toasts;
         private NavigationPageViewModel? _activePage;
         private ThemeMode _baseThemeMode;
-        private bool _isApplyingBaseTheme;
+        private ColorThemeOption? _activeColorTheme;
         private bool _isFullScreen;
         private bool _titleBarVisible;
 
@@ -64,24 +62,28 @@ namespace EasyChat.Presentation.Features.Shell
             PageNavigation navigation,
             SettingsSession settings,
             IExternalUriLauncher uriLauncher,
-            ISukiToastManager toastManager,
-            ISukiDialogManager dialogManager,
-            IUiToastHost toasts,
-            IUiDialogHost dialogs)
+            ShadUI.ToastManager shadToastManager,
+            [FromKeyedServices(UpdateToastManagerKey)] ShadUI.ToastManager updateToastManager,
+            ShadUI.DialogManager shadDialogManager)
         {
             _settings = settings;
             _uriLauncher = uriLauncher;
-            _toasts = toasts;
-            _dialogs = dialogs;
-            // Bound to SukiToastHost / SukiDialogHost in MainWindow.axaml only.
-            ToastManager = toastManager;
-            DialogManager = dialogManager;
+            _toasts = shadToastManager;
+            ShadToastManager = shadToastManager;
+            UpdateToastManager = updateToastManager;
+            ShadDialogManager = shadDialogManager;
             Pages = new ObservableCollection<NavigationPageViewModel>(
                 pages.OrderBy(page => page.Index).ThenBy(page => page.DisplayName));
             _activePage = Pages.FirstOrDefault();
 
-            _theme = SukiTheme.GetInstance();
-            Themes = _theme.ColorThemes;
+            Themes = new ObservableCollection<ColorThemeOption>
+            {
+                new("Blue", Color.Parse("#3B82F6"), Color.Parse("#60A5FA")),
+                new("Purple", Color.Parse("#8B5CF6"), Color.Parse("#A78BFA")),
+                new("Red", Color.Parse("#EF4444"), Color.Parse("#F87171")),
+                new("Orange", Color.Parse("#F97316"), Color.Parse("#FB923C")),
+                new("Green", Color.Parse("#22C55E"), Color.Parse("#4ADE80"))
+            };
             _baseThemeMode = settings.General.BaseTheme;
             _isFullScreen = settings.General.FullScreen;
             _titleBarVisible = !_isFullScreen;
@@ -92,25 +94,23 @@ namespace EasyChat.Presentation.Features.Shell
             RestoreColorTheme();
 
             CycleBaseThemeCommand = ReactiveCommand.Create(CycleBaseTheme);
-            // Color picks only — never wire base light/dark through ChangeColorTheme (double paint).
-            ChangeThemeCommand = ReactiveCommand.Create<SukiColorTheme>(ApplyColorTheme);
+            // Color palette changes remain independent from the base light/dark variant.
+            ChangeThemeCommand = ReactiveCommand.Create<ColorThemeOption>(ApplyColorTheme);
             CreateCustomThemeCommand = ReactiveCommand.Create(CreateCustomTheme);
+            SelectPageCommand = ReactiveCommand.Create<NavigationPageViewModel>(SelectPage);
             ToggleFullScreenCommand = ReactiveCommand.Create(ToggleFullScreen);
             OpenUrlCommand = ReactiveCommand.Create<string>(OpenUrl);
 
             navigation.NavigationRequested += NavigateTo;
-            // Do not subscribe OnBaseThemeChanged → ChangeColorTheme.
-            // Suki's own ChangeBaseTheme rebinds color after variant flip and is the classic flash.
-            // Avalonia ThemeDictionaries (Ec*) already swap on RequestedThemeVariant alone.
-            _theme.OnColorThemeChanged += OnColorThemeChanged;
         }
 
         public event EventHandler<bool>? FullScreenChanged;
 
         public ObservableCollection<NavigationPageViewModel> Pages { get; }
-        public IReadOnlyList<SukiColorTheme> Themes { get; }
-        public ISukiDialogManager DialogManager { get; }
-        public ISukiToastManager ToastManager { get; }
+        public ObservableCollection<ColorThemeOption> Themes { get; }
+        public ShadUI.DialogManager ShadDialogManager { get; }
+        public ShadUI.ToastManager ShadToastManager { get; }
+        public ShadUI.ToastManager UpdateToastManager { get; }
 
         public NavigationPageViewModel? ActivePage
         {
@@ -170,8 +170,9 @@ namespace EasyChat.Presentation.Features.Shell
         };
 
         public ReactiveCommand<Unit, Unit> CycleBaseThemeCommand { get; }
-        public ReactiveCommand<SukiColorTheme, Unit> ChangeThemeCommand { get; }
+        public ReactiveCommand<ColorThemeOption, Unit> ChangeThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> CreateCustomThemeCommand { get; }
+        public ReactiveCommand<NavigationPageViewModel, Unit> SelectPageCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleFullScreenCommand { get; }
         public ReactiveCommand<string, Unit> OpenUrlCommand { get; }
 
@@ -185,7 +186,7 @@ namespace EasyChat.Presentation.Features.Shell
                 StringComparison.OrdinalIgnoreCase));
             if (saved is not null)
             {
-                _theme.ChangeColorTheme(saved);
+                ApplyColorTheme(saved, persist: false, notify: false);
                 return;
             }
 
@@ -197,16 +198,17 @@ namespace EasyChat.Presentation.Features.Shell
 
             try
             {
-                var custom = new SukiColorTheme(
+                var custom = new ColorThemeOption(
                     _settings.General.ColorTheme,
                     Color.Parse(_settings.General.CustomThemePrimaryColor),
-                    Color.Parse(_settings.General.CustomThemeAccentColor));
-                _theme.AddColorTheme(custom);
-                _theme.ChangeColorTheme(custom);
+                    Color.Parse(_settings.General.CustomThemeAccentColor),
+                    IsCustom: true);
+                Themes.Add(custom);
+                ApplyColorTheme(custom, persist: false, notify: false);
             }
             catch (FormatException)
             {
-                // Manually edited invalid colors fall back to SukiUI's active theme.
+                // Manually edited invalid colors leave ShadUI's default palette active.
             }
         }
 
@@ -260,43 +262,75 @@ namespace EasyChat.Presentation.Features.Shell
                 _ => ThemeVariant.Default
             };
 
-            // Single paint: only RequestedThemeVariant.
-            // Never call SukiTheme.ChangeBaseTheme / ChangeColorTheme here — both re-walk
-            // primary/accent opacities (SetColorWithOpacities) and produce a second full-tree
-            // invalidation that reads as 闪屏.
+            // A variant change is a single paint and does not reapply the color palette.
             if (Equals(application.RequestedThemeVariant, target))
                 return;
 
-            _isApplyingBaseTheme = true;
             application.RequestedThemeVariant = target;
-            // Hold the guard past ActualThemeVariantChanged + layout so nothing re-enters color rebind.
-            Dispatcher.UIThread.Post(
-                () => _isApplyingBaseTheme = false,
-                DispatcherPriority.Loaded);
         }
 
-        private void ApplyColorTheme(SukiColorTheme theme)
+        private void ApplyColorTheme(ColorThemeOption theme) =>
+            ApplyColorTheme(theme, persist: true, notify: true);
+
+        private void ApplyColorTheme(ColorThemeOption theme, bool persist, bool notify)
         {
-            if (ReferenceEquals(_theme.ActiveColorTheme, theme))
+            if (_activeColorTheme == theme)
                 return;
-            _theme.ChangeColorTheme(theme);
+
+            var resources = (Application.Current
+                ?? throw new InvalidOperationException("Avalonia application is not initialized."))
+                .Resources;
+            resources["PrimaryColor"] = theme.PrimaryColor;
+            resources["PrimaryColor75"] = WithOpacity(theme.PrimaryColor, 0.75);
+            resources["PrimaryColor50"] = WithOpacity(theme.PrimaryColor, 0.50);
+            resources["PrimaryColor10"] = WithOpacity(theme.PrimaryColor, 0.10);
+            resources["PrimaryForegroundColor"] = ContrastingForeground(theme.PrimaryColor);
+            resources["SecondaryColor"] = theme.AccentColor;
+            resources["SecondaryColor75"] = WithOpacity(theme.AccentColor, 0.75);
+            resources["SecondaryColor50"] = WithOpacity(theme.AccentColor, 0.50);
+            resources["SecondaryForegroundColor"] = ContrastingForeground(theme.AccentColor);
+            _activeColorTheme = theme;
+
+            if (persist)
+            {
+                _settings.General.ColorTheme = theme.DisplayName;
+                if (theme.IsCustom)
+                {
+                    _settings.General.CustomThemePrimaryColor = theme.PrimaryColor.ToString();
+                    _settings.General.CustomThemeAccentColor = theme.AccentColor.ToString();
+                }
+            }
+
+            if (notify)
+            {
+                _toasts.CreateToast(Resources.ColorChangedTitle)
+                    .WithContent($"{Resources.ColorChangedContent} {theme.DisplayName}.")
+                    .ShowInfo();
+            }
         }
 
-        private void OnColorThemeChanged(SukiColorTheme theme)
+        private void SelectPage(NavigationPageViewModel page) => ActivePage = page;
+
+        private static Color WithOpacity(Color color, double opacity) =>
+            Color.FromArgb((byte)Math.Round(byte.MaxValue * opacity), color.R, color.G, color.B);
+
+        private static Color ContrastingForeground(Color color)
         {
-            if (_isApplyingBaseTheme)
-                return;
-            _settings.General.ColorTheme = theme.DisplayName;
-            // Color picks are deliberate; keep feedback. Base light/dark cycles stay silent.
-            _toasts.Show(
-                Resources.ColorChangedTitle,
-                $"{Resources.ColorChangedContent} {theme.DisplayName}.");
+            var luminance = (0.2126 * color.R) + (0.7152 * color.G) + (0.0722 * color.B);
+            return luminance > 160 ? Color.Parse("#18181B") : Colors.White;
         }
 
-        private void CreateCustomTheme() => _dialogs.ShowContent(new UiContentDialogOptions
+        private void CreateCustomTheme()
         {
-            CreateContent = session => new CustomThemeDialogViewModel(_theme, session, _settings.General)
-        });
+            var viewModel = new CustomThemeDialogViewModel(ShadDialogManager, AddCustomTheme);
+            ShadDialogManager.CreateDialog(viewModel).Show();
+        }
+
+        private void AddCustomTheme(ColorThemeOption theme)
+        {
+            Themes.Add(theme);
+            ApplyColorTheme(theme);
+        }
 
         private void ToggleFullScreen()
         {
@@ -350,7 +384,7 @@ namespace EasyChat.Presentation.Features.Shell
         public MaterialIconKind Icon { get; }
         public string ActionText { get; }
         public ReactiveCommand<Unit, Unit> ActionCommand { get; }
-        public EcStatusKind StatusKind => IsDone ? EcStatusKind.Success : EcStatusKind.Warning;
+        public HomeStatusKind StatusKind => IsDone ? HomeStatusKind.Success : HomeStatusKind.Warning;
         public string StatusText => IsDone ? Resources.HomeStatusReady : Resources.HomeStatusNeedsSetup;
     }
 
@@ -473,7 +507,7 @@ namespace EasyChat.Presentation.Features.Shell
             : !string.IsNullOrWhiteSpace(GeneralConfig.UsingMachineTrans);
         public bool NeedsConfiguration => !IsEngineReady;
         public string EngineStatusText => IsEngineReady ? Resources.HomeStatusReady : Resources.HomeStatusNeedsSetup;
-        public EcStatusKind EngineStatusKind => IsEngineReady ? EcStatusKind.Success : EcStatusKind.Warning;
+        public HomeStatusKind EngineStatusKind => IsEngineReady ? HomeStatusKind.Success : HomeStatusKind.Warning;
         public string EngineSummaryText => IsUsingAiEngine
             ? (ConfiguredModels.FirstOrDefault(model => model.Id == GeneralConfig.UsingAiModelId)?.Name
                ?? Resources.NotSet)
@@ -626,7 +660,7 @@ namespace EasyChat.Presentation.Features.Shell
 {
     public sealed class CloseBehaviorDialogViewModel : ConventionViewModelBase
     {
-        private readonly IUiDialogSession _dialog;
+        private readonly ShadUI.DialogManager _dialogManager;
         private readonly LiveGeneralSettings _settings;
         private readonly Action _ensureTrayVisible;
         private readonly Action _minimize;
@@ -634,13 +668,13 @@ namespace EasyChat.Presentation.Features.Shell
         private bool _isRemember;
 
         public CloseBehaviorDialogViewModel(
-            IUiDialogSession dialog,
+            ShadUI.DialogManager dialogManager,
             LiveGeneralSettings settings,
             Action ensureTrayVisible,
             Action minimize,
             Action exit)
         {
-            _dialog = dialog;
+            _dialogManager = dialogManager;
             _settings = settings;
             _ensureTrayVisible = ensureTrayVisible
                 ?? throw new ArgumentNullException(nameof(ensureTrayVisible));
@@ -649,7 +683,7 @@ namespace EasyChat.Presentation.Features.Shell
             MinimizeCommand = ReactiveCommand.Create(Minimize);
             ExitAppCommand = ReactiveCommand.Create(Exit);
             // Close was already cancelled on the window; cancel only dismisses the prompt.
-            CancelCommand = ReactiveCommand.Create(() => _dialog.Dismiss());
+            CancelCommand = ReactiveCommand.Create(() => _dialogManager.Close(this));
         }
 
         public bool IsRemember { get => _isRemember; set => this.RaiseAndSetIfChanged(ref _isRemember, value); }
@@ -663,7 +697,7 @@ namespace EasyChat.Presentation.Features.Shell
                 _settings.ClosingBehavior = ClosingBehavior.MinimizeToTray;
             _ensureTrayVisible();
             _minimize();
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private void Exit()
@@ -671,7 +705,7 @@ namespace EasyChat.Presentation.Features.Shell
             if (IsRemember)
                 _settings.ClosingBehavior = ClosingBehavior.ExitApp;
             _exit();
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
     }
 }

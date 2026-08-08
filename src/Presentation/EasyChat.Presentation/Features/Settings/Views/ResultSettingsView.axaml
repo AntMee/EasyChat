@@ -1,4 +1,4 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.ResultSettingsView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.ResultSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,184 +7,323 @@
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Features.Settings;assembly=EasyChat.Presentation"
              xmlns:formatting="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
-             xmlns:ec="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
     <UserControl.Resources>
         <formatting:ColorToHexConverter x:Key="ColorToHexConverter" />
     </UserControl.Resources>
 
-    <StackPanel Classes="EcSettingsList"
+    <StackPanel
                 VerticalAlignment="Top"
-                HorizontalAlignment="Stretch">
-            <ec:EcSettingRow Label="{x:Static lang:Resources.ResultWindowMode}"
-                             IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='result window mode classic dictionary 结果 窗口 模式'}">
-                <ComboBox ItemsSource="{Binding ResultWindowModes}"
-                          SelectedItem="{Binding ResultConf.ScreenshotResultMode}"
-                          HorizontalAlignment="Stretch">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Converter={x:Static converts:ResultWindowModeConverter.Instance}}"
-                                       VerticalAlignment="Center" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </ec:EcSettingRow>
-
-            <StackPanel Classes="EcSettingsList"
-                        IsVisible="{Binding ResultConf.ScreenshotResultMode, Converter={x:Static converts:ResultWindowModeToBooleanConverter.Instance}}">
-                <ec:EcSettingRow Label="{x:Static lang:Resources.ReadAloudMode}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='read aloud tts 朗读'}">
-                    <ComboBox ItemsSource="{Binding ResultReadAloudModes}"
-                              SelectedItem="{Binding ResultConf.ReadAloudMode}"
+                HorizontalAlignment="Stretch" Spacing="0">
+            <Grid ColumnDefinitions="*,*"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='result window mode classic dictionary 结果 窗口 模式'}">
+                <TextBlock Text="{x:Static lang:Resources.ResultWindowMode}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Grid.Column="1"
+                                MinWidth="280"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox ItemsSource="{Binding ResultWindowModes}"
+                              SelectedItem="{Binding ResultConf.ScreenshotResultMode}"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Converter={x:Static converts:ResultReadAloudModeConverter.Instance}}"
+                                <TextBlock Text="{Binding Converter={x:Static converts:ResultWindowModeConverter.Instance}}"
                                            VerticalAlignment="Center" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                </ec:EcSettingRow>
+                </ContentControl>
+            </Grid>
 
-                <ec:EcSettingRow Label="{x:Static lang:Resources.FontSize}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font size 字体 大小'}">
-                    <NumericUpDown Value="{Binding ResultConf.FontSize}"
-                                   Minimum="10" Maximum="50" Increment="1"
-                                   FormatString="N0"
-                                   HorizontalAlignment="Stretch" />
-                </ec:EcSettingRow>
+            <StackPanel
+                        IsVisible="{Binding ResultConf.ScreenshotResultMode, Converter={x:Static converts:ResultWindowModeToBooleanConverter.Instance}}" Spacing="0">
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='read aloud tts 朗读'}">
+                    <TextBlock Text="{x:Static lang:Resources.ReadAloudMode}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <ComboBox ItemsSource="{Binding ResultReadAloudModes}"
+                                  SelectedItem="{Binding ResultConf.ReadAloudMode}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={x:Static converts:ResultReadAloudModeConverter.Instance}}"
+                                               VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </ContentControl>
+                </Grid>
 
-                <ec:EcSettingRow Label="{x:Static lang:Resources.FontFamily}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font family 字体'}">
-                    <ComboBox ItemsSource="{Binding AvailableFonts}"
-                              SelectedItem="{Binding ResultConf.FontFamily}"
-                              HorizontalAlignment="Stretch">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding .}"
-                                           FontFamily="{Binding ., Converter={x:Static formatting:StringToFontFamilyConverter.Instance}}"
-                                           VerticalAlignment="Center" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                </ec:EcSettingRow>
-
-                <ec:EcSettingRow Label="{x:Static lang:Resources.FontColor}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font color 字体 颜色'}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <TextBox Text="{Binding ResultConf.FontColor}"
-                                 PlaceholderText="#FFFFFFFF"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Classes="EcColorSwatch" VerticalAlignment="Center">
-                            <Button.Background>
-                                <SolidColorBrush Color="{Binding ResultConf.FontColor, Converter={StaticResource ColorToHexConverter}}" />
-                            </Button.Background>
-                            <Button.Flyout>
-                                <Flyout Placement="Bottom" ShowMode="Standard">
-                                    <Border CornerRadius="12" Padding="12"
-                                            Background="{DynamicResource EcBgElevated}"
-                                            BorderBrush="{DynamicResource EcBorder}"
-                                            BorderThickness="1">
-                                        <ColorView Color="{Binding ResultConf.FontColor, Converter={StaticResource ColorToHexConverter}}"
-                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
-                                    </Border>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                    </Grid>
-                </ec:EcSettingRow>
-
-                <ec:EcSettingRow Label="{x:Static lang:Resources.TransparencyLevel}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='transparency acrylic blur 透明'}">
-                    <ComboBox ItemsSource="{Binding TransparencyLevels}"
-                              SelectedItem="{Binding ResultConf.TransparencyLevel}"
-                              HorizontalAlignment="Stretch" />
-                </ec:EcSettingRow>
-
-                <ec:EcSettingRow Label="{x:Static lang:Resources.BackgroundColor}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='background color 背景'}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <TextBox Text="{Binding ResultConf.BackgroundColor}"
-                                 PlaceholderText="#CC000000"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Classes="EcColorSwatch" VerticalAlignment="Center">
-                            <Button.Background>
-                                <SolidColorBrush Color="{Binding ResultConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
-                            </Button.Background>
-                            <Button.Flyout>
-                                <Flyout Placement="Bottom" ShowMode="Standard">
-                                    <Border CornerRadius="12" Padding="12"
-                                            Background="{DynamicResource EcBgElevated}"
-                                            BorderBrush="{DynamicResource EcBorder}"
-                                            BorderThickness="1">
-                                        <ColorView Color="{Binding ResultConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}"
-                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
-                                    </Border>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                    </Grid>
-                </ec:EcSettingRow>
-
-                <ec:EcSettingRow Label="{x:Static lang:Resources.WindowBackgroundColor}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='window background 窗口 背景'}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <TextBox Text="{Binding ResultConf.WindowBackgroundColor}"
-                                 PlaceholderText="#00000000"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Classes="EcColorSwatch" VerticalAlignment="Center">
-                            <Button.Background>
-                                <SolidColorBrush Color="{Binding ResultConf.WindowBackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
-                            </Button.Background>
-                            <Button.Flyout>
-                                <Flyout Placement="Bottom" ShowMode="Standard">
-                                    <Border CornerRadius="12" Padding="12"
-                                            Background="{DynamicResource EcBgElevated}"
-                                            BorderBrush="{DynamicResource EcBorder}"
-                                            BorderThickness="1">
-                                        <ColorView Color="{Binding ResultConf.WindowBackgroundColor, Converter={StaticResource ColorToHexConverter}}"
-                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
-                                    </Border>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                    </Grid>
-                </ec:EcSettingRow>
-
-                <ec:EcSettingRow Label="{x:Static lang:Resources.EnableAutoReadDelay}"
-                                 IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='auto read delay 自动 延迟'}">
-                    <ToggleSwitch IsChecked="{Binding ResultConf.EnableAutoReadDelay}"
-                                  OnContent="" OffContent=""
-                                  HorizontalAlignment="Right" />
-                </ec:EcSettingRow>
-
-                <ec:EcSettingRow Label="{x:Static lang:Resources.ResultAutoCloseDelay}"
-                                 IsVisible="{Binding !ResultConf.EnableAutoReadDelay}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <NumericUpDown Value="{Binding ResultConf.AutoCloseDelay}"
-                                       Minimum="1000" Maximum="60000" Increment="500"
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font size 字体 大小'}">
+                    <TextBlock Text="{x:Static lang:Resources.FontSize}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <NumericUpDown Value="{Binding ResultConf.FontSize}"
+                                       Minimum="10" Maximum="50" Increment="1"
                                        FormatString="N0"
                                        HorizontalAlignment="Stretch" />
-                        <TextBlock Grid.Column="1" Text="ms" VerticalAlignment="Center"
-                                   Classes="EcMuted" MinWidth="28" />
-                    </Grid>
-                </ec:EcSettingRow>
+                    </ContentControl>
+                </Grid>
 
-                <ec:EcSettingRow Label="{x:Static lang:Resources.MsPerChar}"
-                                 IsVisible="{Binding ResultConf.EnableAutoReadDelay}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <NumericUpDown Value="{Binding ResultConf.MsPerChar}"
-                                       Minimum="10" Maximum="1000" Increment="10"
-                                       FormatString="N0"
-                                       HorizontalAlignment="Stretch" />
-                        <TextBlock Grid.Column="1" Text="ms" VerticalAlignment="Center"
-                                   Classes="EcMuted" MinWidth="28" />
-                    </Grid>
-                </ec:EcSettingRow>
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font family 字体'}">
+                    <TextBlock Text="{x:Static lang:Resources.FontFamily}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <ComboBox ItemsSource="{Binding AvailableFonts}"
+                                  SelectedItem="{Binding ResultConf.FontFamily}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding .}"
+                                               FontFamily="{Binding ., Converter={x:Static formatting:StringToFontFamilyConverter.Instance}}"
+                                               VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </ContentControl>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font color 字体 颜色'}">
+                    <TextBlock Text="{x:Static lang:Resources.FontColor}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBox Text="{Binding ResultConf.FontColor}"
+                                     shad:ControlAssist.Label="#FFFFFFFF"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
+                                    Classes="Icon"
+                                    VerticalAlignment="Center"
+                                    BorderThickness="2"
+                                    BorderBrush="{DynamicResource BorderColor60}">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{Binding ResultConf.FontColor, Converter={StaticResource ColorToHexConverter}}" />
+                                </Button.Background>
+                                <Button.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Standard">
+                                        <shad:Card HasShadow="True">
+                                            <ColorView Color="{Binding ResultConf.FontColor, Converter={StaticResource ColorToHexConverter}}"
+                                                       IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
+                                        </shad:Card>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+                    </ContentControl>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='transparency acrylic blur 透明'}">
+                    <TextBlock Text="{x:Static lang:Resources.TransparencyLevel}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <ComboBox ItemsSource="{Binding TransparencyLevels}"
+                                  SelectedItem="{Binding ResultConf.TransparencyLevel}"
+                                  HorizontalAlignment="Stretch" />
+                    </ContentControl>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='background color 背景'}">
+                    <TextBlock Text="{x:Static lang:Resources.BackgroundColor}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBox Text="{Binding ResultConf.BackgroundColor}"
+                                     shad:ControlAssist.Label="#CC000000"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
+                                    Classes="Icon"
+                                    VerticalAlignment="Center"
+                                    BorderThickness="2"
+                                    BorderBrush="{DynamicResource BorderColor60}">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{Binding ResultConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
+                                </Button.Background>
+                                <Button.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Standard">
+                                        <shad:Card HasShadow="True">
+                                            <ColorView Color="{Binding ResultConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}"
+                                                       IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
+                                        </shad:Card>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+                    </ContentControl>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='window background 窗口 背景'}">
+                    <TextBlock Text="{x:Static lang:Resources.WindowBackgroundColor}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <TextBox Text="{Binding ResultConf.WindowBackgroundColor}"
+                                     shad:ControlAssist.Label="#00000000"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
+                                    Classes="Icon"
+                                    VerticalAlignment="Center"
+                                    BorderThickness="2"
+                                    BorderBrush="{DynamicResource BorderColor60}">
+                                <Button.Background>
+                                    <SolidColorBrush Color="{Binding ResultConf.WindowBackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
+                                </Button.Background>
+                                <Button.Flyout>
+                                    <Flyout Placement="Bottom" ShowMode="Standard">
+                                        <shad:Card HasShadow="True">
+                                            <ColorView Color="{Binding ResultConf.WindowBackgroundColor, Converter={StaticResource ColorToHexConverter}}"
+                                                       IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
+                                        </shad:Card>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </Grid>
+                    </ContentControl>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='auto read delay 自动 延迟'}">
+                    <TextBlock Text="{x:Static lang:Resources.EnableAutoReadDelay}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <ToggleSwitch IsChecked="{Binding ResultConf.EnableAutoReadDelay}"
+                                      OnContent="" OffContent=""
+                                      HorizontalAlignment="Right" />
+                    </ContentControl>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding !ResultConf.EnableAutoReadDelay}">
+                    <TextBlock Text="{x:Static lang:Resources.ResultAutoCloseDelay}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <NumericUpDown Value="{Binding ResultConf.AutoCloseDelay}"
+                                           Minimum="1000" Maximum="60000" Increment="500"
+                                           FormatString="N0"
+                                           HorizontalAlignment="Stretch" />
+                            <TextBlock Grid.Column="1" Text="ms"
+                                       Classes="Muted"
+                                       VerticalAlignment="Center"
+                                       MinWidth="28" />
+                        </Grid>
+                    </ContentControl>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16"
+                      IsVisible="{Binding ResultConf.EnableAutoReadDelay}">
+                    <TextBlock Text="{x:Static lang:Resources.MsPerChar}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Grid.Column="1"
+                                    MinWidth="280"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <NumericUpDown Value="{Binding ResultConf.MsPerChar}"
+                                           Minimum="10" Maximum="1000" Increment="10"
+                                           FormatString="N0"
+                                           HorizontalAlignment="Stretch" />
+                            <TextBlock Grid.Column="1" Text="ms"
+                                       Classes="Muted"
+                                       VerticalAlignment="Center"
+                                       MinWidth="28" />
+                        </Grid>
+                    </ContentControl>
+                </Grid>
             </StackPanel>
     </StackPanel>
 </UserControl>

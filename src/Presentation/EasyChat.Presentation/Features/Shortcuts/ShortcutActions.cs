@@ -11,8 +11,8 @@ using EasyChat.Presentation.Features.SelectionTranslation;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.TextAssist;
 using EasyChat.Presentation.Features.Translation;
-using EasyChat.Presentation.Foundation.UiHost;
 using Microsoft.Extensions.Logging;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Shortcuts;
 
@@ -163,7 +163,7 @@ public sealed class SelectionTranslateShortcutAction(
 
 public sealed class SwitchTranslationProfileShortcutAction(
     SettingsSession settings,
-    IUiToastHost toasts,
+    ToastManager toasts,
     ILogger<SwitchTranslationProfileShortcutAction> logger) : IShortcutAction
 {
     public string ActionType => "SwitchEngineSourceTarget";
@@ -250,7 +250,8 @@ public sealed class SwitchTranslationProfileShortcutAction(
         language.ProviderCodes.TryGetValue(provider, out var code)
         && !string.IsNullOrWhiteSpace(code);
 
-    private void Show(string title, string message) => toasts.Show(title, message);
+    private void Show(string title, string message) =>
+        toasts.CreateToast(title).WithContent(message).ShowInfo();
 
     private static async ValueTask OnUiAsync(
         Action action,

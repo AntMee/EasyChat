@@ -10,7 +10,7 @@ namespace EasyChat.Presentation.Features.Shortcuts.Views;
 
 /// <summary>
 /// Hotkey capture for the edit dialog.
-/// Uses three paths because Suki dialog chrome + ScrollViewer often starve a single path:
+/// Uses three paths because dialog chrome + ScrollViewer can starve a single path:
 /// 1) dedicated focusable capture pad KeyDown
 /// 2) TopLevel tunnel+bubble with handledEventsToo
 /// 3) Window.KeyDown CLR event

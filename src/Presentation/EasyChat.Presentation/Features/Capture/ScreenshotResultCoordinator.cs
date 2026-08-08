@@ -2,7 +2,7 @@ using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
-using EasyChat.Presentation.Foundation.UiHost;
+using ShadUI;
 using EasyChat.Presentation.ImageTranslation;
 using EasyChat.Presentation.Features.Capture.Views;
 using Microsoft.Extensions.Logging;
@@ -33,13 +33,13 @@ public sealed class ScreenshotResultCoordinator(
     SettingsSession settings,
     ITranslationWindowCoordinator translationWindow,
     IClipboardText clipboard,
-    IUiToastHost toasts,
+    ToastManager toasts,
     ILoggerFactory loggerFactory)
 {
     private readonly SettingsSession _settings = settings;
     private readonly ITranslationWindowCoordinator _translationWindow = translationWindow;
     private readonly IClipboardText _clipboard = clipboard;
-    private readonly IUiToastHost _toasts = toasts;
+    private readonly ToastManager _toasts = toasts;
     private readonly ILoggerFactory _loggerFactory = loggerFactory;
 
     public ValueTask<ScreenshotResultSession> OpenClassicAsync(
@@ -129,7 +129,8 @@ public sealed class ScreenshotResultCoordinator(
         CancellationToken cancellationToken = default) =>
         OnUiAsync(() => ShowMessage(title, message), cancellationToken);
 
-    private void ShowMessage(string title, string message) => _toasts.Show(title, message);
+    private void ShowMessage(string title, string message) =>
+        _toasts.CreateToast(title).WithContent(message).ShowInfo();
 
     private static async ValueTask OnUiAsync(
         Action action,

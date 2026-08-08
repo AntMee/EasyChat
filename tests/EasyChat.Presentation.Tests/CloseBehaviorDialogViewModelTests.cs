@@ -2,7 +2,6 @@ using System.Reactive.Linq;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Shell;
-using EasyChat.Presentation.Foundation.UiHost;
 using EasyChat.Shared.Results;
 
 namespace EasyChat.Presentation.Tests;
@@ -41,7 +40,7 @@ public sealed class CloseBehaviorDialogViewModelTests
         LiveGeneralSettings settings,
         ICollection<string> actions) =>
         new(
-            new NullDialogSession(),
+            new ShadUI.DialogManager(),
             settings,
             () => actions.Add("tray"),
             () => actions.Add("hide"),
@@ -83,8 +82,4 @@ public sealed class CloseBehaviorDialogViewModelTests
             });
     }
 
-    private sealed class NullDialogSession : IUiDialogSession
-    {
-        public void Dismiss() { }
-    }
 }

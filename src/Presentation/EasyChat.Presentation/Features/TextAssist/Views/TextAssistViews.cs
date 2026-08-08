@@ -15,7 +15,6 @@ using EasyChat.Presentation.Shared.Feedback;
 using EasyChat.Presentation.Features.TextAssist;
 using EasyChat.Presentation.Features.TextAssist.Views;
 using Microsoft.Extensions.Logging;
-using SukiUI.Controls;
 
 namespace EasyChat.Presentation.Features.TextAssist.Views
 {
@@ -123,7 +122,7 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
 
 namespace EasyChat.Presentation.Features.TextAssist.Views
 {
-    public partial class TextAssistWindowView : SukiWindow
+    public partial class TextAssistWindowView : Window
     {
         private TextAssistViewModel? _viewModel;
         private ContentControl? _editorHost;
@@ -210,7 +209,7 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
         private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();
     }
 
-    public partial class TextAssistActionWindowView : SukiWindow
+    public partial class TextAssistActionWindowView : Window
     {
         public TextAssistActionWindowView() => InitializeComponent();
 

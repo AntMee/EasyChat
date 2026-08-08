@@ -1,6 +1,6 @@
-<suki:SukiWindow xmlns="https://github.com/avaloniaui"
+﻿<shad:Window xmlns="https://github.com/avaloniaui"
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:suki="https://github.com/kikipoulet/SukiUI"
+                 xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
                  xmlns:icon="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
                  x:Class="EasyChat.Presentation.Features.Capture.Views.ImageTranslationResultWindow"
@@ -11,27 +11,26 @@
                  MinWidth="560"
                  MinHeight="420"
                  WindowStartupLocation="CenterScreen"
-                 Background="{DynamicResource EcBgCanvas}"
-                 Foreground="{DynamicResource EcTextPrimary}"
+                 Background="{DynamicResource WindowBackgroundColor}"
+                 Foreground="{DynamicResource ForegroundColor}"
                  IsTitleBarVisible="True">
 
-    <suki:SukiWindow.LogoContent>
+    <shad:Window.LogoContent>
         <icon:MaterialIcon Kind="ImageText"
                            Width="20"
                            Height="20"
                            VerticalAlignment="Center"
-                           Foreground="{DynamicResource EcAccent}" />
-    </suki:SukiWindow.LogoContent>
+                           Foreground="{DynamicResource PrimaryColor}" />
+    </shad:Window.LogoContent>
 
     <Grid RowDefinitions="*,Auto,Auto"
-          Background="{DynamicResource EcBgCanvas}">
+          Background="{DynamicResource WindowBackgroundColor}">
         <Border Grid.Row="0"
                 Margin="16,12,16,0"
-                Background="{DynamicResource EcBgMuted}"
-                BorderBrush="{DynamicResource EcBorder}"
+                Background="{DynamicResource GhostColor}"
+                BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
-                CornerRadius="12"
-                ClipToBounds="True">
+                ClipToBounds="True" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
             <Grid>
                 <Image x:Name="TranslatedImage"
                        Margin="16"
@@ -42,7 +41,7 @@
                     <StackPanel HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 Spacing="12">
-                        <suki:Loading Width="36" Height="36" />
+                        <shad:Loading Width="36" Height="36" />
                         <TextBlock Text="{x:Static lang:Resources.Loading}"
                                    Foreground="White"
                                    FontSize="14" />
@@ -51,47 +50,39 @@
             </Grid>
         </Border>
 
-        <Border x:Name="WarningPanel"
-                Grid.Row="1"
-                Margin="16,10,16,0"
-                Padding="12,9"
-                Background="{DynamicResource EcBgElevated}"
-                BorderBrush="{DynamicResource EcBorder}"
-                BorderThickness="1"
-                CornerRadius="10"
-                IsVisible="False">
+        <shad:Card x:Name="WarningPanel"
+                   Grid.Row="1"
+                   Margin="16,10,16,0"
+                   HasShadow="False"
+                   IsVisible="False">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                 <icon:MaterialIcon Kind="AlertCircleOutline"
                                    Width="18"
                                    Height="18"
                                    VerticalAlignment="Top"
-                                   Foreground="{DynamicResource EcWarning}" />
+                                   Foreground="{DynamicResource WarningColor}" />
                 <TextBlock x:Name="WarningText"
                            Grid.Column="1"
                            MaxLines="3"
                            TextTrimming="CharacterEllipsis"
                            TextWrapping="Wrap"
-                           Foreground="{DynamicResource EcTextSecondary}" />
+                           Foreground="{DynamicResource MutedColor}" />
             </Grid>
-        </Border>
+        </shad:Card>
 
         <Border Grid.Row="2"
                 Margin="0,12,0,0"
-                Padding="16,10"
-                Background="{DynamicResource EcBgElevated}"
-                BorderBrush="{DynamicResource EcBorder}"
-                BorderThickness="0,1,0,0">
+                Background="{DynamicResource CardBackgroundColor}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="0,1,0,0" CornerRadius="{DynamicResource LgCornerRadius}" Padding="24">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                 <TextBlock Grid.Column="0"
                            VerticalAlignment="Center"
-                           Foreground="{DynamicResource EcTextMuted}"
+                           Foreground="{DynamicResource MutedColor}"
                            Text="PNG" />
 
                 <Button x:Name="CopyButton" Grid.Column="1"
-                        Classes="EcGhost"
-                        MinWidth="104"
-                        Height="36"
-                        Padding="12,0"
+                        Classes="Ghost"
                         IsEnabled="False"
                         Click="Copy_OnClick"
                         ToolTip.Tip="{x:Static lang:Resources.Copy}">
@@ -102,10 +93,7 @@
                 </Button>
 
                 <Button x:Name="SaveButton" Grid.Column="2"
-                        Classes="EcPrimary"
-                        MinWidth="104"
-                        Height="36"
-                        Padding="12,0"
+                        Classes="Primary"
                         IsEnabled="False"
                         Click="Save_OnClick"
                         ToolTip.Tip="{x:Static lang:Resources.Save}">
@@ -116,10 +104,7 @@
                 </Button>
 
                 <Button Grid.Column="3"
-                        Classes="EcToolbarBtn"
-                        Width="36"
-                        Height="36"
-                        Padding="0"
+                        Classes="Icon"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center"
                         Click="Close_OnClick"
@@ -129,4 +114,4 @@
             </Grid>
         </Border>
     </Grid>
-</suki:SukiWindow>
+</shad:Window>

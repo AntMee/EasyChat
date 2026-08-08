@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -12,37 +12,30 @@
              MinWidth="400"
              MaxWidth="460"
              Width="440">
-    <!--
-      Close-behavior confirm: icon → copy → remember → equal action row.
-      Local Height/Padding beat EcGhost vs EcPrimary chrome differences (border + pad).
-      UniformGrid + 440 width keeps 最小化到托盘 from clipping in a 3-up row.
-    -->
     <StackPanel>
         <StackPanel Margin="28,28,28,0" Spacing="16">
             <Border Width="48" Height="48"
                     CornerRadius="14"
                     HorizontalAlignment="Left"
-                    Background="{DynamicResource EcAccentSoft}">
+                    Background="{DynamicResource PrimaryColor10}">
                 <icons:MaterialIcon Kind="LogoutVariant"
                                     Width="24" Height="24"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Foreground="{DynamicResource EcAccent}" />
+                                    Foreground="{DynamicResource PrimaryColor}" />
             </Border>
 
             <StackPanel Spacing="6">
                 <TextBlock Text="{x:Static lang:Resources.CloseToTrayPromptTitle}"
-                           FontSize="17"
-                           FontWeight="SemiBold"
+                           Classes="Large"
                            LetterSpacing="-0.2"
                            TextWrapping="Wrap"
-                           Foreground="{DynamicResource EcTextPrimary}" />
+                           Foreground="{DynamicResource ForegroundColor}" />
                 <TextBlock Text="{x:Static lang:Resources.CloseToTrayPromptMessage}"
-                           FontSize="13.5"
-                           LineHeight="21"
+                           Classes="p"
                            TextWrapping="Wrap"
                            Opacity="0.88"
-                           Foreground="{DynamicResource EcTextSecondary}" />
+                           Foreground="{DynamicResource MutedColor}" />
             </StackPanel>
 
             <CheckBox Content="{x:Static lang:Resources.RememberMyChoice}"
@@ -57,31 +50,22 @@
                      Rows="1">
             <Button Command="{Binding CancelCommand}"
                     Content="{x:Static lang:Resources.Cancel}"
-                    Classes="EcGhost"
-                    Height="40"
+                    Classes="Ghost"
                     Margin="0,0,4,0"
-                    Padding="8,0"
-                    FontSize="13"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Center"
                     VerticalContentAlignment="Center" />
             <Button Command="{Binding MinimizeCommand}"
                     Content="{x:Static lang:Resources.MinimizeToTray}"
-                    Classes="EcGhost"
-                    Height="40"
+                    Classes="Ghost"
                     Margin="4,0"
-                    Padding="8,0"
-                    FontSize="13"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Center"
                     VerticalContentAlignment="Center" />
             <Button Command="{Binding ExitAppCommand}"
                     Content="{x:Static lang:Resources.ExitApp}"
-                    Classes="EcPrimary"
-                    Height="40"
+                    Classes="Primary"
                     Margin="4,0,0,0"
-                    Padding="8,0"
-                    FontSize="13"
                     HorizontalAlignment="Stretch"
                     HorizontalContentAlignment="Center"
                     VerticalContentAlignment="Center" />

@@ -1,9 +1,9 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.TranslationSettingsView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.TranslationSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
@@ -13,11 +13,11 @@
     <UserControl.Styles>
         <!-- Full-width provider/model rows — never fixed card width -->
         <Style Selector="Border.ProviderRow">
-            <Setter Property="Background" Value="{DynamicResource EcBgMuted}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource EcBorder}" />
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{DynamicResource EcRadiusMd}" />
-            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+            <Setter Property="Padding" Value="16,12" />
             <Setter Property="Margin" Value="0,0,0,10" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="MinHeight" Value="72" />
@@ -31,19 +31,16 @@
         <Style Selector="Button.RowIconBtn, ToggleButton.RowIconBtn">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="6" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="32" />
         </Style>
     </UserControl.Styles>
 
-    <!-- No outer EcSurface / ScrollViewer: SettingView already provides both. -->
+    <!-- No outer surface / ScrollViewer: SettingView already provides both. -->
     <TabControl>
             <!-- AI models: vertical full-width list -->
             <TabItem Header="{x:Static lang:Resources.AIEngine}">
                     <StackPanel Spacing="0" Margin="0,8,0,0">
-                        <ItemsControl Classes="EcStackList"
+                        <ItemsControl 
                                       ItemsSource="{Binding ModelCardsWithAddButton}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -58,7 +55,7 @@
                                             <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                                     <Border Width="36" Height="36" CornerRadius="10"
-                                                            Background="{DynamicResource EcAccentSoft}"
+                                                            Background="{DynamicResource PrimaryColor10}"
                                                             ClipToBounds="True">
                                                         <Image Width="22" Height="22"
                                                                HorizontalAlignment="Center"
@@ -69,12 +66,10 @@
                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Name}"
                                                                    FontWeight="SemiBold"
-                                                                   FontSize="14"
                                                                    TextTrimming="CharacterEllipsis"
-                                                                   Foreground="{DynamicResource EcTextPrimary}" />
+                                                                   Foreground="{DynamicResource ForegroundColor}" />
                                                         <TextBlock Text="{Binding ModelType}"
-                                                                   FontSize="12"
-                                                                   Foreground="{DynamicResource EcTextMuted}" />
+                                                                   Classes="Muted" />
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="2"
                                                                 Classes="RowActions"
@@ -99,7 +94,7 @@
                                                             <Panel>
                                                                 <avalonia:MaterialIcon Kind="Connection" Width="16" Height="16"
                                                                         IsVisible="{Binding Model.IsTesting, Converter={x:Static BoolConverters.Not}}" />
-                                                                <suki:Loading Width="16" Height="16"
+                                                                <shad:Loading Width="16" Height="16"
                                                                               IsVisible="{Binding Model.IsTesting}" />
                                                             </Panel>
                                                         </Button>
@@ -108,14 +103,14 @@
                                                                 CommandParameter="{Binding Model}"
                                                                 ToolTip.Tip="{x:Static lang:Resources.Edit}">
                                                             <avalonia:MaterialIcon Kind="Pencil" Width="16" Height="16"
-                                                                                   Foreground="{DynamicResource EcTextSecondary}" />
+                                                                                   Foreground="{DynamicResource MutedColor}" />
                                                         </Button>
                                                         <Button Classes="RowIconBtn"
                                                                 Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DeleteModelCommand}"
                                                                 CommandParameter="{Binding Model}"
                                                                 ToolTip.Tip="{x:Static lang:Resources.Delete}">
                                                             <avalonia:MaterialIcon Kind="TrashCan" Width="16" Height="16"
-                                                                                   Foreground="{DynamicResource EcDanger}" />
+                                                                                   Foreground="{DynamicResource DestructiveColor}" />
                                                         </Button>
                                                     </StackPanel>
                                                 </Grid>
@@ -124,58 +119,60 @@
                                                       ColumnDefinitions="Auto,*,Auto,Auto"
                                                       ColumnSpacing="10">
                                                     <TextBlock Text="API"
-                                                               Classes="EcMuted"
-                                                               FontSize="12"
+                                                               Classes="Caption"
                                                                VerticalAlignment="Center"
                                                                MinWidth="36" />
                                                     <TextBlock Grid.Column="1"
                                                                Text="{Binding ApiUrl}"
-                                                               FontSize="12"
+                                                               Classes="Muted"
+                                                               Foreground="{DynamicResource MutedColor}"
                                                                TextTrimming="CharacterEllipsis"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource EcTextSecondary}" />
+                                                               VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="2"
                                                                Text="{Binding Model.ApiKeys.Count, StringFormat='{}{0} keys'}"
-                                                               FontSize="12"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource EcTextMuted}" />
+                                                               Classes="Muted"
+                                                               VerticalAlignment="Center" />
                                                     <Button Grid.Column="3"
-                                                            Classes="EcGhost"
-                                                            Padding="10,4"
+                                                            Classes="Ghost"
                                                             Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).EditModelKeysCommand}"
                                                             CommandParameter="{Binding Model}">
-                                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" FontSize="12" />
+                                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" />
                                                     </Button>
                                                 </Grid>
                                             </Grid>
                                         </Border>
 
-                                        <!-- Add model: dedicated EcAddRow (own template, not nested Button+Border) -->
-                                        <Button Classes="EcAddRow"
+                                        <!-- Add model: dedicated add-row button (own template, not nested Button+Border) -->
+                                        <Button
                                                 IsVisible="{Binding IsAddButton}"
-                                                Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).AddModelCommand}">
+                                                Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).AddModelCommand}"
+                                                Margin="0,0,0,10"
+                                                MinHeight="72"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalContentAlignment="Center"
+                                                Background="{DynamicResource PrimaryColor10}"
+                                                BorderBrush="{DynamicResource BorderColor60}"
+                                                BorderThickness="1">
                                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                                 <Border Width="36" Height="36" CornerRadius="10"
-                                                        Background="{DynamicResource EcAccentMuted}">
+                                                        Background="{DynamicResource PrimaryColor10}">
                                                     <avalonia:MaterialIcon Kind="Plus" Width="18" Height="18"
                                                                            HorizontalAlignment="Center"
                                                                            VerticalAlignment="Center"
-                                                                           Foreground="{DynamicResource EcAccent}" />
+                                                                           Foreground="{DynamicResource PrimaryColor}" />
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                                     <TextBlock Text="{x:Static lang:Resources.AddModel}"
                                                                FontWeight="SemiBold"
-                                                               FontSize="14"
-                                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                                               Foreground="{DynamicResource ForegroundColor}" />
                                                     <TextBlock Text="{x:Static lang:Resources.HomeConfigureCta}"
-                                                               FontSize="12"
-                                                               Foreground="{DynamicResource EcTextMuted}" />
+                                                               Classes="Muted" />
                                                 </StackPanel>
                                                 <avalonia:MaterialIcon Grid.Column="2"
                                                                        Kind="ChevronRight"
                                                                        Width="16" Height="16"
                                                                        VerticalAlignment="Center"
-                                                                       Foreground="{DynamicResource EcTextMuted}" />
+                                                                       Foreground="{DynamicResource MutedColor}" />
                                             </Grid>
                                         </Button>
                                     </Panel>
@@ -194,7 +191,7 @@
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                     <Border Width="36" Height="36" CornerRadius="10" ClipToBounds="True"
-                                            Background="{DynamicResource EcAccentSoft}">
+                                            Background="{DynamicResource PrimaryColor10}">
                                         <Image Source="avares://EasyChat.Desktop/Assets/Images/Engine/Baidu.png"
                                                Width="22" Height="22"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -203,9 +200,8 @@
                                     <TextBlock Grid.Column="1"
                                                Text="{x:Static lang:Resources.Baidu}"
                                                FontWeight="SemiBold"
-                                               FontSize="14"
                                                VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                               Foreground="{DynamicResource ForegroundColor}" />
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.Baidu.UseProxy}"
@@ -224,7 +220,7 @@
                                             <Panel>
                                                 <avalonia:MaterialIcon Kind="Connection" Width="18" Height="18"
                                                         IsVisible="{Binding !IsTestingBaidu}" />
-                                                <suki:Loading Width="18" Height="18"
+                                                <shad:Loading Width="18" Height="18"
                                                               IsVisible="{Binding IsTestingBaidu}" />
                                             </Panel>
                                         </Button>
@@ -232,16 +228,16 @@
                                 </Grid>
                                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                     <TextBlock Text="{x:Static lang:Resources.Keys}"
-                                               Classes="EcMuted" FontSize="12"
+                                               Classes="Muted"
                                                VerticalAlignment="Center" MinWidth="36" />
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding MachineTransConf.Baidu.Items.Count, StringFormat='{}{0} keys'}"
-                                               FontSize="12"
-                                               VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextSecondary}" />
-                                    <Button Grid.Column="2" Classes="EcGhost" Padding="10,4"
+                                               Classes="Muted"
+                                               Foreground="{DynamicResource MutedColor}"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="2" Classes="Ghost"
                                             Command="{Binding EditBaiduKeysCommand}">
-                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" FontSize="12" />
+                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" />
                                     </Button>
                                 </Grid>
                             </Grid>
@@ -252,7 +248,7 @@
                             <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                     <Border Width="36" Height="36" CornerRadius="10" ClipToBounds="True"
-                                            Background="{DynamicResource EcAccentSoft}">
+                                            Background="{DynamicResource PrimaryColor10}">
                                         <Image Source="avares://EasyChat.Desktop/Assets/Images/Engine/Tencent.png"
                                                Width="22" Height="22"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -260,9 +256,9 @@
                                     </Border>
                                     <TextBlock Grid.Column="1"
                                                Text="{x:Static lang:Resources.Tencent}"
-                                               FontWeight="SemiBold" FontSize="14"
+                                               FontWeight="SemiBold"
                                                VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                               Foreground="{DynamicResource ForegroundColor}" />
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.Tencent.UseProxy}"
@@ -281,7 +277,7 @@
                                             <Panel>
                                                 <avalonia:MaterialIcon Kind="Connection" Width="18" Height="18"
                                                         IsVisible="{Binding !IsTestingTencent}" />
-                                                <suki:Loading Width="18" Height="18"
+                                                <shad:Loading Width="18" Height="18"
                                                               IsVisible="{Binding IsTestingTencent}" />
                                             </Panel>
                                         </Button>
@@ -289,15 +285,16 @@
                                 </Grid>
                                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                     <TextBlock Text="{x:Static lang:Resources.Keys}"
-                                               Classes="EcMuted" FontSize="12"
+                                               Classes="Muted"
                                                VerticalAlignment="Center" MinWidth="36" />
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding MachineTransConf.Tencent.Items.Count, StringFormat='{}{0} keys'}"
-                                               FontSize="12" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextSecondary}" />
-                                    <Button Grid.Column="2" Classes="EcGhost" Padding="10,4"
+                                               Classes="Muted"
+                                               Foreground="{DynamicResource MutedColor}"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="2" Classes="Ghost"
                                             Command="{Binding EditTencentKeysCommand}">
-                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" FontSize="12" />
+                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" />
                                     </Button>
                                 </Grid>
                             </Grid>
@@ -308,7 +305,7 @@
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                     <Border Width="36" Height="36" CornerRadius="10" ClipToBounds="True"
-                                            Background="{DynamicResource EcAccentSoft}">
+                                            Background="{DynamicResource PrimaryColor10}">
                                         <Image Source="avares://EasyChat.Desktop/Assets/Images/Engine/Google.png"
                                                Width="22" Height="22"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -316,9 +313,9 @@
                                     </Border>
                                     <TextBlock Grid.Column="1"
                                                Text="{x:Static lang:Resources.Google}"
-                                               FontWeight="SemiBold" FontSize="14"
+                                               FontWeight="SemiBold"
                                                VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                               Foreground="{DynamicResource ForegroundColor}" />
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.Google.UseProxy}"
@@ -337,7 +334,7 @@
                                             <Panel>
                                                 <avalonia:MaterialIcon Kind="Connection" Width="18" Height="18"
                                                         IsVisible="{Binding !IsTestingGoogle}" />
-                                                <suki:Loading Width="18" Height="18"
+                                                <shad:Loading Width="18" Height="18"
                                                               IsVisible="{Binding IsTestingGoogle}" />
                                             </Panel>
                                         </Button>
@@ -345,24 +342,25 @@
                                 </Grid>
                                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
                                     <TextBlock Text="{x:Static lang:Resources.Model}"
-                                               Classes="EcMuted" FontSize="12"
+                                               Classes="Muted"
                                                VerticalAlignment="Center" MinWidth="36" />
                                     <TextBox Grid.Column="1"
                                              Text="{Binding MachineTransConf.Google.Model}"
                                              HorizontalAlignment="Stretch"
-                                             suki:TextBoxExtensions.AddDeleteButton="True" />
+                                             Classes="Clearable" />
                                 </Grid>
                                 <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                     <TextBlock Text="{x:Static lang:Resources.Keys}"
-                                               Classes="EcMuted" FontSize="12"
+                                               Classes="Muted"
                                                VerticalAlignment="Center" MinWidth="36" />
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding MachineTransConf.Google.ApiKeys.Count, StringFormat='{}{0} keys'}"
-                                               FontSize="12" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextSecondary}" />
-                                    <Button Grid.Column="2" Classes="EcGhost" Padding="10,4"
+                                               Classes="Muted"
+                                               Foreground="{DynamicResource MutedColor}"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="2" Classes="Ghost"
                                             Command="{Binding EditGoogleKeysCommand}">
-                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" FontSize="12" />
+                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" />
                                     </Button>
                                 </Grid>
                             </Grid>
@@ -373,7 +371,7 @@
                             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                     <Border Width="36" Height="36" CornerRadius="10" ClipToBounds="True"
-                                            Background="{DynamicResource EcAccentSoft}">
+                                            Background="{DynamicResource PrimaryColor10}">
                                         <Image Source="avares://EasyChat.Desktop/Assets/Images/Engine/DeepL.png"
                                                Width="22" Height="22"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -381,9 +379,9 @@
                                     </Border>
                                     <TextBlock Grid.Column="1"
                                                Text="{x:Static lang:Resources.DeepL}"
-                                               FontWeight="SemiBold" FontSize="14"
+                                               FontWeight="SemiBold"
                                                VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextPrimary}" />
+                                               Foreground="{DynamicResource ForegroundColor}" />
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.DeepL.UseProxy}"
@@ -402,7 +400,7 @@
                                             <Panel>
                                                 <avalonia:MaterialIcon Kind="Connection" Width="18" Height="18"
                                                         IsVisible="{Binding !IsTestingDeepL}" />
-                                                <suki:Loading Width="18" Height="18"
+                                                <shad:Loading Width="18" Height="18"
                                                               IsVisible="{Binding IsTestingDeepL}" />
                                             </Panel>
                                         </Button>
@@ -410,7 +408,7 @@
                                 </Grid>
                                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
                                     <TextBlock Text="{x:Static lang:Resources.Model}"
-                                               Classes="EcMuted" FontSize="12"
+                                               Classes="Muted"
                                                VerticalAlignment="Center" MinWidth="36" />
                                     <ComboBox Grid.Column="1"
                                               HorizontalAlignment="Stretch"
@@ -419,15 +417,16 @@
                                 </Grid>
                                 <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                     <TextBlock Text="{x:Static lang:Resources.Keys}"
-                                               Classes="EcMuted" FontSize="12"
+                                               Classes="Muted"
                                                VerticalAlignment="Center" MinWidth="36" />
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding MachineTransConf.DeepL.ApiKeys.Count, StringFormat='{}{0} keys'}"
-                                               FontSize="12" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource EcTextSecondary}" />
-                                    <Button Grid.Column="2" Classes="EcGhost" Padding="10,4"
+                                               Classes="Muted"
+                                               Foreground="{DynamicResource MutedColor}"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="2" Classes="Ghost"
                                             Command="{Binding EditDeepLKeysCommand}">
-                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" FontSize="12" />
+                                        <TextBlock Text="{x:Static lang:Resources.EditKeys}" />
                                     </Button>
                                 </Grid>
                             </Grid>

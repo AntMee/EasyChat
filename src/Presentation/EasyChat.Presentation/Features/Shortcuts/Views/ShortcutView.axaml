@@ -1,4 +1,4 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Shortcuts.Views.ShortcutView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Shortcuts.Views.ShortcutView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -9,35 +9,57 @@
              xmlns:ec="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Shortcuts"
              xmlns:settingsState="clr-namespace:EasyChat.Presentation.Features.Settings.State"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              x:DataType="viewModels:ShortcutViewModel"
              mc:Ignorable="d"
              Focusable="True"
-             Background="{DynamicResource EcBgCanvas}">
+             Background="{DynamicResource GhostColor}">
 
-    <Grid Classes="EcPageFrame"
-          RowDefinitions="Auto,Auto,*">
+    <Grid
+          RowDefinitions="Auto,Auto,*" Margin="32,28,32,28" MaxWidth="1120" HorizontalAlignment="Stretch">
 
-        <ec:EcPageHeader Title="{x:Static lang:Resources.Shortcut}"
-                         Subtitle="{Binding ActiveCategoryTitle}">
-            <ec:EcPageHeader.Actions>
-                <Button Classes="EcPrimary"
+        <Grid RowDefinitions="Auto,Auto,Auto"
+              ColumnDefinitions="*,Auto"
+              Margin="0,0,0,8"
+              ColumnSpacing="16">
+            <TextBlock Grid.Row="0" Grid.Column="0"
+                       Text="{x:Static lang:Resources.Shortcut}"
+                       Classes="h2"
+                       VerticalAlignment="Center"
+                       TextWrapping="NoWrap"
+                       TextTrimming="CharacterEllipsis"
+                       AutomationProperties.Name="{x:Static lang:Resources.Shortcut}" />
+
+            <ContentControl Grid.Row="0" Grid.Column="1"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Right">
+                <Button Classes="Primary"
                         Command="{Binding AddEntryCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <avalonia:MaterialIcon Kind="Plus" Width="16" Height="16" />
                         <TextBlock Text="{Binding AddButtonLabel}" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-            </ec:EcPageHeader.Actions>
-        </ec:EcPageHeader>
+            </ContentControl>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                       Text="{Binding ActiveCategoryTitle}"
+                       Classes="p"
+                       Foreground="{DynamicResource MutedColor}"
+                       TextWrapping="Wrap"
+                       Margin="0,6,0,0"
+                       MaxWidth="720"
+                       HorizontalAlignment="Left" />
+        </Grid>
 
         <!-- Category switch (interaction, not TabControl chrome) -->
-        <Border Classes="EcSegmented" HorizontalAlignment="Left" Margin="0,4,0,16" Grid.Row="1">
+        <Border HorizontalAlignment="Left" Margin="0,4,0,16" Grid.Row="1" Background="{DynamicResource GhostColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
             <StackPanel Orientation="Horizontal" Spacing="2">
-                <RadioButton Classes="EcSegment"
+                <RadioButton
                              Content="{x:Static lang:Resources.BasicShortcuts}"
                              IsChecked="{Binding IsBasicCategory}"
                              GroupName="ShortcutCategory" />
-                <RadioButton Classes="EcSegment"
+                <RadioButton
                              Content="{x:Static lang:Resources.LanguageShortcuts}"
                              IsChecked="{Binding IsLanguageCategory}"
                              GroupName="ShortcutCategory" />
@@ -46,62 +68,59 @@
 
         <Grid Grid.Row="2">
             <!-- Empty state with primary CTA -->
-            <Border Classes="EcSurface"
+            <shad:Card
                     IsVisible="{Binding HasNoActiveShortcuts}"
-                    Padding="28"
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Top">
+                    VerticalAlignment="Top"
+                    HasShadow="True">
                 <StackPanel Spacing="12" HorizontalAlignment="Center" MaxWidth="420">
                     <avalonia:MaterialIcon Kind="Keyboard"
                                            Width="36" Height="36"
-                                           Opacity="0.45"
+                                           Foreground="{DynamicResource MutedColor}"
                                            HorizontalAlignment="Center" />
                     <TextBlock Text="{x:Static lang:Resources.HomeHealthShortcutTodo}"
-                               Classes="EcHelper"
+                               Classes="Caption" Foreground="{DynamicResource MutedColor}" TextWrapping="Wrap" Opacity="0.95"
                                TextAlignment="Center"
                                HorizontalAlignment="Center" />
-                    <Button Classes="EcPrimary"
+                    <Button Classes="Primary"
                             HorizontalAlignment="Center"
                             Command="{Binding AddEntryCommand}"
                             Content="{Binding AddButtonLabel}" />
                 </StackPanel>
-            </Border>
+            </shad:Card>
 
             <ScrollViewer IsVisible="{Binding HasActiveShortcuts}"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl Classes="EcStackList" ItemsSource="{Binding ActiveShortcuts}">
+                <ItemsControl ItemsSource="{Binding ActiveShortcuts}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="settingsState:ShortcutEntryState">
-                            <Border Classes="EcSurface"
+                            <shad:Card
                                     Margin="0,0,0,10"
-                                    Padding="16"
-                                    HorizontalAlignment="Stretch">
+                                    HorizontalAlignment="Stretch"
+                                    HasShadow="True">
                                 <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                                     <!-- Primary hit: click row body to edit. -->
-                                    <Button Classes="EcMenuItem"
+                                    <Button
                                             HorizontalAlignment="Stretch"
                                             HorizontalContentAlignment="Left"
-                                            Padding="4,2"
                                             Command="{Binding $parent[ItemsControl].((viewModels:ShortcutViewModel)DataContext).EditEntryCommand}"
                                             CommandParameter="{Binding}"
-                                            ToolTip.Tip="{x:Static lang:Resources.Edit}">
+                                            ToolTip.Tip="{x:Static lang:Resources.Edit}" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
                                         <StackPanel Spacing="2">
                                             <StackPanel Orientation="Horizontal" Spacing="8">
                                                 <TextBlock Text="{Binding DisplayTitle}"
-                                                           FontSize="15"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource EcTextPrimary}" />
+                                                           Classes="Large"
+                                                           Foreground="{DynamicResource ForegroundColor}" />
                                                 <TextBlock Text="{Binding ActionDisplayText}"
                                                            IsVisible="{Binding HasRemark}"
-                                                           FontSize="12"
-                                                           Foreground="{DynamicResource EcTextMuted}"
+                                                           Classes="Muted"
                                                            VerticalAlignment="Center" />
                                             </StackPanel>
                                             <TextBlock Text="{Binding ParameterDisplayText}"
                                                        IsVisible="{Binding ParameterDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                                       FontSize="12"
-                                                       Foreground="{DynamicResource EcTextSecondary}" />
+                                                       Classes="Caption"
+                                                       Foreground="{DynamicResource MutedColor}" />
                                         </StackPanel>
                                     </Button>
 
@@ -116,7 +135,7 @@
 
                                     <!-- Row body already opens edit; only keep destructive action here. -->
                                     <Button Grid.Column="3"
-                                            Classes="EcDanger"
+                                            Classes="Destructive"
                                             Command="{Binding $parent[ItemsControl].((viewModels:ShortcutViewModel)DataContext).RemoveEntryCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{x:Static lang:Resources.Delete}"
@@ -124,7 +143,7 @@
                                         <avalonia:MaterialIcon Kind="TrashCan" Width="16" Height="16" />
                                     </Button>
                                 </Grid>
-                            </Border>
+                            </shad:Card>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

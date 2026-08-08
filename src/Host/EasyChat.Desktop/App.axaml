@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EasyChat.Desktop.App"
              xmlns:local="using:EasyChat.Desktop"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              RequestedThemeVariant="Default">
     <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
@@ -14,36 +14,19 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://LiveMarkdown.Avalonia/Defaults.axaml" />
-                <ResourceInclude Source="avares://EasyChat.Presentation/Themes/EcTokens.axaml" />
-                <ResourceInclude Source="avares://EasyChat.Presentation/Themes/EcSettingRowTheme.axaml" />
+                <ResourceInclude Source="avares://EasyChat.Presentation/Themes/LiveMarkdownDefaults.axaml" />
             </ResourceDictionary.MergedDictionaries>
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Light">
-                    <Color x:Key="BorderColor">#FFD4D9DE</Color>
-                    <Color x:Key="ForegroundColor">#FF202124</Color>
-                    <Color x:Key="CardBackgroundColor">#FFF1F4F6</Color>
-                    <Color x:Key="SecondaryCardBackgroundColor">#FFE7EBEE</Color>
-                    <Color x:Key="CodeInlineColor">#FF7A4B00</Color>
-                    <Color x:Key="QuoteBorderColor">#FF9A6A00</Color>
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Dark">
-                    <Color x:Key="BorderColor">#FF4A4F56</Color>
-                    <Color x:Key="ForegroundColor">#FFF3F4F6</Color>
-                    <Color x:Key="CardBackgroundColor">#FF2A2D31</Color>
-                    <Color x:Key="SecondaryCardBackgroundColor">#FF34383E</Color>
-                    <Color x:Key="CodeInlineColor">#FFE5C07B</Color>
-                    <Color x:Key="QuoteBorderColor">#FFE5C07B</Color>
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
     </Application.Resources>
 
     <Application.Styles>
-        <suki:SukiTheme ThemeColor="Blue" />
+        <shad:ShadTheme />
         <avalonia:MaterialIconStyles />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
         <StyleInclude Source="avares://LiveMarkdown.Avalonia/Styles.axaml" />
-        <StyleInclude Source="avares://EasyChat.Presentation/Themes/EcControls.axaml" />
+        <!-- App-wide typeface: keeps CJK rendering across all controls. -->
+        <Style Selector="TextElement">
+            <Setter Property="TextElement.FontFamily" Value="Inter, Microsoft YaHei UI, Microsoft YaHei, PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Noto Sans SC, Segoe UI, sans-serif" />
+        </Style>
     </Application.Styles>
 </Application>

@@ -7,8 +7,8 @@ using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
-using EasyChat.Presentation.Foundation.UiHost;
 using ReactiveUI;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Speech;
 
@@ -32,9 +32,8 @@ public sealed class ConfiguredVoiceItem
 
 public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
 {
-    private readonly IUiDialogHost _dialogHost;
-    private readonly IUiDialogSession _dialog;
-    private readonly IUiToastHost _toasts;
+    private readonly DialogManager _dialogManager;
+    private readonly ToastManager _toasts;
     private readonly ITtsUseCases _tts;
     private readonly LiveTtsSettings _settings;
     private IReadOnlyList<TtsVoice> _voices = [];
@@ -44,14 +43,12 @@ public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
     private string _selectedProvider;
 
     public TtsVoiceSettingsDialogViewModel(
-        IUiDialogHost dialogHost,
-        IUiDialogSession dialog,
-        IUiToastHost toasts,
+        DialogManager dialogManager,
+        ToastManager toasts,
         ITtsUseCases tts,
         LiveTtsSettings settings)
     {
-        _dialogHost = dialogHost;
-        _dialog = dialog;
+        _dialogManager = dialogManager;
         _toasts = toasts;
         _tts = tts;
         _settings = settings;
@@ -62,7 +59,7 @@ public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
         AddCommand = ReactiveCommand.Create(AddVoiceMapping);
         EditCommand = ReactiveCommand.Create<ConfiguredVoiceItem>(EditVoiceMapping);
         DeleteCommand = ReactiveCommand.Create<ConfiguredVoiceItem>(DeleteVoiceMapping);
-        CloseCommand = ReactiveCommand.Create(dialog.Dismiss);
+        CloseCommand = ReactiveCommand.Create(() => dialogManager.Close(this));
         _ = LoadAsync();
     }
 
@@ -137,7 +134,7 @@ public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
 
     private void AddVoiceMapping()
     {
-        _dialog.Dismiss();
+        _dialogManager.Close(this);
         ShowEditor(null);
     }
 
@@ -145,35 +142,31 @@ public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
     {
         if (item is null)
             return;
-        _dialog.Dismiss();
+        _dialogManager.Close(this);
         ShowEditor(item);
     }
 
     private void ShowEditor(ConfiguredVoiceItem? current)
     {
-        _dialogHost.ShowContent(new UiContentDialogOptions
+        var viewModel = new TtsEditVoiceDialogViewModel(
+            _dialogManager,
+            _tts,
+            SelectedProvider,
+            _languages,
+            _voices,
+            current?.Language,
+            current?.VoiceId)
         {
-            Title = current is null ? Resources.Tts_AddVoiceMapping : Resources.Tts_EditVoiceMapping,
-            CreateContent = session => new TtsEditVoiceDialogViewModel(
-                session,
-                _dialogHost,
-                _tts,
-                SelectedProvider,
-                _languages,
-                _voices,
-                current?.Language,
-                current?.VoiceId)
+            OnSave = (language, voice) =>
             {
-                OnSave = (language, voice) =>
-                {
-                    if (current is not null && current.Language.Id != language.Id)
-                        _settings.RemoveVoiceForLanguage(SelectedProvider, current.Language.Id);
-                    _settings.SetVoiceForLanguage(SelectedProvider, language.Id, voice.Id);
-                    ReopenSettings();
-                },
-                OnCancel = ReopenSettings
-            }
-        });
+                if (current is not null && current.Language.Id != language.Id)
+                    _settings.RemoveVoiceForLanguage(SelectedProvider, current.Language.Id);
+                _settings.SetVoiceForLanguage(SelectedProvider, language.Id, voice.Id);
+                ReopenSettings();
+            },
+            OnCancel = ReopenSettings
+        };
+        _dialogManager.CreateDialog(viewModel).Show();
     }
 
     private void DeleteVoiceMapping(ConfiguredVoiceItem? item)
@@ -184,21 +177,20 @@ public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
         RefreshConfiguredVoices();
     }
 
-    private void ReopenSettings() => _dialogHost.ShowContent(new UiContentDialogOptions
+    private void ReopenSettings()
     {
-        Title = Resources.Tts_Configuration,
-        CreateContent = session => new TtsVoiceSettingsDialogViewModel(
-            _dialogHost, session, _toasts, _tts, _settings)
-    });
+        var viewModel = new TtsVoiceSettingsDialogViewModel(
+            _dialogManager, _toasts, _tts, _settings);
+        _dialogManager.CreateDialog(viewModel).Show();
+    }
 
     private void ShowError(string message) =>
-        _toasts.Show(Resources.Tts_ErrorOpeningDialog, message, UiMessageSeverity.Error);
+        _toasts.CreateToast(Resources.Tts_ErrorOpeningDialog).WithContent(message).ShowError();
 }
 
 public sealed class TtsEditVoiceDialogViewModel : ConventionViewModelBase
 {
-    private readonly IUiDialogSession _dialog;
-    private readonly IUiDialogHost _dialogHost;
+    private readonly DialogManager _dialogManager;
     private readonly ITtsUseCases _tts;
     private readonly string _provider;
     private readonly IReadOnlyList<TtsVoice> _allVoices;
@@ -208,8 +200,7 @@ public sealed class TtsEditVoiceDialogViewModel : ConventionViewModelBase
     private ObservableCollection<TtsVoice> _filteredVoices = [];
 
     public TtsEditVoiceDialogViewModel(
-        IUiDialogSession dialog,
-        IUiDialogHost dialogHost,
+        DialogManager dialogManager,
         ITtsUseCases tts,
         string provider,
         IReadOnlyList<TtsLanguageItem> languages,
@@ -217,8 +208,7 @@ public sealed class TtsEditVoiceDialogViewModel : ConventionViewModelBase
         TtsLanguageItem? initialLanguage = null,
         string? initialVoiceId = null)
     {
-        _dialog = dialog;
-        _dialogHost = dialogHost;
+        _dialogManager = dialogManager;
         _tts = tts;
         _provider = provider;
         AvailableLanguages = languages;
@@ -283,49 +273,47 @@ public sealed class TtsEditVoiceDialogViewModel : ConventionViewModelBase
 
     private void Save()
     {
+        _dialogManager.Close(this);
         if (SelectedLanguage is not null && SelectedVoice is not null)
             OnSave?.Invoke(SelectedLanguage, SelectedVoice);
-        _dialog.Dismiss();
     }
 
     private void Cancel()
     {
+        _dialogManager.Close(this);
         OnCancel?.Invoke();
-        _dialog.Dismiss();
     }
 
     private void Preview()
     {
         if (SelectedVoice is null)
             return;
-        _dialog.Dismiss();
-        _dialogHost.ShowContent(new UiContentDialogOptions
+        _dialogManager.Close(this);
+        var viewModel = new TtsPreviewInputDialogViewModel(
+            _dialogManager, _tts, _provider, SelectedVoice.Id)
         {
-            CreateContent = session => new TtsPreviewInputDialogViewModel(
-                session, _tts, _provider, SelectedVoice.Id)
-            {
-                OnDismiss = Reopen
-            }
-        });
+            OnDismiss = Reopen
+        };
+        _dialogManager.CreateDialog(viewModel).Show();
     }
 
-    private void Reopen() => _dialogHost.ShowContent(new UiContentDialogOptions
+    private void Reopen()
     {
-        Title = Resources.Tts_EditVoiceMapping,
-        CreateContent = session => new TtsEditVoiceDialogViewModel(
-            session, _dialogHost, _tts, _provider,
+        var viewModel = new TtsEditVoiceDialogViewModel(
+            _dialogManager, _tts, _provider,
             AvailableLanguages, _allVoices, SelectedLanguage, SelectedVoice?.Id)
         {
             SearchText = SearchText,
             OnSave = OnSave,
             OnCancel = OnCancel
-        }
-    });
+        };
+        _dialogManager.CreateDialog(viewModel).Show();
+    }
 }
 
 public sealed class TtsPreviewInputDialogViewModel : ConventionViewModelBase
 {
-    private readonly IUiDialogSession _dialog;
+    private readonly DialogManager _dialogManager;
     private readonly ITtsUseCases _tts;
     private readonly string _provider;
     private readonly string _voiceId;
@@ -333,12 +321,12 @@ public sealed class TtsPreviewInputDialogViewModel : ConventionViewModelBase
     private bool _isPlaying;
 
     public TtsPreviewInputDialogViewModel(
-        IUiDialogSession dialog,
+        DialogManager dialogManager,
         ITtsUseCases tts,
         string provider,
         string voiceId)
     {
-        _dialog = dialog;
+        _dialogManager = dialogManager;
         _tts = tts;
         _provider = provider;
         _voiceId = voiceId;
@@ -373,7 +361,7 @@ public sealed class TtsPreviewInputDialogViewModel : ConventionViewModelBase
 
     private void Close()
     {
+        _dialogManager.Close(this);
         OnDismiss?.Invoke();
-        _dialog.Dismiss();
     }
 }
