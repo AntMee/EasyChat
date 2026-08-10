@@ -431,7 +431,7 @@ namespace EasyChat.Presentation.Features.Shell
             NavigateToSpeechCommand = ReactiveCommand.Create(() =>
                 _navigation.NavigateTo<EasyChat.Presentation.Features.Speech.SpeechRecognitionViewModel>());
             NavigateToTextAssistCommand = ReactiveCommand.Create(() =>
-                _navigation.NavigateTo<EasyChat.Presentation.Features.TextAssist.TextAssistViewModel>());
+                _navigation.NavigateTo<EasyChat.Presentation.Features.TextAssist.TextAssistTranslationPageViewModel>());
             NavigateToPromptsCommand = ReactiveCommand.Create(() =>
                 _navigation.NavigateTo<EasyChat.Presentation.Features.Settings.Prompts.PromptViewModel>());
             OpenEngineSettingsCommand = ReactiveCommand.Create(() =>

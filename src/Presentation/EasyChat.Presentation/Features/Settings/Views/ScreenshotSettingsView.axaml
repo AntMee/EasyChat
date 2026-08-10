@@ -17,7 +17,7 @@
     <StackPanel
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch" Spacing="0">
-            <Grid ColumnDefinitions="Auto,*"
+            <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
@@ -26,7 +26,7 @@
                            Classes="Small"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
-                <ContentControl Grid.Column="1"
+                <ContentControl Classes="SettingsField" Grid.Column="1"
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
@@ -42,7 +42,7 @@
                 </ContentControl>
             </Grid>
 
-            <Grid ColumnDefinitions="Auto,*"
+            <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,8,8,0"
                   ColumnSpacing="16"
@@ -51,7 +51,7 @@
                            Classes="Small"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
-                <ContentControl Grid.Column="1"
+                <ContentControl Classes="SettingsField" Grid.Column="1"
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
@@ -72,7 +72,7 @@
                        TextWrapping="Wrap"
                        Text="{Binding SelectedOcrRecognitionMode, Converter={StaticResource OcrRecognitionModeDescriptionConverter}}" />
 
-            <Grid ColumnDefinitions="Auto,*"
+            <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,2"
                   ColumnSpacing="16"

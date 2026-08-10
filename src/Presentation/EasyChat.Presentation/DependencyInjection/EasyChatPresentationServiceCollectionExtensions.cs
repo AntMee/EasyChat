@@ -89,7 +89,8 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddTransient<NavigationPageViewModel, ShortcutViewModel>();
         services.AddTransient<NavigationPageViewModel, PromptViewModel>();
         services.AddTransient<NavigationPageViewModel, SpeechRecognitionViewModel>();
-        services.AddTransient<NavigationPageViewModel, TextAssistViewModel>();
+        services.AddTransient<NavigationPageViewModel, TextAssistTranslationPageViewModel>();
+        services.AddTransient<NavigationPageViewModel, TextAssistCorrectionPageViewModel>();
         services.AddTransient<NavigationPageViewModel, AboutViewModel>();
         services.AddSingleton<MainWindowViewModel>();
         return services;

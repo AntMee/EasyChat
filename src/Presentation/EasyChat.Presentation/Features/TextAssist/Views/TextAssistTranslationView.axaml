@@ -13,6 +13,40 @@
              x:Name="TranslationView"
              x:DataType="vm:TextAssistTranslationViewModel"
              ClipToBounds="True">
+    <UserControl.Resources>
+        <ControlTheme x:Key="TranslationEditorCardTheme" TargetType="shad:Card"
+                      BasedOn="{StaticResource CardControlTheme}">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Height="{TemplateBinding Height}"
+                            Margin="{TemplateBinding Margin}"
+                            Name="OuterBorder"
+                            Width="{TemplateBinding Width}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Name="Container">
+                            <Grid Margin="{TemplateBinding Padding}" RowDefinitions="Auto,*,Auto">
+                                <ContentPresenter Content="{TemplateBinding Header}"
+                                                  Grid.Row="0"
+                                                  ZIndex="10"
+                                                  IsVisible="{TemplateBinding Header, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                <ContentPresenter Grid.Row="1"
+                                                  Content="{TemplateBinding Content}"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Stretch" />
+                                <ContentPresenter Content="{TemplateBinding Footer}"
+                                                  Grid.Row="2"
+                                                  IsVisible="{TemplateBinding Footer, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                  Margin="0,24,0,0" />
+                            </Grid>
+                        </Border>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+    </UserControl.Resources>
     <UserControl.Styles>
         <Style Selector="ComboBox /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
@@ -79,56 +113,76 @@
                 <RowDefinition Height="{Binding ShowAnnotations, Converter={x:Static converters:BoolToGridLengthConverter.Instance}, ConverterParameter=160}" />
             </Grid.RowDefinitions>
         <Grid Grid.Row="0" Classes="EditorPair" ColumnDefinitions="*,Auto,*" ColumnSpacing="4" VerticalAlignment="Stretch">
-            <shad:Card Padding="4" HasShadow="True" ClipToBounds="True" VerticalAlignment="Stretch">
-                <Grid Classes="EditorContent" RowDefinitions="Auto,32,4,*" RowSpacing="0" MinHeight="0" ClipToBounds="True">
-                    <Grid Classes="LanguageHeader" ColumnDefinitions="*,Auto" ZIndex="100">
-                        <TextBlock Classes="Muted" Text="{x:Static lang:Resources.SourceLang}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Classes="Icon" Command="{Binding SpeakSourceCommand}"
-                                ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Source}">
-                            <avalonia:MaterialIcon Kind="VolumeHigh" />
-                        </Button>
+            <shad:Card Theme="{StaticResource TranslationEditorCardTheme}" Padding="12" HasShadow="True" ClipToBounds="True"
+                       VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <shad:Card.Header>
+                    <Grid Height="96" RowDefinitions="36,36,16" RowSpacing="4">
+                        <Grid Classes="LanguageHeader" ColumnDefinitions="*,Auto">
+                            <TextBlock Classes="Muted" Text="{x:Static lang:Resources.SourceLang}" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Classes="Icon" Command="{Binding SpeakSourceCommand}"
+                                    ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Source}">
+                                <avalonia:MaterialIcon Kind="VolumeHigh" />
+                            </Button>
+                        </Grid>
+                        <sharedControls:LanguageSelector Grid.Row="1" Height="36" MinHeight="36"
+                                                         Languages="{Binding Languages}"
+                                                         SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}" />
+                        <Border Grid.Row="2"
+                                Margin="-12,0"
+                                Height="1"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource BorderColor}"
+                                Opacity="0.65" />
                     </Grid>
-                    <sharedControls:LanguageSelector Grid.Row="1" Height="32" MinHeight="0" ZIndex="100"
-                                                     Languages="{Binding Languages}"
-                                                     SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}" />
-                    <Grid Grid.Row="3" Margin="0,0,4,0" MinHeight="0" ClipToBounds="True" VerticalAlignment="Stretch" ZIndex="0">
-                        <TextBox x:Name="SourceTextBox" Classes="EditorTextBox" Text="{Binding InputText, Mode=TwoWay}"
-                                 AcceptsReturn="True" TextWrapping="Wrap"
-                                 PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
-                                 VerticalAlignment="Stretch" VerticalContentAlignment="Top"
-                                 BorderThickness="0" Background="Transparent" Padding="0" />
-                    </Grid>
+                </shad:Card.Header>
+                <Grid MinHeight="0" ClipToBounds="True" VerticalAlignment="Stretch">
+                    <TextBox x:Name="SourceTextBox" Classes="EditorTextBox" Text="{Binding InputText, Mode=TwoWay}"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
+                             VerticalAlignment="Stretch" VerticalContentAlignment="Top"
+                             BorderThickness="0" Background="Transparent" Padding="0" />
                 </Grid>
             </shad:Card>
 
-            <shad:Card Grid.Column="2" Padding="4" HasShadow="True" ClipToBounds="True" VerticalAlignment="Stretch">
-                <Grid Classes="EditorContent" RowDefinitions="Auto,32,4,*" RowSpacing="0" MinHeight="0" ClipToBounds="True">
-                    <Grid Classes="LanguageHeader" ColumnDefinitions="*,Auto,Auto" ZIndex="100">
-                        <TextBlock Classes="Muted" Text="{x:Static lang:Resources.TargetLang}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Classes="Icon" Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
-                            <avalonia:MaterialIcon Kind="ContentCopy" />
-                        </Button>
-                        <Button Grid.Column="2" Classes="Icon" Command="{Binding SpeakResultCommand}"
-                                ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Target}">
-                            <avalonia:MaterialIcon Kind="VolumeHigh" />
-                        </Button>
+            <shad:Card Grid.Column="2" Theme="{StaticResource TranslationEditorCardTheme}" Padding="12" HasShadow="True" ClipToBounds="True"
+                       VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <shad:Card.Header>
+                    <Grid Height="96" RowDefinitions="36,36,16" RowSpacing="4">
+                        <Grid Classes="LanguageHeader" ColumnDefinitions="*,Auto,Auto">
+                            <TextBlock Classes="Muted" Text="{x:Static lang:Resources.TargetLang}" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Classes="Icon" Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
+                                <avalonia:MaterialIcon Kind="ContentCopy" />
+                            </Button>
+                            <Button Grid.Column="2" Classes="Icon" Command="{Binding SpeakResultCommand}"
+                                    ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Target}">
+                                <avalonia:MaterialIcon Kind="VolumeHigh" />
+                            </Button>
+                        </Grid>
+                        <sharedControls:LanguageSelector Grid.Row="1" Height="36" MinHeight="36"
+                                                         Languages="{Binding Languages}"
+                                                         SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}" />
+                        <Border Grid.Row="2"
+                                Margin="-12,0"
+                                Height="1"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource BorderColor}"
+                                Opacity="0.65" />
                     </Grid>
-                    <sharedControls:LanguageSelector Grid.Row="1" Height="32" MinHeight="0" ZIndex="100"
-                                                     Languages="{Binding Languages}"
-                                                     SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}" />
-                    <Grid Grid.Row="3" Margin="0,0,4,0" MinHeight="0" ClipToBounds="True" VerticalAlignment="Stretch" ZIndex="0">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <md:MarkdownRenderer x:Name="ResultMarkdownRenderer" Classes="TextAssistResultMarkdown"
-                                                 MarkdownBuilder="{Binding ResultMarkdown}"
-                                                 HorizontalAlignment="Stretch" VerticalAlignment="Top" />
-                        </ScrollViewer>
-                        <TextBox IsReadOnly="True" Text="{Binding TranslationResult}"
-                                 PlaceholderText="{x:Static lang:Resources.TextAssistResultPlaceholder}"
-                                 AcceptsReturn="True" TextWrapping="Wrap"
-                                 VerticalContentAlignment="Top" BorderThickness="0"
-                                 Background="Transparent" Padding="0"
-                                 IsVisible="{Binding TranslationResult, Converter={x:Static dataConverters:StringConverters.IsNullOrEmpty}}" />
-                    </Grid>
+                </shad:Card.Header>
+                <Grid MinHeight="0" ClipToBounds="True" VerticalAlignment="Stretch">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <md:MarkdownRenderer x:Name="ResultMarkdownRenderer" Classes="TextAssistResultMarkdown"
+                                             MarkdownBuilder="{Binding ResultMarkdown}"
+                                             HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                    </ScrollViewer>
+                    <TextBox IsReadOnly="True" Text="{Binding TranslationResult}"
+                             PlaceholderText="{x:Static lang:Resources.TextAssistResultPlaceholder}"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalContentAlignment="Top" BorderThickness="0"
+                             Background="Transparent" Padding="0"
+                             IsVisible="{Binding TranslationResult, Converter={x:Static dataConverters:StringConverters.IsNullOrEmpty}}" />
                 </Grid>
             </shad:Card>
 

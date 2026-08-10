@@ -8,8 +8,7 @@
              ClipToBounds="True">
     <Grid HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
-          Margin="24,20,24,20"
-          MaxWidth="1120">
+          Margin="24,20,24,20">
         <views:TextAssistTranslationView DataContext="{Binding Translation}"
                                          HorizontalAlignment="Stretch"
                                          VerticalAlignment="Stretch" />

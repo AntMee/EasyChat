@@ -192,7 +192,7 @@
                                                                Foreground="{DynamicResource PrimaryColor}" />
                                     </Border>
                                     <StackPanel Spacing="2" VerticalAlignment="Center">
-                                        <TextBlock Text="PaddleSharp"
+                                        <TextBlock Text="OpenVINO.NET"
                                                    Classes="Small" />
                                         <TextBlock Text="sdcb"
                                                    Classes="Muted" />

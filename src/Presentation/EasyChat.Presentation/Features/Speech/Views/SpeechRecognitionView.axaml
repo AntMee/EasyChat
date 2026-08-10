@@ -31,19 +31,15 @@
     <Panel>
         <!-- Loading overlay - shown initially -->
         <Grid x:Name="LoadingOverlay" IsVisible="True">
-            <Border  Background="{DynamicResource DialogOverlayColor}" />
-            <shad:Card
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    HasShadow="True"
-                    ClipToBounds="True">
-                <StackPanel Spacing="14" HorizontalAlignment="Center">
-                    <shad:Loading Width="42" Height="42" HorizontalAlignment="Center" />
-                    <TextBlock Text="{x:Static lang:Resources.Loading}"
-                               HorizontalAlignment="Center"
-                               Foreground="{DynamicResource MutedColor}" />
-                </StackPanel>
-            </shad:Card>
+            <Border Background="{DynamicResource GhostColor}" Opacity="0.92" />
+            <StackPanel Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <shad:Loading Width="24" Height="24"
+                              HorizontalAlignment="Center"
+                              Foreground="{DynamicResource PrimaryColor}" />
+                <TextBlock Text="{x:Static lang:Resources.Loading}"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource MutedColor}" />
+            </StackPanel>
         </Grid>
 
         <!-- Main Content - hidden initially -->

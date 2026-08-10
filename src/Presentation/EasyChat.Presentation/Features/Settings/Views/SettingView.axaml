@@ -20,6 +20,10 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
+        <Style Selector="ContentControl.SettingsField">
+            <Setter Property="Width" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
         <Style Selector="ComboBox TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             <Setter Property="TextWrapping" Value="NoWrap" />
@@ -31,9 +35,11 @@
 
     <Panel>
         <Grid x:Name="LoadingOverlay" IsVisible="True">
-            <Border Background="{DynamicResource LoadingOverlayColor}" />
+            <Border Background="{DynamicResource GhostColor}" Opacity="0.92" />
             <StackPanel Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <shad:Loading Width="42" Height="42" HorizontalAlignment="Center" />
+                <shad:Loading Width="24" Height="24"
+                              HorizontalAlignment="Center"
+                              Foreground="{DynamicResource PrimaryColor}" />
                 <TextBlock Text="{x:Static lang:Resources.Loading}"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource MutedColor}" />

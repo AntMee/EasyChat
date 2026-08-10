@@ -36,7 +36,7 @@
                 HorizontalAlignment="Stretch"
                 Spacing="6">
 
-        <Grid ColumnDefinitions="Auto,*"
+        <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
               ColumnSpacing="16">
@@ -44,17 +44,17 @@
                        Classes="Small"
                        VerticalAlignment="Center"
                        MinWidth="180" />
-            <ContentControl Grid.Column="1"
+            <ContentControl Classes="SettingsField" Grid.Column="1"
                             MinWidth="180"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Stretch">
+                            HorizontalAlignment="Right">
                 <ec:LanguageSelector Languages="{Binding DisplayLanguages}"
                                      SelectedLanguage="{Binding SelectedDisplayLanguage, Mode=TwoWay}"
                                      HorizontalAlignment="Stretch" />
             </ContentControl>
         </Grid>
 
-        <Grid ColumnDefinitions="Auto,*"
+        <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
               ColumnSpacing="16">
@@ -62,17 +62,17 @@
                        Classes="Small"
                        VerticalAlignment="Center"
                        MinWidth="180" />
-            <ContentControl Grid.Column="1"
+            <ContentControl Classes="SettingsField" Grid.Column="1"
                             MinWidth="180"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Stretch">
+                            HorizontalAlignment="Right">
                 <ec:LanguageSelector Languages="{Binding NativeLanguages}"
                                      SelectedLanguage="{Binding SelectedNativeLanguage, Mode=TwoWay}"
                                      HorizontalAlignment="Stretch" />
             </ContentControl>
         </Grid>
 
-        <Grid ColumnDefinitions="Auto,*"
+        <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
               ColumnSpacing="16">
@@ -80,10 +80,10 @@
                        Classes="Small"
                        VerticalAlignment="Center"
                        MinWidth="180" />
-            <ContentControl Grid.Column="1"
+            <ContentControl Classes="SettingsField" Grid.Column="1"
                             MinWidth="180"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Stretch">
+                            HorizontalAlignment="Right">
                 <ComboBox ItemsSource="{Binding ClosingBehaviors}"
                           SelectedItem="{Binding SelectedClosingBehavior}"
                           HorizontalAlignment="Stretch">
@@ -105,7 +105,7 @@
                        Text="{x:Static lang:Resources.ApplicationDataDescription}" />
         </StackPanel>
 
-        <Grid ColumnDefinitions="Auto,*"
+        <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
               ColumnSpacing="16">
@@ -113,10 +113,10 @@
                        Classes="Small"
                        VerticalAlignment="Center"
                        MinWidth="180" />
-            <ContentControl Grid.Column="1"
+            <ContentControl Classes="SettingsField" Grid.Column="1"
                             MinWidth="180"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Stretch">
+                            HorizontalAlignment="Right">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                     <TextBox IsReadOnly="True" Text="{Binding ApplicationDataRoot}" />
                     <Button Grid.Column="1"
@@ -137,7 +137,7 @@
                        Text="{x:Static lang:Resources.OcrModels}" />
         </StackPanel>
 
-        <Grid ColumnDefinitions="Auto,*"
+        <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
               ColumnSpacing="16">
@@ -145,10 +145,10 @@
                        Classes="Small"
                        VerticalAlignment="Center"
                        MinWidth="180" />
-            <ContentControl Grid.Column="1"
+            <ContentControl Classes="SettingsField" Grid.Column="1"
                             MinWidth="180"
                             VerticalAlignment="Center"
-                            HorizontalAlignment="Stretch">
+                            HorizontalAlignment="Right">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
                     <TextBox Text="{Binding ProxyConf.ProxyUrl}"
                              PlaceholderText="{x:Static lang:Resources.ProxyAddrQuestion}"
