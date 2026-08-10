@@ -10,7 +10,7 @@ namespace EasyChat.Presentation.Features.SelectionTranslation.Views;
 
 public partial class SelectionIconWindowView : Window
 {
-    private const double ShellPadding = 14;
+    private const double ShellPadding = 16;
     private const double ButtonGap = 3;
     private const double CompactButton = 30;
     private const double NormalButton = 34;
@@ -18,23 +18,25 @@ public partial class SelectionIconWindowView : Window
 
     private IPlatformWindowBehavior? _platformWindowBehavior;
     private ILogger<SelectionIconWindowView>? _logger;
-    private readonly ShadUI.Loading? _loadingSpinner;
+    private readonly ProgressBar? _loadingSpinner;
     private readonly Control? _toolbar;
     private readonly Button? _translateButton;
     private readonly Button? _correctionButton;
     private readonly Button? _polishButton;
     private readonly Button? _summaryButton;
+    private readonly Button? _explanationButton;
     private bool _isLoading;
 
     public SelectionIconWindowView()
     {
         InitializeComponent();
-        _loadingSpinner = this.FindControl<ShadUI.Loading>("LoadingSpinner");
+        _loadingSpinner = this.FindControl<ProgressBar>("LoadingSpinner");
         _toolbar = this.FindControl<Control>("Toolbar");
         _translateButton = this.FindControl<Button>("TranslateButton");
         _correctionButton = this.FindControl<Button>("CorrectionButton");
         _polishButton = this.FindControl<Button>("PolishButton");
         _summaryButton = this.FindControl<Button>("SummaryButton");
+        _explanationButton = this.FindControl<Button>("ExplanationButton");
     }
 
     public SelectionIconWindowView(
@@ -51,6 +53,7 @@ public partial class SelectionIconWindowView : Window
     public event EventHandler? CorrectionClicked;
     public event EventHandler? PolishClicked;
     public event EventHandler? SummaryClicked;
+    public event EventHandler? ExplanationClicked;
 
     public bool IsLoading => _isLoading;
 
@@ -60,10 +63,12 @@ public partial class SelectionIconWindowView : Window
         if (_correctionButton is not null) _correctionButton.IsVisible = options.Correction;
         if (_polishButton is not null) _polishButton.IsVisible = options.Polish;
         if (_summaryButton is not null) _summaryButton.IsVisible = options.Summary;
+        if (_explanationButton is not null) _explanationButton.IsVisible = options.Explanation;
 
         var secondaryCount = (options.Correction ? 1 : 0)
                              + (options.Polish ? 1 : 0)
-                             + (options.Summary ? 1 : 0);
+                             + (options.Summary ? 1 : 0)
+                             + (options.Explanation ? 1 : 0);
         var hasPrimary = options.Translation;
         var totalCount = (hasPrimary ? 1 : 0) + secondaryCount;
         var compact = totalCount == 1;
@@ -80,7 +85,7 @@ public partial class SelectionIconWindowView : Window
                 label.IsVisible = !compact || !hasPrimary || secondaryCount > 0;
         }
 
-        foreach (var button in new[] { _correctionButton, _polishButton, _summaryButton })
+        foreach (var button in new[] { _correctionButton, _polishButton, _summaryButton, _explanationButton })
         {
             if (button is null)
                 continue;
@@ -134,4 +139,5 @@ public partial class SelectionIconWindowView : Window
     private void OnCorrectionClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) CorrectionClicked?.Invoke(this, EventArgs.Empty); }
     private void OnPolishClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) PolishClicked?.Invoke(this, EventArgs.Empty); }
     private void OnSummaryClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) SummaryClicked?.Invoke(this, EventArgs.Empty); }
+    private void OnExplanationClick(object? sender, RoutedEventArgs e) { if (CanInvoke()) ExplanationClicked?.Invoke(this, EventArgs.Empty); }
 }

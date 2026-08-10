@@ -12,20 +12,32 @@
              mc:Ignorable="d"
              Background="{DynamicResource GhostColor}">
 
+    <UserControl.Styles>
+        <!-- Settings fields must yield width to the detail pane at compact window sizes. -->
+        <Style Selector="ComboBox">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MaxWidth" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="ComboBox TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+        <Style Selector="ComboBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Styles>
+
     <Panel>
         <Grid x:Name="LoadingOverlay" IsVisible="True">
-            <Border  Background="{DynamicResource DialogOverlayColor}" />
-            <shad:Card
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    HasShadow="True">
-                <StackPanel Spacing="14" HorizontalAlignment="Center">
-                    <shad:Loading Width="42" Height="42" HorizontalAlignment="Center" />
-                    <TextBlock Text="{x:Static lang:Resources.Loading}"
-                               HorizontalAlignment="Center"
-                               Foreground="{DynamicResource MutedColor}" />
-                </StackPanel>
-            </shad:Card>
+            <Border Background="{DynamicResource LoadingOverlayColor}" />
+            <StackPanel Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <shad:Loading Width="42" Height="42" HorizontalAlignment="Center" />
+                <TextBlock Text="{x:Static lang:Resources.Loading}"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource MutedColor}" />
+            </StackPanel>
         </Grid>
 
         <!-- Master/detail: both panes stretch to the same height (* row fills window). -->
@@ -40,32 +52,31 @@
                     Margin="0,0,14,0"
                     VerticalAlignment="Stretch"
                     HorizontalAlignment="Stretch"
-                    HasShadow="True">
+                    HasShadow="False"
+                    Padding="16,18">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top"
-                               Classes="Caption"
+                               Classes="Small"
                                FontWeight="Bold"
                                Text="{x:Static lang:Resources.Settings}"
                                Margin="8,4,8,12" />
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding NavItems}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Spacing="2" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="viewModels:SettingsNavItem">
-                                    <ToggleButton
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Stretch"
-                                            Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).SelectPaneCommand}"
-                                            CommandParameter="{Binding Id}"
-                                            IsChecked="{Binding IsSelected}"
-                                            MinHeight="36"
-                                            Padding="10,6"
-                                            VerticalContentAlignment="Center">
+                    <ItemsControl ItemsSource="{Binding NavItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:SettingsNavItem">
+                                <ToggleButton
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).SelectPaneCommand}"
+                                        CommandParameter="{Binding Id}"
+                                        IsChecked="{Binding IsSelected}"
+                                        MinHeight="36"
+                                        Padding="10,6"
+                                        VerticalContentAlignment="Center">
                                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10"
                                               HorizontalAlignment="Stretch">
                                             <Border Width="28" Height="28" CornerRadius="8"
@@ -88,7 +99,6 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </ScrollViewer>
                 </DockPanel>
             </shad:Card>
 
@@ -96,15 +106,16 @@
             <shad:Card Grid.Column="1"
                     VerticalAlignment="Stretch"
                     HorizontalAlignment="Stretch"
-                    HasShadow="True">
+                    HasShadow="False"
+                    Padding="5">
                 <Grid RowDefinitions="Auto,*">
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,14" MinHeight="36">
+                    <Grid ColumnDefinitions="*,Auto" Margin="15" MinHeight="36" >
                         <StackPanel Orientation="Horizontal"
                                     Spacing="12"
                                     VerticalAlignment="Center"
                                     IsVisible="{Binding IsSearchCollapsed}">
                             <Border Width="32" Height="32" CornerRadius="9"
-                                    Background="{DynamicResource PrimaryColor10}"
+                                    Background="{DynamicResource GhostColor}"
                                     VerticalAlignment="Center"
                                     IsVisible="{Binding IsBrowseMode}">
                                 <avalonia:MaterialIcon Kind="{Binding SelectedNavItem.Icon}"
@@ -115,56 +126,30 @@
                             </Border>
                             <TextBlock Text="{Binding SelectedNavItem.Title}"
                                        VerticalAlignment="Center"
-                                       Classes="h2"
+                                       Classes="h4"
                                        IsVisible="{Binding IsBrowseMode}" />
                             <TextBlock Text="{x:Static lang:Resources.Settings}"
                                        VerticalAlignment="Center"
-                                       Classes="h2"
+                                       Classes="h4"
                                        IsVisible="{Binding IsSearchMode}" />
                         </StackPanel>
 
-                        <Border x:Name="SettingsSearchHost"
+                        <TextBox x:Name="SettingsSearchBox"
                                 Grid.Column="0" Grid.ColumnSpan="2"
                                 IsVisible="{Binding IsSearchOpen}"
+                                Text="{Binding SearchText}"
+                                shad:ControlAssist.Label="{x:Static lang:Resources.SettingsSearchPlaceholder}"
+                                KeyDown="OnSearchBoxKeyDown"
                                 VerticalAlignment="Center"
-                                HorizontalAlignment="Stretch"
-                                Background="{DynamicResource GhostColor}"
-                                BorderBrush="{DynamicResource BorderColor}"
-                                BorderThickness="1"
-                                Height="36"
-                                MinHeight="36"
-                                ClipToBounds="True" CornerRadius="{DynamicResource LgCornerRadius}">
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                Classes="Clearable"
+                                Margin="0,0,4,0">
+                            <TextBox.InnerRightContent>
                                 <avalonia:MaterialIcon Kind="Magnify"
                                                        Width="16" Height="16"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource MutedColor}" />
-                                <TextBox x:Name="SettingsSearchBox"
-                                         Grid.Column="1"
-                                         Text="{Binding SearchText}"
-                                         shad:ControlAssist.Label="{x:Static lang:Resources.SettingsSearchPlaceholder}"
-                                         KeyDown="OnSearchBoxKeyDown"
-                                         Background="Transparent"
-                                         BorderThickness="0"
-                                         BorderBrush="Transparent"
-                                         Padding="0"
-                                         MinHeight="0"
-                                         Height="32"
-                                         VerticalAlignment="Center"
-                                         VerticalContentAlignment="Center"
-                                         HorizontalAlignment="Stretch"
-                                         CornerRadius="0" />
-                                <Button Grid.Column="2"
-                                        Classes="Icon"
-                                        VerticalAlignment="Center"
-                                        Command="{Binding CloseSearchCommand}"
-                                        AutomationProperties.Name="{x:Static lang:Resources.Close}">
-                                    <avalonia:MaterialIcon Kind="Close"
-                                                           Width="13" Height="13"
-                                                           Foreground="{DynamicResource MutedColor}" />
-                                </Button>
-                            </Grid>
-                        </Border>
+                            </TextBox.InnerRightContent>
+                        </TextBox>
 
                         <Button Grid.Column="1"
                                 Classes="Icon"
@@ -187,10 +172,16 @@
                     <ScrollViewer Grid.Row="1"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
-                                  HorizontalAlignment="Stretch">
-                        <StackPanel Spacing="14"
-                                    VerticalAlignment="Top"
-                                    HorizontalAlignment="Stretch">
+                                  HorizontalAlignment="Stretch"
+                                  Margin="0,0,0,0"
+                                  Padding="15"
+                                  HorizontalContentAlignment="Stretch"
+                                  VerticalContentAlignment="Top">
+                        <Border Padding="0,0,0,20"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Spacing="14"
+                               VerticalAlignment="Top"
+                               HorizontalAlignment="Stretch">
                             <TextBlock Text="{x:Static lang:Resources.SettingsNoSearchResults}"
                                        Classes="Muted"
                                        TextWrapping="Wrap"
@@ -260,7 +251,8 @@
                                            IsVisible="{Binding IsSearchMode}" />
                                 <settings:InputSettingsView DataContext="{Binding}" />
                             </StackPanel>
-                        </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </ScrollViewer>
                 </Grid>
             </shad:Card>

@@ -7,6 +7,7 @@
         xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+        xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistResultWindowView"
         x:DataType="vm:TextAssistResultWindowViewModel"
         Width="500" Height="420" MinWidth="380" MinHeight="180"
@@ -14,6 +15,14 @@
         Foreground="{DynamicResource ForegroundColor}"
         Topmost="True" ShowInTaskbar="False" CanResize="True" Focusable="False" ShowActivated="False"
         WindowStartupLocation="Manual">
+    <Window.Styles>
+        <Style Selector="md|MarkdownRenderer.TextAssistResultMarkdown">
+            <Style Selector="^ md|MarkdownTextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+                <Setter Property="FontSize" Value="16" />
+            </Style>
+        </Style>
+    </Window.Styles>
     <Grid>
     <Border Background="{DynamicResource DialogBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" ClipToBounds="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
         <Border ClipToBounds="True">
@@ -165,11 +174,13 @@
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
-                <shad:Card IsVisible="{Binding IsSummary}" HasShadow="False" Padding="16"
+                <shad:Card IsVisible="{Binding ShowPlainResult}" HasShadow="False" Padding="16"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <TextBlock Text="{Binding Result}" Classes="Large" TextWrapping="Wrap"
-                                   HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                        <md:MarkdownRenderer Classes="TextAssistResultMarkdown"
+                                             MarkdownBuilder="{Binding ResultMarkdown}"
+                                             HorizontalAlignment="Stretch"
+                                             VerticalAlignment="Top" />
                     </ScrollViewer>
                 </shad:Card>
                 <shad:Loading Width="24" Height="24" IsVisible="{Binding ShowLoadingIndicator}" HorizontalAlignment="Center" VerticalAlignment="Center" />

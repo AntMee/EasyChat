@@ -502,6 +502,21 @@ namespace EasyChat.Presentation.Features.Shell
         public int ShortcutCount => _settings.Shortcut.Entries.Count;
         public bool IsUsingAiEngine =>
             string.Equals(GeneralConfig.TransEngine, "AiModel", StringComparison.OrdinalIgnoreCase);
+        public int EngineTabIndex
+        {
+            get => IsUsingAiEngine ? 0 : 1;
+            set
+            {
+                if (value is < 0 or > 1)
+                    return;
+
+                var engine = value == 0
+                    ? TranslationEngineNames.AiModel
+                    : TranslationEngineNames.MachineTrans;
+                if (!string.Equals(GeneralConfig.TransEngine, engine, StringComparison.OrdinalIgnoreCase))
+                    GeneralConfig.TransEngine = engine;
+            }
+        }
         public bool IsEngineReady => IsUsingAiEngine
             ? ConfiguredModels.Count > 0 && !string.IsNullOrWhiteSpace(GeneralConfig.UsingAiModelId)
             : !string.IsNullOrWhiteSpace(GeneralConfig.UsingMachineTrans);
@@ -565,6 +580,7 @@ namespace EasyChat.Presentation.Features.Shell
             this.RaisePropertyChanged(nameof(ConfiguredModelCount));
             this.RaisePropertyChanged(nameof(ShortcutCount));
             this.RaisePropertyChanged(nameof(IsUsingAiEngine));
+            this.RaisePropertyChanged(nameof(EngineTabIndex));
             this.RaisePropertyChanged(nameof(IsEngineReady));
             this.RaisePropertyChanged(nameof(NeedsConfiguration));
             this.RaisePropertyChanged(nameof(EngineStatusText));

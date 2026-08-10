@@ -12,6 +12,22 @@
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
              x:DataType="vm:SpeechRecognitionViewModel" Background="{DynamicResource GhostColor}">
 
+    <UserControl.Styles>
+        <Style Selector="FlyoutPresenter.AudioSourceFlyout">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <!-- ColorView's template creates the three mode tabs. Keep their icon headers
+             centered and wide enough to remain readable in the flyout. -->
+        <Style Selector="ColorView /template/ TabControl#PART_TabControl TabItem">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="72" />
+            <Setter Property="Padding" Value="12,4" />
+        </Style>
+    </UserControl.Styles>
+
     <Panel>
         <!-- Loading overlay - shown initially -->
         <Grid x:Name="LoadingOverlay" IsVisible="True">
@@ -69,23 +85,14 @@
             </Grid>
 
             <!-- Workspace mode: Live / Overlay -->
-            <shad:Card
-                    Grid.Row="1"
-                    HorizontalAlignment="Left"
-                    Margin="0,0,0,12"
-                    IsVisible="{Binding IsSupported}"
-                    HasShadow="False">
-                <StackPanel Orientation="Horizontal" Spacing="2">
-                    <RadioButton
-                                 GroupName="SpeechWorkspace"
-                                 Content="{x:Static lang:Resources.Tab_Recognition}"
-                                 IsChecked="{Binding IsLiveWorkspace}" />
-                    <RadioButton
-                                 GroupName="SpeechWorkspace"
-                                 Content="{x:Static lang:Resources.FloatingWindow}"
-                                 IsChecked="{Binding IsOverlayWorkspace}" />
-                </StackPanel>
-            </shad:Card>
+            <TabControl Grid.Row="1"
+                        HorizontalAlignment="Left"
+                        Margin="0,0,0,8"
+                        IsVisible="{Binding IsSupported}"
+                        SelectedIndex="{Binding WorkspaceTabIndex}">
+                <TabItem Header="{x:Static lang:Resources.Tab_Recognition}" />
+                <TabItem Header="{x:Static lang:Resources.FloatingWindow}" />
+            </TabControl>
 
             <Grid Grid.Row="2" IsVisible="{Binding IsSupported}">
             <!-- Live recognition workspace -->
@@ -109,6 +116,22 @@
                                               IsChecked="{Binding IsRealTimePreviewEnabled}"
                                               IsVisible="{Binding IsRealTimePreviewVisible}"
                                               ToolTip.Tip="{x:Static lang:Resources.Speech_RealTimePreviewTip}"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal"
+                                            Margin="0,4,18,4"
+                                            VerticalAlignment="Center"
+                                            Spacing="8"
+                                            IsVisible="{Binding IsPromptSelectionVisible}">
+                                    <TextBlock Text="{x:Static lang:Resources.Prompts}"
+                                               Classes="Small"
+                                               Margin="0"
+                                               VerticalAlignment="Center" />
+                                    <ComboBox ItemsSource="{Binding PromptEntries}"
+                                              SelectedValue="{Binding SelectedPromptId}"
+                                              SelectedValueBinding="{Binding Id}"
+                                              DisplayMemberBinding="{Binding Name}"
+                                              MinWidth="160" />
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal"
@@ -161,9 +184,14 @@
                                     <TextBlock Text="{x:Static lang:Resources.Speech_AudioSource}" Classes="Small"
                                                Margin="0"
                                                VerticalAlignment="Center"/>
-                                    <Button Classes="Ghost">
+                                    <Button Classes="Outline"
+                                            Width="200"
+                                            HorizontalContentAlignment="Stretch"
+                                            VerticalContentAlignment="Center">
                                         <Button.Flyout>
-                                            <Flyout Placement="Bottom" ShowMode="Standard">
+                                            <Flyout Placement="Bottom"
+                                                    ShowMode="Standard"
+                                                    FlyoutPresenterClasses="AudioSourceFlyout">
                                                 <shad:Card MinWidth="280" MaxHeight="500" Background="{DynamicResource DialogBackgroundColor}" HasShadow="False">
                                                     <Grid RowDefinitions="Auto,*">
                                                         <Grid ColumnDefinitions="*,Auto" Margin="12,10">
@@ -206,7 +234,7 @@
                                                 </shad:Card>
                                             </Flyout>
                                         </Button.Flyout>
-                                        <Grid ColumnDefinitions="*,Auto" MinWidth="140">
+                                        <Grid ColumnDefinitions="*,Auto" HorizontalAlignment="Stretch">
                                             <TextBlock Text="{Binding SelectedSourcesSummary}"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
@@ -432,12 +460,21 @@
                                                  HorizontalAlignment="Stretch"
                                                  VerticalAlignment="Center" />
                                         <Button Grid.Column="1"
+                                                Classes="Icon"
+                                                Width="36"
+                                                Height="36"
                                                 VerticalAlignment="Center"
                                                 Background="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
                                             <Button.Flyout>
                                                 <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False">
-                                                        <ColorView Color="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
+                                                    <shad:Card HasShadow="False"
+                                                               Background="Transparent"
+                                                               BorderBrush="Transparent"
+                                                               BorderThickness="0"
+                                                               CornerRadius="0"
+                                                               Padding="0">
+                                                        <ColorView HorizontalAlignment="Center"
+                                                                   Color="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
                                                                    IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
                                                     </shad:Card>
                                                 </Flyout>
@@ -486,12 +523,21 @@
                                                  HorizontalAlignment="Stretch"
                                                  VerticalAlignment="Center" />
                                         <Button Grid.Column="1"
+                                                Classes="Icon"
+                                                Width="36"
+                                                Height="36"
                                                 VerticalAlignment="Center"
                                                 Background="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
                                             <Button.Flyout>
                                                 <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False">
-                                                        <ColorView Color="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
+                                                    <shad:Card HasShadow="False"
+                                                               Background="Transparent"
+                                                               BorderBrush="Transparent"
+                                                               BorderThickness="0"
+                                                               CornerRadius="0"
+                                                               Padding="0">
+                                                        <ColorView HorizontalAlignment="Center"
+                                                                   Color="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
                                                                    IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
                                                     </shad:Card>
                                                 </Flyout>
@@ -514,12 +560,21 @@
                                         <TextBox Text="{Binding BackgroundColor}"
                                                  HorizontalAlignment="Stretch" />
                                         <Button Grid.Column="1"
+                                                Classes="Icon"
+                                                Width="36"
+                                                Height="36"
                                                 VerticalAlignment="Center"
                                                 Background="{Binding BackgroundColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
                                             <Button.Flyout>
                                                 <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False">
-                                                        <ColorView Color="{Binding BackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
+                                                    <shad:Card HasShadow="False"
+                                                               Background="Transparent"
+                                                               BorderBrush="Transparent"
+                                                               BorderThickness="0"
+                                                               CornerRadius="0"
+                                                               Padding="0">
+                                                        <ColorView HorizontalAlignment="Center"
+                                                                   Color="{Binding BackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
                                                                    IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
                                                     </shad:Card>
                                                 </Flyout>
@@ -533,12 +588,21 @@
                                         <TextBox Text="{Binding SubtitleBackgroundColor}"
                                                  HorizontalAlignment="Stretch" />
                                         <Button Grid.Column="1"
+                                                Classes="Icon"
+                                                Width="36"
+                                                Height="36"
                                                 VerticalAlignment="Center"
                                                 Background="{Binding SubtitleBackgroundColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
                                             <Button.Flyout>
                                                 <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False">
-                                                        <ColorView Color="{Binding SubtitleBackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
+                                                    <shad:Card HasShadow="False"
+                                                               Background="Transparent"
+                                                               BorderBrush="Transparent"
+                                                               BorderThickness="0"
+                                                               CornerRadius="0"
+                                                               Padding="0">
+                                                        <ColorView HorizontalAlignment="Center"
+                                                                   Color="{Binding SubtitleBackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
                                                                    IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
                                                     </shad:Card>
                                                 </Flyout>

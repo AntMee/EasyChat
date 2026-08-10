@@ -426,6 +426,12 @@
     <data name="PromptParametersHint" xml:space="preserve">
         <value>描述助手的角色、专业领域、风格和偏好即可。语言、任务和输出规则由 EasyChat 自动添加。</value>
     </data>
+    <data name="PromptSearchPlaceholder" xml:space="preserve">
+        <value>按名称或内容搜索提示词...</value>
+    </data>
+    <data name="PromptNoSearchResults" xml:space="preserve">
+        <value>没有找到匹配的提示词。</value>
+    </data>
     <data name="ResultAutoCloseDelay" xml:space="preserve">
         <value>自动关闭延迟</value>
     </data>
@@ -895,6 +901,7 @@
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>
+  <data name="TextAssistResultPlaceholder" xml:space="preserve"><value>等待翻译...</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
   <data name="TextAssistIssues" xml:space="preserve"><value>错误与修改建议</value></data>

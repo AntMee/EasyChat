@@ -23,7 +23,6 @@
   </ItemGroup>
   <!-- Theme dictionaries have no x:Class; keep them as AvaloniaResource for avares:// includes. -->
   <ItemGroup>
-    <AvaloniaResource Include="Themes\**\*.axaml" />
     <AvaloniaXaml Remove="Themes\**\*.axaml" />
   </ItemGroup>
   <ItemGroup>

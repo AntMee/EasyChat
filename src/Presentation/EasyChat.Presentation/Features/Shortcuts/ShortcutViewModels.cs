@@ -17,6 +17,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
         public static IReadOnlyList<EasyChat.Presentation.Features.Shortcuts.ShortcutActionOption> All { get; } =
         [
             new("Screenshot", "Action_ScreenshotTranslate"),
+            new("ScreenshotOcr", "Action_ScreenshotOcr"),
             new("InputTranslate", "Action_InputTranslate"),
             new("QuickTranslate", "Action_QuickTranslate"),
             new("QuickCorrect", "Action_QuickCorrect"),
@@ -42,7 +43,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
     public sealed class ShortcutViewModel : NavigationPageViewModel
     {
         private static readonly string[] BasicTypes =
-            ["Screenshot", "InputTranslate", "SelectionTranslate", "QuickTranslate", "QuickCorrect"];
+            ["Screenshot", "ScreenshotOcr", "InputTranslate", "SelectionTranslate", "QuickTranslate", "QuickCorrect"];
         private static readonly string[] TextAssistTypes = ["QuickTranslate", "QuickCorrect"];
         private static readonly string[] LanguageTypes = ["SwitchEngineSourceTarget"];
         private readonly SettingsSession _settings;
@@ -99,9 +100,14 @@ namespace EasyChat.Presentation.Features.Shortcuts
                 this.RaisePropertyChanged(nameof(IsLanguageCategory));
                 this.RaisePropertyChanged(nameof(ActiveCategoryTitle));
                 this.RaisePropertyChanged(nameof(AddButtonLabel));
+                // Update the source collection before notifying visibility bindings.
+                // Otherwise the empty state and the list can remain out of sync when
+                // switching between a populated and an empty category.
+                SyncActiveList();
+                this.RaisePropertyChanged(nameof(ActiveShortcutCount));
                 this.RaisePropertyChanged(nameof(HasActiveShortcuts));
                 this.RaisePropertyChanged(nameof(HasNoActiveShortcuts));
-                SyncActiveList();
+                this.RaisePropertyChanged(nameof(CategoryTabIndex));
             }
         }
 
@@ -115,10 +121,23 @@ namespace EasyChat.Presentation.Features.Shortcuts
             }
         }
 
+        /// <summary>0 = basic shortcuts, 1 = language shortcuts. Backs the TabControl switch.</summary>
+        public int CategoryTabIndex
+        {
+            get => _isBasicCategory ? 0 : 1;
+            set
+            {
+                if (value is not (0 or 1))
+                    return;
+                IsBasicCategory = value == 0;
+            }
+        }
+
         public string ActiveCategoryTitle =>
             IsBasicCategory ? Resources.BasicShortcuts : Resources.LanguageShortcuts;
         public string AddButtonLabel =>
             IsBasicCategory ? Resources.AddBasicShortcut : Resources.AddLanguageShortcut;
+        public int ActiveShortcutCount => ActiveShortcuts.Count;
         public bool HasActiveShortcuts => ActiveShortcuts.Count > 0;
         public bool HasNoActiveShortcuts => !HasActiveShortcuts;
 
@@ -136,6 +155,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
             LanguageShortcuts = new ObservableCollection<ShortcutEntryState>(
                 _settings.Shortcut.Entries.Where(entry => LanguageTypes.Contains(entry.ActionType)));
             SyncActiveList();
+            this.RaisePropertyChanged(nameof(ActiveShortcutCount));
             this.RaisePropertyChanged(nameof(HasActiveShortcuts));
             this.RaisePropertyChanged(nameof(HasNoActiveShortcuts));
         }

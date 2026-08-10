@@ -1615,7 +1615,25 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("PromptParametersHint", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to No prompts match your search..
+        /// </summary>
+        public static string PromptNoSearchResults {
+            get {
+                return ResourceManager.GetString("PromptNoSearchResults", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search prompts by name or content....
+        /// </summary>
+        public static string PromptSearchPlaceholder {
+            get {
+                return ResourceManager.GetString("PromptSearchPlaceholder", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Prompts.
         /// </summary>
@@ -2614,7 +2632,16 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("TextAssistInputPlaceholderText", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for translation....
+        /// </summary>
+        public static string TextAssistResultPlaceholder {
+            get {
+                return ResourceManager.GetString("TextAssistResultPlaceholder", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Issues and suggestions.
         /// </summary>

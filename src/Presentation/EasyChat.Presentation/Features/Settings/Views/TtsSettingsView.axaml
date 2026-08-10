@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.TtsSettingsView"
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.TtsSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -10,7 +10,7 @@
     <StackPanel
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch" Spacing="0">
-            <Grid ColumnDefinitions="*,*"
+            <Grid ColumnDefinitions="Auto,*"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
@@ -20,7 +20,7 @@
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ComboBox ItemsSource="{Binding TtsProviders}"
@@ -32,7 +32,7 @@
             <Button Content="{x:Static lang:Resources.Tts_ConfigureVoices}"
                     Command="{Binding ConfigureTtsCommand}"
                     HorizontalAlignment="Stretch"
-                    Classes="Ghost"
+                    Classes="Outline"
                     Margin="8,8,8,0"
                     IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='tts voice configure 音色 配置'}" />
     </StackPanel>

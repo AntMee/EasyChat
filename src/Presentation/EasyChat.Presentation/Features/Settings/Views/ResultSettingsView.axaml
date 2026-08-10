@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.ResultSettingsView"
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.ResultSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -13,11 +13,18 @@
     <UserControl.Resources>
         <formatting:ColorToHexConverter x:Key="ColorToHexConverter" />
     </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="FlyoutPresenter.ColorPickerFlyout">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+    </UserControl.Styles>
 
     <StackPanel
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch" Spacing="0">
-            <Grid ColumnDefinitions="*,*"
+            <Grid ColumnDefinitions="Auto,*"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
@@ -27,7 +34,7 @@
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ComboBox ItemsSource="{Binding ResultWindowModes}"
@@ -45,7 +52,7 @@
 
             <StackPanel
                         IsVisible="{Binding ResultConf.ScreenshotResultMode, Converter={x:Static converts:ResultWindowModeToBooleanConverter.Instance}}" Spacing="0">
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -55,7 +62,7 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <ComboBox ItemsSource="{Binding ResultReadAloudModes}"
@@ -71,7 +78,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -81,7 +88,7 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <NumericUpDown Value="{Binding ResultConf.FontSize}"
@@ -91,7 +98,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -101,7 +108,7 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <ComboBox ItemsSource="{Binding AvailableFonts}"
@@ -118,7 +125,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -128,12 +135,11 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <TextBox Text="{Binding ResultConf.FontColor}"
-                                     shad:ControlAssist.Label="#FFFFFFFF"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Center" />
                             <Button Grid.Column="1"
@@ -145,7 +151,9 @@
                                     <SolidColorBrush Color="{Binding ResultConf.FontColor, Converter={StaticResource ColorToHexConverter}}" />
                                 </Button.Background>
                                 <Button.Flyout>
-                                    <Flyout Placement="Bottom" ShowMode="Standard">
+                                    <Flyout Placement="Bottom"
+                                            ShowMode="Standard"
+                                            FlyoutPresenterClasses="ColorPickerFlyout">
                                         <shad:Card HasShadow="True">
                                             <ColorView Color="{Binding ResultConf.FontColor, Converter={StaticResource ColorToHexConverter}}"
                                                        IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
@@ -157,7 +165,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -167,7 +175,7 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <ComboBox ItemsSource="{Binding TransparencyLevels}"
@@ -176,7 +184,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -186,12 +194,11 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <TextBox Text="{Binding ResultConf.BackgroundColor}"
-                                     shad:ControlAssist.Label="#CC000000"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Center" />
                             <Button Grid.Column="1"
@@ -203,7 +210,9 @@
                                     <SolidColorBrush Color="{Binding ResultConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
                                 </Button.Background>
                                 <Button.Flyout>
-                                    <Flyout Placement="Bottom" ShowMode="Standard">
+                                    <Flyout Placement="Bottom"
+                                            ShowMode="Standard"
+                                            FlyoutPresenterClasses="ColorPickerFlyout">
                                         <shad:Card HasShadow="True">
                                             <ColorView Color="{Binding ResultConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}"
                                                        IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
@@ -215,7 +224,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -225,12 +234,11 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <TextBox Text="{Binding ResultConf.WindowBackgroundColor}"
-                                     shad:ControlAssist.Label="#00000000"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Center" />
                             <Button Grid.Column="1"
@@ -242,7 +250,9 @@
                                     <SolidColorBrush Color="{Binding ResultConf.WindowBackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
                                 </Button.Background>
                                 <Button.Flyout>
-                                    <Flyout Placement="Bottom" ShowMode="Standard">
+                                    <Flyout Placement="Bottom"
+                                            ShowMode="Standard"
+                                            FlyoutPresenterClasses="ColorPickerFlyout">
                                         <shad:Card HasShadow="True">
                                             <ColorView Color="{Binding ResultConf.WindowBackgroundColor, Converter={StaticResource ColorToHexConverter}}"
                                                        IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
@@ -254,7 +264,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -264,16 +274,16 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <ToggleSwitch IsChecked="{Binding ResultConf.EnableAutoReadDelay}"
                                       OnContent="" OffContent=""
-                                      HorizontalAlignment="Right" />
+                                      HorizontalAlignment="Left" />
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -283,7 +293,7 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
@@ -299,7 +309,7 @@
                     </ContentControl>
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*"
+                <Grid ColumnDefinitions="Auto,*"
                       MinHeight="40"
                       Margin="8,0"
                       ColumnSpacing="16"
@@ -309,7 +319,7 @@
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                     <ContentControl Grid.Column="1"
-                                    MinWidth="280"
+                                    MinWidth="180"
                                     VerticalAlignment="Center"
                                     HorizontalContentAlignment="Stretch">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">

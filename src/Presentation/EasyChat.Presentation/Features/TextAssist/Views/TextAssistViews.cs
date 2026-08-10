@@ -194,7 +194,7 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
         }
 
-        // Segmented radios live in the drag header; don't start a move drag on them.
+        // Mode tabs live in the drag header; don't start a move drag on them.
         private void OnHeaderChromePointerPressed(object? sender, PointerPressedEventArgs e) =>
             e.Handled = true;
 

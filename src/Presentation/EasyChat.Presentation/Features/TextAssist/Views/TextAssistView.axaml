@@ -5,8 +5,7 @@
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
              xmlns:ec="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
-             x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistView"
+              x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistView"
              x:DataType="vm:TextAssistViewModel"
              Background="{DynamicResource GhostColor}">
     <Grid
@@ -66,18 +65,12 @@
 
         </Grid>
 
-        <shad:Card HasShadow="False" HorizontalAlignment="Left" Grid.Row="1">
-            <StackPanel Orientation="Horizontal" Spacing="2">
-                <RadioButton
-                             GroupName="TextAssistPageMode"
-                             Content="{x:Static lang:Resources.TextAssistTranslate}"
-                             IsChecked="{Binding IsTranslationMode}" />
-                <RadioButton
-                             GroupName="TextAssistPageMode"
-                             Content="{x:Static lang:Resources.TextAssistCorrect}"
-                             IsChecked="{Binding IsCorrectionMode}" />
-            </StackPanel>
-        </shad:Card>
+        <TabControl Grid.Row="1"
+                    HorizontalAlignment="Left"
+                    SelectedIndex="{Binding SelectedTabIndex}">
+            <TabItem Header="{x:Static lang:Resources.TextAssistTranslate}" />
+            <TabItem Header="{x:Static lang:Resources.TextAssistCorrect}" />
+        </TabControl>
 
         <views:TextAssistTranslationView Grid.Row="2"
                                          DataContext="{Binding Translation}"

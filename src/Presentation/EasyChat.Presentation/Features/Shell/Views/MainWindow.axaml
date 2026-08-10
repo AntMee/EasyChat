@@ -7,16 +7,45 @@
                  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
                  xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  IsTitleBarVisible="{Binding TitleBarVisible, Mode=TwoWay}"
-                 TransparencyLevelHint="None"
+                 RootCornerRadius="12"
+                 TransparencyLevelHint="Transparent"
+                 WindowDecorations="None"
                  Width="1180"
                  Height="740"
                  MinWidth="960"
                  MinHeight="620"
                  x:Class="EasyChat.Presentation.Features.Shell.Views.MainWindow"
                  x:DataType="vm:MainWindowViewModel"
-                 Icon="avares://EasyChat.Desktop/Assets/easychat-logo.ico"
+                 Icon="avares://EasyChat.Desktop/Assets/easychat-logo.png"
                  WindowStartupLocation="CenterScreen"
                  Title="EasyChat">
+
+    <shad:Window.Styles>
+        <!-- The flyout itself is transparent; the rounded card is the only surface. -->
+        <Style Selector="FlyoutPresenter.TitleBarMenuFlyout">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <Style Selector="Button.TitleBarMenuItem">
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.TitleBarMenuItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor30}" />
+        </Style>
+        <Style Selector="Button.TitleBarMenuItem:pressed">
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+        </Style>
+
+    </shad:Window.Styles>
 
     <Design.DataContext>
         <!-- ReSharper disable once Xaml.ConstructorWarning -->
@@ -26,8 +55,8 @@
     <shad:Window.LogoContent>
         <Border Width="28" Height="28"
                 CornerRadius="8"
-                Background="{DynamicResource PrimaryColor10}"
-                VerticalAlignment="Center">
+                VerticalAlignment="Center"
+                Margin="14,0,0,0">
             <avalonia:MaterialIcon Width="16"
                                    Height="16"
                                    HorizontalAlignment="Center"
@@ -58,20 +87,25 @@
                                        Width="18"
                                        Height="18" />
                 <Button.Flyout>
-                    <Flyout Placement="BottomEdgeAlignedRight" ShowMode="Standard">
+                    <Flyout Placement="BottomEdgeAlignedRight"
+                            ShowMode="Standard"
+                            FlyoutPresenterClasses="TitleBarMenuFlyout">
                         <shad:Card Width="268"
-                                   Padding="16"
-                                   HasShadow="False"
+                                   Padding="14"
+                                   CornerRadius="14"
+                                   HasShadow="True"
                                    Background="{DynamicResource DialogBackgroundColor}"
-                                   BorderBrush="{DynamicResource BorderColor}"
+                                   BorderBrush="{DynamicResource BorderColor30}"
                                    BorderThickness="1">
                             <StackPanel Spacing="4">
                                 <TextBlock Classes="Caption" FontWeight="Bold"
                                            Text="{x:Static lang:Resources.Settings}"
                                            Margin="8,2,8,6" />
 
-                                <Button
-                                        Command="{Binding ToggleFullScreenCommand}" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+                                <Button Classes="TitleBarMenuItem"
+                                        Command="{Binding ToggleFullScreenCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalContentAlignment="Center">
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <avalonia:MaterialIcon Kind="Fullscreen" Width="18" Height="18" />
                                         <TextBlock VerticalAlignment="Center"
@@ -86,14 +120,20 @@
                                 <ItemsControl ItemsSource="{Binding Themes}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type theme:ColorThemeOption}">
-                                            <Button
+                                            <Button Classes="TitleBarMenuItem"
                                                     Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ChangeThemeCommand}"
-                                                    CommandParameter="{Binding}" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+                                                    CommandParameter="{Binding}"
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalContentAlignment="Center">
                                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                                    <Ellipse Width="12" Height="12"
-                                                             Fill="{Binding PrimaryBrush}"
-                                                             Stroke="{DynamicResource BorderColor60}"
-                                                             StrokeThickness="1" />
+                                                    <Border Width="18" Height="18">
+                                                        <Ellipse Width="12" Height="12"
+                                                                 HorizontalAlignment="Center"
+                                                                 VerticalAlignment="Center"
+                                                                 Fill="{Binding PrimaryBrush}"
+                                                                 Stroke="{DynamicResource BorderColor60}"
+                                                                 StrokeThickness="1" />
+                                                    </Border>
                                                     <TextBlock Text="{Binding DisplayName}"
                                                                VerticalAlignment="Center"
                                                                Foreground="{DynamicResource ForegroundColor}" />
@@ -102,8 +142,10 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button
-                                        Command="{Binding CreateCustomThemeCommand}" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+                                <Button Classes="TitleBarMenuItem"
+                                        Command="{Binding CreateCustomThemeCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalContentAlignment="Center">
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <avalonia:MaterialIcon Kind="Colorize" Width="18" Height="18" />
                                         <TextBlock VerticalAlignment="Center"
@@ -127,66 +169,80 @@
     <Grid ColumnDefinitions="Auto,*">
         <shad:Sidebar x:Name="NavigationSidebar"
                       Grid.Column="0"
-                      Width="232"
-                      MinWidth="56"
-                      Padding="8"
-                      Background="{DynamicResource SidebarBackgroundColor}"
-                      BorderThickness="0,0,1,0"
-                      ItemIconContentSpacing="12"
-                      CurrentRoute="{Binding ActivePage.Route}">
+                      Width="224"
+                          MinWidth="60"
+                          Padding="10,12"
+                          Background="{DynamicResource SidebarBackgroundColor}"
+                          BorderBrush="{DynamicResource BorderColor30}"
+                          BorderThickness="0,0,1,0"
+                          ItemIconContentSpacing="10"
+                          CurrentRoute="{Binding ActivePage.Route}">
             <shad:Sidebar.Footer>
-                <ToggleButton Classes="Icon"
+                <ToggleButton x:Name="SidebarToggler"
+                              Theme="{DynamicResource SideTogglerTheme}"
+                              CornerRadius="{DynamicResource LgCornerRadius}"
+                              Height="32"
+                              Width="32"
+                              Padding="8"
                               HorizontalAlignment="Center"
                               IsChecked="{Binding #NavigationSidebar.Expanded, Mode=TwoWay}"
                               AutomationProperties.Name="Toggle navigation sidebar">
                     <Panel Width="18" Height="18">
                         <avalonia:MaterialIcon Kind="ChevronLeft"
                                                Width="18" Height="18"
+                                               Foreground="{DynamicResource ForegroundColor}"
                                                IsVisible="{Binding #NavigationSidebar.Expanded}" />
                         <avalonia:MaterialIcon Kind="ChevronRight"
                                                Width="18" Height="18"
+                                               Foreground="{DynamicResource ForegroundColor}"
                                                IsVisible="{Binding !#NavigationSidebar.Expanded}" />
                     </Panel>
                 </ToggleButton>
             </shad:Sidebar.Footer>
 
             <ItemsControl ItemsSource="{Binding Pages}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type navigation:NavigationPageViewModel}">
-                        <shad:SidebarItem Route="{Binding Route}"
-                                          Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectPageCommand}"
-                                          CommandParameter="{Binding}"
-                                          Foreground="{DynamicResource ForegroundColor}"
-                                          AutomationProperties.Name="{Binding DisplayName}">
-                            <shad:SidebarItem.Icon>
-                                <Panel Width="22" Height="22">
-                                    <Border Width="22" Height="22"
-                                            CornerRadius="6"
-                                            Background="{DynamicResource PrimaryColor10}" />
-                                    <avalonia:MaterialIcon Kind="{Binding Icon}"
-                                                           Width="15" Height="15"
-                                                           Foreground="{DynamicResource ForegroundColor}"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center" />
-                                    <Border Width="7" Height="7"
-                                            CornerRadius="4"
-                                            Background="{DynamicResource WarningColor}"
-                                            BorderBrush="{DynamicResource SidebarBackgroundColor}"
-                                            BorderThickness="1"
-                                            HorizontalAlignment="Right"
-                                            VerticalAlignment="Top"
-                                            IsVisible="{Binding ShowAttentionBadge}" />
-                                </Panel>
-                            </shad:SidebarItem.Icon>
-                            <TextBlock Text="{Binding DisplayName}"
-                                       Foreground="{DynamicResource ForegroundColor}"
-                                       TextTrimming="CharacterEllipsis" />
-                        </shad:SidebarItem>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type navigation:NavigationPageViewModel}">
+                            <shad:SidebarItem Route="{Binding Route}"
+                                              Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).SelectPageCommand}"
+                                              CommandParameter="{Binding}"
+                                              Foreground="{DynamicResource ForegroundColor}"
+                                              AutomationProperties.Name="{Binding DisplayName}">
+                                <shad:SidebarItem.Icon>
+                                    <Panel Width="20" Height="20">
+                                        <avalonia:MaterialIcon Kind="{Binding Icon}"
+                                                               Width="17" Height="17"
+                                                               Foreground="{DynamicResource ForegroundColor}"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                        <Border Width="7" Height="7"
+                                                CornerRadius="4"
+                                                Background="{DynamicResource WarningColor}"
+                                                BorderBrush="{DynamicResource SidebarBackgroundColor}"
+                                                BorderThickness="1"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                IsVisible="{Binding ShowAttentionBadge}" />
+                                    </Panel>
+                                </shad:SidebarItem.Icon>
+                                <TextBlock Text="{Binding DisplayName}"
+                                           Foreground="{DynamicResource ForegroundColor}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </shad:SidebarItem>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
             </ItemsControl>
         </shad:Sidebar>
 
-        <ContentControl Grid.Column="1" Content="{Binding ActivePage}" />
+        <ContentControl Grid.Column="1"
+                        Content="{Binding ActivePage}"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"
+                        ClipToBounds="True" />
     </Grid>
 </shad:Window>

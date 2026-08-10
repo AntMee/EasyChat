@@ -65,7 +65,9 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddSingleton<ISelectionInteractionSink, SelectionInteractionSink>();
         services.AddSingleton<ISettingsDialogCoordinator, SettingsDialogCoordinator>();
         services.AddSingleton<IImageTranslationRenderer, AvaloniaImageTranslationRenderer>();
-        services.AddSingleton<IShortcutAction, ScreenshotShortcutAction>();
+        services.AddSingleton<ScreenshotShortcutAction>();
+        services.AddSingleton<IShortcutAction>(provider => provider.GetRequiredService<ScreenshotShortcutAction>());
+        services.AddSingleton<IShortcutAction, ScreenshotOcrShortcutAction>();
         services.AddSingleton<IShortcutAction, InputTranslateShortcutAction>();
         services.AddSingleton<IShortcutAction>(provider => new QuickTextAssistShortcutAction(
             "QuickTranslate",

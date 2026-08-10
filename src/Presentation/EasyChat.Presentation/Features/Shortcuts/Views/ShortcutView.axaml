@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EasyChat.Presentation.Features.Shortcuts.Views.ShortcutView"
+<UserControl x:Class="EasyChat.Presentation.Features.Shortcuts.Views.ShortcutView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,7 +6,6 @@
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:controls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
-             xmlns:ec="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Shortcuts"
              xmlns:settingsState="clr-namespace:EasyChat.Presentation.Features.Settings.State"
              xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
@@ -15,71 +14,133 @@
              Focusable="True"
              Background="{DynamicResource GhostColor}">
 
-    <Grid
-          RowDefinitions="Auto,Auto,*" Margin="32,28,32,28" MaxWidth="1120" HorizontalAlignment="Stretch">
+    <UserControl.Styles>
+        <Style Selector="Button.ShortcutEntry">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="RenderTransform" Value="scale(1)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                    <TransformOperationsTransition Property="RenderTransform"
+                                                   Duration="0:0:0.12"
+                                                   Easing="CircularEaseOut" />
+                </Transitions>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      RecognizesAccessKey="True" />
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.ShortcutEntry:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+        </Style>
+        <Style Selector="Button.ShortcutEntry:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Opacity" Value="0.80" />
+            <Setter Property="RenderTransform" Value="scale(0.985)" />
+        </Style>
+        <Style Selector="Button.ShortcutDelete">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource DestructiveColor}" />
+        </Style>
+        <Style Selector="Button.ShortcutDelete:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource DestructiveColor}" />
+        </Style>
+        <Style Selector="Button.ShortcutDelete:pressed">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="shad|Card.ShortcutCard">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HasShadow" Value="True" />
+        </Style>
+        <Style Selector="shad|Card.ShortcutCard:pointerover">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="HasShadow" Value="True" />
+        </Style>
+    </UserControl.Styles>
 
-        <Grid RowDefinitions="Auto,Auto,Auto"
-              ColumnDefinitions="*,Auto"
-              Margin="0,0,0,8"
-              ColumnSpacing="16">
-            <TextBlock Grid.Row="0" Grid.Column="0"
-                       Text="{x:Static lang:Resources.Shortcut}"
-                       Classes="h2"
-                       VerticalAlignment="Center"
-                       TextWrapping="NoWrap"
-                       TextTrimming="CharacterEllipsis"
-                       AutomationProperties.Name="{x:Static lang:Resources.Shortcut}" />
+    <Grid RowDefinitions="Auto,*"
+          Margin="32,28,32,28"
+          MaxWidth="1120"
+          HorizontalAlignment="Stretch">
 
-            <ContentControl Grid.Row="0" Grid.Column="1"
-                            VerticalAlignment="Center"
-                            HorizontalAlignment="Right">
-                <Button Classes="Primary"
-                        Command="{Binding AddEntryCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <avalonia:MaterialIcon Kind="Plus" Width="16" Height="16" />
-                        <TextBlock Text="{Binding AddButtonLabel}" VerticalAlignment="Center" />
+        <shad:Card Grid.Row="0"
+                   Padding="22,20"
+                   HasShadow="False">
+            <Grid RowDefinitions="Auto,Auto">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="{x:Static lang:Resources.Shortcut}"
+                                       Classes="h2"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.Name="{x:Static lang:Resources.Shortcut}" />
+                            <shad:Badge Content="{Binding ActiveShortcutCount}"
+                                        IsVisible="{Binding HasActiveShortcuts}"
+                                        VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Static lang:Resources.HomeQuickShortcutHint}"
+                                   LineHeight="20"
+                                   Foreground="{DynamicResource MutedColor}"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="720" />
                     </StackPanel>
-                </Button>
-            </ContentControl>
 
-            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                       Text="{Binding ActiveCategoryTitle}"
-                       Classes="p"
-                       Foreground="{DynamicResource MutedColor}"
-                       TextWrapping="Wrap"
-                       Margin="0,6,0,0"
-                       MaxWidth="720"
-                       HorizontalAlignment="Left" />
-        </Grid>
+                    <Button Grid.Column="1"
+                            Classes="Primary"
+                            Command="{Binding AddEntryCommand}"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <avalonia:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                            <TextBlock Text="{Binding AddButtonLabel}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
 
-        <!-- Category switch (interaction, not TabControl chrome) -->
-        <Border HorizontalAlignment="Left" Margin="0,4,0,16" Grid.Row="1" Background="{DynamicResource GhostColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
-            <StackPanel Orientation="Horizontal" Spacing="2">
-                <RadioButton
-                             Content="{x:Static lang:Resources.BasicShortcuts}"
-                             IsChecked="{Binding IsBasicCategory}"
-                             GroupName="ShortcutCategory" />
-                <RadioButton
-                             Content="{x:Static lang:Resources.LanguageShortcuts}"
-                             IsChecked="{Binding IsLanguageCategory}"
-                             GroupName="ShortcutCategory" />
-            </StackPanel>
-        </Border>
+                <TabControl Grid.Row="1"
+                            HorizontalAlignment="Left"
+                            Margin="0,18,0,0"
+                            SelectedIndex="{Binding CategoryTabIndex}">
+                    <TabItem Header="{x:Static lang:Resources.BasicShortcuts}" />
+                    <TabItem Header="{x:Static lang:Resources.LanguageShortcuts}" />
+                </TabControl>
+            </Grid>
+        </shad:Card>
 
-        <Grid Grid.Row="2">
-            <!-- Empty state with primary CTA -->
-            <shad:Card
-                    IsVisible="{Binding HasNoActiveShortcuts}"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Top"
-                    HasShadow="True">
+        <Grid Grid.Row="1" Margin="0,16,0,0">
+            <shad:Card IsVisible="{Binding HasNoActiveShortcuts}"
+                       Padding="30,34"
+                       HasShadow="True"
+                       VerticalAlignment="Top">
                 <StackPanel Spacing="12" HorizontalAlignment="Center" MaxWidth="420">
-                    <avalonia:MaterialIcon Kind="Keyboard"
-                                           Width="36" Height="36"
-                                           Foreground="{DynamicResource MutedColor}"
-                                           HorizontalAlignment="Center" />
+                    <Border Width="58" Height="58" CornerRadius="16"
+                            Background="{DynamicResource GhostColor}">
+                        <avalonia:MaterialIcon Kind="Keyboard"
+                                               Width="28" Height="28"
+                                               Foreground="{DynamicResource PrimaryColor}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                    </Border>
                     <TextBlock Text="{x:Static lang:Resources.HomeHealthShortcutTodo}"
-                               Classes="Caption" Foreground="{DynamicResource MutedColor}" TextWrapping="Wrap" Opacity="0.95"
+                               Classes="Muted"
+                               TextWrapping="Wrap"
                                TextAlignment="Center"
                                HorizontalAlignment="Center" />
                     <Button Classes="Primary"
@@ -95,52 +156,73 @@
                 <ItemsControl ItemsSource="{Binding ActiveShortcuts}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="settingsState:ShortcutEntryState">
-                            <shad:Card
-                                    Margin="0,0,0,10"
-                                    HorizontalAlignment="Stretch"
-                                    HasShadow="True">
-                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-                                    <!-- Primary hit: click row body to edit. -->
-                                    <Button
+                            <shad:Card Classes="ShortcutCard"
+                                       Padding="16,14"
+                                       Margin="0,0,0,10"
+                                       HorizontalAlignment="Stretch">
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="14">
+                                    <Button Classes="ShortcutEntry"
                                             HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Left"
+                                            HorizontalContentAlignment="Stretch"
                                             Command="{Binding $parent[ItemsControl].((viewModels:ShortcutViewModel)DataContext).EditEntryCommand}"
                                             CommandParameter="{Binding}"
-                                            ToolTip.Tip="{x:Static lang:Resources.Edit}" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
-                                        <StackPanel Spacing="2">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="{Binding DisplayTitle}"
-                                                           Classes="Large"
-                                                           Foreground="{DynamicResource ForegroundColor}" />
-                                                <TextBlock Text="{Binding ActionDisplayText}"
-                                                           IsVisible="{Binding HasRemark}"
-                                                           Classes="Muted"
-                                                           VerticalAlignment="Center" />
+                                            ToolTip.Tip="{x:Static lang:Resources.Edit}"
+                                            VerticalContentAlignment="Center"
+                                            Cursor="Hand"
+                                            Padding="0">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                                            <Border Width="38" Height="38" CornerRadius="11"
+                                                    Background="{DynamicResource GhostColor}"
+                                                    VerticalAlignment="Top">
+                                                <avalonia:MaterialIcon Kind="Keyboard"
+                                                                       Width="19" Height="19"
+                                                                       Foreground="{DynamicResource PrimaryColor}"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Spacing="6">
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <TextBlock Text="{Binding DisplayTitle}"
+                                                               Classes="Large"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource ForegroundColor}"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding ActionDisplayText}"
+                                                               IsVisible="{Binding HasRemark}"
+                                                               Classes="Muted"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding ParameterDisplayText}"
+                                                           IsVisible="{Binding ParameterDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                                           TextWrapping="Wrap"
+                                                           MaxHeight="42"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource MutedColor}" />
                                             </StackPanel>
-                                            <TextBlock Text="{Binding ParameterDisplayText}"
-                                                       IsVisible="{Binding ParameterDisplayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                                       Classes="Caption"
-                                                       Foreground="{DynamicResource MutedColor}" />
-                                        </StackPanel>
+                                        </Grid>
                                     </Button>
 
                                     <controls:KeySequenceDisplay Grid.Column="1"
                                                                  KeyCombination="{Binding KeyCombination}"
                                                                  MinWidth="130"
+                                                                 HorizontalAlignment="Center"
                                                                  VerticalAlignment="Center" />
 
                                     <ToggleSwitch Grid.Column="2"
                                                   IsChecked="{Binding IsEnabled}"
                                                   VerticalAlignment="Center" />
 
-                                    <!-- Row body already opens edit; only keep destructive action here. -->
                                     <Button Grid.Column="3"
-                                            Classes="Destructive"
+                                            Classes="Icon ShortcutDelete"
                                             Command="{Binding $parent[ItemsControl].((viewModels:ShortcutViewModel)DataContext).RemoveEntryCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="{x:Static lang:Resources.Delete}"
+                                            MinWidth="34"
+                                            MinHeight="34"
                                             VerticalAlignment="Center">
-                                        <avalonia:MaterialIcon Kind="TrashCan" Width="16" Height="16" />
+                                        <avalonia:MaterialIcon Kind="TrashCan"
+                                                               Width="16" Height="16"
+                                                               Foreground="{DynamicResource DestructiveColor}" />
                                     </Button>
                                 </Grid>
                             </shad:Card>

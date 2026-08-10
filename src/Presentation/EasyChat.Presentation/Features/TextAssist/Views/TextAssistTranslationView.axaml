@@ -3,6 +3,7 @@
              xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
              xmlns:textAssist="using:EasyChat.Presentation.Features.TextAssist"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+             xmlns:dataConverters="clr-namespace:Avalonia.Data.Converters;assembly=Avalonia.Base"
              xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
              xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
@@ -10,7 +11,8 @@
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistTranslationView"
              x:Name="TranslationView"
-             x:DataType="vm:TextAssistTranslationViewModel">
+             x:DataType="vm:TextAssistTranslationViewModel"
+             ClipToBounds="True">
     <UserControl.Styles>
         <Style Selector="ComboBox /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
@@ -18,9 +20,27 @@
         <Style Selector="ComboBoxItem">
             <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
         </Style>
-
+        <Style Selector="Border.LanguageSwapSurface">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor30}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.LanguageSwap:pointerover Border.LanguageSwapSurface">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="Button.LanguageSwap:pressed Border.LanguageSwapSurface">
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
         <Style Selector="Grid.EditorContent">
-            <Setter Property="RowSpacing" Value="8" />
+            <Setter Property="RowSpacing" Value="5" />
         </Style>
         <Style Selector="UserControl.Compact Grid.EditorContent">
             <Setter Property="RowSpacing" Value="5" />
@@ -50,12 +70,8 @@
         <Style Selector="UserControl.Compact Grid.EditorFooter">
             <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
-        <!-- Page already has header Run; keep footer Run only in compact float. -->
-        <Style Selector="UserControl:not(.Compact) Button.EditorInlineRun">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
     </UserControl.Styles>
-    <Grid RowDefinitions="*,Auto,Auto,Auto" RowSpacing="0" MinHeight="0">
+    <Grid RowDefinitions="*,Auto,Auto" RowSpacing="0" MinHeight="0">
         <Grid Grid.Row="0" RowSpacing="0" MinHeight="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -63,90 +79,97 @@
                 <RowDefinition Height="{Binding ShowAnnotations, Converter={x:Static converters:BoolToGridLengthConverter.Instance}, ConverterParameter=160}" />
             </Grid.RowDefinitions>
         <Grid Grid.Row="0" Classes="EditorPair" ColumnDefinitions="*,Auto,*" ColumnSpacing="4" VerticalAlignment="Stretch">
-                <shad:Card HasShadow="True" ClipToBounds="True">
-                    <Grid Classes="EditorContent" RowDefinitions="Auto,Auto,*">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Classes="Small" Text="{x:Static lang:Resources.SourceLang}" />
-                            <Button Grid.Column="1" Classes="Icon" Command="{Binding SpeakSourceCommand}" ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Source}">
-                                <avalonia:MaterialIcon Kind="VolumeHigh" />
-                            </Button>
-                        </Grid>
-                        <sharedControls:LanguageSelector Grid.Row="1"
-                                                         Languages="{Binding Languages}"
-                                                         SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}" />
-                        <Grid Grid.Row="2">
-                            <TextBox x:Name="SourceTextBox" Classes="EditorTextBox" Text="{Binding InputText, Mode=TwoWay}"
-                                     AcceptsReturn="True" TextWrapping="Wrap"
-                                     shad:ControlAssist.Label="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
-                                     VerticalContentAlignment="Top" BorderThickness="0" Background="Transparent"
-                                     />
-                        </Grid>
+            <shad:Card Padding="4" HasShadow="True" ClipToBounds="True" VerticalAlignment="Stretch">
+                <Grid Classes="EditorContent" RowDefinitions="Auto,32,4,*" RowSpacing="0" MinHeight="0" ClipToBounds="True">
+                    <Grid Classes="LanguageHeader" ColumnDefinitions="*,Auto" ZIndex="100">
+                        <TextBlock Classes="Muted" Text="{x:Static lang:Resources.SourceLang}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="Icon" Command="{Binding SpeakSourceCommand}"
+                                ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Source}">
+                            <avalonia:MaterialIcon Kind="VolumeHigh" />
+                        </Button>
                     </Grid>
-                </shad:Card>
-
-                <Button Grid.Column="1" Classes="Icon"
-                        VerticalAlignment="Center" Command="{Binding SwapContentCommand}"
-                        ToolTip.Tip="{x:Static lang:Resources.ReverseTranslateLanguageTip}">
-                    <Border Width="28" Height="28" CornerRadius="999"
-                            Background="{DynamicResource PrimaryColor10}">
-                        <avalonia:MaterialIcon Kind="SwapHorizontal" Width="16" Height="16"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource PrimaryColor}" />
-                    </Border>
-                </Button>
-
-                <shad:Card Grid.Column="2" HasShadow="True" ClipToBounds="True">
-                    <Grid Classes="EditorContent" RowDefinitions="Auto,Auto,*">
-                        <Grid ColumnDefinitions="*,Auto,Auto">
-                            <TextBlock Classes="Small" Text="{x:Static lang:Resources.TargetLang}" />
-                            <Button Grid.Column="1" Classes="Icon" Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
-                                <avalonia:MaterialIcon Kind="ContentCopy" />
-                            </Button>
-                            <Button Grid.Column="2" Classes="Icon" Command="{Binding SpeakResultCommand}" ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Target}">
-                                <avalonia:MaterialIcon Kind="VolumeHigh" />
-                            </Button>
-                        </Grid>
-                        <sharedControls:LanguageSelector Grid.Row="1"
-                                                         Languages="{Binding Languages}"
-                                                         SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}" />
-                        <Grid Grid.Row="2">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <md:MarkdownRenderer x:Name="ResultMarkdownRenderer" Classes="TextAssistResultMarkdown"
-                                                     MarkdownBuilder="{Binding ResultMarkdown}"
-                                                     HorizontalAlignment="Stretch" VerticalAlignment="Top" />
-                            </ScrollViewer>
-                        </Grid>
+                    <sharedControls:LanguageSelector Grid.Row="1" Height="32" MinHeight="0" ZIndex="100"
+                                                     Languages="{Binding Languages}"
+                                                     SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}" />
+                    <Grid Grid.Row="3" Margin="0,0,4,0" MinHeight="0" ClipToBounds="True" VerticalAlignment="Stretch" ZIndex="0">
+                        <TextBox x:Name="SourceTextBox" Classes="EditorTextBox" Text="{Binding InputText, Mode=TwoWay}"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
+                                 VerticalAlignment="Stretch" VerticalContentAlignment="Top"
+                                 BorderThickness="0" Background="Transparent" Padding="0" />
                     </Grid>
-                </shad:Card>
+                </Grid>
+            </shad:Card>
+
+            <shad:Card Grid.Column="2" Padding="4" HasShadow="True" ClipToBounds="True" VerticalAlignment="Stretch">
+                <Grid Classes="EditorContent" RowDefinitions="Auto,32,4,*" RowSpacing="0" MinHeight="0" ClipToBounds="True">
+                    <Grid Classes="LanguageHeader" ColumnDefinitions="*,Auto,Auto" ZIndex="100">
+                        <TextBlock Classes="Muted" Text="{x:Static lang:Resources.TargetLang}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="Icon" Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
+                            <avalonia:MaterialIcon Kind="ContentCopy" />
+                        </Button>
+                        <Button Grid.Column="2" Classes="Icon" Command="{Binding SpeakResultCommand}"
+                                ToolTip.Tip="{x:Static lang:Resources.ReadAloudMode_Target}">
+                            <avalonia:MaterialIcon Kind="VolumeHigh" />
+                        </Button>
+                    </Grid>
+                    <sharedControls:LanguageSelector Grid.Row="1" Height="32" MinHeight="0" ZIndex="100"
+                                                     Languages="{Binding Languages}"
+                                                     SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}" />
+                    <Grid Grid.Row="3" Margin="0,0,4,0" MinHeight="0" ClipToBounds="True" VerticalAlignment="Stretch" ZIndex="0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <md:MarkdownRenderer x:Name="ResultMarkdownRenderer" Classes="TextAssistResultMarkdown"
+                                                 MarkdownBuilder="{Binding ResultMarkdown}"
+                                                 HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+                        </ScrollViewer>
+                        <TextBox IsReadOnly="True" Text="{Binding TranslationResult}"
+                                 PlaceholderText="{x:Static lang:Resources.TextAssistResultPlaceholder}"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 VerticalContentAlignment="Top" BorderThickness="0"
+                                 Background="Transparent" Padding="0"
+                                 IsVisible="{Binding TranslationResult, Converter={x:Static dataConverters:StringConverters.IsNullOrEmpty}}" />
+                    </Grid>
+                </Grid>
+            </shad:Card>
+
+            <Button Grid.Column="1" Classes="Icon LanguageSwap" VerticalAlignment="Top" Margin="0,42,0,0"
+                    Command="{Binding SwapContentCommand}"
+                    ToolTip.Tip="{x:Static lang:Resources.ReverseTranslateLanguageTip}">
+                <Border Classes="LanguageSwapSurface" Width="28" Height="28" CornerRadius="999">
+                    <avalonia:MaterialIcon Kind="SwapHorizontal" Width="16" Height="16"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PrimaryColor}" />
+                </Border>
+            </Button>
         </Grid>
 
-            <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
-                          Margin="0,6,0,6"
+            <GridSplitter Grid.Row="1" Height="1" HorizontalAlignment="Stretch"
+                          Margin="0,8,0,8"
                           Background="{DynamicResource BorderColor}"
-                          Opacity="0.85" Cursor="SizeNorthSouth"
+                          Opacity="0.65" Cursor="SizeNorthSouth"
                           ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                           IsVisible="{Binding ShowAnnotations}" />
 
-            <shad:Card Grid.Row="2" MinHeight="80" HasShadow="True" ClipToBounds="True"
+            <shad:Card Grid.Row="2" Padding="16" MinHeight="80" HasShadow="True" ClipToBounds="True"
                             IsVisible="{Binding ShowAnnotations}">
                 <Grid RowDefinitions="Auto,*" RowSpacing="10">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <avalonia:MaterialIcon Kind="BookOpenVariant" Width="18" Height="18"
                                                Foreground="{DynamicResource PrimaryColor}" />
                         <TextBlock Text="{x:Static lang:Resources.TextAssistAnnotations}"
-                                   Classes="Small" VerticalAlignment="Center" />
+                                   FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{Binding Annotations}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="textAssist:TextAssistAnnotationViewModel">
-                                                <Border Margin="0,0,0,8"
-                                                        Background="{DynamicResource GhostColor}"
+                                                <Border Margin="0,0,0,8" Padding="10" CornerRadius="6"
+                                                        Background="{DynamicResource CardBackgroundColor}"
                                                         BorderBrush="{DynamicResource BorderColor}"
-                                                        BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
+                                                        BorderThickness="1">
                                                     <StackPanel Spacing="5">
                                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                                            <Button Classes="Icon"
+                                                            <Button Classes="Basic" Padding="0"
                                                                     Command="{Binding #TranslationView.((vm:TextAssistTranslationViewModel)DataContext).LookupAnnotationCommand}"
                                                                     CommandParameter="{Binding Term}"
                                                                     ToolTip.Tip="{x:Static lang:Resources.ResultWindowMode_Dictionary}">
@@ -154,34 +177,30 @@
                                                                            Foreground="{DynamicResource PrimaryColor}"
                                                                            TextDecorations="Underline" />
                                                             </Button>
-                                                            <Border Padding="6,2" CornerRadius="999"
-                                                                    Background="{DynamicResource PrimaryColor10}">
-                                                                <TextBlock Text="{Binding DisplayCategory}" Classes="Caption"
-                                                                           Foreground="{DynamicResource MutedColor}" />
+                                                            <Border Padding="6,2" CornerRadius="4"
+                                                                    Background="{DynamicResource BorderColor}">
+                                                                <TextBlock Text="{Binding DisplayCategory}" FontSize="11" />
                                                             </Border>
                                                         </StackPanel>
-                                                        <TextBlock Text="{Binding Meaning}" TextWrapping="Wrap"
-                                                                   Foreground="{DynamicResource ForegroundColor}" />
-                                                        <TextBlock Text="{Binding Note}" TextWrapping="Wrap"
-                                                                   Foreground="{DynamicResource MutedColor}"
+                                                        <TextBlock Text="{Binding Meaning}" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding Note}" TextWrapping="Wrap" Opacity="0.75"
                                                                    IsVisible="{Binding HasNote}" />
                                                         <StackPanel Orientation="Horizontal" Spacing="6"
                                                                     IsVisible="{Binding HasRelatedTerms}">
                                                             <TextBlock Text="{x:Static lang:Resources.TextAssistRelatedTerms}"
-                                                                       Classes="Muted"
-                                                                       VerticalAlignment="Center" />
+                                                                       FontSize="12" Opacity="0.65" VerticalAlignment="Center" />
                                                             <ItemsControl ItemsSource="{Binding RelatedTerms}">
                                                                 <ItemsControl.ItemsPanel>
                                                                     <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
                                                                 </ItemsControl.ItemsPanel>
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate x:DataType="x:String">
-                                                                        <Button Classes="Icon"
+                                                                        <Button Classes="Basic" Padding="3,0"
                                                                                 Command="{Binding #TranslationView.((vm:TextAssistTranslationViewModel)DataContext).LookupAnnotationCommand}"
                                                                                 CommandParameter="{Binding}">
                                                                             <TextBlock Text="{Binding}"
                                                                                        Foreground="{DynamicResource PrimaryColor}"
-                                                                                       TextDecorations="Underline" Classes="Caption" />
+                                                                                       TextDecorations="Underline" FontSize="12" />
                                                                         </Button>
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>
@@ -197,22 +216,7 @@
             </shad:Card>
         </Grid>
 
-            <!-- Always-visible config toggle (no hover-to-discover) -->
-            <Border Grid.Row="1" Padding="0,6">
-                <Button Classes="Ghost"
-                        HorizontalAlignment="Left"
-                        Command="{Binding ToggleConfigurationCommand}"
-                        ToolTip.Tip="{Binding ConfigurationToggleText}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <avalonia:MaterialIcon Kind="{Binding ConfigurationToggleIcon}" Width="16" Height="16" />
-                        <TextBlock Text="{Binding ConfigurationToggleText}"
-                                   VerticalAlignment="Center"
-                                   Classes="Caption" />
-                    </StackPanel>
-                </Button>
-            </Border>
-
-            <shad:Card Grid.Row="2" HasShadow="True" ClipToBounds="True"
+            <shad:Card Grid.Row="1" Padding="10" HasShadow="True" ClipToBounds="True"
                             IsVisible="{Binding IsConfigurationExpanded}">
                 <StackPanel Spacing="10">
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
@@ -263,18 +267,27 @@
                 </StackPanel>
             </shad:Card>
 
-            <Grid Grid.Row="3" Classes="EditorFooter" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-                <Button Command="{Binding RunCommand}" Classes="Primary EditorInlineRun">
+            <Grid Grid.Row="2" Classes="EditorFooter" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Text="{Binding ErrorMessage}" Foreground="{DynamicResource DestructiveColor}"
+                           TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Command="{Binding RunCommand}" Classes="Primary EditorInlineRun"
+                        HorizontalAlignment="Right">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <avalonia:MaterialIcon Kind="Translate" IsVisible="{Binding !IsBusy}" />
                         <shad:Loading Width="18" Height="18" IsVisible="{Binding IsBusy}" />
                         <TextBlock Text="{x:Static lang:Resources.TextAssistTranslate}" />
                     </StackPanel>
                 </Button>
-                <Button Grid.Column="1" Command="{Binding CancelCommand}" Classes="Ghost" IsVisible="{Binding IsBusy}">
+                <Button Grid.Column="2" Command="{Binding CancelCommand}" Classes="Ghost" IsVisible="{Binding IsBusy}">
                     <StackPanel Orientation="Horizontal" Spacing="6"><avalonia:MaterialIcon Kind="Stop" /><TextBlock Text="{x:Static lang:Resources.Cancel}" /></StackPanel>
                 </Button>
-                <TextBlock Grid.Column="2" Text="{Binding ErrorMessage}" Foreground="{DynamicResource DestructiveColor}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="3" Classes="Ghost" Command="{Binding ToggleConfigurationCommand}"
+                        ToolTip.Tip="{Binding ConfigurationToggleText}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <avalonia:MaterialIcon Kind="{Binding ConfigurationToggleIcon}" Width="16" Height="16" />
+                        <TextBlock Text="{Binding ConfigurationToggleText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </Grid>
     </Grid>
 </UserControl>

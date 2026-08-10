@@ -14,6 +14,7 @@ public sealed class PromptViewModel : NavigationPageViewModel
 {
     private readonly SettingsSession _settings;
     private readonly DialogManager _dialogs;
+    private string _searchText = string.Empty;
 
     public PromptViewModel(SettingsSession settings, DialogManager dialogs)
         : base(Resources.Prompts, MaterialIconKind.TextBox, 3)
@@ -24,20 +25,77 @@ public sealed class PromptViewModel : NavigationPageViewModel
         EditPromptCommand = ReactiveCommand.Create<PromptEntryState>(ShowEditor);
         RemovePromptCommand = ReactiveCommand.Create<PromptEntryState>(RemovePrompt);
         SetDefaultCommand = ReactiveCommand.Create<PromptEntryState>(SetDefault);
-        Prompts.CollectionChanged += (_, _) =>
-        {
-            this.RaisePropertyChanged(nameof(HasPrompts));
-            this.RaisePropertyChanged(nameof(HasNoPrompts));
-        };
+        Prompts.CollectionChanged += OnPromptsChanged;
+        foreach (var prompt in Prompts)
+            prompt.PropertyChanged += OnPromptPropertyChanged;
+        RefreshFilteredPrompts();
     }
 
     public ObservableCollection<PromptEntryState> Prompts => _settings.Prompts.Entries;
+    public ObservableCollection<PromptEntryState> FilteredPrompts { get; } = [];
     public bool HasPrompts => Prompts.Count > 0;
     public bool HasNoPrompts => !HasPrompts;
+    public bool HasFilteredPrompts => FilteredPrompts.Count > 0;
+    public bool HasNoSearchResults => HasPrompts && !HasFilteredPrompts;
+    public int FilteredPromptCount => FilteredPrompts.Count;
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (string.Equals(_searchText, value, StringComparison.Ordinal))
+                return;
+            this.RaiseAndSetIfChanged(ref _searchText, value);
+            RefreshFilteredPrompts();
+        }
+    }
+
     public ReactiveCommand<Unit, Unit> AddPromptCommand { get; }
     public ReactiveCommand<PromptEntryState, Unit> EditPromptCommand { get; }
     public ReactiveCommand<PromptEntryState, Unit> RemovePromptCommand { get; }
     public ReactiveCommand<PromptEntryState, Unit> SetDefaultCommand { get; }
+
+    private void OnPromptsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (PromptEntryState prompt in e.OldItems)
+                prompt.PropertyChanged -= OnPromptPropertyChanged;
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (PromptEntryState prompt in e.NewItems)
+                prompt.PropertyChanged += OnPromptPropertyChanged;
+        }
+
+        this.RaisePropertyChanged(nameof(HasPrompts));
+        this.RaisePropertyChanged(nameof(HasNoPrompts));
+        RefreshFilteredPrompts();
+    }
+
+    private void OnPromptPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(PromptEntryState.Name) or nameof(PromptEntryState.Role))
+            RefreshFilteredPrompts();
+    }
+
+    private void RefreshFilteredPrompts()
+    {
+        var query = SearchText.Trim();
+        var matches = string.IsNullOrEmpty(query)
+            ? Prompts
+            : Prompts.Where(prompt => prompt.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+                                   || prompt.Role.Contains(query, StringComparison.OrdinalIgnoreCase));
+
+        FilteredPrompts.Clear();
+        foreach (var prompt in matches)
+            FilteredPrompts.Add(prompt);
+
+        this.RaisePropertyChanged(nameof(HasFilteredPrompts));
+        this.RaisePropertyChanged(nameof(HasNoSearchResults));
+        this.RaisePropertyChanged(nameof(FilteredPromptCount));
+    }
 
     private void ShowEditor(PromptEntryState? entry)
     {

@@ -231,6 +231,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public List<LanguageSettings> NativeLanguages { get; }
     public List<ClosingBehavior> ClosingBehaviors { get; } = Enum.GetValues<ClosingBehavior>().ToList();
     public List<string> ScreenshotModes { get; } = ["Precise", "Quick"];
+    public List<OcrRecognitionMode> OcrRecognitionModes { get; } = Enum.GetValues<OcrRecognitionMode>().ToList();
     public List<string> MachineTransProviders { get; } = ["Baidu", "Tencent", "Google", "DeepL"];
     public List<string> TranslationEngineTypes { get; } = [Resources.AIEngine, Resources.MachineTranslation];
     public List<SelectionTriggerModeOption> SelectionTriggerModes { get; } =
@@ -445,6 +446,20 @@ public sealed class SettingViewModel : NavigationPageViewModel
             this.RaisePropertyChanged();
         }
     }
+
+    public OcrRecognitionMode SelectedOcrRecognitionMode
+    {
+        get => ScreenshotConf.OcrMode;
+        set
+        {
+            ScreenshotConf.OcrMode = value;
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(IsIdleReleaseOcrMode));
+        }
+    }
+
+    public bool IsIdleReleaseOcrMode =>
+        SelectedOcrRecognitionMode == OcrRecognitionMode.IdleRelease;
 
     public SelectionTriggerMode SelectedSelectionTriggerMode
     {

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.SelectionTranslationSettingsView"
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.SelectionTranslationSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -9,6 +9,28 @@
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.SelectionActionCard">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor60}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="MinHeight" Value="52" />
+        </Style>
+        <Style Selector="ToggleButton.SelectionActionCard:pointerover">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="ToggleButton.SelectionActionCard:checked">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="ToggleButton.SelectionActionCard:pressed">
+            <Setter Property="Opacity" Value="0.86" />
+        </Style>
+    </UserControl.Styles>
     <!-- No nested surface — parent SettingView already provides the detail card. -->
     <StackPanel
                 VerticalAlignment="Top"
@@ -23,35 +45,32 @@
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ToggleSwitch IsChecked="{Binding SelectionTranslationConf.Enabled}"
                                   OnContent="" OffContent=""
-                                  HorizontalAlignment="Right" />
+                                  HorizontalAlignment="Right"
+                                  Margin="0,0,8,0" />
                 </ContentControl>
             </Grid>
 
             <!-- Capability tiles — same icons as the floating selection toolbar -->
             <StackPanel Margin="8,4,8,8"
                         Spacing="8"
-                        IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='selection translation enable 划词 启用 translate correct polish summary 翻译 纠正 润色 总结'}">
+                        IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='selection translation enable 划词 启用 translate correct polish summary explain 翻译 纠正 润色 总结 解释'}">
                 <TextBlock Text="{x:Static lang:Resources.EnableSelectionTranslation}"
                            Classes="Caption"
                            FontWeight="Bold"
                            Margin="4,0,0,0" />
-                <UniformGrid Columns="2" Rows="2">
+                <UniformGrid Columns="2" Rows="3">
                     <ToggleButton
+                                  Classes="SelectionActionCard"
                                   IsChecked="{Binding SelectionTranslationConf.TranslationEnabled}"
-                                  Margin="4"
-                                  MinHeight="52"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
-                                  Background="{DynamicResource CardBackgroundColor}"
-                                  BorderBrush="{DynamicResource BorderColor}"
-                                  BorderThickness="1"
-                                  CornerRadius="{DynamicResource LgCornerRadius}">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                             <Border Width="32" Height="32" CornerRadius="9"
                                     Background="{DynamicResource PrimaryColor10}">
                                 <avalonia:MaterialIcon Kind="Translate" Width="16" Height="16"
@@ -62,7 +81,9 @@
                             <TextBlock Grid.Column="1"
                                        Text="{x:Static lang:Resources.TextAssistTranslate}"
                                        Classes="Small"
-                                       VerticalAlignment="Center" />
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
                             <avalonia:MaterialIcon Grid.Column="2"
                                                    Kind="CheckCircle"
                                                    Width="16" Height="16"
@@ -73,16 +94,12 @@
                     </ToggleButton>
 
                     <ToggleButton
+                                  Classes="SelectionActionCard"
                                   IsChecked="{Binding SelectionTranslationConf.CorrectionEnabled}"
-                                  Margin="4"
-                                  MinHeight="52"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
-                                  Background="{DynamicResource CardBackgroundColor}"
-                                  BorderBrush="{DynamicResource BorderColor}"
-                                  BorderThickness="1"
-                                  CornerRadius="{DynamicResource LgCornerRadius}">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                             <Border Width="32" Height="32" CornerRadius="9"
                                     Background="{DynamicResource GhostColor}">
                                 <avalonia:MaterialIcon Kind="Spellcheck" Width="16" Height="16"
@@ -93,7 +110,9 @@
                             <TextBlock Grid.Column="1"
                                        Text="{x:Static lang:Resources.TextAssistCorrect}"
                                        Classes="Small"
-                                       VerticalAlignment="Center" />
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
                             <avalonia:MaterialIcon Grid.Column="2"
                                                    Kind="CheckCircle"
                                                    Width="16" Height="16"
@@ -104,16 +123,12 @@
                     </ToggleButton>
 
                     <ToggleButton
+                                  Classes="SelectionActionCard"
                                   IsChecked="{Binding SelectionTranslationConf.PolishEnabled}"
-                                  Margin="4"
-                                  MinHeight="52"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
-                                  Background="{DynamicResource CardBackgroundColor}"
-                                  BorderBrush="{DynamicResource BorderColor}"
-                                  BorderThickness="1"
-                                  CornerRadius="{DynamicResource LgCornerRadius}">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                             <Border Width="32" Height="32" CornerRadius="9"
                                     Background="{DynamicResource GhostColor}">
                                 <avalonia:MaterialIcon Kind="FormatPaint" Width="16" Height="16"
@@ -124,7 +139,9 @@
                             <TextBlock Grid.Column="1"
                                        Text="{x:Static lang:Resources.TextAssistPolish}"
                                        Classes="Small"
-                                       VerticalAlignment="Center" />
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
                             <avalonia:MaterialIcon Grid.Column="2"
                                                    Kind="CheckCircle"
                                                    Width="16" Height="16"
@@ -135,16 +152,12 @@
                     </ToggleButton>
 
                     <ToggleButton
+                                  Classes="SelectionActionCard"
                                   IsChecked="{Binding SelectionTranslationConf.SummaryEnabled}"
-                                  Margin="4"
-                                  MinHeight="52"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
-                                  Background="{DynamicResource CardBackgroundColor}"
-                                  BorderBrush="{DynamicResource BorderColor}"
-                                  BorderThickness="1"
-                                  CornerRadius="{DynamicResource LgCornerRadius}">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                             <Border Width="32" Height="32" CornerRadius="9"
                                     Background="{DynamicResource GhostColor}">
                                 <avalonia:MaterialIcon Kind="TextShort" Width="16" Height="16"
@@ -155,13 +168,43 @@
                             <TextBlock Grid.Column="1"
                                        Text="{x:Static lang:Resources.TextAssistSummary}"
                                        Classes="Small"
-                                       VerticalAlignment="Center" />
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
                             <avalonia:MaterialIcon Grid.Column="2"
                                                    Kind="CheckCircle"
                                                    Width="16" Height="16"
                                                    VerticalAlignment="Center"
                                                    Foreground="{DynamicResource PrimaryColor}"
                                                    IsVisible="{Binding SelectionTranslationConf.SummaryEnabled}" />
+                        </Grid>
+                    </ToggleButton>
+                    <ToggleButton
+                                  Classes="SelectionActionCard"
+                                  IsChecked="{Binding SelectionTranslationConf.ExplanationEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Border Width="32" Height="32" CornerRadius="9"
+                                    Background="{DynamicResource GhostColor}">
+                                <avalonia:MaterialIcon Kind="LightbulbOnOutline" Width="16" Height="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedColor}" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Static lang:Resources.TextAssistExplain}"
+                                       Classes="Small"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
+                            <avalonia:MaterialIcon Grid.Column="2"
+                                                   Kind="CheckCircle"
+                                                   Width="16" Height="16"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource PrimaryColor}"
+                                                   IsVisible="{Binding SelectionTranslationConf.ExplanationEnabled}" />
                         </Grid>
                     </ToggleButton>
                 </UniformGrid>
@@ -177,7 +220,7 @@
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ComboBox ItemsSource="{Binding SelectionTriggerModes}"
@@ -218,7 +261,7 @@
                     </Border>
                 </StackPanel>
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ComboBox SelectedItem="{Binding SelectedSelectionTranslationEngine}"
@@ -248,7 +291,7 @@
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ComboBox ItemsSource="{Binding ConfiguredModels}"
@@ -281,7 +324,7 @@
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ComboBox SelectedItem="{Binding SelectedMachineTranslationProvider}"
@@ -318,7 +361,7 @@
                            VerticalAlignment="Center"
                            TextWrapping="Wrap" />
                 <ContentControl Grid.Column="1"
-                                MinWidth="280"
+                                MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
                     <ComboBox ItemsSource="{Binding PromptEntries}"

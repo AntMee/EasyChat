@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.GeneralSettingsView"
+<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.GeneralSettingsView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -12,6 +12,25 @@
              xmlns:ec="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
+    <UserControl.Styles>
+        <Style Selector="ProgressBar.ModelProgress">
+            <Setter Property="Height" Value="7" />
+            <Setter Property="MinHeight" Value="7" />
+            <Setter Property="MaxHeight" Value="7" />
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="ProgressBar.ModelProgress /template/ Border">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="ProgressBar.ModelProgress /template/ Rectangle">
+            <Setter Property="RadiusX" Value="4" />
+            <Setter Property="RadiusY" Value="4" />
+        </Style>
+    </UserControl.Styles>
     <StackPanel
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch"
@@ -26,7 +45,7 @@
                        VerticalAlignment="Center"
                        MinWidth="180" />
             <ContentControl Grid.Column="1"
-                            MinWidth="280"
+                            MinWidth="180"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Stretch">
                 <ec:LanguageSelector Languages="{Binding DisplayLanguages}"
@@ -44,7 +63,7 @@
                        VerticalAlignment="Center"
                        MinWidth="180" />
             <ContentControl Grid.Column="1"
-                            MinWidth="280"
+                            MinWidth="180"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Stretch">
                 <ec:LanguageSelector Languages="{Binding NativeLanguages}"
@@ -62,7 +81,7 @@
                        VerticalAlignment="Center"
                        MinWidth="180" />
             <ContentControl Grid.Column="1"
-                            MinWidth="280"
+                            MinWidth="180"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Stretch">
                 <ComboBox ItemsSource="{Binding ClosingBehaviors}"
@@ -95,7 +114,7 @@
                        VerticalAlignment="Center"
                        MinWidth="180" />
             <ContentControl Grid.Column="1"
-                            MinWidth="280"
+                            MinWidth="180"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Stretch">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -127,17 +146,19 @@
                        VerticalAlignment="Center"
                        MinWidth="180" />
             <ContentControl Grid.Column="1"
-                            MinWidth="280"
+                            MinWidth="180"
                             VerticalAlignment="Center"
                             HorizontalAlignment="Stretch">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
                     <TextBox Text="{Binding ProxyConf.ProxyUrl}"
-                             shad:ControlAssist.Label="{x:Static lang:Resources.ProxyAddrQuestion}"
+                             PlaceholderText="{x:Static lang:Resources.ProxyAddrQuestion}"
                              HorizontalAlignment="Stretch" />
-                    <CheckBox Grid.Column="1"
-                              Content="{x:Static lang:Resources.OcrUseProxy}"
+                    <CheckBox Grid.Row="1"
                               IsChecked="{Binding OcrConf.UseProxy}"
-                              VerticalAlignment="Center" />
+                              HorizontalAlignment="Left">
+                        <TextBlock Text="{x:Static lang:Resources.OcrUseProxy}"
+                                   TextWrapping="Wrap" />
+                    </CheckBox>
                 </Grid>
             </ContentControl>
         </Grid>
@@ -148,7 +169,8 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="viewModels:OcrModelDownloadItemViewModel">
                     <shad:Card HasShadow="False"
-                            Margin="0,0,0,8"
+                            Padding="10,8"
+                            Margin="0,0,0,6"
                             HorizontalAlignment="Stretch">
                         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                             <StackPanel Spacing="4">
@@ -216,6 +238,7 @@
                                 </Button>
                             </StackPanel>
                             <ProgressBar Grid.Row="1" Grid.ColumnSpan="2"
+                                         Classes="ModelProgress"
                                          Minimum="0" Maximum="1"
                                          Value="{Binding Progress}"
                                          Height="6"
@@ -285,9 +308,9 @@
             </Button>
         </StackPanel>
 
-        <ProgressBar Height="4"
+        <ProgressBar Classes="ModelProgress"
                      IsIndeterminate="True"
-                     Margin="8,0"
+                     Margin="8,2,8,0"
                      IsVisible="{Binding IsImportingAsrModel}" />
 
         <TextBlock Classes="Muted"
@@ -303,9 +326,10 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="speech:SpeechRecognitionModel">
                     <shad:Card HasShadow="False"
-                            Margin="0,0,0,8"
+                            Padding="8,6"
+                            Margin="0,0,0,4"
                             HorizontalAlignment="Stretch">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" MinHeight="36">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" MinHeight="28">
                             <Border Width="24" Height="16" CornerRadius="2" ClipToBounds="True"
                                     VerticalAlignment="Center">
                                 <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"

@@ -34,21 +34,14 @@
                             <TextBlock Text="{Binding WindowTitle}" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundColor}" />
                         </StackPanel>
                         <!-- Mode switch: translate <-> correct without closing the float -->
-                        <shad:Card Grid.Column="1"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                PointerPressed="OnHeaderChromePointerPressed" HasShadow="False" Padding="16">
-                            <StackPanel Orientation="Horizontal" Spacing="2">
-                                <RadioButton
-                                             GroupName="TextAssistFloatMode"
-                                             Content="{x:Static lang:Resources.TextAssistTranslate}"
-                                             IsChecked="{Binding IsTranslationMode}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
-                                <RadioButton
-                                             GroupName="TextAssistFloatMode"
-                                             Content="{x:Static lang:Resources.TextAssistCorrect}"
-                                             IsChecked="{Binding IsCorrectionMode}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
-                            </StackPanel>
-                        </shad:Card>
+                        <TabControl Grid.Column="1"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    PointerPressed="OnHeaderChromePointerPressed"
+                                    SelectedIndex="{Binding SelectedTabIndex}">
+                            <TabItem Header="{x:Static lang:Resources.TextAssistTranslate}" />
+                            <TabItem Header="{x:Static lang:Resources.TextAssistCorrect}" />
+                        </TabControl>
                         <shad:Loading Grid.Column="2" Width="14" Height="14"
                                       IsVisible="{Binding IsCapturingInput}"
                                       VerticalAlignment="Center" />

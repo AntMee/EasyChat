@@ -439,6 +439,12 @@
     <data name="PromptParametersHint" xml:space="preserve">
         <value>Describe the assistant's role, expertise, style, and domain. EasyChat adds the language, task, and output rules automatically.</value>
     </data>
+    <data name="PromptSearchPlaceholder" xml:space="preserve">
+        <value>Search prompts by name or content...</value>
+    </data>
+    <data name="PromptNoSearchResults" xml:space="preserve">
+        <value>No prompts match your search.</value>
+    </data>
     <data name="ResultAutoCloseDelay" xml:space="preserve">
         <value>Auto Close Delay</value>
     </data>
@@ -905,6 +911,7 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>No AI model is configured. Add an AI model in Settings.</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>No voice is available for this language.</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>Enter text...</value></data>
+  <data name="TextAssistResultPlaceholder" xml:space="preserve"><value>Waiting for translation...</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>Follow global settings</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>Run</value></data>
   <data name="TextAssistIssues" xml:space="preserve"><value>Issues and suggestions</value></data>
