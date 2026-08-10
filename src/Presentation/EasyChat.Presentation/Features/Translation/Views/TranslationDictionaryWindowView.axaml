@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         xmlns:lang="using:EasyChat.Presentation.Lang"
         xmlns:vm="using:EasyChat.Presentation.Features.Translation"
         xmlns:controls="clr-namespace:EasyChat.Presentation.Features.Translation.Controls"
@@ -126,6 +127,55 @@
                     </KeyFrame>
                 </Animation>
             </Style.Animations>
+        </Style>
+
+        <!-- Keep Markdown readable in both light and dark themes without oversized headings. -->
+        <Style Selector="md|MarkdownRenderer.DictionaryTranslationMarkdown">
+            <Style Selector="^ md|MarkdownTextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+            </Style>
+            <Style Selector="^ Border.Heading1Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="FontSize" Value="16" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading2Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="FontSize" Value="16" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading3Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="FontSize" Value="16" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading4Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="FontSize" Value="16" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading5Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="FontSize" Value="16" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
+            </Style>
+            <Style Selector="^ Border.Heading6Block">
+                <Style Selector="^ md|MarkdownTextBlock">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="FontSize" Value="16" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
+            </Style>
         </Style>
     </Window.Styles>
 
@@ -392,10 +442,10 @@
                                             <Border Height="16" Width="320" HorizontalAlignment="Left"
                                                     Background="{DynamicResource GhostColor}" CornerRadius="4" />
                                         </StackPanel>
-                                        <TextBlock x:Name="ResultTextBlock"
-                                                   Text="{Binding TranslationResult}"
-                                                   TextWrapping="Wrap" LineHeight="24"
-                                                   Foreground="{DynamicResource ForegroundColor}"/>
+                                        <md:MarkdownRenderer Classes="DictionaryTranslationMarkdown"
+                                                             MarkdownBuilder="{Binding TranslationMarkdown}"
+                                                             HorizontalAlignment="Stretch"
+                                                             VerticalAlignment="Top" />
                                     </Panel>
                                 </Grid>
 

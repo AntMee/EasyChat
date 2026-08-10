@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EasyChat.Desktop.App"
              xmlns:local="using:EasyChat.Desktop"
+             xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
              xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              RequestedThemeVariant="Default">
@@ -23,9 +24,19 @@
         <avalonia:MaterialIconStyles />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
         <StyleInclude Source="avares://LiveMarkdown.Avalonia/Styles.axaml" />
+        <Style Selector="md|MarkdownRenderer ScrollViewer.Table Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+        </Style>
         <!-- App-wide typeface: keeps CJK rendering across all controls. -->
         <Style Selector="TextElement">
             <Setter Property="TextElement.FontFamily" Value="Inter, Microsoft YaHei UI, Microsoft YaHei, PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Noto Sans SC, Segoe UI, sans-serif" />
+        </Style>
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}" />
+            <Setter Property="Padding" Value="8,4" />
         </Style>
     </Application.Styles>
 </Application>

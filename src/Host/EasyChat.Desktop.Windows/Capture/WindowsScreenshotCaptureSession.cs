@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO.Pipes;
 using System.Runtime.Versioning;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using EasyChat.Contracts.Capture;
@@ -42,10 +43,11 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var theme = await ReadThemeAsync(cancellationToken).ConfigureAwait(false);
+        var appearance = await ReadAppearanceAsync(cancellationToken).ConfigureAwait(false);
         var request = new ScreenshotWorkerRequest(
             precise,
-            theme,
+            appearance.Theme,
+            appearance.PrimaryColor,
             CultureInfo.CurrentUICulture.Name,
             defaultAction,
             toolbarMode);
@@ -169,22 +171,37 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
         }
     }
 
-    private static async Task<string> ReadThemeAsync(CancellationToken cancellationToken)
+    private static async Task<ScreenshotAppearance> ReadAppearanceAsync(CancellationToken cancellationToken)
     {
         if (Dispatcher.UIThread.CheckAccess())
-            return ReadTheme();
+            return ReadAppearance();
         return await Dispatcher.UIThread.InvokeAsync(
-            ReadTheme,
+            ReadAppearance,
             DispatcherPriority.Normal,
             cancellationToken);
     }
 
-    private static string ReadTheme() =>
-        Avalonia.Application.Current?.ActualThemeVariant == ThemeVariant.Dark
+    private static ScreenshotAppearance ReadAppearance()
+    {
+        var application = Avalonia.Application.Current;
+        var theme = application?.ActualThemeVariant == ThemeVariant.Dark
             ? "Dark"
-            : Avalonia.Application.Current?.ActualThemeVariant == ThemeVariant.Light
+            : application?.ActualThemeVariant == ThemeVariant.Light
                 ? "Light"
                 : "Default";
+        var primaryColor = application?.TryGetResource(
+                "PrimaryColor",
+                application.ActualThemeVariant,
+                out var resource) == true
+            ? resource switch
+            {
+                Color color => color.ToString(),
+                ISolidColorBrush brush => brush.Color.ToString(),
+                _ => string.Empty
+            }
+            : string.Empty;
+        return new ScreenshotAppearance(theme, primaryColor);
+    }
 
     private static Process StartWorker(string pipeName)
     {
@@ -247,4 +264,6 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
             // Worker cleanup is best effort.
         }
     }
+
+    private readonly record struct ScreenshotAppearance(string Theme, string PrimaryColor);
 }

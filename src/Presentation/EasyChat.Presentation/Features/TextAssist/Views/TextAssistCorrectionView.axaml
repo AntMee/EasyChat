@@ -18,9 +18,27 @@
         <Style Selector="UserControl.Compact StackPanel.EditorSections">
             <Setter Property="Spacing" Value="8" />
         </Style>
+        <Style Selector="TextBlock.SectionTitle">
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+        <Style Selector="UserControl.Compact TextBlock.SectionTitle">
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="shad|Card.OriginalEditorCard">
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="UserControl.Compact shad|Card.OriginalEditorCard">
+            <Setter Property="Padding" Value="8" />
+        </Style>
+        <Style Selector="shad|Card.CorrectionResultCard">
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="UserControl.Compact shad|Card.CorrectionResultCard">
+            <Setter Property="Padding" Value="8" />
+        </Style>
         <Style Selector="Border.IssueCard">
             <Setter Property="Padding" Value="12" />
-            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="CornerRadius" Value="8" />
         </Style>
         <Style Selector="UserControl.Compact Border.IssueCard">
             <Setter Property="Padding" Value="8" />
@@ -35,24 +53,26 @@
         </Style>
         <Style Selector="TextBox.OriginalTextBox">
             <Setter Property="MinHeight" Value="170" />
-            <Setter Property="Padding" Value="12" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="VerticalAlignment" Value="Stretch" />
         </Style>
         <Style Selector="UserControl.Compact TextBox.OriginalTextBox">
             <Setter Property="MinHeight" Value="125" />
-            <Setter Property="Padding" Value="8" />
+            <Setter Property="Padding" Value="0" />
         </Style>
         <Style Selector="controls|CorrectionAnnotationLayer.OriginalAnnotation">
-            <Setter Property="Padding" Value="12" />
+            <Setter Property="Padding" Value="0" />
         </Style>
         <Style Selector="UserControl.Compact controls|CorrectionAnnotationLayer.OriginalAnnotation">
-            <Setter Property="Padding" Value="8" />
+            <Setter Property="Padding" Value="0" />
         </Style>
         <Style Selector="TextBox.VariantTextBox">
             <Setter Property="MinHeight" Value="55" />
+            <Setter Property="Padding" Value="0" />
         </Style>
         <Style Selector="UserControl.Compact TextBox.VariantTextBox">
             <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Padding" Value="0" />
         </Style>
         <Style Selector="Grid.EditorFooter">
             <Setter Property="Margin" Value="0,10,0,0" />
@@ -60,35 +80,37 @@
         <Style Selector="UserControl.Compact Grid.EditorFooter">
             <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
-        <!-- Page already has header Run; keep footer Run only in compact float. -->
-        <Style Selector="UserControl:not(.Compact) Button.EditorInlineRun">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
     </UserControl.Styles>
     <!--
-      Match translation layout: primary editor is * (fills pane). Results/issues sit in a
-      capped scroll band under it so empty page height is absorbed by the input surface,
-      not left as white void under a MinHeight-only card.
+      Match translation layout: primary editor fills the available space while the
+      correction details remain in a bounded, vertically resizable region below it.
     -->
-    <Grid RowDefinitions="*,Auto,Auto,Auto,Auto"
+    <Grid RowDefinitions="*,Auto,Auto"
           RowSpacing="0"
           MinHeight="0"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
 
-        <!-- Primary editor: grows with available height -->
-        <shad:Card Grid.Row="0"
-                VerticalAlignment="Stretch"
-                HorizontalAlignment="Stretch" HasShadow="True" ClipToBounds="True">
-            <Grid RowDefinitions="Auto,*" RowSpacing="10" MinHeight="0">
-                <TextBlock Classes="Small" Text="{x:Static lang:Resources.SourceLang}" />
-                <Grid Grid.Row="1" Classes="OriginalEditor" MinHeight="0">
+        <Grid Grid.Row="0" MinHeight="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{Binding HasCorrectionOutput, Converter={x:Static converters:BoolToGridLengthConverter.Instance}, ConverterParameter=220}" />
+            </Grid.RowDefinitions>
+            <!-- Primary editor: grows with available height -->
+            <shad:Card Grid.Row="0"
+                    Classes="OriginalEditorCard"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch" HasShadow="True" ClipToBounds="True">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10" MinHeight="0">
+                    <TextBlock Classes="SectionTitle" Text="{x:Static lang:Resources.SourceLang}" FontWeight="SemiBold" />
+                    <Grid Grid.Row="1" Classes="OriginalEditor" MinHeight="0">
                     <TextBox x:Name="AnnotatedTextBox"
                              Classes="OriginalTextBox"
                              Text="{Binding InputText, Mode=TwoWay}"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
-                             shad:ControlAssist.Label="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
+                             PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
                              VerticalAlignment="Stretch"
                              VerticalContentAlignment="Top"
                              BorderThickness="0"
@@ -103,35 +125,50 @@
                              FontSize="16"
                              HorizontalAlignment="Stretch"
                              VerticalAlignment="Stretch" />
-                    <Border x:Name="CorrectionHint"
+                        <Border x:Name="CorrectionHint"
                             IsVisible="False"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             Margin="12"
                             MaxWidth="420"
-                            Background="{DynamicResource DialogBackgroundColor}"
-                            BorderBrush="{DynamicResource BorderColor}"
+                            Background="{DynamicResource PrimaryColor}"
+                            BorderBrush="{DynamicResource PrimaryColor}"
                             BorderThickness="1"
-                            IsHitTestVisible="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
-                        <TextBlock x:Name="CorrectionHintText"
-                                   Foreground="{DynamicResource ForegroundColor}"
-                                   TextWrapping="Wrap" />
-                    </Border>
+                                IsHitTestVisible="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="8,5">
+                            <TextBlock x:Name="CorrectionHintText"
+                                       Foreground="{DynamicResource PrimaryForegroundColor}"
+                                       TextWrapping="Wrap" />
+                        </Border>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </shad:Card>
+            </shad:Card>
 
-        <!-- Results + issues under the expanding editor; hidden until output exists -->
-        <ScrollViewer Grid.Row="1"
-                      Margin="0,12,0,0"
-                      MaxHeight="280"
-                      HorizontalScrollBarVisibility="Disabled"
-                      VerticalScrollBarVisibility="Auto"
-                      IsVisible="{Binding HasCorrectionOutput}">
-            <StackPanel Classes="EditorSections" Spacing="12">
-                <shad:Card IsVisible="{Binding HasCorrectedResults}" HasShadow="True" ClipToBounds="True">
+            <GridSplitter Grid.Row="1"
+                          Height="1"
+                          HorizontalAlignment="Stretch"
+                          Margin="0,8,0,8"
+                          Background="{DynamicResource BorderColor}"
+                          Opacity="0.65"
+                          Cursor="SizeNorthSouth"
+                          ResizeDirection="Rows"
+                          ResizeBehavior="PreviousAndNext"
+                          IsVisible="{Binding HasCorrectionOutput}" />
+
+            <!-- Results + issues under the expanding editor; hidden until output exists -->
+            <ScrollViewer Grid.Row="2"
+                          MinHeight="80"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          IsVisible="{Binding HasCorrectionOutput}">
+                <StackPanel Classes="EditorSections" Spacing="12">
+                <shad:Card Classes="CorrectionResultCard"
+                           IsVisible="{Binding HasCorrectedResults}"
+                           HasShadow="True"
+                           ClipToBounds="True">
                     <StackPanel Spacing="8">
-                        <TextBlock Classes="Small" Text="{x:Static lang:Resources.TextAssistCorrectedResult}" />
+                        <TextBlock Classes="SectionTitle"
+                                   Text="{x:Static lang:Resources.TextAssistCorrectedResult}"
+                                   FontWeight="SemiBold" />
                         <ItemsControl ItemsSource="{Binding CorrectionVariants}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -168,11 +205,19 @@
                 </shad:Card>
 
                 <StackPanel Spacing="8" IsVisible="{Binding HasCorrectionIssues}">
-                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.TextAssistIssues}" />
+                    <TextBlock Classes="SectionTitle"
+                               Text="{x:Static lang:Resources.TextAssistIssues}"
+                               FontWeight="SemiBold" />
                     <ItemsControl ItemsSource="{Binding Issues}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Classes="IssueCard" Margin="0,0,0,6" Background="{DynamicResource CardBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" BoxShadow="{DynamicResource Shadow}" ClipToBounds="True" CornerRadius="{DynamicResource LgCornerRadius}" Padding="24">
+                                <Border Classes="IssueCard"
+                                        Margin="0,0,0,6"
+                                        Background="{DynamicResource CardBackgroundColor}"
+                                        BorderBrush="{DynamicResource BorderColor}"
+                                        BorderThickness="1"
+                                        BoxShadow="{DynamicResource Shadow}"
+                                        ClipToBounds="True">
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="{Binding DisplayCategory}"
                                                    FontWeight="SemiBold"
@@ -189,24 +234,11 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
-
-        <Border Grid.Row="2" Padding="0,6">
-            <Button Classes="Ghost"
-                    HorizontalAlignment="Left"
-                    Command="{Binding ToggleConfigurationCommand}"
-                    ToolTip.Tip="{Binding ConfigurationToggleText}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <avalonia:MaterialIcon Kind="{Binding ConfigurationToggleIcon}" Width="16" Height="16" />
-                    <TextBlock Text="{Binding ConfigurationToggleText}"
-                               VerticalAlignment="Center"
-                               Classes="Caption" />
                 </StackPanel>
-            </Button>
-        </Border>
+            </ScrollViewer>
+        </Grid>
 
-        <shad:Card Grid.Row="3"
+        <shad:Card Grid.Row="1"
                 IsVisible="{Binding IsConfigurationExpanded}" HasShadow="True" ClipToBounds="True">
             <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
@@ -249,18 +281,26 @@
             </StackPanel>
         </shad:Card>
 
-        <Grid Grid.Row="4"
+        <Grid Grid.Row="2"
               Classes="EditorFooter"
-              ColumnDefinitions="Auto,Auto,*"
-              ColumnSpacing="10">
-            <Button Command="{Binding RunCommand}" Classes="Primary EditorInlineRun">
+              ColumnDefinitions="*,Auto,Auto,Auto"
+              ColumnSpacing="8">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding ErrorMessage}"
+                       Foreground="{DynamicResource DestructiveColor}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Command="{Binding RunCommand}"
+                    Classes="Primary EditorInlineRun"
+                    HorizontalAlignment="Right">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <avalonia:MaterialIcon Kind="Spellcheck" IsVisible="{Binding !IsBusy}" />
                     <shad:Loading Width="18" Height="18" IsVisible="{Binding IsBusy}" />
                     <TextBlock Text="{x:Static lang:Resources.TextAssistCorrect}" />
                 </StackPanel>
             </Button>
-            <Button Grid.Column="1"
+            <Button Grid.Column="2"
                     Command="{Binding CancelCommand}"
                     Classes="Ghost"
                     IsVisible="{Binding IsBusy}">
@@ -269,11 +309,15 @@
                     <TextBlock Text="{x:Static lang:Resources.Cancel}" />
                 </StackPanel>
             </Button>
-            <TextBlock Grid.Column="2"
-                       Text="{Binding ErrorMessage}"
-                       Foreground="{DynamicResource DestructiveColor}"
-                       TextWrapping="Wrap"
-                       VerticalAlignment="Center" />
+            <Button Grid.Column="3"
+                    Classes="Ghost"
+                    Command="{Binding ToggleConfigurationCommand}"
+                    ToolTip.Tip="{Binding ConfigurationToggleText}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <avalonia:MaterialIcon Kind="{Binding ConfigurationToggleIcon}" Width="16" Height="16" />
+                    <TextBlock Text="{Binding ConfigurationToggleText}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
         </Grid>
     </Grid>
 </UserControl>

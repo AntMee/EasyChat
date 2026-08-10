@@ -190,8 +190,8 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var outputLanguage = ResolveOutputLanguage();
-        var correctedPayloads = new HashSet<CorrectionPayload>();
-        var translationPayloads = new HashSet<CorrectionPayload>();
+        var completedCorrectedVariants = new HashSet<int>();
+        var completedTranslationVariants = new HashSet<int>();
         var issueGuard = new CorrectionIssueEmissionGuard(text.Length);
         var prompt = BuildCorrectionPrompt(profile)
             .Replace("[Language]", profile.Source.EnglishName, StringComparison.Ordinal)
@@ -214,10 +214,15 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
             var normalizedItem = item is TextAssistIssueEvent issue
                 ? TextAssistIssueRangeResolver.Normalize(text, issue)
                 : item;
+            if (normalizedItem is TextAssistCompletedEvent)
+            {
+                yield return normalizedItem;
+                yield break;
+            }
             var shouldEmit = ShouldEmitCorrectionEvent(
                 normalizedItem,
-                correctedPayloads,
-                translationPayloads,
+                completedCorrectedVariants,
+                completedTranslationVariants,
                 issueGuard);
             if (shouldEmit)
                 yield return normalizedItem;
@@ -491,21 +496,31 @@ Never output text from the user-selected role.
 
     private static bool ShouldEmitCorrectionEvent(
         TextAssistEvent item,
-        ISet<CorrectionPayload> correctedPayloads,
-        ISet<CorrectionPayload> translationPayloads,
+        ISet<int> completedCorrectedVariants,
+        ISet<int> completedTranslationVariants,
         CorrectionIssueEmissionGuard issueGuard)
     {
         return item switch
         {
             TextAssistIssueEvent issue => issueGuard.ShouldEmit(issue),
-            TextAssistCorrectedDeltaEvent { IsStreamingPartial: true } => true,
-            TextAssistCorrectionTranslationDeltaEvent { IsStreamingPartial: true } => true,
-            TextAssistCorrectedDeltaEvent delta => correctedPayloads.Add(
-                new CorrectionPayload(Math.Clamp(delta.Variant, 1, 3), delta.Text)),
-            TextAssistCorrectionTranslationDeltaEvent translation => translationPayloads.Add(
-                new CorrectionPayload(Math.Clamp(translation.Variant, 1, 3), translation.Text)),
+            TextAssistCorrectedDeltaEvent delta => ShouldEmitDelta(
+                delta.Variant,
+                delta.IsStreamingPartial,
+                completedCorrectedVariants),
+            TextAssistCorrectionTranslationDeltaEvent translation => ShouldEmitDelta(
+                translation.Variant,
+                translation.IsStreamingPartial,
+                completedTranslationVariants),
             _ => true
         };
+    }
+
+    private static bool ShouldEmitDelta(int variant, bool isStreamingPartial, ISet<int> completedVariants)
+    {
+        variant = Math.Clamp(variant, 1, 3);
+        return isStreamingPartial
+            ? !completedVariants.Contains(variant)
+            : completedVariants.Add(variant);
     }
 
     private static TextAssistEvent MarkStreamingPartial(TextAssistEvent item) => item switch
@@ -514,8 +529,6 @@ Never output text from the user-selected role.
         TextAssistCorrectionTranslationDeltaEvent translation => translation with { IsStreamingPartial = true },
         _ => item
     };
-
-    private sealed record CorrectionPayload(int Variant, string Text);
 
     private sealed class CorrectionIssueEmissionGuard(int sourceLength)
     {

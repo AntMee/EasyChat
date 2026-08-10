@@ -439,10 +439,21 @@ public partial class OverlayWindowView : Window
         var position = canvas is null ? null : _copyButton.TranslatePoint(default, canvas);
         if (position is null)
             return;
-        Canvas.SetLeft(_copyMenuBorder, position.Value.X);
-        var top = Canvas.GetTop(_toolbarBorder) + _toolbarBorder.Bounds.Height + 2;
-        if (top + 150 > Height)
-            top = Canvas.GetTop(_toolbarBorder) - 152;
+
+        _copyMenuBorder.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var menuSize = _copyMenuBorder.DesiredSize;
+        var width = menuSize.Width > 0 ? menuSize.Width : 174;
+        var height = menuSize.Height > 0 ? menuSize.Height : 166;
+        var left = Math.Clamp(
+            position.Value.X,
+            8,
+            Math.Max(8, Bounds.Width - width - 8));
+        var toolbarTop = Canvas.GetTop(_toolbarBorder);
+        var top = toolbarTop + _toolbarBorder.Bounds.Height + 6;
+        if (top + height > Bounds.Height - 8)
+            top = Math.Max(8, toolbarTop - height - 6);
+
+        Canvas.SetLeft(_copyMenuBorder, left);
         Canvas.SetTop(_copyMenuBorder, top);
         _copyMenuBorder.IsVisible = true;
     }

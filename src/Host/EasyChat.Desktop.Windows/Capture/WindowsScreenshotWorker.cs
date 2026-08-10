@@ -38,6 +38,7 @@ internal static class WindowsScreenshotWorker
                 return new ScreenshotCaptureCommand(
                     request.Precise,
                     theme,
+                    request.PrimaryColor,
                     request.CultureName,
                     request.DefaultAction,
                     request.ToolbarMode);

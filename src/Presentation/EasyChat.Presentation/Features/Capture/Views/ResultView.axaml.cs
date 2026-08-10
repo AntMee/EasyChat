@@ -2,15 +2,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
-using Avalonia.Input.Platform;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Platform;
-using EasyChat.Presentation.Shared.Feedback;
 using LiveMarkdown.Avalonia;
 using Key = Avalonia.Input.Key;
 
@@ -19,7 +16,6 @@ namespace EasyChat.Presentation.Features.Capture.Views;
 public partial class ResultView : Window
 {
     private readonly ObservableStringBuilder _markdown = new();
-    private readonly System.Text.StringBuilder _plainText = new();
     private Screen? _screen;
 
     public ResultView()
@@ -61,63 +57,30 @@ public partial class ResultView : Window
         if (LoadingIndicator.IsVisible)
             ShowResult();
         _markdown.Append(text);
-        _plainText.Append(text);
         Dispatcher.UIThread.Post(ReCenterPosition);
     });
 
     public void ShowLoading() => Dispatcher.UIThread.Post(() =>
     {
         _markdown.Clear();
-        _plainText.Clear();
         LoadingIndicator.IsVisible = true;
         MarkdownResult.IsVisible = false;
-        ResultToolbar.IsVisible = false;
     });
 
     public void ShowResult() => Dispatcher.UIThread.Post(() =>
     {
         LoadingIndicator.IsVisible = false;
         MarkdownResult.IsVisible = true;
-        ResultToolbar.IsVisible = true;
         ReCenterPosition();
     });
 
-    private async void OnCopyClick(object? sender, RoutedEventArgs e) =>
-        await CopyResultAsync(sender as Control);
-
-    private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();
-
-    private async void OnKeyDown(object? sender, KeyEventArgs e)
+    private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
             e.Handled = true;
             Close();
-            return;
         }
-
-        if (e.Key == Key.C
-            && e.KeyModifiers.HasFlag(KeyModifiers.Control)
-            && ResultToolbar.IsVisible)
-        {
-            e.Handled = true;
-            await CopyResultAsync(CopyButton);
-        }
-    }
-
-    private async Task CopyResultAsync(Control? anchor)
-    {
-        var text = _plainText.ToString();
-        if (string.IsNullOrWhiteSpace(text))
-            return;
-
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (clipboard is null)
-            return;
-
-        await clipboard.SetTextAsync(text);
-        CopyFeedback.Show(anchor, EasyChat.Presentation.Lang.Resources.Copied);
-        CopyHint.IsVisible = true;
     }
 
     public void CloseAfterDelay(int milliseconds) => Dispatcher.UIThread.Post(async void () =>

@@ -8,6 +8,49 @@
         x:Class="EasyChat.Presentation.Features.Capture.Views.OverlayWindowView"
         Closed="TopLevel_OnClosed" KeyDown="InputElement_OnKeyDown"
         Title="OverlayWindow">
+    <Window.Styles>
+        <Style Selector="Button.CaptureToolbarButton">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SmCornerRadius}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.CaptureToolbarButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.CaptureToolbarButton:pressed">
+            <Setter Property="Opacity" Value="0.78" />
+        </Style>
+        <Style Selector="Button.CapturePrimaryButton">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="Button.CapturePrimaryButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor75}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor75}" />
+        </Style>
+        <Style Selector="Button.CaptureMenuItem">
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SmCornerRadius}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button.CaptureMenuItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </Window.Styles>
     <Grid Background="Black">
         <Image x:Name="CapturedScreenImage"
                Stretch="Fill"
@@ -16,7 +59,7 @@
         <!-- Main Selection Box -->
         <Rectangle x:Name="SelectionRectangle"
                    Stroke="{DynamicResource PrimaryColor}"
-                   StrokeThickness="2"
+                   StrokeThickness="2.5"
                    Fill="{DynamicResource PrimaryColor10}"
                    IsVisible="False" />
         
@@ -40,40 +83,50 @@
 
         <Border x:Name="ToolbarBorder"
                 IsVisible="False"
-                Background="{DynamicResource DialogBackgroundColor}"
+                Background="{DynamicResource CardBackgroundColor}"
                 BorderBrush="{DynamicResource BorderColor}"
-                BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
-            <StackPanel Orientation="Horizontal" Spacing="0">
+                BorderThickness="1"
+                BoxShadow="{DynamicResource Shadow}"
+                ClipToBounds="False"
+                CornerRadius="{DynamicResource LgCornerRadius}"
+                Padding="6">
+            <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
                 <Button x:Name="ConfirmButton"
-                        Classes="Icon"
+                        Classes="Icon CaptureToolbarButton CapturePrimaryButton"
                         Click="ConfirmButton_OnClick"
                         ToolTip.Tip="{x:Static lang:Resources.Confirm}">
-                     <icon:MaterialIcon Kind="Check" Width="22" Height="22" Foreground="{DynamicResource SuccessColor}" />
+                     <icon:MaterialIcon Kind="Check" Width="19" Height="19" Foreground="{DynamicResource PrimaryForegroundColor}" />
                 </Button>
+
+                <Border Width="1" Height="22" Margin="3,0" Background="{DynamicResource BorderColor}" />
+
                 <Button x:Name="CopyButton"
-                        Classes="Icon"
+                        Classes="Icon CaptureToolbarButton"
                         PointerEntered="CopyButton_OnPointerEntered"
                         PointerExited="CopyButton_OnPointerExited"
                         ToolTip.Tip="{x:Static lang:Resources.Copy}">
-                    <icon:MaterialIcon Kind="ContentCopy" Width="22" Height="22" Foreground="{DynamicResource PrimaryColor}" />
+                    <icon:MaterialIcon Kind="ContentCopy" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
                 </Button>
                 <Button x:Name="OcrButton"
-                        Classes="Icon"
+                        Classes="Icon CaptureToolbarButton"
                         Click="OcrButton_OnClick"
                         ToolTip.Tip="OCR">
-                    <icon:MaterialIcon Kind="TextRecognition" Width="22" Height="22" Foreground="{DynamicResource PrimaryColor}" />
+                    <icon:MaterialIcon Kind="TextRecognition" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
                 </Button>
+
+                <Border Width="1" Height="22" Margin="3,0" Background="{DynamicResource BorderColor}" />
+
                 <Button x:Name="ResetButton"
-                        Classes="Icon"
+                        Classes="Icon CaptureToolbarButton"
                         Click="ResetButton_OnClick"
                         ToolTip.Tip="{x:Static lang:Resources.Reset}">
-                    <icon:MaterialIcon Kind="Refresh" Width="22" Height="22" Foreground="{DynamicResource MutedColor}" />
+                    <icon:MaterialIcon Kind="Refresh" Width="19" Height="19" Foreground="{DynamicResource MutedColor}" />
                 </Button>
                 <Button x:Name="CancelButton"
-                        Classes="Icon"
+                        Classes="Icon CaptureToolbarButton"
                         Click="CancelButton_OnClick"
                         ToolTip.Tip="{x:Static lang:Resources.Cancel}">
-                    <icon:MaterialIcon Kind="Close" Width="22" Height="22" Foreground="{DynamicResource DestructiveColor}" />
+                    <icon:MaterialIcon Kind="Close" Width="19" Height="19" Foreground="{DynamicResource DestructiveColor}" />
                 </Button>
             </StackPanel>
         </Border>
@@ -83,9 +136,13 @@
                 Background="{DynamicResource DialogBackgroundColor}"
                 BorderBrush="{DynamicResource BorderColor}"
                 BorderThickness="1"
+                BoxShadow="{DynamicResource Shadow}"
+                ClipToBounds="False"
                 PointerEntered="CopyMenu_OnPointerEntered"
-                PointerExited="CopyMenu_OnPointerExited" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
-            <StackPanel Spacing="2">
+                PointerExited="CopyMenu_OnPointerExited"
+                CornerRadius="{DynamicResource LgCornerRadius}"
+                Padding="6">
+            <StackPanel Spacing="2" MinWidth="174">
                 <StackPanel.Styles>
                     <Style Selector="icon|MaterialIcon">
                         <Setter Property="Width" Value="16" />
@@ -94,7 +151,7 @@
                     </Style>
                 </StackPanel.Styles>
 
-                <Button Click="CopyOriginal_OnClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+                <Button Classes="CaptureMenuItem" Click="CopyOriginal_OnClick">
                    <StackPanel Orientation="Horizontal" Spacing="10">
                        <icon:MaterialIcon Kind="ContentCopy" />
                        <TextBlock Text="{x:Static lang:Resources.CopyOriginal}"
@@ -102,7 +159,7 @@
                                   Foreground="{DynamicResource ForegroundColor}" />
                    </StackPanel>
                 </Button>
-                <Button Click="CopyTranslated_OnClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+                <Button Classes="CaptureMenuItem" Click="CopyTranslated_OnClick">
                    <StackPanel Orientation="Horizontal" Spacing="10">
                        <icon:MaterialIcon Kind="Translate" />
                        <TextBlock Text="{x:Static lang:Resources.CopyTranslated}"
@@ -110,7 +167,7 @@
                                   Foreground="{DynamicResource ForegroundColor}" />
                    </StackPanel>
                 </Button>
-                <Button Click="CopyBilingual_OnClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+                <Button Classes="CaptureMenuItem" Click="CopyBilingual_OnClick">
                    <StackPanel Orientation="Horizontal" Spacing="10">
                        <icon:MaterialIcon Kind="ViewAgenda" />
                        <TextBlock Text="{x:Static lang:Resources.CopyBilingual}"
@@ -118,7 +175,7 @@
                                   Foreground="{DynamicResource ForegroundColor}" />
                    </StackPanel>
                 </Button>
-                <Button Click="CopyImageTranslated_OnClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+                <Button Classes="CaptureMenuItem" Click="CopyImageTranslated_OnClick">
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <icon:MaterialIcon Kind="ImageEdit" />
                         <TextBlock Text="{x:Static lang:Resources.ImageTranslate}"
