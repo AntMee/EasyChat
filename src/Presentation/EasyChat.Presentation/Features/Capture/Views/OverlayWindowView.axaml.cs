@@ -465,7 +465,7 @@ public partial class OverlayWindowView : Window
     private void StartMenuCloseTimer()
     {
         _menuCloseTimer?.Stop();
-        _menuCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        _menuCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         _menuCloseTimer.Tick += (_, _) =>
         {
             if (_copyMenuBorder is not null)

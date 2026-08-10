@@ -25,6 +25,7 @@ public sealed class ScreenshotWorkerProtocolTests
         var request = new ScreenshotWorkerRequest(
             true,
             "Dark",
+            "#FF3B82F6",
             "zh-CN",
             CaptureOverlayAction.OcrWorkbench,
             CaptureToolbarMode.ImageSelection);
@@ -45,6 +46,7 @@ public sealed class ScreenshotWorkerProtocolTests
         var request = new ScreenshotWorkerRequest(
             true,
             "Dark",
+            "#FF3B82F6",
             "zh-CN",
             CaptureOverlayAction.OcrWorkbench,
             CaptureToolbarMode.Full);

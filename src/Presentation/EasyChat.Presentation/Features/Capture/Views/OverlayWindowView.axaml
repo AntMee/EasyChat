@@ -18,22 +18,15 @@
             <Setter Property="CornerRadius" Value="{DynamicResource SmCornerRadius}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
         <Style Selector="Button.CaptureToolbarButton:pointerover">
-            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
-            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor30}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
         <Style Selector="Button.CaptureToolbarButton:pressed">
-            <Setter Property="Opacity" Value="0.78" />
-        </Style>
-        <Style Selector="Button.CapturePrimaryButton">
-            <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
-        </Style>
-        <Style Selector="Button.CapturePrimaryButton:pointerover">
-            <Setter Property="Background" Value="{DynamicResource PrimaryColor75}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor75}" />
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
         </Style>
         <Style Selector="Button.CaptureMenuItem">
             <Setter Property="MinHeight" Value="38" />
@@ -44,11 +37,15 @@
             <Setter Property="CornerRadius" Value="{DynamicResource SmCornerRadius}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
         <Style Selector="Button.CaptureMenuItem:pointerover">
-            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
-            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor30}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.CaptureMenuItem:pressed">
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
         </Style>
     </Window.Styles>
     <Grid Background="Black">
@@ -92,10 +89,10 @@
                 Padding="6">
             <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
                 <Button x:Name="ConfirmButton"
-                        Classes="Icon CaptureToolbarButton CapturePrimaryButton"
+                        Classes="Icon CaptureToolbarButton"
                         Click="ConfirmButton_OnClick"
                         ToolTip.Tip="{x:Static lang:Resources.Confirm}">
-                     <icon:MaterialIcon Kind="Check" Width="19" Height="19" Foreground="{DynamicResource PrimaryForegroundColor}" />
+                     <icon:MaterialIcon Kind="Check" Width="19" Height="19" Foreground="{DynamicResource PrimaryColor}" />
                 </Button>
 
                 <Border Width="1" Height="22" Margin="3,0" Background="{DynamicResource BorderColor}" />
@@ -143,17 +140,9 @@
                 CornerRadius="{DynamicResource LgCornerRadius}"
                 Padding="6">
             <StackPanel Spacing="2" MinWidth="174">
-                <StackPanel.Styles>
-                    <Style Selector="icon|MaterialIcon">
-                        <Setter Property="Width" Value="16" />
-                        <Setter Property="Height" Value="16" />
-                        <Setter Property="Foreground" Value="{DynamicResource MutedColor}" />
-                    </Style>
-                </StackPanel.Styles>
-
                 <Button Classes="CaptureMenuItem" Click="CopyOriginal_OnClick">
                    <StackPanel Orientation="Horizontal" Spacing="10">
-                       <icon:MaterialIcon Kind="ContentCopy" />
+                       <icon:MaterialIcon Kind="ContentCopy" Width="16" Height="16" Foreground="{DynamicResource MutedColor}" />
                        <TextBlock Text="{x:Static lang:Resources.CopyOriginal}"
                                   VerticalAlignment="Center"
                                   Foreground="{DynamicResource ForegroundColor}" />
@@ -161,7 +150,7 @@
                 </Button>
                 <Button Classes="CaptureMenuItem" Click="CopyTranslated_OnClick">
                    <StackPanel Orientation="Horizontal" Spacing="10">
-                       <icon:MaterialIcon Kind="Translate" />
+                       <icon:MaterialIcon Kind="Translate" Width="16" Height="16" Foreground="{DynamicResource MutedColor}" />
                        <TextBlock Text="{x:Static lang:Resources.CopyTranslated}"
                                   VerticalAlignment="Center"
                                   Foreground="{DynamicResource ForegroundColor}" />
@@ -169,7 +158,7 @@
                 </Button>
                 <Button Classes="CaptureMenuItem" Click="CopyBilingual_OnClick">
                    <StackPanel Orientation="Horizontal" Spacing="10">
-                       <icon:MaterialIcon Kind="ViewAgenda" />
+                       <icon:MaterialIcon Kind="ViewAgenda" Width="16" Height="16" Foreground="{DynamicResource MutedColor}" />
                        <TextBlock Text="{x:Static lang:Resources.CopyBilingual}"
                                   VerticalAlignment="Center"
                                   Foreground="{DynamicResource ForegroundColor}" />
@@ -177,7 +166,7 @@
                 </Button>
                 <Button Classes="CaptureMenuItem" Click="CopyImageTranslated_OnClick">
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <icon:MaterialIcon Kind="ImageEdit" />
+                        <icon:MaterialIcon Kind="ImageEdit" Width="16" Height="16" Foreground="{DynamicResource MutedColor}" />
                         <TextBlock Text="{x:Static lang:Resources.ImageTranslate}"
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource ForegroundColor}" />
