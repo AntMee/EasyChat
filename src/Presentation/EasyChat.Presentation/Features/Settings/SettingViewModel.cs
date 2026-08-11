@@ -37,6 +37,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly ISettingsDialogCoordinator _dialogs;
     private readonly ToastManager _toasts;
     private readonly IApplicationRestartService? _restartService;
+    private readonly IApplicationAutoStartService _autoStartService;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
     private bool _isOcrModelListExpanded;
     private bool _isAsrModelListExpanded;
@@ -53,6 +54,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private bool _isSearchOpen;
     private SettingsPaneId _activePane = SettingsPaneId.General;
     private SettingsNavItem? _selectedNavItem;
+    private bool _isAutoStartEnabled;
 
     public SettingViewModel(
         SettingsSession settings,
@@ -67,6 +69,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         IExternalUriLauncher uriLauncher,
         ISettingsDialogCoordinator dialogs,
         ToastManager toasts,
+        IApplicationAutoStartService autoStartService,
         IApplicationRestartService? restartService = null)
         : base(Resources.Settings, MaterialIconKind.Settings, 1)
     {
@@ -82,6 +85,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
         _dialogs = dialogs;
         _toasts = toasts;
         _restartService = restartService;
+        _autoStartService = autoStartService ?? throw new ArgumentNullException(nameof(autoStartService));
+        _isAutoStartEnabled = GetAutoStartEnabled();
 
         DisplayLanguages = BuildDisplayLanguages();
         NativeLanguages = BuildLanguages(includeAuto: false);
@@ -134,7 +139,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
 
         NavItems =
         [
-            new(SettingsPaneId.General, Resources.General, MaterialIconKind.Cog, SettingsSearch.GeneralFields),
+            new(SettingsPaneId.General, Resources.General, MaterialIconKind.Cog, SettingsSearch.GeneralSearchFields),
             new(SettingsPaneId.Translation, Resources.Translation, MaterialIconKind.Translate, SettingsSearch.TranslationFields),
             new(SettingsPaneId.Selection, Resources.SelectionToolbarSettings, MaterialIconKind.CursorDefault, SettingsSearch.SelectionFields),
             new(SettingsPaneId.Tts, Resources.Tts, MaterialIconKind.VolumeHigh, SettingsSearch.TtsFields),
@@ -368,7 +373,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         this.RaisePropertyChanged(nameof(IsSearchCollapsed));
     }
 
-    public bool ShowGeneralSection => IsSectionVisible(SettingsPaneId.General, Resources.General, SettingsSearch.GeneralFields);
+    public bool ShowGeneralSection => IsSectionVisible(SettingsPaneId.General, Resources.General, SettingsSearch.GeneralSearchFields);
     // Translation providers/models are managed as a dedicated page and are not part
     // of the field-level settings search. Keep the page available in browse mode.
     public bool ShowTranslationSection => IsBrowseMode && ActivePane == SettingsPaneId.Translation;
@@ -445,6 +450,25 @@ public sealed class SettingViewModel : NavigationPageViewModel
         {
             GeneralConf.ClosingBehavior = value;
             this.RaisePropertyChanged();
+        }
+    }
+
+    public bool IsAutoStartEnabled
+    {
+        get => _isAutoStartEnabled;
+        set
+        {
+            if (_isAutoStartEnabled == value)
+                return;
+
+            var result = _autoStartService.SetEnabled(value);
+            if (result.IsFailure)
+            {
+                ShowToast(Resources.AutoStart, result.Error.Message, ToastNotification.Error);
+                return;
+            }
+
+            this.RaiseAndSetIfChanged(ref _isAutoStartEnabled, value);
         }
     }
 
@@ -914,6 +938,16 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         _toasts.DismissAll();
         _restartService?.Restart();
+    }
+
+    private bool GetAutoStartEnabled()
+    {
+        var result = _autoStartService.GetEnabled();
+        if (result.IsSuccess)
+            return result.Value;
+
+        ShowToast(Resources.AutoStart, result.Error.Message, ToastNotification.Error);
+        return false;
     }
 }
 

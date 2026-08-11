@@ -647,21 +647,86 @@ namespace EasyChat.Presentation.Features.Shell
 
     public sealed class AboutViewModel : NavigationPageViewModel
     {
+        private readonly IApplicationUpdateService _updates;
         private readonly IExternalUriLauncher _uriLauncher;
+        private readonly ToastManager _updateToasts;
+        private bool _isUpdateAvailable;
+        private string _latestVersion = string.Empty;
 
         public AboutViewModel(
             IApplicationUpdateService updates,
-            IExternalUriLauncher uriLauncher)
+            IExternalUriLauncher uriLauncher,
+            [FromKeyedServices(MainWindowViewModel.UpdateToastManagerKey)] ToastManager updateToasts)
             : base(Resources.About, MaterialIconKind.InformationOutline, 10)
         {
-            ArgumentNullException.ThrowIfNull(updates);
+            _updates = updates ?? throw new ArgumentNullException(nameof(updates));
             _uriLauncher = uriLauncher ?? throw new ArgumentNullException(nameof(uriLauncher));
+            _updateToasts = updateToasts ?? throw new ArgumentNullException(nameof(updateToasts));
             Version = updates.CurrentVersion;
             OpenUrlCommand = ReactiveCommand.Create<string>(OpenUrl);
+            ShowUpdateToastCommand = ReactiveCommand.Create(ShowUpdateToast);
+#if DEBUG
+            LatestVersion = $"{Version}-preview";
+            IsUpdateAvailable = true;
+#else
+            _ = CheckForUpdateAsync();
+#endif
         }
 
         public string Version { get; }
+        public string LatestVersion { get => _latestVersion; private set => this.RaiseAndSetIfChanged(ref _latestVersion, value); }
+        public bool IsUpdateAvailable { get => _isUpdateAvailable; private set => this.RaiseAndSetIfChanged(ref _isUpdateAvailable, value); }
         public ReactiveCommand<string, Unit> OpenUrlCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowUpdateToastCommand { get; }
+
+        private async Task CheckForUpdateAsync()
+        {
+            var result = await _updates.CheckAsync();
+            if (result.IsFailure) return;
+            LatestVersion = result.Value.LatestVersion;
+            IsUpdateAvailable = result.Value.IsUpdateAvailable;
+        }
+
+        private void ShowUpdateToast()
+        {
+            if (!IsUpdateAvailable)
+                return;
+
+            var content = UpdateToastContentFactory.CreateAvailabilityContent(
+                LatestVersion,
+                _updateToasts.DismissAll,
+                () => _ = DownloadUpdateAsync());
+            _updateToasts
+                .CreateToast(Resources.NewVersionAvailable)
+                .WithContent(content)
+                .WithDelay(0)
+                .Show();
+        }
+
+        private async Task DownloadUpdateAsync()
+        {
+            var content = UpdateToastContentFactory.CreateProgressContent(out var progress, out var progressText);
+            _updateToasts.DismissAll();
+            _updateToasts
+                .CreateToast(Resources.Updating)
+                .WithContent(content)
+                .WithDelay(0)
+                .Show();
+            var result = await _updates.DownloadAndRestartAsync(new Progress<int>(value =>
+            {
+                progress.Value = Math.Clamp(value, 0, 100);
+                progressText.Text = $"{progress.Value:0}%";
+            }));
+            _updateToasts.DismissAll();
+            if (result.IsFailure)
+            {
+                _updateToasts
+                    .CreateToast(Resources.UpdateFailed)
+                    .WithContent(Resources.CheckNetwork)
+                    .WithDelay(5)
+                    .ShowError();
+            }
+        }
 
         private void OpenUrl(string? url)
         {

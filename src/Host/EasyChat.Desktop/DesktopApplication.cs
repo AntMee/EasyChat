@@ -19,6 +19,7 @@ namespace EasyChat.Desktop;
 public static class DesktopApplication
 {
     private const string VerifyCompositionArgument = "--verify-composition";
+    private const string RestartArgument = "--restart";
 
     public static void Run(
         string[] args,
@@ -29,23 +30,36 @@ public static class DesktopApplication
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(addPlatformServices);
 
+        if (args.Length == 1 && string.Equals(
+                args[0],
+                VerifyCompositionArgument,
+                StringComparison.Ordinal))
+        {
+            using var verificationServices = BuildServices(addPlatformServices);
+            return;
+        }
+
+        var isRestart = args.Any(argument =>
+            string.Equals(argument, RestartArgument, StringComparison.Ordinal));
+        using var singleInstance = DesktopSingleInstance.AcquireOrSignal(isRestart);
+        if (singleInstance is null)
+            return;
+
         var services = BuildServices(addPlatformServices);
         IShellLifecycle? shell = null;
         DesktopUiContext? ui = null;
         try
         {
-            if (args.Length == 1 && string.Equals(
-                    args[0],
-                    VerifyCompositionArgument,
-                    StringComparison.Ordinal))
-            {
-                return;
-            }
-
             initializeDeployment?.Invoke();
             shell = StartShell(services);
             InitializeSettings(services);
-            var builder = AppBuilder.Configure(() => new App(() => ui ??= CreateUiContext(services)))
+            var startInTray = DesktopStartupBehavior.ShouldStartInTray(
+                args,
+                services.GetRequiredService<SettingsSession>().General.ClosingBehavior);
+            var builder = AppBuilder.Configure(() => new App(
+                    () => ui ??= CreateUiContext(services),
+                    singleInstance.SetActivationHandler,
+                    startInTray))
                 .UsePlatformDetect();
             configureAppBuilder?.Invoke(builder);
             builder.WithInterFont()
@@ -164,6 +178,7 @@ internal sealed class DesktopApplicationRestartService : IApplicationRestartServ
         };
         foreach (var argument in Environment.GetCommandLineArgs().Skip(1))
             startInfo.ArgumentList.Add(argument);
+        startInfo.ArgumentList.Add("--restart");
 
         if (Process.Start(startInfo) is null)
             return;

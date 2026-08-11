@@ -2,12 +2,15 @@ using System.Reactive.Concurrency;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Capture;
+using EasyChat.Presentation.Features.Shell;
 using EasyChat.Presentation.Features.Shell.Views;
 using Material.Icons;
 using Material.Icons.Avalonia;
@@ -16,13 +19,16 @@ using ShadUI;
 
 namespace EasyChat.Desktop;
 
-public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalonia.Application
+public sealed partial class App(
+    Func<DesktopUiContext> createUiContext,
+    Action<Action>? registerActivationHandler = null,
+    bool startInTray = false) : Avalonia.Application
 {
     private const int TrayMenuIconSize = 36;
     private const int TrayMenuGlyphSize = 34;
 
     public App()
-        : this(null!) =>
+        : this(null!, null) =>
         throw new InvalidOperationException(
             "App must be created by DesktopApplication with explicit dependencies.");
 
@@ -31,6 +37,7 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private MainWindow? _mainWindow;
     private bool _isHiddenToTray;
+    private readonly bool _startInTray = startInTray;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
@@ -50,16 +57,38 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
                 ui.Settings,
                 ui.MainWindowViewModel.ShadDialogManager,
                 PrepareForTray);
-            desktop.MainWindow = _mainWindow;
+            if (_startInTray)
+            {
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                PrepareForTray();
+            }
+            else
+            {
+                desktop.MainWindow = _mainWindow;
+            }
+            registerActivationHandler?.Invoke(() =>
+                Avalonia.Threading.Dispatcher.UIThread.Post(
+                    ShowMainWindow,
+                    Avalonia.Threading.DispatcherPriority.Input));
             desktop.Exit += OnExit;
             ActualThemeVariantChanged += OnThemeVariantChanged;
             ui.Settings.Changed += OnSettingsChanged;
             UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
             ui.Interactions.Start();
             _ = WarmUpScreenshotCaptureAsync(ui.ScreenshotCapture);
+#if !DEBUG
             _ = CheckForUpdatesAsync();
+#endif
         }
         base.OnFrameworkInitializationCompleted();
+#if DEBUG
+        if (_desktop is not null)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(
+                ShowUpdateToastPreview,
+                Avalonia.Threading.DispatcherPriority.Background);
+        }
+#endif
     }
 
     private void OnSettingsChanged(object? sender, SettingsChangedEventArgs args)
@@ -206,16 +235,23 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
 
     private void OnTrayShow(object? sender, EventArgs args)
     {
+        ShowMainWindow();
+    }
+
+    private void ShowMainWindow()
+    {
         if (_mainWindow is null) return;
+        if (_desktop is { MainWindow: null } desktop)
+        {
+            desktop.MainWindow = _mainWindow;
+            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+        }
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
         _isHiddenToTray = false;
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            if (_ui is { } ui)
-                UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
-        });
+        if (_ui is { } ui)
+            UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
     }
 
     private void OnTrayExit(object? sender, EventArgs args)
@@ -229,43 +265,54 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
         var ui = RequireUi();
         var result = await ui.Updates.CheckAsync();
         if (result.IsFailure || !result.Value.IsUpdateAvailable) return;
-        var laterButton = new Button { Content = EasyChat.Presentation.Lang.Resources.Later };
-        var updateButton = new Button { Content = EasyChat.Presentation.Lang.Resources.Update };
-        laterButton.Click += (_, _) => ui.UpdateToasts.DismissAll();
-        updateButton.Click += (_, _) =>
-        {
-            ui.UpdateToasts.DismissAll();
-            _ = DownloadUpdateAsync(ui);
-        };
+        ShowUpdateToast(ui, result.Value.LatestVersion, () => _ = DownloadUpdateAsync(ui));
+    }
 
-        var content = new StackPanel
-        {
-            Spacing = 12,
-            Children =
-            {
-                new TextBlock
-                {
-                    Text = string.Format(
-                        EasyChat.Presentation.Lang.Resources.NewVersionContent,
-                        result.Value.LatestVersion),
-                    TextWrapping = TextWrapping.Wrap
-                },
-                new StackPanel
-                {
-                    Orientation = Avalonia.Layout.Orientation.Horizontal,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                    Spacing = 8,
-                    Children = { laterButton, updateButton }
-                }
-            }
-        };
+    private static void ShowUpdateToast(
+        DesktopUiContext ui,
+        string latestVersion,
+        Action updateAction)
+    {
+        var content = UpdateToastContentFactory.CreateAvailabilityContent(
+            latestVersion,
+            ui.UpdateToasts.DismissAll,
+            updateAction);
 
         ui.UpdateToasts
             .CreateToast(EasyChat.Presentation.Lang.Resources.NewVersionAvailable)
             .WithContent(content)
             .WithDelay(0)
-            .ShowInfo();
+            .Show();
     }
+
+#if DEBUG
+    private void ShowUpdateToastPreview()
+    {
+        if (_ui is not { } ui) return;
+        ShowUpdateToast(
+            ui,
+            $"{ui.Updates.CurrentVersion} (debug preview)",
+            () => _ = ShowDebugUpdateProgressAsync(ui));
+    }
+
+    private static async Task ShowDebugUpdateProgressAsync(DesktopUiContext ui)
+    {
+        var content = UpdateToastContentFactory.CreateProgressContent(out var progress, out var progressText);
+        ui.UpdateToasts.DismissAll();
+        ui.UpdateToasts
+            .CreateToast(EasyChat.Presentation.Lang.Resources.Updating)
+            .WithContent(content)
+            .WithDelay(0)
+            .Show();
+
+        for (var value = 0; value <= 100; value += 5)
+        {
+            progress.Value = value;
+            progressText.Text = $"{value}%";
+            await Task.Delay(70);
+        }
+    }
+#endif
 
     private static async Task WarmUpScreenshotCaptureAsync(IScreenshotCaptureSession capture)
     {
@@ -281,14 +328,18 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
 
     private static async Task DownloadUpdateAsync(DesktopUiContext ui)
     {
-        var progress = new ProgressBar { Value = 0, ShowProgressText = true };
+        var content = UpdateToastContentFactory.CreateProgressContent(out var progress, out var progressText);
         ui.UpdateToasts.DismissAll();
         ui.UpdateToasts
             .CreateToast(EasyChat.Presentation.Lang.Resources.Updating)
-            .WithContent(progress)
+            .WithContent(content)
             .WithDelay(0)
-            .ShowInfo();
-        var result = await ui.Updates.DownloadAndRestartAsync(new Progress<int>(value => progress.Value = value));
+            .Show();
+        var result = await ui.Updates.DownloadAndRestartAsync(new Progress<int>(value =>
+        {
+            progress.Value = Math.Clamp(value, 0, 100);
+            progressText.Text = $"{progress.Value:0}%";
+        }));
         ui.UpdateToasts.DismissAll();
         if (result.IsFailure)
             ui.UpdateToasts

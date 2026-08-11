@@ -6,6 +6,9 @@ namespace EasyChat.Presentation.Features.Settings;
 /// </summary>
 public static class SettingsSearch
 {
+    public const string GeneralAutoStartFields =
+        "auto start startup launch login windows macos linux 开机自启 登录启动";
+
     public static bool Matches(string? query, string? keywords)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -34,6 +37,7 @@ public static class SettingsSearch
     // when a nested field hits.
     public const string GeneralFields =
         "display language native closing behavior exit application data proxy url ocr models asr models import delete model language 显示语言 母语 本地语言 退出方式 应用数据 代理地址 OCR 模型 语音识别 导入 删除";
+    public const string GeneralSearchFields = GeneralFields + " " + GeneralAutoStartFields;
     public const string TranslationFields =
         "model ai engine key baidu tencent google deepl api proxy 模型 翻译 密钥 引擎";
     public const string SelectionFields =

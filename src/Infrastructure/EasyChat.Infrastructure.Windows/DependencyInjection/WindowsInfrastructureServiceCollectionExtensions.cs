@@ -1,6 +1,7 @@
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
+using EasyChat.Infrastructure.Windows.ApplicationStartup;
 using EasyChat.Infrastructure.Windows.Capture;
 using EasyChat.Infrastructure.Windows.Audio;
 using EasyChat.Infrastructure.Windows.ImageTranslation;
@@ -23,6 +24,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
 
         services.AddSingleton<IPlatformCapabilities, WindowsPlatformCapabilities>();
         services.AddSingleton<IPlatformPermissionRequester, WindowsPlatformPermissionRequester>();
+        services.AddSingleton<IApplicationAutoStartService, WindowsApplicationAutoStartService>();
         services.AddSingleton<IScreenCapture, WindowsScreenCapture>();
         services.AddSingleton<IScreenCatalog, WindowsScreenCatalog>();
         services.AddSingleton<IGlobalHotkeys, WindowsGlobalHotkeys>();

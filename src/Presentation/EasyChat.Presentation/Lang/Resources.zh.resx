@@ -810,6 +810,9 @@
     <data name="CurrentVersion" xml:space="preserve">
         <value>当前版本</value>
     </data>
+    <data name="AutoStart" xml:space="preserve">
+        <value>开机自启动</value>
+    </data>
     <data name="Tts_Configuration" xml:space="preserve">
         <value>TTS 语音配置</value>
     </data>

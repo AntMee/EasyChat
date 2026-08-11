@@ -652,6 +652,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("CurrentVersion", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Auto Start.
+        /// </summary>
+        public static string AutoStart {
+            get {
+                return ResourceManager.GetString("AutoStart", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Custom Model.

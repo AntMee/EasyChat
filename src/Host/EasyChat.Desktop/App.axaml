@@ -64,5 +64,32 @@
             <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}" />
             <Setter Property="Padding" Value="8,4" />
         </Style>
+
+        <!-- Keep update feedback consistent with the OCR model download progress bar. -->
+        <Style Selector="ProgressBar.UpdateProgress">
+            <Setter Property="Height" Value="7" />
+            <Setter Property="MinHeight" Value="7" />
+            <Setter Property="MaxHeight" Value="7" />
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="ProgressBar.UpdateProgress /template/ Border">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="ProgressBar.UpdateProgress /template/ Rectangle">
+            <Setter Property="RadiusX" Value="4" />
+            <Setter Property="RadiusY" Value="4" />
+        </Style>
+        <Style Selector="Border.UpdateToastIconSurface">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="avalonia|MaterialIcon.UpdateToastIcon">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+        </Style>
     </Application.Styles>
 </Application>

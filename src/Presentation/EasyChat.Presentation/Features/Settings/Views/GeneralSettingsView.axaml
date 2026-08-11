@@ -108,6 +108,29 @@
         </Grid>
         </Border>
 
+        <Border Classes="SettingsSearchRow"
+                Classes.SearchResult="{Binding IsSearchMode}"
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='auto start startup launch login windows macos linux 开机自启 登录启动'}">
+        <Grid ColumnDefinitions="*,420"
+              MinHeight="44"
+              Margin="8,2"
+              ColumnSpacing="16">
+            <TextBlock Text="{x:Static lang:Resources.AutoStart}"
+                       Classes="Small"
+                       VerticalAlignment="Center"
+                       MinWidth="180" />
+            <ContentControl Classes="SettingsField" Grid.Column="1"
+                            MinWidth="180"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Right">
+                <ToggleSwitch IsChecked="{Binding IsAutoStartEnabled}"
+                              OnContent="" OffContent=""
+                              HorizontalAlignment="Right"
+                              Margin="0,0,8,0" />
+            </ContentControl>
+        </Grid>
+        </Border>
+
         <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
 
         <StackPanel Margin="12,6,12,10" Spacing="2"

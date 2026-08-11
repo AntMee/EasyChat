@@ -820,6 +820,9 @@
     <data name="CurrentVersion" xml:space="preserve">
         <value>Current Version</value>
     </data>
+    <data name="AutoStart" xml:space="preserve">
+        <value>Auto Start</value>
+    </data>
     <data name="Tts_Configuration" xml:space="preserve">
         <value>TTS Voice Configuration</value>
     </data>
