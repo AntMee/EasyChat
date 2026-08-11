@@ -33,7 +33,7 @@
                         <Grid ColumnDefinitions="24,*" ColumnSpacing="8" Margin="3,2,0,2"
                               HorizontalAlignment="Stretch">
                             <Border Width="22" Height="16" CornerRadius="3" ClipToBounds="True"
-                                    Background="{DynamicResource BorderColor30}" VerticalAlignment="Center">
+                                    Background="Transparent" VerticalAlignment="Center">
                                 <Grid>
                                     <icons:MaterialIcon Kind="FlagOutline" Width="18" Height="18"
                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -53,7 +53,7 @@
         </Border>
 
         <Border ZIndex="10" Width="22" Height="16" Margin="8,0,0,0"
-                CornerRadius="3" ClipToBounds="True" Background="{DynamicResource BorderColor30}"
+                CornerRadius="3" ClipToBounds="True" Background="Transparent"
                 HorizontalAlignment="Left" VerticalAlignment="Center"
                 IsHitTestVisible="False">
             <Grid>
