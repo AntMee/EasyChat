@@ -12,6 +12,7 @@ using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using EasyChat.Presentation.ImageTranslation;
+using EasyChat.Presentation.Lang;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using ShadUI;
@@ -307,7 +308,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         IsRecognizing = true;
         RaiseBusy();
         ErrorMessage = string.Empty;
-        StatusText = "Recognizing text...";
+            StatusText = Resources.ScreenshotOcr_Recognizing;
         try
         {
             replacementBitmap = AvaloniaImageFrames.ToBitmap(image);
@@ -536,7 +537,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         IsRecognizing = true;
         RaiseBusy();
         ErrorMessage = string.Empty;
-        StatusText = "Recognizing text...";
+        StatusText = Resources.ScreenshotOcr_Recognizing;
         Bitmap? restored = null;
         try
         {

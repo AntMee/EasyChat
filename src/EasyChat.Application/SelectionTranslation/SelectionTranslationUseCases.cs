@@ -37,7 +37,7 @@ Emit events in exactly the documented order and always finish with `{"event":"do
 ## Sentence mode
 1. `{"event":"start","mode":"sentence"}`
 2. `{"event":"source_detected","language":"en"}`
-3. One or more `{"event":"translation_delta","text":"..."}` events. Split the complete translation into natural short phrases so it can be rendered while you generate it. Concatenating `text` values must be the complete fluent translation.
+3. One or more `{"event":"translation_delta","text":"..."}` events. Split the complete translation into natural short phrases so it can be rendered while you generate it. Preserve the source text's paragraph and line-break structure in the concatenated `text` values, including corresponding `\n` characters. Concatenating `text` values must be the complete fluent translation.
 4. Zero to three `{"event":"keyword","word":"original term","meaning":"meaning in [TargetLang]"}` events.
 5. `{"event":"done"}`
 

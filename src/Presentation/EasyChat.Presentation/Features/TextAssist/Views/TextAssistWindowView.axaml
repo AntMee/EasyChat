@@ -1,86 +1,63 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
-                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
-                 xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-                 xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
-                 xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
-                 x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistWindowView"
-                 x:DataType="vm:TextAssistViewModel"
-                 Width="860" Height="480" MinWidth="620" MinHeight="360"
-                 CanResize="True"
-                 WindowStartupLocation="CenterScreen"
-                 WindowDecorations="None"
-                 ExtendClientAreaToDecorationsHint="True"
-                 TransparencyLevelHint="Blur"
-                 Background="Transparent"
-                 Foreground="{DynamicResource ForegroundColor}"
-                 Topmost="True"
-                 ShowInTaskbar="False"
-                 Title="{Binding WindowTitle}">
-    <Grid>
-        <Border x:Name="MainCard"
-                Background="{DynamicResource DialogBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" ClipToBounds="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
-            <Border ClipToBounds="True">
-            <Grid RowDefinitions="Auto,*">
-                <Border Grid.Row="0"
-                        Padding="10,8"
-                        Background="{DynamicResource CardBackgroundColor}"
-                        BorderBrush="{DynamicResource BorderColor}"
-                        BorderThickness="0,0,0,1"
-                        PointerPressed="OnHeaderPointerPressed" CornerRadius="{DynamicResource LgCornerRadius}">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <avalonia:MaterialIcon Kind="{Binding WindowIcon}" Width="16" Height="16" Foreground="{DynamicResource PrimaryColor}" />
-                            <TextBlock Text="{Binding WindowTitle}" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundColor}" />
-                        </StackPanel>
-                        <!-- Mode switch: translate <-> correct without closing the float -->
-                        <TabControl Grid.Column="1"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    PointerPressed="OnHeaderChromePointerPressed"
-                                    SelectedIndex="{Binding SelectedTabIndex}">
-                            <TabItem Header="{x:Static lang:Resources.TextAssistTranslate}" />
-                            <TabItem Header="{x:Static lang:Resources.TextAssistCorrect}" />
-                        </TabControl>
-                        <shad:Loading Grid.Column="2" Width="14" Height="14"
-                                      IsVisible="{Binding IsCapturingInput}"
-                                      VerticalAlignment="Center" />
-                        <Button Grid.Column="3" Click="OnCloseClick" Classes="Icon"
-                                ToolTip.Tip="{x:Static lang:Resources.Close}">
-                            <avalonia:MaterialIcon Kind="Close" Width="16" Height="16" />
-                        </Button>
-                    </Grid>
-                </Border>
-                <ContentControl Grid.Row="1" x:Name="EditorHost" Margin="14" />
-            </Grid>
-            </Border>
+<shad:Window xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
+             x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistWindowView"
+             x:DataType="vm:TextAssistViewModel"
+             Width="900"
+             Height="560"
+             MinWidth="720"
+             MinHeight="460"
+             CanResize="True"
+             IsTitleBarVisible="True"
+             ShowTitlebarBackground="True"
+             RootCornerRadius="12"
+             ShowBottomBorder="True"
+             TransparencyLevelHint="Transparent"
+             WindowDecorations="None"
+             WindowStartupLocation="CenterScreen"
+             Foreground="{DynamicResource ForegroundColor}"
+             Topmost="True"
+             ShowInTaskbar="False"
+             Title="{Binding WindowTitle}">
+    <shad:Window.LogoContent>
+        <Border Width="28"
+                Height="28"
+                Margin="14,0,0,0"
+                CornerRadius="8"
+                VerticalAlignment="Center"
+                Background="{DynamicResource PrimaryColor10}">
+            <icons:MaterialIcon Kind="{Binding WindowIcon}"
+                                Width="16"
+                                Height="16"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Foreground="{DynamicResource PrimaryColor}" />
         </Border>
+    </shad:Window.LogoContent>
 
-        <!-- A borderless window needs explicit hit targets for native resize drags. -->
-        <Border Width="6" HorizontalAlignment="Left" Background="Transparent"
-                Cursor="LeftSide" Tag="West" PointerPressed="OnResizePointerPressed" />
-        <Border Width="6" HorizontalAlignment="Right" Background="Transparent"
-                Cursor="RightSide" Tag="East" PointerPressed="OnResizePointerPressed" />
-        <Border Height="6" VerticalAlignment="Top" Background="Transparent"
-                Cursor="TopSide" Tag="North" PointerPressed="OnResizePointerPressed" />
-        <Border Height="6" VerticalAlignment="Bottom" Background="Transparent"
-                Cursor="BottomSide" Tag="South" PointerPressed="OnResizePointerPressed" />
+    <shad:Window.Styles>
+        <Style Selector="shad|Window /template/ Border#RootBorder">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Margin" Value="1" />
+        </Style>
+    </shad:Window.Styles>
 
-        <Border Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Top"
-                Background="Transparent" Cursor="TopLeftCorner" Tag="NorthWest"
-                PointerPressed="OnResizePointerPressed" />
-        <Border Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Top"
-                Background="Transparent" Cursor="TopRightCorner" Tag="NorthEast"
-                PointerPressed="OnResizePointerPressed" />
-        <Border Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                Background="Transparent" Cursor="BottomLeftCorner" Tag="SouthWest"
-                PointerPressed="OnResizePointerPressed" />
-        <Border Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                Background="Transparent" Cursor="BottomRightCorner" Tag="SouthEast"
-                PointerPressed="OnResizePointerPressed">
-            <avalonia:MaterialIcon Kind="ResizeBottomRight" Width="14" Height="14"
-                                   HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                   Margin="0,0,2,2" Opacity="0.45" IsHitTestVisible="False" />
-        </Border>
+    <shad:Window.RightWindowTitleBarContent>
+        <shad:Loading Width="16"
+                      Height="16"
+                      Margin="0,0,8,0"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding IsCapturingInput}" />
+    </shad:Window.RightWindowTitleBarContent>
+
+    <Grid Background="{DynamicResource GhostColor}">
+        <ContentControl x:Name="EditorHost"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"
+                        ClipToBounds="True" />
     </Grid>
-</Window>
+</shad:Window>

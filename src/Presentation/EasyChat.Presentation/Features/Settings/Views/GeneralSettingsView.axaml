@@ -36,6 +36,9 @@
                 HorizontalAlignment="Stretch"
                 Spacing="6">
 
+        <Border Classes="SettingsSearchRow"
+                Classes.SearchResult="{Binding IsSearchMode}"
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='display language 显示语言'}">
         <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
@@ -53,7 +56,11 @@
                                      HorizontalAlignment="Stretch" />
             </ContentControl>
         </Grid>
+        </Border>
 
+        <Border Classes="SettingsSearchRow"
+                Classes.SearchResult="{Binding IsSearchMode}"
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='native language 母语 本地语言'}">
         <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
@@ -71,7 +78,11 @@
                                      HorizontalAlignment="Stretch" />
             </ContentControl>
         </Grid>
+        </Border>
 
+        <Border Classes="SettingsSearchRow"
+                Classes.SearchResult="{Binding IsSearchMode}"
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='closing behavior close exit 关闭行为 退出方式'}">
         <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
@@ -95,16 +106,21 @@
                 </ComboBox>
             </ContentControl>
         </Grid>
+        </Border>
 
-        <Separator Margin="8,10" />
+        <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
 
-        <StackPanel Margin="12,6,12,10" Spacing="2">
+        <StackPanel Margin="12,6,12,10" Spacing="2"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='application data data location 应用数据 数据位置'}">
             <TextBlock Classes="Caption" FontWeight="Bold"
                        Text="{x:Static lang:Resources.ApplicationData}" />
             <TextBlock Classes="Muted" TextWrapping="Wrap"
                        Text="{x:Static lang:Resources.ApplicationDataDescription}" />
         </StackPanel>
 
+        <Border Classes="SettingsSearchRow"
+                Classes.SearchResult="{Binding IsSearchMode}"
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='application data data location 应用数据 数据位置'}">
         <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
@@ -129,14 +145,19 @@
                 </Grid>
             </ContentControl>
         </Grid>
+        </Border>
 
-        <Separator Margin="8,10" />
+        <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
 
-        <StackPanel Margin="12,6,12,10" Spacing="2">
+        <StackPanel Margin="12,6,12,10" Spacing="2"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import delete OCR 模型 导入 删除'}">
             <TextBlock Classes="Caption" FontWeight="Bold"
                        Text="{x:Static lang:Resources.OcrModels}" />
         </StackPanel>
 
+        <Border Classes="SettingsSearchRow"
+                Classes.SearchResult="{Binding IsSearchMode}"
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='proxy url proxy 代理地址 代理 地址'}">
         <Grid ColumnDefinitions="*,420"
               MinHeight="44"
               Margin="8,2"
@@ -162,10 +183,12 @@
                 </Grid>
             </ContentControl>
         </Grid>
+        </Border>
 
         <ItemsControl 
                       ItemsSource="{Binding VisibleOcrModelItems}"
-                      Margin="4,4,4,0">
+                      Margin="4,4,4,0"
+                      IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import delete OCR 模型 导入 删除'}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="viewModels:OcrModelDownloadItemViewModel">
                     <shad:Card HasShadow="False"
@@ -179,7 +202,8 @@
                                            Text="{Binding DisplayName}" />
                                 <TextBlock Classes="Muted"
                                            Text="{Binding Description}"
-                                           TextWrapping="Wrap" />
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                 <TextBlock Classes="Muted"
                                            Text="{Binding SupportedLanguagesSummary}"
                                            TextWrapping="Wrap"
@@ -255,6 +279,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
+        <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import delete OCR 模型 导入 删除'}">
         <Button HorizontalAlignment="Center"
                 Classes="Icon"
                 Command="{Binding ToggleOcrModelListCommand}"
@@ -262,10 +287,12 @@
                 IsVisible="{Binding IsOcrModelListToggleVisible}">
             <avalonia:MaterialIcon Kind="{Binding OcrModelListToggleIcon}" />
         </Button>
+        </Border>
 
-        <Separator Margin="8,10" />
+        <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
 
-        <StackPanel Spacing="2" Margin="12,6,12,10">
+        <StackPanel Spacing="2" Margin="12,6,12,10"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete 语音识别 模型 导入 删除'}">
             <TextBlock Classes="Caption" FontWeight="Bold"
                        Text="{x:Static lang:Resources.AsrModels}" />
             <TextBlock Classes="Muted" TextWrapping="Wrap"
@@ -275,7 +302,8 @@
         <StackPanel Orientation="Horizontal"
                     Spacing="8"
                     HorizontalAlignment="Stretch"
-                    Margin="8,0,8,8">
+                    Margin="8,0,8,8"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete 语音识别 模型 导入 删除'}">
             <Button Classes="Ghost"
                     Command="{Binding OpenAsrModelDownloadsCommand}"
                     IsEnabled="{Binding CanImportAsrModel}"
@@ -308,17 +336,22 @@
             </Button>
         </StackPanel>
 
+        <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete 语音识别 模型 导入 删除'}">
         <ProgressBar Classes="ModelProgress"
                      IsIndeterminate="True"
                      Margin="8,2,8,0"
                      IsVisible="{Binding IsImportingAsrModel}" />
+        </Border>
 
+        <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete 语音识别 模型 导入 删除'}">
         <TextBlock Classes="Muted"
                    Text="{x:Static lang:Resources.NoAsrModels}"
                    IsVisible="{Binding HasNoAsrModels}"
                    HorizontalAlignment="Center"
                    Margin="0,8" />
+        </Border>
 
+        <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete 语音识别 模型 导入 删除'}">
         <ItemsControl 
                       ItemsSource="{Binding VisibleAsrModels}"
                       IsVisible="{Binding HasAsrModels}"
@@ -355,6 +388,8 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+        </Border>
+        <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete 语音识别 模型 导入 删除'}">
         <Button HorizontalAlignment="Center"
                 Classes="Icon"
                 Command="{Binding ToggleAsrModelListCommand}"
@@ -362,5 +397,6 @@
                 IsVisible="{Binding IsAsrModelListToggleVisible}">
             <avalonia:MaterialIcon Kind="{Binding AsrModelListToggleIcon}" />
         </Button>
+        </Border>
     </StackPanel>
 </UserControl>

@@ -10,3 +10,8 @@ public interface IShellLifecycle
 
     ValueTask<Result> StopAsync(CancellationToken cancellationToken = default);
 }
+
+public interface IApplicationRestartService
+{
+    void Restart();
+}

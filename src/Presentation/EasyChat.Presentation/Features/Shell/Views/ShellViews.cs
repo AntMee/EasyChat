@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Shell;
 using ShadUI;
@@ -63,7 +64,8 @@ namespace EasyChat.Presentation.Features.Shell.Views
 
         private void OnResizePointerPressed(object? sender, PointerPressedEventArgs args)
         {
-            if (!args.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            if (!args.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+                || IsInteractivePointerSource(args.Source))
                 return;
 
             var edge = GetResizeEdge(args.GetPosition(this));
@@ -74,12 +76,47 @@ namespace EasyChat.Presentation.Features.Shell.Views
             BeginResizeDrag(resizeEdge, args);
         }
 
-        private void OnResizePointerMoved(object? sender, PointerEventArgs args) =>
-            Cursor = GetResizeCursor(GetResizeEdge(args.GetPosition(this)));
+        private void OnResizePointerMoved(object? sender, PointerEventArgs args)
+        {
+            Cursor = IsInteractivePointerSource(args.Source)
+                ? null
+                : GetResizeCursor(GetResizeEdge(args.GetPosition(this)));
+        }
+
+        private bool IsInteractivePointerSource(object? source)
+        {
+            if (source is not Visual visual)
+                return false;
+
+            for (var current = visual; current is not null; current = current.GetVisualParent())
+            {
+                if (ReferenceEquals(current, this))
+                    return false;
+                if (current is InputElement { Focusable: true })
+                    return true;
+
+                var typeName = current.GetType().Name;
+                if (typeName.Contains("Popup", StringComparison.Ordinal)
+                    || typeName.Contains("Flyout", StringComparison.Ordinal)
+                    || typeName.Contains("Overlay", StringComparison.Ordinal)
+                    || typeName is "ColorPicker" or "ColorSpectrum" or "ColorSlider")
+                    return true;
+            }
+
+            // Native Popup/Flyout roots can be separate from the owner window.
+            return true;
+        }
 
         private WindowEdge? GetResizeEdge(Point position)
         {
             if (!CanResize || WindowState != WindowState.Normal)
+                return null;
+
+            // Pointer events from a Popup/Flyout can still reach the window while
+            // their coordinates are outside this client area. They must not be
+            // interpreted as a request to resize the window edge.
+            if (position.X < 0 || position.Y < 0
+                || position.X >= Bounds.Width || position.Y >= Bounds.Height)
                 return null;
 
             var left = position.X <= ResizeBorderThickness;

@@ -12,7 +12,7 @@
              MinWidth="400"
              MaxWidth="460"
              Width="440">
-    <StackPanel>
+    <Grid RowDefinitions="Auto,Auto">
         <StackPanel Margin="28,28,28,0" Spacing="16">
             <Border Width="48" Height="48"
                     CornerRadius="14"
@@ -36,16 +36,17 @@
             </StackPanel>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="28,24,28,28"
-                    Spacing="10">
-            <Button Classes="Ghost"
-                    Command="{Binding CancelCommand}"
-                    Content="{x:Static lang:Resources.Cancel}" />
-            <Button Classes="Destructive"
-                    Command="{Binding ContinueCommand}"
-                    Content="{x:Static lang:Resources.Confirm}" />
-        </StackPanel>
-    </StackPanel>
+        <Border Grid.Row="1" Classes="DialogFooter" Margin="0,24,0,0" Padding="28,14,28,28">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10">
+                <Button Classes="Ghost"
+                        Command="{Binding CancelCommand}"
+                        Content="{x:Static lang:Resources.Cancel}" />
+                <Button Classes="Destructive"
+                        Command="{Binding ContinueCommand}"
+                        Content="{x:Static lang:Resources.Confirm}" />
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

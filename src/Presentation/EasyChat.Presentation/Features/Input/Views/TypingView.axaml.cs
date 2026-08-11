@@ -46,7 +46,8 @@ public partial class TypingView : Window
     {
         if (_settings is null)
             return;
-        TransparencyLevelHint = WindowTransparencyLevels.ForPreference(_settings.Input.TransparencyLevel);
+        // Rounded, decoration-free windows need per-pixel transparency even when the preference is None.
+        TransparencyLevelHint = WindowTransparencyLevels.ForRoundedWindow();
         var background = ParseBrush(_settings.Input.BackgroundColor);
         if (background is not null && this.FindControl<Border>("MainCard") is { } card)
             card.Background = background;

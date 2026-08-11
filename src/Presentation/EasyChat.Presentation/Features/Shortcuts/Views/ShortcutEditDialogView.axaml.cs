@@ -49,11 +49,8 @@ public partial class ShortcutEditDialogView : UserControl
         // Start recording only after the view can take focus (not in VM ctor).
         Dispatcher.UIThread.Post(() =>
         {
-            if (_subscribedVm is { IsRecording: false, IsRecordingBeforeInputKey: false, IsRecordingAfterInputKey: false }
-                && string.IsNullOrWhiteSpace(_subscribedVm.KeyCombination))
-            {
+            if (_subscribedVm is { IsRecording: false, IsRecordingBeforeInputKey: false, IsRecordingAfterInputKey: false })
                 _subscribedVm.BeginPrimaryRecording();
-            }
 
             FocusCapturePad();
         }, DispatcherPriority.Loaded);

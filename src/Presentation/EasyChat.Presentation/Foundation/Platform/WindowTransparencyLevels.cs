@@ -52,4 +52,10 @@ public static class WindowTransparencyLevels
             WindowTransparencyLevel.None
         ];
     }
+
+    /// <summary>
+    /// Transparent window composition is required for rounded, decoration-free windows.
+    /// </summary>
+    public static IReadOnlyList<WindowTransparencyLevel> ForRoundedWindow() =>
+        [WindowTransparencyLevel.Transparent, WindowTransparencyLevel.None];
 }

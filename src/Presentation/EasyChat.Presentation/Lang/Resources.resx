@@ -268,6 +268,9 @@
     <data name="AddLanguageShortcut" xml:space="preserve">
     <value>Add Language Shortcut</value>
   </data>
+    <data name="LanguageShortcutEmptyState" xml:space="preserve">
+    <value>Please add a language switch hotkey.</value>
+  </data>
     <data name="Edit" xml:space="preserve">
         <value>Edit</value>
     </data>
@@ -465,6 +468,9 @@
     </data>
     <data name="RestartToTakeEffect" xml:space="preserve">
         <value>Please restart the application to take effect.</value>
+    </data>
+    <data name="Restart" xml:space="preserve">
+        <value>Restart</value>
     </data>
     <data name="InputSettings" xml:space="preserve">
         <value>Input Window</value>
@@ -1090,7 +1096,7 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
     <value>Live recognition and floating subtitles</value>
   </data>
   <data name="HomeQuickTextAssistHint" xml:space="preserve">
-    <value>Translate or correct selected text</value>
+    <value>Translate selected text</value>
   </data>
   <data name="HomeQuickShortcutHint" xml:space="preserve">
     <value>Bind global hotkeys</value>
@@ -1156,4 +1162,27 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>Supports {0} languages</value></data>
   <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>View all supported languages</value></data>
   <data name="Action_ScreenshotOcr" xml:space="preserve"><value>Screenshot OCR</value></data>
+  <data name="ScreenshotOcr_PinTooltip" xml:space="preserve"><value>Pin on screen</value></data>
+  <data name="ScreenshotOcr_CopySelectionTooltip" xml:space="preserve"><value>Copy selected text</value></data>
+  <data name="ScreenshotOcr_TranslateSelectionTooltip" xml:space="preserve"><value>Translate selection</value></data>
+  <data name="ScreenshotOcr_ExplainSelectionTooltip" xml:space="preserve"><value>Explain with AI</value></data>
+  <data name="ScreenshotOcr_ReplaceSelectionTooltip" xml:space="preserve"><value>Replace with translation</value></data>
+  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>Replace</value></data>
+  <data name="ScreenshotOcr_ZoomOutTooltip" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="ScreenshotOcr_ZoomInTooltip" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="ScreenshotOcr_OpenImageTooltip" xml:space="preserve"><value>Open image</value></data>
+  <data name="ScreenshotOcr_RecaptureTooltip" xml:space="preserve"><value>Capture again</value></data>
+  <data name="ScreenshotOcr_CopyImageTooltip" xml:space="preserve"><value>Copy current image</value></data>
+  <data name="ScreenshotOcr_UndoTooltip" xml:space="preserve"><value>Undo</value></data>
+  <data name="ScreenshotOcr_RedoTooltip" xml:space="preserve"><value>Redo</value></data>
+  <data name="ScreenshotOcr_RestoreTooltip" xml:space="preserve"><value>Restore original</value></data>
+  <data name="ScreenshotOcr_Recognizing" xml:space="preserve"><value>Recognizing text...</value></data>
+  <data name="ScreenshotOcr_RecognizedText" xml:space="preserve"><value>Recognized text</value></data>
+  <data name="ScreenshotOcr_CharacterCount" xml:space="preserve"><value>{0:N0} characters</value></data>
+  <data name="ScreenshotOcr_RetryTooltip" xml:space="preserve"><value>Retry OCR</value></data>
+  <data name="ScreenshotOcr_CopyTextTooltip" xml:space="preserve"><value>Copy text</value></data>
+  <data name="ScreenshotOcr_TranslateTextTooltip" xml:space="preserve"><value>Translate text</value></data>
+  <data name="ScreenshotOcr_ShowOriginalTooltip" xml:space="preserve"><value>Show original text</value></data>
+  <data name="ScreenshotOcr_OpenImageDialogTitle" xml:space="preserve"><value>Open image for OCR</value></data>
+  <data name="ScreenshotOcr_ImageFileType" xml:space="preserve"><value>Images</value></data>
 </root>

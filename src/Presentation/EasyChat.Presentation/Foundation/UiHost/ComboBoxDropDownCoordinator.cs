@@ -155,7 +155,7 @@ public static class ComboBoxDropDownCoordinator
         if (IsVisualDescendantOf(source, host))
             return true;
 
-        // Popup / ColorView content is re-parented under overlay hosts.
+        // Popup / ColorPicker content is re-parented under overlay hosts.
         for (var visual = source; visual is not null; visual = visual.GetVisualParent())
         {
             var name = visual.GetType().Name;

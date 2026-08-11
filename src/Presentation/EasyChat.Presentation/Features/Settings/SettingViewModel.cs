@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Shell;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
@@ -35,6 +36,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly IExternalUriLauncher _uriLauncher;
     private readonly ISettingsDialogCoordinator _dialogs;
     private readonly ToastManager _toasts;
+    private readonly IApplicationRestartService? _restartService;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
     private bool _isOcrModelListExpanded;
     private bool _isAsrModelListExpanded;
@@ -64,7 +66,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ISpeechRecognitionModelRemover speechModelRemover,
         IExternalUriLauncher uriLauncher,
         ISettingsDialogCoordinator dialogs,
-        ToastManager toasts)
+        ToastManager toasts,
+        IApplicationRestartService? restartService = null)
         : base(Resources.Settings, MaterialIconKind.Settings, 1)
     {
         _settings = settings;
@@ -78,6 +81,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         _uriLauncher = uriLauncher;
         _dialogs = dialogs;
         _toasts = toasts;
+        _restartService = restartService;
 
         DisplayLanguages = BuildDisplayLanguages();
         NativeLanguages = BuildLanguages(includeAuto: false);
@@ -365,7 +369,9 @@ public sealed class SettingViewModel : NavigationPageViewModel
     }
 
     public bool ShowGeneralSection => IsSectionVisible(SettingsPaneId.General, Resources.General, SettingsSearch.GeneralFields);
-    public bool ShowTranslationSection => IsSectionVisible(SettingsPaneId.Translation, Resources.Translation, SettingsSearch.TranslationFields);
+    // Translation providers/models are managed as a dedicated page and are not part
+    // of the field-level settings search. Keep the page available in browse mode.
+    public bool ShowTranslationSection => IsBrowseMode && ActivePane == SettingsPaneId.Translation;
     public bool ShowSelectionSection => IsSectionVisible(SettingsPaneId.Selection, Resources.SelectionToolbarSettings, SettingsSearch.SelectionFields);
     public bool ShowTtsSection => IsSectionVisible(SettingsPaneId.Tts, Resources.Tts, SettingsSearch.TtsFields);
     public bool ShowScreenshotSection => IsSectionVisible(SettingsPaneId.Screenshot, Resources.ScreenshotMode, SettingsSearch.ScreenshotFields);
@@ -410,7 +416,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
             CultureInfo.CurrentCulture = culture;
             CultureInfo.CurrentUICulture = culture;
             this.RaisePropertyChanged();
-            ShowToast(Resources.LanguageChanged, Resources.RestartToTakeEffect, ToastNotification.Success);
+            ShowToast(
+                Resources.LanguageChanged,
+                Resources.RestartToTakeEffect,
+                ToastNotification.Success,
+                Resources.Restart,
+                RestartApplication);
         }
     }
 
@@ -872,9 +883,16 @@ public sealed class SettingViewModel : NavigationPageViewModel
             language.ProviderCodes ?? new Dictionary<string, string>());
     }
 
-    private void ShowToast(string title, string content, ToastNotification severity)
+    private void ShowToast(
+        string title,
+        string content,
+        ToastNotification severity,
+        string? actionLabel = null,
+        Action? action = null)
     {
         var toast = _toasts.CreateToast(title).WithContent(content);
+        if (!string.IsNullOrWhiteSpace(actionLabel) && action is not null)
+            toast.WithAction(actionLabel, action);
         switch (severity)
         {
             case ToastNotification.Success:
@@ -890,6 +908,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 toast.ShowInfo();
                 break;
         }
+    }
+
+    private void RestartApplication()
+    {
+        _toasts.DismissAll();
+        _restartService?.Restart();
     }
 }
 

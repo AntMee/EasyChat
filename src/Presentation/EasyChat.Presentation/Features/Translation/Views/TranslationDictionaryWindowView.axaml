@@ -133,6 +133,8 @@
         <Style Selector="md|MarkdownRenderer.DictionaryTranslationMarkdown">
             <Style Selector="^ md|MarkdownTextBlock">
                 <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
             <Style Selector="^ Border.Heading1Block">
                 <Style Selector="^ md|MarkdownTextBlock">

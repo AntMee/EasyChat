@@ -6,7 +6,7 @@ namespace EasyChat.Presentation.Tests;
 public sealed class TextAssistTabLayoutTests
 {
     [TestMethod]
-    public void TextAssistModeSwitches_UseTabControls()
+    public void TextAssistPage_UsesTabs_ButHotkeyWindowIsModeSpecific()
     {
         var viewsDirectory = Path.Combine(
             FindRepositoryRoot(),
@@ -17,7 +17,7 @@ public sealed class TextAssistTabLayoutTests
             "TextAssist",
             "Views");
 
-        foreach (var fileName in new[] { "TextAssistView.axaml", "TextAssistWindowView.axaml" })
+        foreach (var fileName in new[] { "TextAssistView.axaml" })
         {
             var document = XDocument.Load(Path.Combine(viewsDirectory, fileName));
             var tabControl = document.Descendants()
@@ -35,6 +35,15 @@ public sealed class TextAssistTabLayoutTests
                 document.Descendants().Any(element => element.Name.LocalName == "RadioButton"),
                 $"{fileName} must not use radio buttons as page tabs.");
         }
+
+        var hotkeyWindow = XDocument.Load(Path.Combine(viewsDirectory, "TextAssistWindowView.axaml"));
+        Assert.AreEqual(
+            "clr-namespace:ShadUI;assembly=ShadUI",
+            hotkeyWindow.Root?.Name.NamespaceName,
+            "Hotkey Text Assist windows must use the ShadUI window control.");
+        Assert.IsFalse(
+            hotkeyWindow.Descendants().Any(element => element.Name.LocalName == "TabControl"),
+            "Hotkey Text Assist windows are opened in one fixed mode and must not expose mode tabs.");
     }
 
     private static string FindRepositoryRoot()

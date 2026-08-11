@@ -33,17 +33,17 @@ public static class SettingsSearch
     // Section keyword bags include field tokens so section chrome stays visible
     // when a nested field hits.
     public const string GeneralFields =
-        "language display native closing ocr asr proxy import delete model 语言 显示 母语 关闭 代理 模型 导入 删除";
+        "display language native closing behavior exit application data proxy url ocr models asr models import delete model language 显示语言 母语 本地语言 退出方式 应用数据 代理地址 OCR 模型 语音识别 导入 删除";
     public const string TranslationFields =
         "model ai engine key baidu tencent google deepl api proxy 模型 翻译 密钥 引擎";
     public const string SelectionFields =
-        "selection toolbar polish summary correct trigger engine prompt 划词 工具栏 润色 总结 纠错 触发 提示词";
+        "selection translation enable translate correct correction polish summary explanation trigger engine using ai model machine translation prompt selection toolbar 划词工具栏 翻译 启用 纠错 润色 总结 解释 取词方式 触发 引擎 大模型 AI 模型 机器翻译 提示词";
     public const string TtsFields =
-        "voice speech tts provider configure 语音 朗读 音色 提供商";
+        "tts provider configure voices voice 语音 提供商 配置语音 配置 音色";
     public const string ScreenshotFields =
-        "screenshot fixed area capture precise 截图 固定区域 精准";
+        "screenshot mode ocr recognition idle timeout fixed area settings capture precise 截图模式 OCR 模式 闲置关闭时间 固定区域设置 精准";
     public const string ResultFields =
-        "result font color delay window transparency background read aloud close 结果 字体 颜色 透明 背景 朗读 关闭 延迟";
+        "result window mode read aloud font size family color transparency background enable auto read delay auto close ms per char close 结果窗口模式 朗读设置 字体大小 字体名称 颜色 透明 背景 自动计算延迟 自动关闭延迟 毫秒/字 延迟 关闭";
     public const string InputFields =
-        "input delivery paste type reverse transparency background font delay key 输入 投递 粘贴 透明 背景 字体 延迟 反转";
+        "input delivery mode paste type key send delay reverse translate language transparency background font delay 文本投递模式 按键发送延迟 反向翻译 输入 投递 粘贴 消息 发送 延迟 反转 翻译 语言 透明 背景 字体";
 }

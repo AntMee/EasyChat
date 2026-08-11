@@ -18,8 +18,8 @@ namespace EasyChat.Desktop;
 
 public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalonia.Application
 {
-    private const int TrayMenuIconSize = 16;
-    private const int TrayMenuGlyphSize = 12;
+    private const int TrayMenuIconSize = 36;
+    private const int TrayMenuGlyphSize = 34;
 
     public App()
         : this(null!) =>

@@ -6,20 +6,132 @@ using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.ScreenshotOcr.Controls;
+using LangResources = EasyChat.Presentation.Lang.Resources;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using ShadUI;
+using Avalonia.VisualTree;
 
 namespace EasyChat.Presentation.Features.ScreenshotOcr.Views;
 
 public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
 {
+    private const double ResizeBorderThickness = 8;
+    private static readonly CornerRadius WindowCornerRadius = new(12);
+    private static readonly Cursor HorizontalResizeCursor = new(StandardCursorType.SizeWestEast);
+    private static readonly Cursor VerticalResizeCursor = new(StandardCursorType.SizeNorthSouth);
+    private static readonly Cursor TopLeftResizeCursor = new(StandardCursorType.TopLeftCorner);
+    private static readonly Cursor TopRightResizeCursor = new(StandardCursorType.TopRightCorner);
     private readonly ScreenshotOcrWindowViewModel? _viewModel;
     private readonly OcrImageViewport? _viewport;
     private ScreenshotOcrResetConfirmationDialogViewModel? _resetConfirmation;
     private bool _disposed;
 
-    public ScreenshotOcrWindowView() => InitializeComponent();
+    public ScreenshotOcrWindowView()
+    {
+        InitializeComponent();
+        // ShadUI 0.2.4 resets RootCornerRadius while applying its Windows template.
+        Opened += (_, _) => ApplyRootCornerRadius();
+        AddHandler(PointerPressedEvent, OnResizePointerPressed, RoutingStrategies.Tunnel);
+        PointerMoved += OnResizePointerMoved;
+        PointerExited += (_, _) => Cursor = null;
+        PropertyChanged += (_, args) =>
+        {
+            if (args.Property == WindowStateProperty && WindowState == WindowState.Normal)
+                ApplyRootCornerRadius();
+        };
+    }
+
+    private void ApplyRootCornerRadius()
+    {
+        if (WindowState == WindowState.Normal)
+            RootCornerRadius = WindowCornerRadius;
+    }
+
+    private void OnResizePointerPressed(object? sender, PointerPressedEventArgs args)
+    {
+        if (!args.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            || IsInteractivePointerSource(args.Source))
+            return;
+
+        var edge = GetResizeEdge(args.GetPosition(this));
+        if (edge is not { } resizeEdge)
+            return;
+
+        args.Handled = true;
+        BeginResizeDrag(resizeEdge, args);
+    }
+
+    private void OnResizePointerMoved(object? sender, PointerEventArgs args)
+    {
+        Cursor = IsInteractivePointerSource(args.Source)
+            ? null
+            : GetResizeCursor(GetResizeEdge(args.GetPosition(this)));
+    }
+
+    private bool IsInteractivePointerSource(object? source)
+    {
+        if (source is not Visual visual)
+            return false;
+
+        for (var current = visual; current is not null; current = current.GetVisualParent())
+        {
+            if (ReferenceEquals(current, this))
+                return false;
+            if (current is InputElement { Focusable: true })
+                return true;
+
+            var typeName = current.GetType().Name;
+            if (typeName.Contains("Popup", StringComparison.Ordinal)
+                || typeName.Contains("Flyout", StringComparison.Ordinal)
+                || typeName.Contains("Overlay", StringComparison.Ordinal)
+                || typeName is "ColorPicker" or "ColorSpectrum" or "ColorSlider")
+                return true;
+        }
+
+        // Native Popup/Flyout roots can be separate from the owner window.
+        return true;
+    }
+
+    private WindowEdge? GetResizeEdge(Point position)
+    {
+        if (!CanResize || WindowState != WindowState.Normal)
+            return null;
+
+        // Pointer events from a Popup/Flyout can still reach the window while
+        // their coordinates are outside this client area. They must not be
+        // interpreted as a request to resize the window edge.
+        if (position.X < 0 || position.Y < 0
+            || position.X >= Bounds.Width || position.Y >= Bounds.Height)
+            return null;
+
+        var left = position.X <= ResizeBorderThickness;
+        var right = position.X >= Bounds.Width - ResizeBorderThickness;
+        var top = position.Y <= ResizeBorderThickness;
+        var bottom = position.Y >= Bounds.Height - ResizeBorderThickness;
+
+        return (left, right, top, bottom) switch
+        {
+            (true, _, true, _) => WindowEdge.NorthWest,
+            (_, true, true, _) => WindowEdge.NorthEast,
+            (true, _, _, true) => WindowEdge.SouthWest,
+            (_, true, _, true) => WindowEdge.SouthEast,
+            (true, _, _, _) => WindowEdge.West,
+            (_, true, _, _) => WindowEdge.East,
+            (_, _, true, _) => WindowEdge.North,
+            (_, _, _, true) => WindowEdge.South,
+            _ => null
+        };
+    }
+
+    private static Cursor? GetResizeCursor(WindowEdge? edge) => edge switch
+    {
+        WindowEdge.West or WindowEdge.East => HorizontalResizeCursor,
+        WindowEdge.North or WindowEdge.South => VerticalResizeCursor,
+        WindowEdge.NorthWest or WindowEdge.SouthEast => TopLeftResizeCursor,
+        WindowEdge.NorthEast or WindowEdge.SouthWest => TopRightResizeCursor,
+        _ => null
+    };
 
     internal ScreenshotOcrWindowView(ScreenshotOcrWindowViewModel viewModel) : this()
     {
@@ -116,11 +228,11 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
             return;
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Open image for OCR",
+            Title = LangResources.ScreenshotOcr_OpenImageDialogTitle,
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("Images")
+                new FilePickerFileType(LangResources.ScreenshotOcr_ImageFileType)
                 {
                     Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp"]
                 }
@@ -182,13 +294,13 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
     {
         var dialog = new Avalonia.Controls.Window
         {
-            Title = "Screenshot OCR",
+            Title = LangResources.Action_ScreenshotOcr,
             Width = 430,
             Height = 160,
             CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
-        var close = new Button { Content = "Close", HorizontalAlignment = HorizontalAlignment.Right };
+        var close = new Button { Content = LangResources.Close, HorizontalAlignment = HorizontalAlignment.Right };
         close.Click += (_, _) => dialog.Close();
         dialog.Content = new StackPanel
         {

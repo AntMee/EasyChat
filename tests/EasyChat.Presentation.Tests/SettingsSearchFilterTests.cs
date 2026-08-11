@@ -32,6 +32,16 @@ public sealed class SettingsSearchFilterTests
     }
 
     [TestMethod]
+    public void Query_MatchesAdditionalSettingsLabels()
+    {
+        Assert.IsTrue(SettingsSearch.Matches("应用数据", SettingsSearch.GeneralFields));
+        Assert.IsTrue(SettingsSearch.Matches("闲置", SettingsSearch.ScreenshotFields));
+        Assert.IsTrue(SettingsSearch.Matches("自动关闭", SettingsSearch.ResultFields));
+        Assert.IsTrue(SettingsSearch.Matches("发送", SettingsSearch.InputFields));
+        Assert.IsTrue(SettingsSearch.Matches("机器翻译", SettingsSearch.SelectionFields));
+    }
+
+    [TestMethod]
     public void FieldConverter_HidesNonMatchingFields()
     {
         var converter = SettingsFieldVisibleConverter.Instance;

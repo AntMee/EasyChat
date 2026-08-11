@@ -452,7 +452,7 @@ namespace EasyChat.Presentation.Features.Shell
                     MaterialIconKind.Microphone,
                     NavigateToSpeechCommand),
                 new HomeQuickAction(
-                    Resources.TextAssist,
+                    Resources.TextAssistTranslate,
                     Resources.HomeQuickTextAssistHint,
                     MaterialIconKind.Translate,
                     NavigateToTextAssistCommand),

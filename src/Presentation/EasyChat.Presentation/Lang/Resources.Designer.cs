@@ -1183,6 +1183,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("LanguageShortcuts", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Please add a language switch hotkey..
+        /// </summary>
+        public static string LanguageShortcutEmptyState {
+            get {
+                return ResourceManager.GetString("LanguageShortcutEmptyState", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Later.
@@ -1811,6 +1820,15 @@ namespace EasyChat.Presentation.Lang {
         public static string RestartToTakeEffect {
             get {
                 return ResourceManager.GetString("RestartToTakeEffect", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Restart.
+        /// </summary>
+        public static string Restart {
+            get {
+                return ResourceManager.GetString("Restart", resourceCulture);
             }
         }
         
@@ -3550,6 +3568,98 @@ namespace EasyChat.Presentation.Lang {
 
         public static string Action_ScreenshotOcr {
             get { return ResourceManager.GetString("Action_ScreenshotOcr", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_PinTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_PinTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CopySelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_CopySelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_TranslateSelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_TranslateSelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ExplainSelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ExplainSelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ReplaceSelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ReplaceSelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_Replace {
+            get { return ResourceManager.GetString("ScreenshotOcr_Replace", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ZoomOutTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ZoomOutTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ZoomInTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ZoomInTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_OpenImageTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_OpenImageTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RecaptureTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RecaptureTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CopyImageTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_CopyImageTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_UndoTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_UndoTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RedoTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RedoTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RestoreTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RestoreTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_Recognizing {
+            get { return ResourceManager.GetString("ScreenshotOcr_Recognizing", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RecognizedText {
+            get { return ResourceManager.GetString("ScreenshotOcr_RecognizedText", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CharacterCount {
+            get { return ResourceManager.GetString("ScreenshotOcr_CharacterCount", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RetryTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RetryTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CopyTextTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_CopyTextTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_TranslateTextTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_TranslateTextTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ShowOriginalTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ShowOriginalTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_OpenImageDialogTitle {
+            get { return ResourceManager.GetString("ScreenshotOcr_OpenImageDialogTitle", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ImageFileType {
+            get { return ResourceManager.GetString("ScreenshotOcr_ImageFileType", resourceCulture); }
         }
     }
 }

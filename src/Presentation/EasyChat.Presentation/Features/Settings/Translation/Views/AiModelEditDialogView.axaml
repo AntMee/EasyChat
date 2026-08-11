@@ -58,21 +58,18 @@
             <StackPanel>
                 <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.ModelName}" />
                 <TextBox Text="{Binding Name}"
-                         shad:ControlAssist.Label="{x:Static lang:Resources.ModelName}"
                          Classes="Clearable" />
             </StackPanel>
 
             <StackPanel>
                 <TextBlock Classes="Small" Margin="0,0,0,6" Text="API URL" />
                 <TextBox Text="{Binding ApiUrl}"
-                         shad:ControlAssist.Label="https://api.example.com"
                          Classes="Clearable" />
             </StackPanel>
 
             <StackPanel>
                 <TextBlock Classes="Small" Margin="0,0,0,6" Text="API Key" />
                 <TextBox Text="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         shad:ControlAssist.Label="sk-..."
                          PasswordChar="*"
                          Classes="Clearable" />
             </StackPanel>
@@ -130,7 +127,7 @@
         </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Margin="0,12,0,0" Padding="22,14,22,18" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0" Background="{DynamicResource CardBackgroundColor}" CornerRadius="{DynamicResource LgCornerRadius}">
+        <Border Grid.Row="2" Classes="DialogFooter" Margin="0,12,0,0" Padding="22,14,22,18">
             <StackPanel Orientation="Horizontal"
                         Spacing="10"
                         HorizontalAlignment="Right">

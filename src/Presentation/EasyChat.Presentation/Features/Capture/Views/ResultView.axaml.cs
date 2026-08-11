@@ -91,7 +91,8 @@ public partial class ResultView : Window
 
     private void ApplyConfiguration(LiveResultSettings settings)
     {
-        TransparencyLevelHint = WindowTransparencyLevels.ForPreference(settings.TransparencyLevel);
+        // Rounded, decoration-free windows need per-pixel transparency even when the preference is None.
+        TransparencyLevelHint = WindowTransparencyLevels.ForRoundedWindow();
         TrySetBrush(settings.BackgroundColor, brush => MainCard.Background = brush);
         TrySetBrush(settings.WindowBackgroundColor, brush => WindowBackground.Background = brush);
         TrySetColor(settings.FontColor, color => MarkdownResult.Resources["ForegroundColor"] = color);

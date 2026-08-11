@@ -255,6 +255,9 @@
     <data name="AddLanguageShortcut" xml:space="preserve">
     <value>添加语种切换热键</value>
   </data>
+    <data name="LanguageShortcutEmptyState" xml:space="preserve">
+    <value>请添加切换语种的热键</value>
+  </data>
     <data name="Edit" xml:space="preserve">
     <value>编辑</value>
   </data>
@@ -452,6 +455,9 @@
     </data>
     <data name="RestartToTakeEffect" xml:space="preserve">
         <value>请重启应用以生效</value>
+    </data>
+    <data name="Restart" xml:space="preserve">
+        <value>重启</value>
     </data>
     <data name="InputSettings" xml:space="preserve">
         <value>输入窗口设置</value>
@@ -1080,7 +1086,7 @@
     <value>实时识别与浮窗字幕</value>
   </data>
   <data name="HomeQuickTextAssistHint" xml:space="preserve">
-    <value>划词翻译与纠错</value>
+    <value>翻译选中的文本</value>
   </data>
   <data name="HomeQuickShortcutHint" xml:space="preserve">
     <value>配置全局热键</value>
@@ -1146,4 +1152,27 @@
   <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>支持 {0} 种语言</value></data>
   <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>查看全部支持语言</value></data>
   <data name="Action_ScreenshotOcr" xml:space="preserve"><value>截图 OCR</value></data>
+  <data name="ScreenshotOcr_PinTooltip" xml:space="preserve"><value>固定在屏幕上</value></data>
+  <data name="ScreenshotOcr_CopySelectionTooltip" xml:space="preserve"><value>复制选中文本</value></data>
+  <data name="ScreenshotOcr_TranslateSelectionTooltip" xml:space="preserve"><value>翻译选中文本</value></data>
+  <data name="ScreenshotOcr_ExplainSelectionTooltip" xml:space="preserve"><value>使用 AI 解释</value></data>
+  <data name="ScreenshotOcr_ReplaceSelectionTooltip" xml:space="preserve"><value>替换为翻译</value></data>
+  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>替换</value></data>
+  <data name="ScreenshotOcr_ZoomOutTooltip" xml:space="preserve"><value>缩小</value></data>
+  <data name="ScreenshotOcr_ZoomInTooltip" xml:space="preserve"><value>放大</value></data>
+  <data name="ScreenshotOcr_OpenImageTooltip" xml:space="preserve"><value>打开图片</value></data>
+  <data name="ScreenshotOcr_RecaptureTooltip" xml:space="preserve"><value>重新截图</value></data>
+  <data name="ScreenshotOcr_CopyImageTooltip" xml:space="preserve"><value>复制当前图片</value></data>
+  <data name="ScreenshotOcr_UndoTooltip" xml:space="preserve"><value>撤销</value></data>
+  <data name="ScreenshotOcr_RedoTooltip" xml:space="preserve"><value>重做</value></data>
+  <data name="ScreenshotOcr_RestoreTooltip" xml:space="preserve"><value>恢复原图</value></data>
+  <data name="ScreenshotOcr_Recognizing" xml:space="preserve"><value>正在识别文字...</value></data>
+  <data name="ScreenshotOcr_RecognizedText" xml:space="preserve"><value>识别文本</value></data>
+  <data name="ScreenshotOcr_CharacterCount" xml:space="preserve"><value>{0:N0} 个字符</value></data>
+  <data name="ScreenshotOcr_RetryTooltip" xml:space="preserve"><value>重试 OCR</value></data>
+  <data name="ScreenshotOcr_CopyTextTooltip" xml:space="preserve"><value>复制文本</value></data>
+  <data name="ScreenshotOcr_TranslateTextTooltip" xml:space="preserve"><value>翻译文本</value></data>
+  <data name="ScreenshotOcr_ShowOriginalTooltip" xml:space="preserve"><value>显示原文</value></data>
+  <data name="ScreenshotOcr_OpenImageDialogTitle" xml:space="preserve"><value>打开用于 OCR 的图片</value></data>
+  <data name="ScreenshotOcr_ImageFileType" xml:space="preserve"><value>图片</value></data>
 </root>

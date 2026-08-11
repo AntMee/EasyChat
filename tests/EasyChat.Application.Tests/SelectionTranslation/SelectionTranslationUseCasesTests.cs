@@ -38,6 +38,7 @@ public sealed class SelectionTranslationUseCasesTests
         Assert.AreEqual("first", settings.Current.SelectionTranslation.AiModelId);
         Assert.IsNotNull(factory.Chat.LastRequest);
         Assert.Contains("# Forced dictionary lookup", factory.Chat.LastRequest.SystemPrompt);
+        Assert.Contains("Preserve the source text's paragraph and line-break structure", factory.Chat.LastRequest.SystemPrompt);
         Assert.AreEqual(0.3f, factory.Chat.LastRequest.Temperature);
         Assert.AreEqual(4000, factory.Chat.LastRequest.MaxOutputTokenCount);
         Assert.AreEqual(ChatReasoningEffort.Low, factory.Chat.LastRequest.ReasoningEffort);

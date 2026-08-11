@@ -122,23 +122,131 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
 
 namespace EasyChat.Presentation.Features.TextAssist.Views
 {
-    public partial class TextAssistWindowView : Window
+    public partial class TextAssistWindowView : ShadUI.Window
     {
+        private const double ResizeBorderThickness = 8;
+        private static readonly CornerRadius WindowCornerRadius = new(12);
+        private static readonly Cursor HorizontalResizeCursor = new(StandardCursorType.SizeWestEast);
+        private static readonly Cursor VerticalResizeCursor = new(StandardCursorType.SizeNorthSouth);
+        private static readonly Cursor TopLeftResizeCursor = new(StandardCursorType.TopLeftCorner);
+        private static readonly Cursor TopRightResizeCursor = new(StandardCursorType.TopRightCorner);
         private TextAssistViewModel? _viewModel;
         private ContentControl? _editorHost;
         private bool _correction;
 
-        public TextAssistWindowView() => InitializeComponent();
+        public TextAssistWindowView()
+        {
+            InitializeComponent();
+            // ShadUI 0.2.4 resets RootCornerRadius while applying its Windows template.
+            Opened += (_, _) => ApplyRootCornerRadius();
+            AddHandler(PointerPressedEvent, OnResizePointerPressed, RoutingStrategies.Tunnel);
+            PointerMoved += OnResizePointerMoved;
+            PointerExited += (_, _) => Cursor = null;
+            PropertyChanged += (_, args) =>
+            {
+                if (args.Property == WindowStateProperty && WindowState == WindowState.Normal)
+                    ApplyRootCornerRadius();
+            };
+        }
+
+        private void ApplyRootCornerRadius()
+        {
+            if (WindowState == WindowState.Normal)
+                RootCornerRadius = WindowCornerRadius;
+        }
+
+        private void OnResizePointerPressed(object? sender, PointerPressedEventArgs args)
+        {
+            if (!args.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+                || IsInteractivePointerSource(args.Source))
+                return;
+
+            var edge = GetResizeEdge(args.GetPosition(this));
+            if (edge is not { } resizeEdge)
+                return;
+
+            args.Handled = true;
+            BeginResizeDrag(resizeEdge, args);
+        }
+
+        private void OnResizePointerMoved(object? sender, PointerEventArgs args)
+        {
+            Cursor = IsInteractivePointerSource(args.Source)
+                ? null
+                : GetResizeCursor(GetResizeEdge(args.GetPosition(this)));
+        }
+
+        private bool IsInteractivePointerSource(object? source)
+        {
+            if (source is not Visual visual)
+                return false;
+
+            for (var current = visual; current is not null; current = current.GetVisualParent())
+            {
+                if (ReferenceEquals(current, this))
+                    return false;
+                if (current is InputElement { Focusable: true })
+                    return true;
+
+                var typeName = current.GetType().Name;
+                if (typeName.Contains("Popup", StringComparison.Ordinal)
+                    || typeName.Contains("Flyout", StringComparison.Ordinal)
+                    || typeName.Contains("Overlay", StringComparison.Ordinal)
+                    || typeName is "ColorPicker" or "ColorSpectrum" or "ColorSlider")
+                    return true;
+            }
+
+            // Native Popup/Flyout roots can be separate from the owner window.
+            return true;
+        }
+
+        private WindowEdge? GetResizeEdge(Point position)
+        {
+            if (!CanResize || WindowState != WindowState.Normal)
+                return null;
+
+            // Pointer events from a Popup/Flyout can still reach the window while
+            // their coordinates are outside this client area. They must not be
+            // interpreted as a request to resize the window edge.
+            if (position.X < 0 || position.Y < 0
+                || position.X >= Bounds.Width || position.Y >= Bounds.Height)
+                return null;
+
+            var left = position.X <= ResizeBorderThickness;
+            var right = position.X >= Bounds.Width - ResizeBorderThickness;
+            var top = position.Y <= ResizeBorderThickness;
+            var bottom = position.Y >= Bounds.Height - ResizeBorderThickness;
+
+            return (left, right, top, bottom) switch
+            {
+                (true, _, true, _) => WindowEdge.NorthWest,
+                (_, true, true, _) => WindowEdge.NorthEast,
+                (true, _, _, true) => WindowEdge.SouthWest,
+                (_, true, _, true) => WindowEdge.SouthEast,
+                (true, _, _, _) => WindowEdge.West,
+                (_, true, _, _) => WindowEdge.East,
+                (_, _, true, _) => WindowEdge.North,
+                (_, _, _, true) => WindowEdge.South,
+                _ => null
+            };
+        }
+
+        private static Cursor? GetResizeCursor(WindowEdge? edge) => edge switch
+        {
+            WindowEdge.West or WindowEdge.East => HorizontalResizeCursor,
+            WindowEdge.North or WindowEdge.South => VerticalResizeCursor,
+            WindowEdge.NorthWest or WindowEdge.SouthEast => TopLeftResizeCursor,
+            WindowEdge.NorthEast or WindowEdge.SouthWest => TopRightResizeCursor,
+            _ => null
+        };
 
         public TextAssistWindowView(TextAssistViewModel viewModel) : this()
         {
             _viewModel = viewModel;
             DataContext = viewModel;
-            viewModel.PropertyChanged += OnViewModelPropertyChanged;
             Loaded += OnLoaded;
             Closed += (_, _) =>
             {
-                viewModel.PropertyChanged -= OnViewModelPropertyChanged;
                 viewModel.Cancel();
             };
             KeyDown += (_, args) => { if (args.Key == Key.Escape) Close(); };
@@ -164,49 +272,16 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
             ApplyEditor();
         }
 
-        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName is nameof(TextAssistViewModel.SelectedTabIndex)
-                or nameof(TextAssistViewModel.IsCorrectionMode)
-                or nameof(TextAssistViewModel.IsTranslationMode))
-            {
-                _correction = _viewModel?.IsCorrectionMode == true;
-                ApplyEditor();
-            }
-        }
-
         private void ApplyEditor()
         {
             if (_editorHost is null || _viewModel is null) return;
-            var wantCorrection = _viewModel.IsCorrectionMode || _correction;
-            // Avoid rebuilding the same editor on every property noise.
-            if (_editorHost.Content is TextAssistCorrectionView && wantCorrection)
-                return;
-            if (_editorHost.Content is TextAssistTranslationView && !wantCorrection)
-                return;
-            _editorHost.Content = wantCorrection
-                ? new TextAssistCorrectionView { DataContext = _viewModel.Correction, Classes = { "Compact" } }
-                : new TextAssistTranslationView { DataContext = _viewModel.Translation, Classes = { "Compact" } };
+            _editorHost.Margin = _correction
+                ? new Thickness(25)
+                : new Thickness(24, 20, 24, 20);
+            _editorHost.Content = _correction
+                ? new TextAssistCorrectionView { DataContext = _viewModel.Correction }
+                : new TextAssistTranslationView { DataContext = _viewModel.Translation };
         }
-
-        private void OnHeaderPointerPressed(object? sender, PointerPressedEventArgs e)
-        {
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
-        }
-
-        // Mode tabs live in the drag header; don't start a move drag on them.
-        private void OnHeaderChromePointerPressed(object? sender, PointerPressedEventArgs e) =>
-            e.Handled = true;
-
-        private void OnResizePointerPressed(object? sender, PointerPressedEventArgs e)
-        {
-            if (sender is Control { Tag: string edgeName }
-                && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-                && Enum.TryParse<WindowEdge>(edgeName, out var edge))
-                BeginResizeDrag(edge, e);
-        }
-
-        private void OnCloseClick(object? sender, RoutedEventArgs e) => Close();
     }
 
     public partial class TextAssistActionWindowView : Window
@@ -301,10 +376,21 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
                 return false;
             if (visual is InputElement { Focusable: true })
                 return true;
-            return visual.GetVisualAncestors()
-                .TakeWhile(ancestor => ancestor is not Window)
-                .OfType<InputElement>()
-                .Any(element => element.Focusable);
+
+            for (var current = visual; current is not null; current = current.GetVisualParent())
+            {
+                if (current is InputElement { Focusable: true })
+                    return true;
+
+                var typeName = current.GetType().Name;
+                if (typeName.Contains("Popup", StringComparison.Ordinal)
+                    || typeName.Contains("Flyout", StringComparison.Ordinal)
+                    || typeName.Contains("Overlay", StringComparison.Ordinal)
+                    || typeName is "ColorPicker" or "ColorSpectrum" or "ColorSlider")
+                    return true;
+            }
+
+            return false;
         }
 
         private void OnResizePointerPressed(object? sender, PointerPressedEventArgs e)

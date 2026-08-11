@@ -30,16 +30,23 @@
         <Style Selector="ToggleButton.SelectionActionCard:pressed">
             <Setter Property="Opacity" Value="0.86" />
         </Style>
+        <Style Selector="ToggleButton.SelectionActionCard.SearchResult">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
     </UserControl.Styles>
     <!-- No nested surface — parent SettingView already provides the detail card. -->
     <StackPanel
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch" Spacing="0">
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='selection translation enable selection 划词工具栏 翻译 启用'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='selection translation enable 划词 启用'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.SelectionTranslation}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -54,6 +61,7 @@
                                   Margin="0,0,8,0" />
                 </ContentControl>
             </Grid>
+            </Border>
 
             <!-- Capability tiles — same icons as the floating selection toolbar -->
             <StackPanel Margin="8,4,8,8"
@@ -66,6 +74,8 @@
                 <UniformGrid Columns="2" Rows="3">
                     <ToggleButton
                                   Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='translate translation 翻译'}"
                                   IsChecked="{Binding SelectionTranslationConf.TranslationEnabled}"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
@@ -95,6 +105,8 @@
 
                     <ToggleButton
                                   Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='correct correction 纠错 纠正'}"
                                   IsChecked="{Binding SelectionTranslationConf.CorrectionEnabled}"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
@@ -124,6 +136,8 @@
 
                     <ToggleButton
                                   Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='polish 润色'}"
                                   IsChecked="{Binding SelectionTranslationConf.PolishEnabled}"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
@@ -153,6 +167,8 @@
 
                     <ToggleButton
                                   Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='summary 总结'}"
                                   IsChecked="{Binding SelectionTranslationConf.SummaryEnabled}"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
@@ -181,6 +197,8 @@
                     </ToggleButton>
                     <ToggleButton
                                   Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='explanation explain 解释 说明'}"
                                   IsChecked="{Binding SelectionTranslationConf.ExplanationEnabled}"
                                   HorizontalAlignment="Stretch"
                                   HorizontalContentAlignment="Stretch"
@@ -210,11 +228,14 @@
                 </UniformGrid>
             </StackPanel>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='trigger double drag selection trigger 取词方式 触发 双击 拖选'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='trigger double drag 触发 双击 拖选'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.SelectionTriggerMode}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -236,12 +257,16 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='engine ai machine translation engine 引擎 翻译'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='engine ai machine 引擎'}">
+                  >
                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <TextBlock Text="{x:Static lang:Resources.TransEngine}"
                                Classes="Small"
@@ -280,7 +305,11 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='using ai model ai model 大模型 AI 模型'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
@@ -313,7 +342,11 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='machine translation machine provider machine translation 机器翻译'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
@@ -350,12 +383,16 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='prompt prompts prompt 提示词'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='prompt 提示词'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.Prompts}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -376,5 +413,6 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
     </StackPanel>
 </UserControl>

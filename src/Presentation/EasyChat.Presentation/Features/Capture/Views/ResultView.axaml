@@ -42,9 +42,9 @@
                 Background="{DynamicResource DialogBackgroundColor}"
                 ClipToBounds="True"
                 CornerRadius="{DynamicResource LgCornerRadius}"
-                Padding="16">
+                Padding="5">
             <Grid MinWidth="160" MinHeight="44">
-                <Panel Margin="16,14,16,10">
+                <Panel Margin="10,8,10,6">
                     <shad:Loading x:Name="LoadingIndicator"
                                   Width="28" Height="28"
                                   Foreground="{DynamicResource PrimaryColor}"

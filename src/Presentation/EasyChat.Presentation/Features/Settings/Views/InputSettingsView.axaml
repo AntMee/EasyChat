@@ -8,7 +8,6 @@
              xmlns:converts="clr-namespace:EasyChat.Presentation.Features.Settings;assembly=EasyChat.Presentation"
              xmlns:formatting="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
     <UserControl.Resources>
@@ -16,22 +15,17 @@
         <converts:DeliveryModeToBoolConverter x:Key="DeliveryModeToBoolConverter" />
         <converts:DeliveryModeToStringConverter x:Key="DeliveryModeToStringConverter" />
     </UserControl.Resources>
-    <UserControl.Styles>
-        <Style Selector="FlyoutPresenter.ColorPickerFlyout">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-        </Style>
-    </UserControl.Styles>
-
     <StackPanel
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch" Spacing="0">
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='transparency level acrylic blur 透明度级别 透明度 透明'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='transparency acrylic blur 透明'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.TransparencyLevel}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -45,12 +39,16 @@
                               HorizontalAlignment="Stretch" />
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='background color 背景颜色 背景'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='background color 背景'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.BackgroundColor}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -59,38 +57,21 @@
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <TextBox Text="{Binding InputConf.BackgroundColor}"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Center" />
-                        <Button Grid.Column="1"
-                                Classes="Icon"
-                                VerticalAlignment="Center"
-                                BorderThickness="2"
-                                BorderBrush="{DynamicResource BorderColor60}">
-                            <Button.Background>
-                                <SolidColorBrush Color="{Binding InputConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}" />
-                            </Button.Background>
-                            <Button.Flyout>
-                                <Flyout Placement="Bottom"
-                                        ShowMode="Standard"
-                                        FlyoutPresenterClasses="ColorPickerFlyout">
-                                    <shad:Card HasShadow="True">
-                                        <ColorView Color="{Binding InputConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}}"
-                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
-                                    </shad:Card>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                    </Grid>
+                    <ColorPicker Color="{Binding InputConf.BackgroundColor, Converter={StaticResource ColorToHexConverter}, Mode=TwoWay}"
+                                 IsAlphaEnabled="True"
+                                 HorizontalAlignment="Stretch" />
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font color 字体颜色 字体 颜色'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='font color 字体 颜色'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.FontColor}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -99,38 +80,21 @@
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                        <TextBox Text="{Binding InputConf.FontColor}"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Center" />
-                        <Button Grid.Column="1"
-                                Classes="Icon"
-                                VerticalAlignment="Center"
-                                BorderThickness="2"
-                                BorderBrush="{DynamicResource BorderColor60}">
-                            <Button.Background>
-                                <SolidColorBrush Color="{Binding InputConf.FontColor, Converter={StaticResource ColorToHexConverter}}" />
-                            </Button.Background>
-                            <Button.Flyout>
-                                <Flyout Placement="Bottom"
-                                        ShowMode="Standard"
-                                        FlyoutPresenterClasses="ColorPickerFlyout">
-                                    <shad:Card HasShadow="True">
-                                        <ColorView Color="{Binding InputConf.FontColor, Converter={StaticResource ColorToHexConverter}}"
-                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring" />
-                                    </shad:Card>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                    </Grid>
+                    <ColorPicker Color="{Binding InputConf.FontColor, Converter={StaticResource ColorToHexConverter}, Mode=TwoWay}"
+                                 IsAlphaEnabled="True"
+                                 HorizontalAlignment="Stretch" />
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='input delivery mode delivery paste type message 文本投递模式 投递 粘贴 消息'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='delivery paste type message 投递 粘贴'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.InputDeliveryMode}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -150,7 +114,11 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='key send delay delay key 按键发送延迟 发送 延迟'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
@@ -177,12 +145,16 @@
                     </Grid>
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='reverse translate language reverse language 反向翻译(输入) 反向翻译 输入 反转 翻译 语言'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='reverse translate language 反转 语向'}">
+                  >
                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <TextBlock Text="{x:Static lang:Resources.ReverseTranslateLanguage}"
                                Classes="Small"
@@ -210,5 +182,6 @@
                                   HorizontalAlignment="Left" />
                 </ContentControl>
             </Grid>
+            </Border>
     </StackPanel>
 </UserControl>

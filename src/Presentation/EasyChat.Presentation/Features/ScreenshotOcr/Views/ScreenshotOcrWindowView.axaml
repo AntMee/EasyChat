@@ -2,22 +2,29 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:vm="using:EasyChat.Presentation.Features.ScreenshotOcr"
                  xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+                 xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
                  xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
                  xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
                  xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
                  x:Class="EasyChat.Presentation.Features.ScreenshotOcr.Views.ScreenshotOcrWindowView"
                  x:DataType="vm:ScreenshotOcrWindowViewModel"
-                 Title="Screenshot OCR"
+                  Title="{x:Static lang:Resources.Action_ScreenshotOcr}"
                  Width="1200" Height="720" MinWidth="900" MinHeight="560"
                  Foreground="{DynamicResource ForegroundColor}"
                  CanResize="True"
                  IsTitleBarVisible="True"
                  ShowTitlebarBackground="True"
-                 RootCornerRadius="10"
+                  RootCornerRadius="12"
+                  ShowBottomBorder="True"
+                  TransparencyLevelHint="Transparent"
+                 WindowDecorations="None"
                  ShowActivated="True"
                  WindowStartupLocation="CenterScreen">
     <shad:Window.LogoContent>
-        <Border Width="24" Height="24" CornerRadius="5"
+        <Border Width="28" Height="28"
+                Margin="14,0,0,0"
+                CornerRadius="8"
+                VerticalAlignment="Center"
                 Background="{DynamicResource PrimaryColor10}">
             <icons:MaterialIcon Kind="TextRecognition" Width="16" Height="16"
                                 Foreground="{DynamicResource PrimaryColor}"
@@ -26,10 +33,11 @@
     </shad:Window.LogoContent>
 
     <shad:Window.RightWindowTitleBarContent>
-        <Button x:Name="PinButton" Classes="Basic"
+        <Button x:Name="PinButton" Classes="Icon"
                 Width="32" Height="32" Padding="0"
+                Margin="0,0,4,0"
                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                Click="Pin_OnClick" ToolTip.Tip="Pin on screen">
+                Click="Pin_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_PinTooltip}">
             <icons:MaterialIcon x:Name="PinIcon" Kind="PinOutline" Width="16" Height="16" />
         </Button>
     </shad:Window.RightWindowTitleBarContent>
@@ -39,6 +47,12 @@
     </shad:Window.Hosts>
 
     <shad:Window.Styles>
+        <Style Selector="shad|Window /template/ Border#RootBorder">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Margin" Value="1" />
+        </Style>
         <Style Selector="Button.ToolButton">
             <Setter Property="Width" Value="34" />
             <Setter Property="Height" Value="32" />
@@ -56,48 +70,40 @@
 
     <Grid>
         <Border x:Name="MainSurface"
-                CornerRadius="10"
-                ClipToBounds="True"
-                Background="{DynamicResource WindowBackgroundColor}"
-                BorderBrush="{DynamicResource BorderColor}"
-                BorderThickness="1">
+                Background="{DynamicResource WindowBackgroundColor}">
             <Grid ColumnDefinitions="*,8,*" Background="{DynamicResource WindowBackgroundColor}">
                     <Grid Grid.Column="0" Margin="10,10,4,10">
-                        <Border CornerRadius="7" ClipToBounds="True"
-                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
-                            <controls:OcrImageViewport x:Name="Viewport"
-                                                       IsSelectionBusy="{Binding IsEditingImage}" />
-                        </Border>
+                        <controls:OcrImageViewport x:Name="Viewport"
+                                                   IsSelectionBusy="{Binding IsEditingImage}" />
 
                         <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14"
                                 Padding="4" CornerRadius="7"
                                 Background="{DynamicResource CardBackgroundColor}"
-                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
                                 IsEnabled="{Binding !IsEditingImage}"
                                 IsVisible="{Binding HasSelection}">
                             <StackPanel Orientation="Horizontal" Spacing="2">
-                                <Button Classes="ContextButton" Click="CopySelection_OnClick" ToolTip.Tip="Copy selected text">
+                                <Button Classes="ContextButton" Click="CopySelection_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_CopySelectionTooltip}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
-                                        <TextBlock Text="Copy" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Static lang:Resources.Copy}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
-                                <Button Classes="ContextButton" Click="TranslateSelection_OnClick" ToolTip.Tip="Translate selection">
+                                <Button Classes="ContextButton" Click="TranslateSelection_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_TranslateSelectionTooltip}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <icons:MaterialIcon Kind="Translate" Width="16" Height="16" />
-                                        <TextBlock Text="Translate" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Static lang:Resources.TextAssistTranslate}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
-                                <Button Classes="ContextButton" Click="ExplainSelection_OnClick" ToolTip.Tip="Explain with AI">
+                                <Button Classes="ContextButton" Click="ExplainSelection_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ExplainSelectionTooltip}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <icons:MaterialIcon Kind="LightbulbOnOutline" Width="16" Height="16" />
-                                        <TextBlock Text="Explain" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Static lang:Resources.TextAssistExplain}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
-                                <Button Classes="ContextButton" Click="ReplaceSelection_OnClick" ToolTip.Tip="Replace with translation">
+                                <Button Classes="ContextButton" Click="ReplaceSelection_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ReplaceSelectionTooltip}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <icons:MaterialIcon Kind="ImageEditOutline" Width="16" Height="16" />
-                                        <TextBlock Text="Replace" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Static lang:Resources.ScreenshotOcr_Replace}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -105,34 +111,33 @@
 
                         <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="14"
                                 Padding="4" CornerRadius="7"
-                                Background="{DynamicResource CardBackgroundColor}"
-                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                                Background="{DynamicResource CardBackgroundColor}">
                             <StackPanel Orientation="Horizontal" Spacing="1">
-                                <Button Classes="ToolButton" Click="ZoomOut_OnClick" ToolTip.Tip="Zoom out">
+                                <Button Classes="ToolButton" Click="ZoomOut_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ZoomOutTooltip}">
                                     <icons:MaterialIcon Kind="MagnifyMinusOutline" Width="18" Height="18" />
                                 </Button>
                                 <TextBlock Width="50" Text="{Binding ZoomText}" TextAlignment="Center" VerticalAlignment="Center" />
-                                <Button Classes="ToolButton" Click="ZoomIn_OnClick" ToolTip.Tip="Zoom in">
+                                <Button Classes="ToolButton" Click="ZoomIn_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ZoomInTooltip}">
                                     <icons:MaterialIcon Kind="MagnifyPlusOutline" Width="18" Height="18" />
                                 </Button>
                                 <Border Width="1" Margin="4,6" Background="{DynamicResource BorderColor}" />
-                                <Button Classes="ToolButton" Click="OpenImage_OnClick" ToolTip.Tip="Open image">
+                                <Button Classes="ToolButton" Click="OpenImage_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_OpenImageTooltip}">
                                     <icons:MaterialIcon Kind="FileImageOutline" Width="18" Height="18" />
                                 </Button>
-                                <Button Classes="ToolButton" Click="Recapture_OnClick" ToolTip.Tip="Capture again">
+                                <Button Classes="ToolButton" Click="Recapture_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_RecaptureTooltip}">
                                     <icons:MaterialIcon Kind="MonitorScreenshot" Width="18" Height="18" />
                                 </Button>
-                                <Button Classes="ToolButton" Click="CopyImage_OnClick" ToolTip.Tip="Copy current image">
+                                <Button Classes="ToolButton" Click="CopyImage_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_CopyImageTooltip}">
                                     <icons:MaterialIcon Kind="ImageMultipleOutline" Width="18" Height="18" />
                                 </Button>
                                 <Border Width="1" Margin="4,6" Background="{DynamicResource BorderColor}" />
-                                <Button Classes="ToolButton" Click="Undo_OnClick" ToolTip.Tip="Undo" IsEnabled="{Binding CanUndo}">
+                                <Button Classes="ToolButton" Click="Undo_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_UndoTooltip}" IsEnabled="{Binding CanUndo}">
                                     <icons:MaterialIcon Kind="Undo" Width="18" Height="18" />
                                 </Button>
-                                <Button Classes="ToolButton" Click="Redo_OnClick" ToolTip.Tip="Redo" IsEnabled="{Binding CanRedo}">
+                                <Button Classes="ToolButton" Click="Redo_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_RedoTooltip}" IsEnabled="{Binding CanRedo}">
                                     <icons:MaterialIcon Kind="Redo" Width="18" Height="18" />
                                 </Button>
-                                <Button Classes="ToolButton" Click="Restore_OnClick" ToolTip.Tip="Restore original">
+                                <Button Classes="ToolButton" Click="Restore_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_RestoreTooltip}">
                                     <icons:MaterialIcon Kind="BackupRestore" Width="18" Height="18" />
                                 </Button>
                             </StackPanel>
@@ -141,28 +146,31 @@
                         <Border Background="#73000000" CornerRadius="7" IsVisible="{Binding IsRecognizing}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
                                 <shad:Loading Width="34" Height="34" />
-                                <TextBlock Text="Recognizing text..." Foreground="White" FontSize="14" />
+                                <TextBlock Text="{x:Static lang:Resources.ScreenshotOcr_Recognizing}" Foreground="White" FontSize="14" />
                             </StackPanel>
                         </Border>
                     </Grid>
 
-                    <GridSplitter Grid.Column="1" Width="2" Margin="3,0"
+                    <GridSplitter Grid.Column="1" Width="1" Margin="3,0"
                                   Background="{DynamicResource BorderColor}"
                                   HorizontalAlignment="Stretch" ResizeDirection="Columns" />
 
-                    <shad:Card Grid.Column="2" Margin="4,10,10,10" HasShadow="False">
-                        <Grid RowDefinitions="Auto,*,Auto" Margin="14">
+                    <Grid Grid.Column="2"
+                          Margin="4,8,8,8"
+                          RowDefinitions="Auto,*,Auto">
                             <Grid>
                                 <StackPanel Spacing="2" VerticalAlignment="Center">
-                                    <TextBlock Text="Recognized text" Classes="Large" />
-                                    <TextBlock Text="{Binding SourceText.Length, StringFormat='{}{0:N0} characters'}"
-                                               Classes="Caption" Opacity="0.55" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{x:Static lang:Resources.ScreenshotOcr_RecognizedText}" FontSize="14" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding SourceText.Length, StringFormat={x:Static lang:Resources.ScreenshotOcr_CharacterCount}}"
+                                                   FontSize="11" Opacity="0.55" VerticalAlignment="Center" />
+                                    </StackPanel>
                                     <TextBlock Text="{Binding ErrorMessage}" Foreground="IndianRed"
-                                               Classes="Caption" TextWrapping="Wrap" MaxHeight="34" />
+                                               FontSize="11" TextWrapping="Wrap" MaxHeight="34" />
                                 </StackPanel>
                             </Grid>
 
-                            <Grid Grid.Row="1" Margin="0,12,0,0">
+                            <Grid Grid.Row="1" Margin="0,0,0,0">
                                 <TextBox Text="{Binding SourceText, Mode=TwoWay}"
                                          IsVisible="{Binding !IsShowingTranslation}"
                                          AcceptsReturn="True" TextWrapping="Wrap"
@@ -180,25 +188,24 @@
                                 </Border>
                             </Grid>
 
-                            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="4" Margin="0,10,0,0">
-                                <Button Grid.Column="0" Classes="ToolButton" Click="Retry_OnClick" ToolTip.Tip="Retry OCR">
+                            <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="4" Margin="0,8,0,0">
+                                <Button Grid.Column="0" Classes="ToolButton" Click="Retry_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_RetryTooltip}">
                                     <icons:MaterialIcon Kind="Refresh" Width="18" Height="18" />
                                 </Button>
-                                <Button Grid.Column="1" Classes="ToolButton" Click="CopyText_OnClick" ToolTip.Tip="Copy text">
+                                <Button Grid.Column="1" Classes="ToolButton" Click="CopyText_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_CopyTextTooltip}">
                                     <icons:MaterialIcon Kind="ContentCopy" Width="18" Height="18" />
                                 </Button>
-                                <Button Grid.Column="2" Classes="ToolButton" Click="TranslateText_OnClick" ToolTip.Tip="Translate text">
+                                <Button Grid.Column="2" Classes="ToolButton" Click="TranslateText_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_TranslateTextTooltip}">
                                     <icons:MaterialIcon Kind="Translate" Width="18" Height="18" />
                                 </Button>
-                                <Button Grid.Column="3" Classes="ToolButton" Click="ShowOriginal_OnClick" ToolTip.Tip="Show original text">
+                                <Button Grid.Column="3" Classes="ToolButton" Click="ShowOriginal_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ShowOriginalTooltip}">
                                     <icons:MaterialIcon Kind="TextBoxOutline" Width="18" Height="18" />
                                 </Button>
-                                <sharedControls:LanguageSelector Grid.Column="5" Width="178" Height="32"
+                                <sharedControls:LanguageSelector Grid.Column="5" Width="178" Height="36" MinHeight="36"
                                                               Languages="{Binding Languages}"
                                                               SelectedLanguage="{Binding CandidateLanguage, Mode=TwoWay}" />
                             </Grid>
-                        </Grid>
-                    </shad:Card>
+                    </Grid>
             </Grid>
         </Border>
     </Grid>

@@ -6,7 +6,32 @@ namespace EasyChat.Presentation.Tests;
 public sealed class HomeTabLayoutTests
 {
     [TestMethod]
+    public void HomeContent_UsesAutomaticVerticalScrolling()
+    {
+        var document = LoadHomeView();
+        var scrollViewer = document.Root!.Elements()
+            .Single(element => element.Name.LocalName == "ScrollViewer");
+
+        Assert.AreEqual("Auto", scrollViewer.Attribute("VerticalScrollBarVisibility")?.Value);
+        Assert.AreEqual("Disabled", scrollViewer.Attribute("HorizontalScrollBarVisibility")?.Value);
+        Assert.IsTrue(scrollViewer.Elements().Any(element => element.Name.LocalName == "Grid"));
+    }
+
+    [TestMethod]
     public void HomeEngineSwitch_UsesCompactTabControlPages()
+    {
+        var document = LoadHomeView();
+        var tabControl = document.Descendants()
+            .Single(element => element.Name.LocalName == "TabControl");
+
+        Assert.AreEqual("{Binding EngineTabIndex}", tabControl.Attribute("SelectedIndex")?.Value);
+        Assert.HasCount(2, tabControl.Elements().Where(element => element.Name.LocalName == "TabItem"));
+        Assert.IsFalse(document.Descendants().Any(element => element.Name.LocalName == "RadioButton"));
+        Assert.IsFalse(document.Descendants().Any(element => element.Name.LocalName == "Card"
+                                                            && element.Attribute("Padding")?.Value == "24"));
+    }
+
+    private static XDocument LoadHomeView()
     {
         var root = FindRepositoryRoot();
         var path = Path.Combine(
@@ -18,15 +43,7 @@ public sealed class HomeTabLayoutTests
             "Shell",
             "Views",
             "HomeView.axaml");
-        var document = XDocument.Load(path);
-        var tabControl = document.Descendants()
-            .Single(element => element.Name.LocalName == "TabControl");
-
-        Assert.AreEqual("{Binding EngineTabIndex}", tabControl.Attribute("SelectedIndex")?.Value);
-        Assert.HasCount(2, tabControl.Elements().Where(element => element.Name.LocalName == "TabItem"));
-        Assert.IsFalse(document.Descendants().Any(element => element.Name.LocalName == "RadioButton"));
-        Assert.IsFalse(document.Descendants().Any(element => element.Name.LocalName == "Card"
-                                                            && element.Attribute("Padding")?.Value == "24"));
+        return XDocument.Load(path);
     }
 
     private static string FindRepositoryRoot()

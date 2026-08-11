@@ -100,6 +100,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
                 this.RaisePropertyChanged(nameof(IsLanguageCategory));
                 this.RaisePropertyChanged(nameof(ActiveCategoryTitle));
                 this.RaisePropertyChanged(nameof(AddButtonLabel));
+                this.RaisePropertyChanged(nameof(EmptyStateMessage));
                 // Update the source collection before notifying visibility bindings.
                 // Otherwise the empty state and the list can remain out of sync when
                 // switching between a populated and an empty category.
@@ -137,6 +138,8 @@ namespace EasyChat.Presentation.Features.Shortcuts
             IsBasicCategory ? Resources.BasicShortcuts : Resources.LanguageShortcuts;
         public string AddButtonLabel =>
             IsBasicCategory ? Resources.AddBasicShortcut : Resources.AddLanguageShortcut;
+        public string EmptyStateMessage =>
+            IsBasicCategory ? Resources.HomeHealthShortcutTodo : Resources.LanguageShortcutEmptyState;
         public int ActiveShortcutCount => ActiveShortcuts.Count;
         public bool HasActiveShortcuts => ActiveShortcuts.Count > 0;
         public bool HasNoActiveShortcuts => !HasActiveShortcuts;

@@ -19,13 +19,6 @@
             <Setter Property="Padding" Value="0" />
         </Style>
 
-        <!-- ColorView's template creates the three mode tabs. Keep their icon headers
-             centered and wide enough to remain readable in the flyout. -->
-        <Style Selector="ColorView /template/ TabControl#PART_TabControl TabItem">
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="MinWidth" Value="72" />
-            <Setter Property="Padding" Value="12,4" />
-        </Style>
     </UserControl.Styles>
 
     <Panel>
@@ -86,8 +79,24 @@
                         Margin="0,0,0,8"
                         IsVisible="{Binding IsSupported}"
                         SelectedIndex="{Binding WorkspaceTabIndex}">
-                <TabItem Header="{x:Static lang:Resources.Tab_Recognition}" />
-                <TabItem Header="{x:Static lang:Resources.FloatingWindow}" />
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <avalonia:MaterialIcon Kind="Robot" Width="16" Height="16"
+                                                   Foreground="{DynamicResource PrimaryColor}" />
+                            <TextBlock Text="{x:Static lang:Resources.Tab_Recognition}" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </TabItem.Header>
+                </TabItem>
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <avalonia:MaterialIcon Kind="PictureInPictureBottomRight" Width="16" Height="16"
+                                                   Foreground="{DynamicResource PrimaryColor}" />
+                            <TextBlock Text="{x:Static lang:Resources.FloatingWindow}" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </TabItem.Header>
+                </TabItem>
             </TabControl>
 
             <Grid Grid.Row="2" IsVisible="{Binding IsSupported}">
@@ -182,6 +191,7 @@
                                                VerticalAlignment="Center"/>
                                     <Button Classes="Outline"
                                             Width="200"
+                                            Padding="8,4"
                                             HorizontalContentAlignment="Stretch"
                                             VerticalContentAlignment="Center">
                                         <Button.Flyout>
@@ -202,13 +212,13 @@
                                                             </Button>
                                                         </Grid>
                                                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="400">
-                                                            <ItemsControl ItemsSource="{Binding AudioSources}" Margin="6,0,6,8">
+                                                            <ItemsControl ItemsSource="{Binding AudioSources}" Margin="0">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
                                                                         <CheckBox IsChecked="{Binding IsSelected}"
                                                                                   HorizontalAlignment="Stretch"
                                                                                   Margin="0,2"
-                                                                                  Padding="8,6"
+                                                                                  Padding="6,4"
                                                                                   Background="Transparent"
                                                                                   CornerRadius="4">
                                                                             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -450,33 +460,11 @@
                                                    HorizontalAlignment="Stretch"/>
                                     <TextBlock Grid.Row="3" Classes="Small" Text="{x:Static lang:Resources.FontColor}"
                                                VerticalAlignment="Center" MinWidth="72"/>
-                                    <!-- Same column width as Combo/Numeric above; swatch docks right -->
-                                    <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                        <TextBox Text="{Binding PrimaryFontColor}"
-                                                 HorizontalAlignment="Stretch"
-                                                 VerticalAlignment="Center" />
-                                        <Button Grid.Column="1"
-                                                Classes="Icon"
-                                                Width="36"
-                                                Height="36"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
-                                            <Button.Flyout>
-                                                <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False"
-                                                               Background="Transparent"
-                                                               BorderBrush="Transparent"
-                                                               BorderThickness="0"
-                                                               CornerRadius="0"
-                                                               Padding="0">
-                                                        <ColorView HorizontalAlignment="Center"
-                                                                   Color="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
-                                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
-                                                    </shad:Card>
-                                                </Flyout>
-                                            </Button.Flyout>
-                                        </Button>
-                                    </Grid>
+                                    <ColorPicker Grid.Row="3"
+                                                 Grid.Column="1"
+                                                 Color="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                                 IsAlphaEnabled="True"
+                                                 HorizontalAlignment="Stretch" />
                                 </Grid>
                         </shad:Card>
 
@@ -514,32 +502,11 @@
                                                    HorizontalAlignment="Stretch"/>
                                     <TextBlock Grid.Row="3" Classes="Small" Text="{x:Static lang:Resources.FontColor}"
                                                VerticalAlignment="Center" MinWidth="72"/>
-                                    <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                        <TextBox Text="{Binding SecondaryFontColor}"
-                                                 HorizontalAlignment="Stretch"
-                                                 VerticalAlignment="Center" />
-                                        <Button Grid.Column="1"
-                                                Classes="Icon"
-                                                Width="36"
-                                                Height="36"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
-                                            <Button.Flyout>
-                                                <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False"
-                                                               Background="Transparent"
-                                                               BorderBrush="Transparent"
-                                                               BorderThickness="0"
-                                                               CornerRadius="0"
-                                                               Padding="0">
-                                                        <ColorView HorizontalAlignment="Center"
-                                                                   Color="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
-                                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
-                                                    </shad:Card>
-                                                </Flyout>
-                                            </Button.Flyout>
-                                        </Button>
-                                    </Grid>
+                                    <ColorPicker Grid.Row="3"
+                                                 Grid.Column="1"
+                                                 Color="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                                 IsAlphaEnabled="True"
+                                                 HorizontalAlignment="Stretch" />
                                 </Grid>
                         </shad:Card>
                     </Grid>
@@ -552,59 +519,15 @@
                         <UniformGrid Columns="2" Rows="4">
                                 <StackPanel Margin="0,0,20,14" Spacing="6">
                                     <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Window_Background}"/>
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                        <TextBox Text="{Binding BackgroundColor}"
+                                    <ColorPicker Color="{Binding BackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                                 IsAlphaEnabled="True"
                                                  HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="1"
-                                                Classes="Icon"
-                                                Width="36"
-                                                Height="36"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding BackgroundColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
-                                            <Button.Flyout>
-                                                <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False"
-                                                               Background="Transparent"
-                                                               BorderBrush="Transparent"
-                                                               BorderThickness="0"
-                                                               CornerRadius="0"
-                                                               Padding="0">
-                                                        <ColorView HorizontalAlignment="Center"
-                                                                   Color="{Binding BackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
-                                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
-                                                    </shad:Card>
-                                                </Flyout>
-                                            </Button.Flyout>
-                                        </Button>
-                                    </Grid>
                                 </StackPanel>
                                 <StackPanel Margin="0,0,0,14" Spacing="6">
                                     <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Subtitle_Background}"/>
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                        <TextBox Text="{Binding SubtitleBackgroundColor}"
+                                    <ColorPicker Color="{Binding SubtitleBackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                                 IsAlphaEnabled="True"
                                                  HorizontalAlignment="Stretch" />
-                                        <Button Grid.Column="1"
-                                                Classes="Icon"
-                                                Width="36"
-                                                Height="36"
-                                                VerticalAlignment="Center"
-                                                Background="{Binding SubtitleBackgroundColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" BorderThickness="2" BorderBrush="{DynamicResource BorderColor60}">
-                                            <Button.Flyout>
-                                                <Flyout Placement="Bottom" ShowMode="Standard">
-                                                    <shad:Card HasShadow="False"
-                                                               Background="Transparent"
-                                                               BorderBrush="Transparent"
-                                                               BorderThickness="0"
-                                                               CornerRadius="0"
-                                                               Padding="0">
-                                                        <ColorView HorizontalAlignment="Center"
-                                                                   Color="{Binding SubtitleBackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}}"
-                                                                   IsAlphaEnabled="True" ColorSpectrumShape="Ring"/>
-                                                    </shad:Card>
-                                                </Flyout>
-                                            </Button.Flyout>
-                                        </Button>
-                                    </Grid>
                                 </StackPanel>
 
                                 <StackPanel Margin="0,0,20,14" Spacing="6">

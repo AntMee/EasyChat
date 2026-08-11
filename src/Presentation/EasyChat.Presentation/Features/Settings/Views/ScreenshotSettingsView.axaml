@@ -17,11 +17,14 @@
     <StackPanel
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch" Spacing="0">
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='screenshot mode precise 截图模式 截图 模式'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='screenshot mode precise 截图 模式'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.ScreenshotMode}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -41,12 +44,16 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr recognition mode fast normal idle release OCR 模式 识别'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,8,8,0"
                   ColumnSpacing="16"
-                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr recognition mode fast normal idle release OCR recognition mode'}">
+                  >
                 <TextBlock Text="{x:Static lang:Resources.OcrRecognitionMode}"
                            Classes="Small"
                            VerticalAlignment="Center"
@@ -66,12 +73,17 @@
                     </ComboBox>
                 </ContentControl>
             </Grid>
+            </Border>
 
             <TextBlock Margin="8,2"
                        Classes="Muted"
                        TextWrapping="Wrap"
+                       IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr recognition mode fast normal idle release OCR 模式 识别'}"
                        Text="{Binding SelectedOcrRecognitionMode, Converter={StaticResource OcrRecognitionModeDescriptionConverter}}" />
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr idle timeout idle timeout close after idle 闲置关闭时间 闲置关闭 超时'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
                   Margin="8,2"
@@ -95,12 +107,17 @@
                                VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
+            </Border>
 
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='fixed area settings fixed area capture fixed area 固定区域设置 固定区域 截图'}">
             <Button Content="{x:Static lang:Resources.FixedAreaSettings}"
                     Command="{Binding ManageFixedAreasCommand}"
                     HorizontalAlignment="Stretch"
                     Classes="Outline"
                     Margin="8,8,8,0"
-                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='fixed area capture 固定区域'}" />
+                    />
+            </Border>
     </StackPanel>
 </UserControl>
