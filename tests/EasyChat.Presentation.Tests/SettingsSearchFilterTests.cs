@@ -25,7 +25,8 @@ public sealed class SettingsSearchFilterTests
     [TestMethod]
     public void Query_MatchesFieldKeywords_CaseInsensitive()
     {
-        Assert.IsTrue(SettingsSearch.Matches("OCR", SettingsSearch.GeneralFields));
+        Assert.IsTrue(SettingsSearch.Matches("OCR", SettingsSearch.ScreenshotFields));
+        Assert.IsTrue(SettingsSearch.Matches("ASR", SettingsSearch.SpeechFields));
         Assert.IsTrue(SettingsSearch.Matches("划词", SettingsSearch.SelectionFields));
         Assert.IsTrue(SettingsSearch.Matches("font", SettingsSearch.ResultFields));
         Assert.IsTrue(SettingsSearch.Matches("透明", SettingsSearch.InputFields));

@@ -4,10 +4,32 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
+             xmlns:formatting="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Features.Settings;assembly=EasyChat.Presentation"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
+        <UserControl.Styles>
+        <Style Selector="ProgressBar.ModelProgress">
+            <Setter Property="Height" Value="7" />
+            <Setter Property="MinHeight" Value="7" />
+            <Setter Property="MaxHeight" Value="7" />
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="ProgressBar.ModelProgress /template/ Border">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="ProgressBar.ModelProgress /template/ Rectangle">
+            <Setter Property="RadiusX" Value="4" />
+            <Setter Property="RadiusY" Value="4" />
+        </Style>
+    </UserControl.Styles>
     <UserControl.Resources>
         <converts:ScreenshotModeConverter x:Key="ScreenshotModeConverter" />
         <converts:OcrRecognitionModeConverter x:Key="OcrRecognitionModeConverter" />
@@ -83,6 +105,29 @@
 
             <Border Classes="SettingsSearchRow"
                     Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='close previous OCR window single window new recognition auto close close previous 关闭上一个 OCR 窗口 单窗口 自动关闭'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,8,8,0"
+                  ColumnSpacing="16">
+                <TextBlock Text="{x:Static lang:Resources.ScreenshotOcrClosePreviousWindow}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ToggleSwitch IsChecked="{Binding ScreenshotConf.ClosePreviousOcrWindow}"
+                                  OnContent="" OffContent=""
+                                  HorizontalAlignment="Right"
+                                  Margin="0,0,8,0" />
+                </ContentControl>
+            </Grid>
+            </Border>
+
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
                     IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr idle timeout idle timeout close after idle 闲置关闭时间 闲置关闭 超时'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"
@@ -119,5 +164,120 @@
                     Margin="8,8,8,0"
                     />
             </Border>
-    </StackPanel>
+
+        <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
+        <StackPanel Margin="12,6,12,10" Spacing="2"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import download delete OCR 模型 下载 删除'}">
+            <TextBlock Classes="Caption" FontWeight="Bold"
+                       Text="{x:Static lang:Resources.OcrModels}" />
+            <TextBlock Classes="Muted"
+                       TextWrapping="Wrap"
+                       Text="{x:Static lang:Resources.OcrModelsDescription}" />
+        </StackPanel>
+
+        <ItemsControl
+                      ItemsSource="{Binding VisibleOcrModelItems}"
+                      Margin="4,4,4,0"
+                      IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import download delete OCR 模型 下载 删除 模型 导入 删除'}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="viewModels:OcrModelDownloadItemViewModel">
+                    <shad:Card HasShadow="False"
+                            Padding="10,8"
+                            Margin="0,0,0,6"
+                            HorizontalAlignment="Stretch">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                            <StackPanel Spacing="4">
+                                <TextBlock FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ForegroundColor}"
+                                           Text="{Binding DisplayName}" />
+                                <TextBlock Classes="Muted"
+                                           Text="{Binding Description}"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                <TextBlock Classes="Muted"
+                                           Text="{Binding SupportedLanguagesSummary}"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding IsSupportedLanguageListInline}" />
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="2"
+                                            IsVisible="{Binding IsSupportedLanguageListCompact}">
+                                    <TextBlock VerticalAlignment="Center"
+                                               Classes="Muted"
+                                               Text="{Binding SupportedLanguagesSummary}" />
+                                    <Button Classes="Icon"
+                                            Width="28" Height="28"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).ShowOcrModelLanguagesCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="{x:Static lang:Resources.ViewOcrSupportedLanguages}">
+                                        <avalonia:MaterialIcon Kind="HelpCircleOutline"
+                                                               Width="16"
+                                                               Height="16" />
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Classes="Muted"
+                                               Foreground="{DynamicResource MutedColor}"
+                                               Text="{Binding StatusText}" />
+                                    <TextBlock Classes="Muted"
+                                               Text="{Binding ProgressText}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="4"
+                                        VerticalAlignment="Center">
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DownloadOcrModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{Binding ActionText}"
+                                        IsVisible="{Binding IsActionVisible}">
+                                    <avalonia:MaterialIcon Kind="Download" Width="16" Height="16" />
+                                </Button>
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).CancelOcrModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static lang:Resources.Cancel}"
+                                        IsVisible="{Binding IsCancelVisible}">
+                                    <avalonia:MaterialIcon Kind="Cancel" Width="16" Height="16" />
+                                </Button>
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DeleteOcrModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static lang:Resources.Delete}"
+                                        IsVisible="{Binding IsDeleteVisible}">
+                                    <avalonia:MaterialIcon Kind="Delete" Width="16" Height="16"
+                                                           Foreground="{DynamicResource DestructiveColor}" />
+                                </Button>
+                            </StackPanel>
+                            <ProgressBar Grid.Row="1" Grid.ColumnSpan="2"
+                                         Classes="ModelProgress"
+                                         Minimum="0" Maximum="1"
+                                         Value="{Binding Progress}"
+                                         Height="6"
+                                         IsVisible="{Binding IsProgressVisible}"
+                                         IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                            <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
+                                       Classes="Muted"
+                                       Text="{Binding ErrorMessage}"
+                                       IsVisible="{Binding IsFailed}"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </shad:Card>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import download delete OCR 模型 下载 删除 模型 导入 删除'}">
+        <Button HorizontalAlignment="Center"
+                Classes="Icon"
+                Command="{Binding ToggleOcrModelListCommand}"
+                ToolTip.Tip="{Binding OcrModelListToggleText}"
+                IsVisible="{Binding IsOcrModelListToggleVisible}">
+            <avalonia:MaterialIcon Kind="{Binding OcrModelListToggleIcon}" />
+        </Button>
+        </Border>
+
+</StackPanel>
 </UserControl>

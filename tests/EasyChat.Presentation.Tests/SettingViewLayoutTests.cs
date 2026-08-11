@@ -31,7 +31,7 @@ public sealed class SettingViewLayoutTests
     }
 
     [TestMethod]
-    public void GeneralSettings_AsrModelsUseCollapsibleListBindings()
+    public void SpeechSettings_AsrModelsUseCollapsibleListBindings()
     {
         var root = FindRepositoryRoot();
         var path = Path.Combine(
@@ -42,7 +42,7 @@ public sealed class SettingViewLayoutTests
             "Features",
             "Settings",
             "Views",
-            "GeneralSettingsView.axaml");
+            "SpeechSettingsView.axaml");
         var document = XDocument.Load(path);
 
         var modelList = document.Descendants()
@@ -62,7 +62,7 @@ public sealed class SettingViewLayoutTests
     }
 
     [TestMethod]
-    public void GeneralSettings_CompactOcrLanguagesOpenDetailsDialog()
+    public void ScreenshotSettings_CompactOcrLanguagesOpenDetailsDialog()
     {
         var root = FindRepositoryRoot();
         var path = Path.Combine(
@@ -73,7 +73,7 @@ public sealed class SettingViewLayoutTests
             "Features",
             "Settings",
             "Views",
-            "GeneralSettingsView.axaml");
+            "ScreenshotSettingsView.axaml");
         var document = XDocument.Load(path);
 
         var detailsButton = document.Descendants()
@@ -129,6 +129,35 @@ public sealed class SettingViewLayoutTests
         Assert.IsFalse(document.Descendants().Any(element =>
             element.Name.LocalName == "CheckBox"
             && element.Attribute("IsChecked")?.Value == "{Binding OcrConf.UseProxy}"));
+    }
+
+    [TestMethod]
+    public void ScreenshotSettings_ExposeClosePreviousOcrWindowToggle()
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views",
+            "ScreenshotSettingsView.axaml");
+        var document = XDocument.Load(path);
+
+        var toggle = document.Descendants()
+            .Single(element => element.Name.LocalName == "ToggleSwitch"
+                               && element.Attribute("IsChecked")?.Value
+                                   == "{Binding ScreenshotConf.ClosePreviousOcrWindow}");
+        var label = document.Descendants()
+            .Single(element => element.Name.LocalName == "TextBlock"
+                               && element.Attribute("Text")?.Value
+                                   == "{x:Static lang:Resources.ScreenshotOcrClosePreviousWindow}");
+
+        Assert.AreEqual("", toggle.Attribute("OnContent")?.Value);
+        Assert.AreEqual("", toggle.Attribute("OffContent")?.Value);
+        Assert.AreEqual("Wrap", label.Attribute("TextWrapping")?.Value);
     }
 
     [TestMethod]

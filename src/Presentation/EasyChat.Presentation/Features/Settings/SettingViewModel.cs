@@ -149,8 +149,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
             new(SettingsPaneId.General, Resources.General, MaterialIconKind.Cog, SettingsSearch.GeneralSearchFields),
             new(SettingsPaneId.Translation, Resources.Translation, MaterialIconKind.Translate, SettingsSearch.TranslationFields),
             new(SettingsPaneId.Selection, Resources.SelectionToolbarSettings, MaterialIconKind.CursorDefault, SettingsSearch.SelectionFields),
-            new(SettingsPaneId.Tts, Resources.Tts, MaterialIconKind.VolumeHigh, SettingsSearch.TtsFields),
-            new(SettingsPaneId.Screenshot, Resources.ScreenshotMode, MaterialIconKind.Monitor, SettingsSearch.ScreenshotFields),
+            new(SettingsPaneId.Speech, Resources.Speech, MaterialIconKind.VolumeHigh, SettingsSearch.SpeechFields),
+            new(SettingsPaneId.Screenshot, Resources.Screenshot, MaterialIconKind.Monitor, SettingsSearch.ScreenshotFields),
             new(SettingsPaneId.Result, Resources.ResultSettings, MaterialIconKind.DockWindow, SettingsSearch.ResultFields),
             new(SettingsPaneId.Input, Resources.InputSettings, MaterialIconKind.Keyboard, SettingsSearch.InputFields)
         ];
@@ -235,7 +235,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         {
             EasyChat.Presentation.Features.Shell.SettingsPane.Translation => SettingsPaneId.Translation,
             EasyChat.Presentation.Features.Shell.SettingsPane.Selection => SettingsPaneId.Selection,
-            EasyChat.Presentation.Features.Shell.SettingsPane.Tts => SettingsPaneId.Tts,
+            EasyChat.Presentation.Features.Shell.SettingsPane.Speech => SettingsPaneId.Speech,
             EasyChat.Presentation.Features.Shell.SettingsPane.Screenshot => SettingsPaneId.Screenshot,
             EasyChat.Presentation.Features.Shell.SettingsPane.Result => SettingsPaneId.Result,
             EasyChat.Presentation.Features.Shell.SettingsPane.Input => SettingsPaneId.Input,
@@ -393,12 +393,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
     // of the field-level settings search. Keep the page available in browse mode.
     public bool ShowTranslationSection => IsBrowseMode && ActivePane == SettingsPaneId.Translation;
     public bool ShowSelectionSection => IsSectionVisible(SettingsPaneId.Selection, Resources.SelectionToolbarSettings, SettingsSearch.SelectionFields);
-    public bool ShowTtsSection => IsSectionVisible(SettingsPaneId.Tts, Resources.Tts, SettingsSearch.TtsFields);
-    public bool ShowScreenshotSection => IsSectionVisible(SettingsPaneId.Screenshot, Resources.ScreenshotMode, SettingsSearch.ScreenshotFields);
+    public bool ShowSpeechSection => IsSectionVisible(SettingsPaneId.Speech, Resources.Speech, SettingsSearch.SpeechFields);
+    public bool ShowScreenshotSection => IsSectionVisible(SettingsPaneId.Screenshot, Resources.Screenshot, SettingsSearch.ScreenshotFields);
     public bool ShowResultSection => IsSectionVisible(SettingsPaneId.Result, Resources.ResultSettings, SettingsSearch.ResultFields);
     public bool ShowInputSection => IsSectionVisible(SettingsPaneId.Input, Resources.InputSettings, SettingsSearch.InputFields);
     public bool HasSearchResults =>
-        ShowGeneralSection || ShowTranslationSection || ShowSelectionSection || ShowTtsSection
+        ShowGeneralSection || ShowTranslationSection || ShowSelectionSection || ShowSpeechSection
         || ShowScreenshotSection || ShowResultSection || ShowInputSection;
     public bool ShowNoSearchResults => IsSearchMode && !HasSearchResults;
 
@@ -414,7 +414,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         this.RaisePropertyChanged(nameof(ShowGeneralSection));
         this.RaisePropertyChanged(nameof(ShowTranslationSection));
         this.RaisePropertyChanged(nameof(ShowSelectionSection));
-        this.RaisePropertyChanged(nameof(ShowTtsSection));
+        this.RaisePropertyChanged(nameof(ShowSpeechSection));
         this.RaisePropertyChanged(nameof(ShowScreenshotSection));
         this.RaisePropertyChanged(nameof(ShowResultSection));
         this.RaisePropertyChanged(nameof(ShowInputSection));
@@ -1015,7 +1015,7 @@ public enum SettingsPaneId
     General,
     Translation,
     Selection,
-    Tts,
+    Speech,
     Screenshot,
     Result,
     Input

@@ -243,20 +243,20 @@
                                 <settings:SelectionTranslationSettingsView DataContext="{Binding}" />
                             </StackPanel>
 
-                            <StackPanel Spacing="10" IsVisible="{Binding ShowTtsSection}">
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowSpeechSection}">
                                 <TextBlock Classes="Caption"
                                            FontWeight="Bold"
                                            Margin="2,4,0,2"
-                                           Text="{x:Static lang:Resources.Tts}"
+                                           Text="{x:Static lang:Resources.Speech}"
                                            IsVisible="{Binding IsSearchMode}" />
-                                <settings:TtsSettingsView DataContext="{Binding}" />
+                                <settings:SpeechSettingsView DataContext="{Binding}" />
                             </StackPanel>
 
                             <StackPanel Spacing="10" IsVisible="{Binding ShowScreenshotSection}">
                                 <TextBlock Classes="Caption"
                                            FontWeight="Bold"
                                            Margin="2,4,0,2"
-                                           Text="{x:Static lang:Resources.ScreenshotMode}"
+                                           Text="{x:Static lang:Resources.Screenshot}"
                                            IsVisible="{Binding IsSearchMode}" />
                                 <settings:ScreenshotSettingsView DataContext="{Binding}" />
                             </StackPanel>

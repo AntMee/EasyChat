@@ -2238,6 +2238,15 @@ namespace EasyChat.Presentation.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Speech.
+        /// </summary>
+        public static string Speech {
+            get {
+                return ResourceManager.GetString("Speech", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Global (All System Audio).
         /// </summary>
         public static string Speech_AllSystemAudio {
@@ -3057,7 +3066,7 @@ namespace EasyChat.Presentation.Lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Provider:.
+        ///   Looks up a localized string similar to TTS Provider.
         /// </summary>
         public static string Tts_Provider {
             get {
@@ -3539,6 +3548,10 @@ namespace EasyChat.Presentation.Lang {
 
         public static string OcrIdleTimeout {
             get { return ResourceManager.GetString("OcrIdleTimeout", resourceCulture); }
+        }
+
+        public static string ScreenshotOcrClosePreviousWindow {
+            get { return ResourceManager.GetString("ScreenshotOcrClosePreviousWindow", resourceCulture); }
         }
 
         public static string Seconds {

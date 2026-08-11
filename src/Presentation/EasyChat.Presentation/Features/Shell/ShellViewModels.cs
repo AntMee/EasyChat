@@ -38,7 +38,7 @@ namespace EasyChat.Presentation.Features.Shell
         General,
         Translation,
         Selection,
-        Tts,
+        Speech,
         Screenshot,
         Result,
         Input

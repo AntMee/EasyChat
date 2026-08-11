@@ -26,8 +26,3 @@ public partial class TranslationSettingsView : UserControl
 {
     public TranslationSettingsView() => InitializeComponent();
 }
-
-public partial class TtsSettingsView : UserControl
-{
-    public TtsSettingsView() => InitializeComponent();
-}

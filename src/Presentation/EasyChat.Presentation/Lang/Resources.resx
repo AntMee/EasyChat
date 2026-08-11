@@ -845,7 +845,7 @@
         <value>TTS Voice Configuration</value>
     </data>
     <data name="Tts_Provider" xml:space="preserve">
-        <value>Provider:</value>
+        <value>TTS Provider</value>
     </data>
     <data name="Tts_NoVoicesConfigured" xml:space="preserve">
         <value>No voices configured. Click 'Add' to configure a voice for a language.</value>
@@ -882,6 +882,9 @@
     </data>
     <data name="Tts" xml:space="preserve">
         <value>TTS</value>
+    </data>
+    <data name="Speech" xml:space="preserve">
+        <value>Speech</value>
     </data>
     <data name="TranslationEngineInfo" xml:space="preserve">
         <value>AI model: higher quality; phonetics / examples / tips; slower.
@@ -1072,7 +1075,7 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
     <value>No matching settings.</value>
   </data>
   <data name="SelectionToolbarSettings" xml:space="preserve">
-    <value>Selection toolbar</value>
+    <value>Selection</value>
   </data>
   <data name="SubtitlePreset_Title" xml:space="preserve">
     <value>Appearance presets</value>
@@ -1151,7 +1154,7 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>Revised</value></data>
   <data name="TextAssistProcessing" xml:space="preserve"><value>Text assist</value></data>
   <data name="TextAssistExplain" xml:space="preserve"><value>Explain</value></data>
-  <data name="OcrModelsDescription" xml:space="preserve"><value>(Models used to extract text from screenshots; download one before using screenshot translation)</value></data>
+  <data name="OcrModelsDescription" xml:space="preserve"><value>Used to recognize text in screenshots. Without a downloaded model, screenshot OCR and screenshot translation will not work.</value></data>
   <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR mode</value></data>
   <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>Fast</value></data>
   <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>Normal</value></data>
@@ -1160,6 +1163,7 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>Runs OCR in a temporary process only while recognizing screenshot text, then exits the process to reclaim its memory.</value></data>
   <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>Keeps OCR loaded for faster consecutive recognition, then exits the process to reclaim memory after the configured period without a new screenshot recognition.</value></data>
   <data name="OcrIdleTimeout" xml:space="preserve"><value>Close after idle</value></data>
+  <data name="ScreenshotOcrClosePreviousWindow" xml:space="preserve"><value>Close previous OCR window on new recognition</value></data>
   <data name="Seconds" xml:space="preserve"><value>seconds</value></data>
   <data name="ShowMoreAsrModels" xml:space="preserve"><value>Show more ASR models</value></data>
   <data name="ShowLessAsrModels" xml:space="preserve"><value>Show fewer ASR models</value></data>
