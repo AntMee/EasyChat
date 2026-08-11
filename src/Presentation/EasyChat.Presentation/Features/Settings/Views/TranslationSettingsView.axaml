@@ -109,6 +109,8 @@
                                                                 VerticalAlignment="Center">
                                                         <ToggleButton Classes="RowIconBtn"
                                                                       IsChecked="{Binding Model.UseProxy}"
+                                                                      Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).ToggleAiModelProxyCommand}"
+                                                                      CommandParameter="{Binding Model}"
                                                                       ToolTip.Tip="{x:Static lang:Resources.UseProxy}">
                                                             <avalonia:MaterialIcon Kind="Vpn" Width="18" Height="18">
                                                                 <avalonia:MaterialIcon.Foreground>
@@ -242,6 +244,8 @@
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.Baidu.UseProxy}"
+                                                      Command="{Binding ToggleBaiduProxyCommand}"
+                                                      CommandParameter="{Binding MachineTransConf.Baidu}"
                                                       ToolTip.Tip="{x:Static lang:Resources.UseProxy}">
                                             <avalonia:MaterialIcon Kind="Vpn" Width="18" Height="18">
                                                 <avalonia:MaterialIcon.Foreground>
@@ -299,6 +303,8 @@
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.Tencent.UseProxy}"
+                                                      Command="{Binding ToggleTencentProxyCommand}"
+                                                      CommandParameter="{Binding MachineTransConf.Tencent}"
                                                       ToolTip.Tip="{x:Static lang:Resources.UseProxy}">
                                             <avalonia:MaterialIcon Kind="Vpn" Width="18" Height="18">
                                                 <avalonia:MaterialIcon.Foreground>
@@ -356,6 +362,8 @@
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.Google.UseProxy}"
+                                                      Command="{Binding ToggleGoogleProxyCommand}"
+                                                      CommandParameter="{Binding MachineTransConf.Google}"
                                                       ToolTip.Tip="{x:Static lang:Resources.UseProxy}">
                                             <avalonia:MaterialIcon Kind="Vpn" Width="18" Height="18">
                                                 <avalonia:MaterialIcon.Foreground>
@@ -422,6 +430,8 @@
                                     <StackPanel Grid.Column="2" Classes="RowActions" Orientation="Horizontal" Spacing="2">
                                         <ToggleButton Classes="RowIconBtn"
                                                       IsChecked="{Binding MachineTransConf.DeepL.UseProxy}"
+                                                      Command="{Binding ToggleDeepLProxyCommand}"
+                                                      CommandParameter="{Binding MachineTransConf.DeepL}"
                                                       ToolTip.Tip="{x:Static lang:Resources.UseProxy}">
                                             <avalonia:MaterialIcon Kind="Vpn" Width="18" Height="18">
                                                 <avalonia:MaterialIcon.Foreground>

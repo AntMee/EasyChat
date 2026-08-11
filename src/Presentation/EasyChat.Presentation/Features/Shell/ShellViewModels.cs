@@ -176,6 +176,12 @@ namespace EasyChat.Presentation.Features.Shell
         public ReactiveCommand<Unit, Unit> ToggleFullScreenCommand { get; }
         public ReactiveCommand<string, Unit> OpenUrlCommand { get; }
 
+        public void ExitFullScreen()
+        {
+            if (IsFullScreen)
+                ToggleFullScreen();
+        }
+
         private void RestoreColorTheme()
         {
             if (string.IsNullOrWhiteSpace(_settings.General.ColorTheme))
@@ -340,6 +346,12 @@ namespace EasyChat.Presentation.Features.Shell
             IsFullScreen = next;
             TitleBarVisible = !next;
             FullScreenChanged?.Invoke(this, next);
+            if (next)
+            {
+                _toasts.CreateToast(Resources.FullScreen)
+                    .WithContent(Resources.FullScreenExitHint)
+                    .ShowInfo();
+            }
             Dispatcher.UIThread.Post(
                 () =>
                 {

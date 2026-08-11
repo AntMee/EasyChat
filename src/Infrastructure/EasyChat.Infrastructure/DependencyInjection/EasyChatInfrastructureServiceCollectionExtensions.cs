@@ -3,10 +3,12 @@ using EasyChat.Contracts.AiModels;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings.Persistence;
 using EasyChat.Contracts.Speech;
+using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.Updates;
 using EasyChat.Infrastructure.ApplicationData;
 using EasyChat.Infrastructure.AiModels;
+using EasyChat.Infrastructure.Network;
 using EasyChat.Infrastructure.Settings.Persistence;
 using EasyChat.Infrastructure.Speech;
 using EasyChat.Infrastructure.Speech.EdgeTts;
@@ -47,13 +49,17 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
         services.AddSingleton<ISettingsPersistenceGateway>(
             provider => new JsonSettingsPersistenceGateway(
                 () => provider.GetRequiredService<IApplicationDataPaths>().ConfigurationDirectory));
-        services.AddHttpClient<IAiModelCatalogTransport, HttpAiModelCatalogTransport>();
+        services.AddSingleton<NetworkProxyHandlerFactory>();
+        services.AddSingleton<IAiModelCatalogTransport>(provider => new HttpAiModelCatalogTransport(
+            provider.GetRequiredService<NetworkProxyHandlerFactory>()));
         services.AddSingleton<ITranslationProviderFactory, TranslationProviderFactory>();
         services.AddSingleton<ITranslationFailureSink, LoggingTranslationFailureSink>();
         services.AddSingleton<IExternalUriLauncher, ShellExternalUriLauncher>();
         services.AddSingleton<IApplicationUpdateService, VelopackApplicationUpdateService>();
         var assetsDirectory = Path.Combine(AppContext.BaseDirectory, "Assets");
-        services.AddSingleton<ITtsSynthesisProvider>(_ => new EdgeTtsProvider(assetsDirectory));
+        services.AddSingleton<ITtsSynthesisProvider>(provider => new EdgeTtsProvider(
+            assetsDirectory,
+            provider.GetRequiredService<ISettingsUseCases>()));
         services.AddSingleton<ITtsOutputWriter, FileTtsOutputWriter>();
         services.AddSingleton<ISpeechRecognitionEngine, MicroAsrSpeechRecognitionEngine>();
         services.AddSingleton<MicroAsrSpeechRecognitionModelCatalog>();

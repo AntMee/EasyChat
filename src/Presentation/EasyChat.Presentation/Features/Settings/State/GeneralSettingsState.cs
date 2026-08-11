@@ -78,13 +78,19 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
 
 public sealed class LiveProxySettings : LiveSettingsSection
 {
+    private NetworkProxyMode _mode;
     private string _proxyUrl;
 
     public LiveProxySettings(ProxySettings value, Func<SettingsSection, EasyChat.Shared.Results.Result> commit)
-        : base(SettingsSection.Proxy, commit) => _proxyUrl = value.ProxyUrl;
+        : base(SettingsSection.NetworkProxy, commit)
+    {
+        _mode = value.Mode;
+        _proxyUrl = value.ProxyUrl;
+    }
 
+    public NetworkProxyMode Mode { get => _mode; set => Set(ref _mode, value); }
     public string ProxyUrl { get => _proxyUrl; set => Set(ref _proxyUrl, value); }
-    public ProxySettings ToContract() => new(ProxyUrl);
+    public ProxySettings ToContract() => new(Mode, ProxyUrl);
 }
 
 public sealed class LiveOcrSettings : LiveSettingsSection

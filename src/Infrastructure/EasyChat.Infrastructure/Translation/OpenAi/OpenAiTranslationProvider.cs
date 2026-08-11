@@ -12,13 +12,23 @@ public sealed class OpenAiTranslationProvider : IChatTranslationProvider
     private readonly IOpenAiChatClientFactory _clientFactory;
     private readonly bool _enableThinking;
     private readonly string _model;
-    private readonly string? _proxy;
+    private readonly TranslationProxyOptions _proxy;
 
     public OpenAiTranslationProvider(
         string apiUrl,
         string apiKey,
         string model,
         string? proxy,
+        bool enableThinking = false)
+        : this(apiUrl, apiKey, model, TranslationProxyOptions.FromLegacyUrl(proxy), enableThinking)
+    {
+    }
+
+    public OpenAiTranslationProvider(
+        string apiUrl,
+        string apiKey,
+        string model,
+        TranslationProxyOptions proxy,
         bool enableThinking = false)
         : this(
             apiUrl,
@@ -34,14 +44,14 @@ public sealed class OpenAiTranslationProvider : IChatTranslationProvider
         string apiUrl,
         string apiKey,
         string model,
-        string? proxy,
+        TranslationProxyOptions proxy,
         bool enableThinking,
         IOpenAiChatClientFactory clientFactory)
     {
         _apiUrl = apiUrl;
         _apiKey = apiKey;
         _model = model;
-        _proxy = proxy;
+        _proxy = proxy ?? throw new ArgumentNullException(nameof(proxy));
         _enableThinking = enableThinking;
         _clientFactory = clientFactory;
     }
@@ -82,7 +92,7 @@ internal interface IOpenAiChatClientFactory
         string apiUrl,
         string apiKey,
         string model,
-        string? proxy);
+        TranslationProxyOptions proxy);
 }
 
 internal interface IOpenAiChatClient
@@ -110,7 +120,7 @@ internal sealed class OpenAiChatClientFactory : IOpenAiChatClientFactory
         string apiUrl,
         string apiKey,
         string model,
-        string? proxy)
+        TranslationProxyOptions proxy)
         => new OpenAiChatClient(
             OpenAiSdkChatClientFactory.Create(apiUrl, apiKey, model, proxy));
 }

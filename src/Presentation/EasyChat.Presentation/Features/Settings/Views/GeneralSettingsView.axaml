@@ -8,6 +8,7 @@
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
+             xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
              xmlns:speech="clr-namespace:EasyChat.Contracts.Speech;assembly=EasyChat.Contracts"
              xmlns:ec="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
              x:DataType="viewModels:SettingViewModel"
@@ -173,19 +174,22 @@
         <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
 
         <StackPanel Margin="12,6,12,10" Spacing="2"
-                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import delete OCR 模型 导入 删除'}">
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='network proxy proxy mode proxy url 网络代理 代理模式 代理地址'}">
             <TextBlock Classes="Caption" FontWeight="Bold"
-                       Text="{x:Static lang:Resources.OcrModels}" />
+                       Text="{x:Static lang:Resources.NetworkProxy}" />
+            <TextBlock Classes="Muted"
+                       TextWrapping="Wrap"
+                       Text="{x:Static lang:Resources.NetworkProxyDescription}" />
         </StackPanel>
 
         <Border Classes="SettingsSearchRow"
                 Classes.SearchResult="{Binding IsSearchMode}"
-                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='proxy url proxy 代理地址 代理 地址'}">
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='network proxy proxy mode proxy url 网络代理 代理模式 代理地址'}">
         <Grid ColumnDefinitions="*,420"
-              MinHeight="44"
+              MinHeight="76"
               Margin="8,2"
               ColumnSpacing="16">
-            <TextBlock Text="{x:Static lang:Resources.ProxyUrl}"
+            <TextBlock Text="{x:Static lang:Resources.NetworkProxy}"
                        Classes="Small"
                        VerticalAlignment="Center"
                        MinWidth="180" />
@@ -194,19 +198,31 @@
                             VerticalAlignment="Center"
                             HorizontalAlignment="Right">
                 <Grid RowDefinitions="Auto,Auto" RowSpacing="6">
-                    <TextBox Text="{Binding ProxyConf.ProxyUrl}"
+                    <ComboBox ItemsSource="{Binding NetworkProxyModes}"
+                              SelectedValue="{Binding NetworkProxyConf.Mode}"
+                              SelectedValueBinding="{Binding Mode}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBox Grid.Row="1"
+                             Text="{Binding NetworkProxyConf.ProxyUrl}"
                              PlaceholderText="{x:Static lang:Resources.ProxyAddrQuestion}"
+                             IsVisible="{Binding NetworkProxyConf.Mode, Converter={x:Static converts:EnumEqualsConverter.Instance}, ConverterParameter={x:Static settings:NetworkProxyMode.Custom}}"
                              HorizontalAlignment="Stretch" />
-                    <CheckBox Grid.Row="1"
-                              IsChecked="{Binding OcrConf.UseProxy}"
-                              HorizontalAlignment="Left">
-                        <TextBlock Text="{x:Static lang:Resources.OcrUseProxy}"
-                                   TextWrapping="Wrap" />
-                    </CheckBox>
                 </Grid>
             </ContentControl>
         </Grid>
         </Border>
+
+        <StackPanel Margin="12,6,12,10" Spacing="2"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import delete OCR'}">
+            <TextBlock Classes="Caption" FontWeight="Bold"
+                       Text="{x:Static lang:Resources.OcrModels}" />
+        </StackPanel>
 
         <ItemsControl 
                       ItemsSource="{Binding VisibleOcrModelItems}"

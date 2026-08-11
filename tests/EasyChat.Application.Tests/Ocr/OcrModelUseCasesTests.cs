@@ -26,6 +26,7 @@ public sealed class OcrModelUseCasesTests
         Assert.AreEqual(package.Id, store.DownloadedPackage?.Id);
         Assert.AreEqual("http://127.0.0.1:7890", store.Options?.ProxyUrl);
         Assert.IsTrue(store.Options?.UseProxy);
+        Assert.AreEqual(NetworkProxyMode.Custom, store.Options?.ProxyMode);
     }
 
     private sealed class FakeOcrModelStore : IOcrModelStore

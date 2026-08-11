@@ -67,6 +67,9 @@
     <data name="FullScreenTip" xml:space="preserve">
         <value>Makes the app fullscreen.</value>
     </data>
+    <data name="FullScreenExitHint" xml:space="preserve">
+        <value>Press Esc to exit fullscreen.</value>
+    </data>
     <data name="TitleBarTip" xml:space="preserve">
         <value>Toggles the title bar.</value>
     </data>
@@ -152,7 +155,13 @@
         <value>Google</value>
     </data>
     <data name="Proxy" xml:space="preserve">
-        <value>Proxy</value>
+        <value>Network Proxy</value>
+    </data>
+    <data name="NetworkProxy" xml:space="preserve">
+        <value>Network Proxy</value>
+    </data>
+    <data name="NetworkProxyDescription" xml:space="preserve">
+        <value>Applies to network requests such as model downloads, voice synthesis, model catalogs, and updates. AI and machine translation use their own proxy settings.</value>
     </data>
     <data name="ProxyType" xml:space="preserve">
         <value>Proxy Type</value>
@@ -160,11 +169,20 @@
     <data name="ProxyUrl" xml:space="preserve">
         <value>Proxy Url</value>
     </data>
-    <data name="ProxyTypeQuestion" xml:space="preserve">
-        <value>Using for TranslationAPI requests. Like OpenAI, Gemini etc.</value>
-    </data>
     <data name="ProxyAddrQuestion" xml:space="preserve">
         <value>http://username:password@server:port</value>
+    </data>
+    <data name="SystemProxy" xml:space="preserve">
+        <value>System proxy</value>
+    </data>
+    <data name="NoProxy" xml:space="preserve">
+        <value>Do not use proxy</value>
+    </data>
+    <data name="CustomProxy" xml:space="preserve">
+        <value>Custom proxy</value>
+    </data>
+    <data name="NetworkProxyRequired" xml:space="preserve">
+        <value>Please enable a system proxy or configure a custom proxy in General settings first.</value>
     </data>
     <data name="ApplyTo" xml:space="preserve">
         <value>Apply To</value>

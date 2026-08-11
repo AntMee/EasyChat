@@ -27,7 +27,7 @@ public sealed class SettingsDialogCoordinator(
 
     public void EditAiModel(CustomAiModelState? model)
     {
-        var viewModel = new AiModelEditDialogViewModel(_dialogs, _modelCatalog, model)
+        var viewModel = new AiModelEditDialogViewModel(_dialogs, _modelCatalog, _settings, _toasts, model)
         {
             OnClose = result => SaveModel(model, result)
         };

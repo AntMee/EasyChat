@@ -1,4 +1,5 @@
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Shared.Results;
 
@@ -11,6 +12,11 @@ public sealed class EdgeTtsProvider : ITtsSynthesisProvider
 
     public EdgeTtsProvider(string assetsDirectory)
         : this(new EdgeTtsVoiceCatalog(assetsDirectory), new EdgeTtsTransport())
+    {
+    }
+
+    public EdgeTtsProvider(string assetsDirectory, ISettingsUseCases settings)
+        : this(new EdgeTtsVoiceCatalog(assetsDirectory), new EdgeTtsTransport(settings))
     {
     }
 

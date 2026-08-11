@@ -20,6 +20,7 @@ namespace EasyChat.Presentation.Features.Shell.Views
         private static readonly Cursor TopLeftResizeCursor = new(StandardCursorType.TopLeftCorner);
         private static readonly Cursor TopRightResizeCursor = new(StandardCursorType.TopRightCorner);
         private readonly Action _ensureTrayVisible = null!;
+        private MainWindowViewModel? _viewModel;
 
         public MainWindow()
         {
@@ -27,6 +28,8 @@ namespace EasyChat.Presentation.Features.Shell.Views
             // ShadUI 0.2.4 resets RootCornerRadius while applying its Windows template.
             Opened += (_, _) => ApplyRootCornerRadius();
             AddHandler(PointerPressedEvent, OnResizePointerPressed, RoutingStrategies.Tunnel);
+            AddHandler(KeyDownEvent, OnEscapeKey, RoutingStrategies.Tunnel, handledEventsToo: true);
+            AddHandler(KeyUpEvent, OnEscapeKey, RoutingStrategies.Tunnel, handledEventsToo: true);
             PointerMoved += OnResizePointerMoved;
             PointerExited += (_, _) => Cursor = null;
             PropertyChanged += (_, args) =>
@@ -45,6 +48,7 @@ namespace EasyChat.Presentation.Features.Shell.Views
         {
             _ensureTrayVisible = ensureTrayVisible
                 ?? throw new ArgumentNullException(nameof(ensureTrayVisible));
+            _viewModel = viewModel;
             DataContext = viewModel;
             Closing += (_, args) => HandleClosing(args, settings, dialogs);
             // Queue WindowState after the current input/layout pass to avoid chrome thrash.
@@ -54,6 +58,16 @@ namespace EasyChat.Presentation.Features.Shell.Views
                     DispatcherPriority.Render);
             if (viewModel.IsFullScreen)
                 WindowState = WindowState.FullScreen;
+        }
+
+        private void OnEscapeKey(object? sender, KeyEventArgs args)
+        {
+            if (args.Key != Key.Escape || _viewModel?.IsFullScreen != true)
+                return;
+
+            _viewModel.ExitFullScreen();
+            WindowState = WindowState.Normal;
+            args.Handled = true;
         }
 
         private void ApplyRootCornerRadius()

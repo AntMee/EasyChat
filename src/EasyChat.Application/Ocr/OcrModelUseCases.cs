@@ -31,7 +31,9 @@ public sealed class OcrModelUseCases : IOcrModelUseCases
         var settings = _settings.Current;
         return _models.DownloadModelAsync(
             package,
-            new OcrModelDownloadOptions(settings.Proxy.ProxyUrl, settings.Ocr.UseProxy),
+            new OcrModelDownloadOptions(
+                settings.NetworkProxy.Mode,
+                settings.NetworkProxy.ProxyUrl),
             progress,
             cancellationToken);
     }

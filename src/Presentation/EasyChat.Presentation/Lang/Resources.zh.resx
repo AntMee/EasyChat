@@ -60,6 +60,9 @@
     <data name="FullScreenTip" xml:space="preserve">
         <value>全屏APP</value>
     </data>
+    <data name="FullScreenExitHint" xml:space="preserve">
+        <value>按 Esc 退出全屏。</value>
+    </data>
     <data name="TitleBarTip" xml:space="preserve">
         <value>切换标题栏</value>
     </data>
@@ -145,7 +148,13 @@
         <value>百度</value>
     </data>
     <data name="Proxy" xml:space="preserve">
-        <value>代理</value>
+        <value>网络代理</value>
+    </data>
+    <data name="NetworkProxy" xml:space="preserve">
+        <value>网络代理</value>
+    </data>
+    <data name="NetworkProxyDescription" xml:space="preserve">
+        <value>用于模型下载、语音合成、模型列表和更新等网络请求。大模型翻译和机器翻译仍使用各自的代理设置。</value>
     </data>
     <data name="ProxyType" xml:space="preserve">
         <value>代理类型</value>
@@ -153,11 +162,20 @@
     <data name="ProxyUrl" xml:space="preserve">
         <value>代理地址</value>
     </data>
-    <data name="ProxyTypeQuestion" xml:space="preserve">
-        <value>用来代理翻译API的网络请求，例如OpenAI、Gemini等。</value>
-    </data>
     <data name="ProxyAddrQuestion" xml:space="preserve">
         <value>http://username:password@server:port</value>
+    </data>
+    <data name="SystemProxy" xml:space="preserve">
+        <value>系统代理</value>
+    </data>
+    <data name="NoProxy" xml:space="preserve">
+        <value>不使用代理</value>
+    </data>
+    <data name="CustomProxy" xml:space="preserve">
+        <value>自定义代理</value>
+    </data>
+    <data name="NetworkProxyRequired" xml:space="preserve">
+        <value>请先在通用设置中启用系统代理或配置自定义网络代理。</value>
     </data>
     <data name="ApplyTo" xml:space="preserve">
         <value>作用于</value>

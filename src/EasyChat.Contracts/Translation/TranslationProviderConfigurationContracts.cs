@@ -1,3 +1,5 @@
+using EasyChat.Contracts.Settings;
+
 namespace EasyChat.Contracts.Translation;
 
 public static class MachineTranslationProviderNames
@@ -63,14 +65,41 @@ public sealed record DeepLTranslationProviderConfiguration(
         MachineTranslationProviderNames.DeepL,
         UseProxy);
 
+public sealed record TranslationProxyOptions(NetworkProxyMode Mode, string? ProxyUrl)
+{
+    public static TranslationProxyOptions Direct { get; } = new(NetworkProxyMode.None, null);
+
+    public static TranslationProxyOptions FromLegacyUrl(string? proxyUrl) => new(
+        string.IsNullOrWhiteSpace(proxyUrl) ? NetworkProxyMode.None : NetworkProxyMode.Custom,
+        proxyUrl);
+}
+
 public sealed record AiTranslationProviderOptions(
     AiTranslationProviderConfiguration Provider,
-    string? ProxyUrl);
+    string? ProxyUrl)
+{
+    public TranslationProxyOptions Proxy { get; init; } =
+        TranslationProxyOptions.FromLegacyUrl(ProxyUrl);
+
+    public static AiTranslationProviderOptions WithProxy(
+        AiTranslationProviderConfiguration provider,
+        TranslationProxyOptions proxy) => new(provider, proxy.ProxyUrl) { Proxy = proxy };
+}
 
 public sealed record MachineTranslationProviderOptions(
     MachineTranslationProviderConfiguration Provider,
     string? ProxyUrl,
-    string RequestErrorMessage);
+    string RequestErrorMessage)
+{
+    public TranslationProxyOptions Proxy { get; init; } =
+        TranslationProxyOptions.FromLegacyUrl(ProxyUrl);
+
+    public static MachineTranslationProviderOptions WithProxy(
+        MachineTranslationProviderConfiguration provider,
+        TranslationProxyOptions proxy,
+        string requestErrorMessage) =>
+        new(provider, proxy.ProxyUrl, requestErrorMessage) { Proxy = proxy };
+}
 
 /// <summary>
 /// Creates technology-specific providers from choices already resolved by Application.

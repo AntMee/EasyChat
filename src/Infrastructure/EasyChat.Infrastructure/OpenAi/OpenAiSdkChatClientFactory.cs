@@ -1,6 +1,8 @@
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Net;
+using EasyChat.Contracts.Settings;
+using EasyChat.Contracts.Translation;
 using OpenAI;
 using OpenAI.Chat;
 
@@ -13,41 +15,58 @@ internal static class OpenAiSdkChatClientFactory
         string apiKey,
         string model,
         string? proxy)
+        => Create(apiUrl, () => apiKey, model, TranslationProxyOptions.FromLegacyUrl(proxy));
+
+    internal static ChatClient Create(
+        string apiUrl,
+        string apiKey,
+        string model,
+        TranslationProxyOptions proxy)
         => Create(apiUrl, () => apiKey, model, proxy);
 
     internal static ChatClient Create(
         string apiUrl,
         Func<string> apiKeyFactory,
         string model,
-        string? proxy)
+        TranslationProxyOptions proxy)
     {
         ArgumentNullException.ThrowIfNull(apiKeyFactory);
 
-        var options = CreateOptions(apiUrl, proxy);
+        var options = CreateOptionsWithPolicy(apiUrl, proxy);
         var client = new OpenAIClient(new ApiKeyCredential(apiKeyFactory()), options);
         return client.GetChatClient(model);
     }
 
     internal static OpenAIClientOptions CreateOptions(string apiUrl, string? proxy)
+        => CreateOptionsWithPolicy(apiUrl, TranslationProxyOptions.FromLegacyUrl(proxy));
+
+    internal static OpenAIClientOptions CreateOptionsWithPolicy(
+        string apiUrl,
+        TranslationProxyOptions proxy)
     {
+        ArgumentNullException.ThrowIfNull(proxy);
         var options = new OpenAIClientOptions
         {
             Endpoint = new Uri(apiUrl)
         };
 
-        if (!string.IsNullOrWhiteSpace(proxy))
-        {
-            var handler = CreateProxyHandler(proxy);
-            options.Transport = new HttpClientPipelineTransport(new HttpClient(handler));
-        }
+        options.Transport = new HttpClientPipelineTransport(new HttpClient(CreateProxyHandler(proxy)));
 
         return options;
     }
 
-    internal static HttpClientHandler CreateProxyHandler(string proxy)
+    internal static HttpClientHandler CreateProxyHandler(string? proxy)
+        => CreateProxyHandler(TranslationProxyOptions.FromLegacyUrl(proxy));
+
+    internal static HttpClientHandler CreateProxyHandler(TranslationProxyOptions proxy)
         => new()
         {
-            Proxy = new WebProxy(proxy),
-            UseProxy = true
+            Proxy = proxy.Mode == NetworkProxyMode.Custom &&
+                    Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out var uri)
+                ? new WebProxy(uri)
+                : null,
+            UseProxy = proxy.Mode == NetworkProxyMode.System ||
+                       proxy.Mode == NetworkProxyMode.Custom &&
+                       Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out _)
         };
 }

@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -20,6 +21,16 @@ public sealed class TencentTranslationProvider : ITranslationProvider, IDisposab
         string secretId,
         string secretKey,
         string? proxy,
+        Func<string> requestError,
+        ILogger logger)
+        : this(secretId, secretKey, TranslationProxyOptions.FromLegacyUrl(proxy), requestError, logger)
+    {
+    }
+
+    public TencentTranslationProvider(
+        string secretId,
+        string secretKey,
+        TranslationProxyOptions proxy,
         Func<string> requestError,
         ILogger logger)
         : this(
@@ -101,6 +112,14 @@ internal sealed class TencentTranslationClient : ITencentTranslationClient
     private readonly Func<DateTime> _utcNow;
 
     public TencentTranslationClient(string secretId, string secretKey, string? proxy)
+        : this(secretId, secretKey, TranslationProxyOptions.FromLegacyUrl(proxy))
+    {
+    }
+
+    public TencentTranslationClient(
+        string secretId,
+        string secretKey,
+        TranslationProxyOptions proxy)
         : this(
             secretId,
             secretKey,
@@ -144,10 +163,17 @@ internal sealed class TencentTranslationClient : ITencentTranslationClient
     }
 
     internal static RestClientOptions CreateOptions(string? proxy)
+        => CreateOptions(TranslationProxyOptions.FromLegacyUrl(proxy));
+
+    internal static RestClientOptions CreateOptions(TranslationProxyOptions proxy)
     {
         var options = new RestClientOptions();
-        if (proxy != null)
-            options.Proxy = new WebProxy(proxy);
+        options.Proxy = proxy.Mode switch
+        {
+            NetworkProxyMode.System => WebRequest.DefaultWebProxy,
+            NetworkProxyMode.Custom when Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out var uri) => new WebProxy(uri),
+            _ => new WebProxy()
+        };
         return options;
     }
 

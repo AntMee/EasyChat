@@ -1,4 +1,5 @@
 using System.Net;
+using EasyChat.Contracts.Settings;
 using DeepL;
 using EasyChat.Contracts.Translation;
 
@@ -10,6 +11,14 @@ public sealed class DeepLTranslationProvider : ITranslationProvider
     private readonly ModelType _modelType;
 
     public DeepLTranslationProvider(string modelType, string apiKey, string? proxy)
+        : this(modelType, new DeepLTranslationClient(apiKey, TranslationProxyOptions.FromLegacyUrl(proxy)))
+    {
+    }
+
+    public DeepLTranslationProvider(
+        string modelType,
+        string apiKey,
+        TranslationProxyOptions proxy)
         : this(modelType, new DeepLTranslationClient(apiKey, proxy))
     {
     }
@@ -54,28 +63,31 @@ internal sealed class DeepLTranslationClient : IDeepLTranslationClient
     private readonly Translator _translator;
 
     public DeepLTranslationClient(string apiKey, string? proxy)
+        : this(apiKey, TranslationProxyOptions.FromLegacyUrl(proxy))
     {
-        if (proxy != null)
+    }
+
+    public DeepLTranslationClient(string apiKey, TranslationProxyOptions proxy)
+    {
+        var handler = new HttpClientHandler
         {
-            var handler = new HttpClientHandler
-            {
-                Proxy = new WebProxy(proxy),
-                UseProxy = true
-            };
-            var options = new TranslatorOptions
-            {
-                ClientFactory = () => new HttpClientAndDisposeFlag
-                {
-                    HttpClient = new HttpClient(handler),
-                    DisposeClient = true
-                }
-            };
-            _translator = new Translator(apiKey, options);
-        }
-        else
+            UseProxy = proxy.Mode == NetworkProxyMode.System ||
+                       proxy.Mode == NetworkProxyMode.Custom &&
+                       Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out _),
+            Proxy = proxy.Mode == NetworkProxyMode.Custom &&
+                    Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out var uri)
+                ? new WebProxy(uri)
+                : null
+        };
+        var options = new TranslatorOptions
         {
-            _translator = new Translator(apiKey);
-        }
+            ClientFactory = () => new HttpClientAndDisposeFlag
+            {
+                HttpClient = new HttpClient(handler),
+                DisposeClient = true
+            }
+        };
+        _translator = new Translator(apiKey, options);
     }
 
     public async Task<string> TranslateAsync(

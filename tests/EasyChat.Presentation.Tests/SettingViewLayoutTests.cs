@@ -93,7 +93,7 @@ public sealed class SettingViewLayoutTests
     }
 
     [TestMethod]
-    public void GeneralSettings_ProxyToggleDoesNotConsumeInputWidth()
+    public void GeneralSettings_NetworkProxyUsesModeSelectorAndCustomAddress()
     {
         var root = FindRepositoryRoot();
         var path = Path.Combine(
@@ -107,17 +107,28 @@ public sealed class SettingViewLayoutTests
             "GeneralSettingsView.axaml");
         var document = XDocument.Load(path);
 
-        var proxyToggle = document.Descendants()
-            .Single(element => element.Name.LocalName == "CheckBox"
-                               && element.Attribute("IsChecked")?.Value == "{Binding OcrConf.UseProxy}");
+        var proxySelector = document.Descendants()
+            .Single(element => element.Name.LocalName == "ComboBox"
+                               && element.Attribute("ItemsSource")?.Value == "{Binding NetworkProxyModes}");
+        var proxyAddress = document.Descendants()
+            .Single(element => element.Name.LocalName == "TextBox"
+                               && element.Attribute("Text")?.Value == "{Binding NetworkProxyConf.ProxyUrl}");
+        var proxyDescription = document.Descendants()
+            .Single(element => element.Name.LocalName == "TextBlock"
+                               && element.Attribute("Text")?.Value
+                                   == "{x:Static lang:Resources.NetworkProxyDescription}");
 
-        Assert.AreEqual("1", proxyToggle.Attribute("Grid.Row")?.Value);
-        Assert.AreEqual("Left", proxyToggle.Attribute("HorizontalAlignment")?.Value);
-        Assert.AreEqual("Auto,Auto", proxyToggle.Parent?.Attribute("RowDefinitions")?.Value);
-        Assert.IsTrue(proxyToggle.Descendants().Any(element =>
-            element.Name.LocalName == "TextBlock"
-            && element.Attribute("Text")?.Value == "{x:Static lang:Resources.OcrUseProxy}"
-            && element.Attribute("TextWrapping")?.Value == "Wrap"));
+        Assert.AreEqual("{Binding NetworkProxyConf.Mode}", proxySelector.Attribute("SelectedValue")?.Value);
+        Assert.AreEqual("{Binding Mode}", proxySelector.Attribute("SelectedValueBinding")?.Value);
+        Assert.AreEqual("1", proxyAddress.Attribute("Grid.Row")?.Value);
+        Assert.AreEqual("Muted", proxyDescription.Attribute("Classes")?.Value);
+        Assert.AreEqual("Wrap", proxyDescription.Attribute("TextWrapping")?.Value);
+        StringAssert.Contains(
+            proxyAddress.Attribute("IsVisible")?.Value,
+            "NetworkProxyMode.Custom");
+        Assert.IsFalse(document.Descendants().Any(element =>
+            element.Name.LocalName == "CheckBox"
+            && element.Attribute("IsChecked")?.Value == "{Binding OcrConf.UseProxy}"));
     }
 
     [TestMethod]

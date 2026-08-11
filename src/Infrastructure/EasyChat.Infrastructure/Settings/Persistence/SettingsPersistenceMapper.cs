@@ -249,10 +249,15 @@ internal static class SettingsPersistenceMapper
         ApiKeys = source.ApiKeys.ToList()
     };
 
-    private static ProxySettings ToContract(ProxySettingsDto source) => new(source.ProxyUrl);
+    private static ProxySettings ToContract(ProxySettingsDto source) => new(
+        source.Mode ?? (string.IsNullOrWhiteSpace(source.ProxyUrl)
+            ? NetworkProxyMode.System
+            : NetworkProxyMode.Custom),
+        source.ProxyUrl);
 
     private static ProxySettingsDto ToDto(ProxySettings source) => new()
     {
+        Mode = source.Mode,
         ProxyUrl = source.ProxyUrl
     };
 

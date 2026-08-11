@@ -179,6 +179,17 @@ public sealed class EqualityMultiConverter : IMultiValueConverter
         values.Count >= 2 && Equals(values[0], values[1]);
 }
 
+public sealed class EnumEqualsConverter : IValueConverter
+{
+    public static readonly EnumEqualsConverter Instance = new();
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Equals(value, parameter);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 public static class LangNameToIndexIntConverters
 {
     public static readonly IValueConverter Lang = new LangNameToIndexIntConverter();

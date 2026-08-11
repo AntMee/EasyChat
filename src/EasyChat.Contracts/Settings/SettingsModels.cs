@@ -16,7 +16,10 @@ public sealed record SettingsBundle(
     SelectionTranslationSettings SelectionTranslation,
     TtsSettings Tts,
     TextAssistSettings TextAssist,
-    OcrSettings Ocr);
+    OcrSettings Ocr)
+{
+    public ProxySettings NetworkProxy => Proxy;
+}
 
 public enum ClosingBehavior
 {
@@ -161,7 +164,31 @@ public sealed record DeepLTranslationSettings(
     string ModelType,
     IReadOnlyList<string> ApiKeys);
 
-public sealed record ProxySettings(string ProxyUrl);
+public enum NetworkProxyMode
+{
+    System = 0,
+    None = 1,
+    Custom = 2
+}
+
+public sealed record ProxySettings
+{
+    public ProxySettings(NetworkProxyMode mode, string proxyUrl = "")
+    {
+        Mode = mode;
+        ProxyUrl = proxyUrl ?? string.Empty;
+    }
+
+    // Compatibility constructor for settings and integrations created before the
+    // network proxy mode was introduced.
+    public ProxySettings(string proxyUrl)
+        : this(string.IsNullOrWhiteSpace(proxyUrl) ? NetworkProxyMode.System : NetworkProxyMode.Custom, proxyUrl)
+    {
+    }
+
+    public NetworkProxyMode Mode { get; init; }
+    public string ProxyUrl { get; init; }
+}
 
 public sealed record ShortcutSettings(IReadOnlyList<ShortcutEntrySettings> Entries);
 

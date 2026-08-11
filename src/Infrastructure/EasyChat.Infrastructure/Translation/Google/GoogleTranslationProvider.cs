@@ -1,4 +1,5 @@
 using System.Net;
+using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -18,6 +19,16 @@ public sealed class GoogleTranslationProvider : ITranslationProvider, IDisposabl
         string model,
         string key,
         string? proxy,
+        Func<string> requestError,
+        ILogger logger)
+        : this(model, key, TranslationProxyOptions.FromLegacyUrl(proxy), requestError, logger)
+    {
+    }
+
+    public GoogleTranslationProvider(
+        string model,
+        string key,
+        TranslationProxyOptions proxy,
         Func<string> requestError,
         ILogger logger)
         : this(
@@ -105,6 +116,11 @@ internal sealed class GoogleTranslationClient : IGoogleTranslationClient
     private readonly RestClient _client;
 
     public GoogleTranslationClient(string? proxy)
+        : this(TranslationProxyOptions.FromLegacyUrl(proxy))
+    {
+    }
+
+    public GoogleTranslationClient(TranslationProxyOptions proxy)
         : this(new RestClient(CreateOptions(proxy)))
     {
     }
@@ -131,10 +147,17 @@ internal sealed class GoogleTranslationClient : IGoogleTranslationClient
     }
 
     internal static RestClientOptions CreateOptions(string? proxy)
+        => CreateOptions(TranslationProxyOptions.FromLegacyUrl(proxy));
+
+    internal static RestClientOptions CreateOptions(TranslationProxyOptions proxy)
     {
         var options = new RestClientOptions(BaseUrl);
-        if (proxy != null)
-            options.Proxy = new WebProxy(proxy);
+        options.Proxy = proxy.Mode switch
+        {
+            NetworkProxyMode.System => WebRequest.DefaultWebProxy,
+            NetworkProxyMode.Custom when Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out var uri) => new WebProxy(uri),
+            _ => new WebProxy()
+        };
         return options;
     }
 

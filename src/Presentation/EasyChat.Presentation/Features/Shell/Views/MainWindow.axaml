@@ -12,7 +12,7 @@
                  WindowDecorations="None"
                  Width="1180"
                  Height="740"
-                 MinWidth="960"
+                 MinWidth="1180"
                  MinHeight="620"
                  x:Class="EasyChat.Presentation.Features.Shell.Views.MainWindow"
                  x:DataType="vm:MainWindowViewModel"

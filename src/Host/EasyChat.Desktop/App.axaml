@@ -32,6 +32,10 @@
 
     <Application.Styles>
         <shad:ShadTheme />
+        <!-- ShadUI adds an 8px transparent root margin for maximized Windows. -->
+        <Style Selector="shad|Window[WindowState=Maximized] /template/ Border#PART_WindowRoot">
+            <Setter Property="Margin" Value="0" />
+        </Style>
         <avalonia:MaterialIconStyles />
         <StyleInclude Source="avares://LiveMarkdown.Avalonia/Styles.axaml" />
         <Style Selector="md|MarkdownRenderer ScrollViewer.Table Border">

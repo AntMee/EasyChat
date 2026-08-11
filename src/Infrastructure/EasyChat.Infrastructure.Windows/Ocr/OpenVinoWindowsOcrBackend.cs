@@ -87,7 +87,7 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
         try
         {
             ApplyModelDirectory();
-            ConfigureDownloadProxy(options.ProxyUrl, options.UseProxy);
+            ConfigureDownloadProxy(options.ProxyMode, options.ProxyUrl);
             if (IsModelAvailableCore(package))
             {
                 progress?.Report(1);
@@ -541,18 +541,24 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
     private static string NormalizePath(string path) =>
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
 
-    private static void ConfigureDownloadProxy(string? proxyUrl, bool useProxy)
+    private static void ConfigureDownloadProxy(NetworkProxyMode mode, string? proxyUrl)
     {
-        var key = useProxy && !string.IsNullOrWhiteSpace(proxyUrl)
-            ? $"proxy:{proxyUrl}"
-            : "direct";
+        var key = mode switch
+        {
+            NetworkProxyMode.System => "system",
+            NetworkProxyMode.Custom when !string.IsNullOrWhiteSpace(proxyUrl) => $"proxy:{proxyUrl}",
+            _ => "direct"
+        };
         lock (DownloadProxyLock)
         {
             if (_configuredDownloadProxy == key)
                 return;
-            HttpClient.DefaultProxy = key == "direct"
-                ? new WebProxy()
-                : new WebProxy(proxyUrl!);
+            HttpClient.DefaultProxy = key switch
+            {
+                "system" => WebRequest.DefaultWebProxy,
+                "direct" => new WebProxy(),
+                _ => new WebProxy(proxyUrl!)
+            };
             _configuredDownloadProxy = key;
         }
     }

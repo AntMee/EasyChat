@@ -44,6 +44,38 @@ public sealed class TranslationUseCasesTests
     }
 
     [TestMethod]
+    public async Task TranslateAsync_DisablesConfiguredProviderProxiesWhenNetworkProxyIsDisabled()
+    {
+        var machineBundle = CreateMachineBundle() with
+        {
+            Proxy = new ProxySettings(NetworkProxyMode.None, "http://127.0.0.1:7890")
+        };
+        var machine = CreateContext(machineBundle);
+
+        var machineResult = await machine.UseCases.TranslateAsync(CreateRequest());
+
+        Assert.IsTrue(machineResult.IsSuccess, machineResult.Error.Message);
+        Assert.IsNotNull(machine.Factory.MachineOptions);
+        Assert.AreEqual(NetworkProxyMode.None, machine.Factory.MachineOptions.Proxy.Mode);
+        Assert.IsNull(machine.Factory.MachineOptions.ProxyUrl);
+
+        var aiBundle = CreateAiBundle() with
+        {
+            Proxy = new ProxySettings(NetworkProxyMode.None, "http://127.0.0.1:7890")
+        };
+        var ai = CreateContext(aiBundle);
+        ai.Factory.Chat.CompleteResponse =
+            "{\"event\":\"translation_delta\",\"text\":\"translated\"}\n{\"event\":\"done\"}\n";
+
+        var aiResult = await ai.UseCases.TranslateAsync(CreateRequest());
+
+        Assert.IsTrue(aiResult.IsSuccess, aiResult.Error.Message);
+        Assert.IsNotNull(ai.Factory.AiOptions);
+        Assert.AreEqual(NetworkProxyMode.None, ai.Factory.AiOptions.Proxy.Mode);
+        Assert.IsNull(ai.Factory.AiOptions.ProxyUrl);
+    }
+
+    [TestMethod]
     [DataRow("google-id", null)]
     [DataRow(MachineTranslationProviderNames.Google, null)]
     [DataRow("stale-id", MachineTranslationProviderNames.Google)]

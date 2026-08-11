@@ -1,5 +1,6 @@
 using System.Reflection;
 using EasyChat.Contracts.Updates;
+using EasyChat.Infrastructure.Network;
 using EasyChat.Shared.Results;
 using Microsoft.Extensions.Logging;
 using Velopack;
@@ -8,10 +9,12 @@ using Velopack.Sources;
 namespace EasyChat.Infrastructure.Updates;
 
 public sealed class VelopackApplicationUpdateService(
-    ILogger<VelopackApplicationUpdateService> logger) : IApplicationUpdateService
+    ILogger<VelopackApplicationUpdateService> logger,
+    NetworkProxyHandlerFactory proxyFactory) : IApplicationUpdateService
 {
     private static readonly Uri Repository = new("https://github.com/SwaggyMacro/EasyChat");
     private readonly ILogger<VelopackApplicationUpdateService> _logger = logger;
+    private readonly NetworkProxyHandlerFactory _proxyFactory = proxyFactory;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private UpdateInfo? _pending;
 
@@ -75,8 +78,12 @@ public sealed class VelopackApplicationUpdateService(
         }
     }
 
-    private static UpdateManager CreateManager() =>
-        new(new GithubSource(Repository.AbsoluteUri.TrimEnd('/'), null, false));
+    private UpdateManager CreateManager() =>
+        new(new GithubSource(
+            Repository.AbsoluteUri.TrimEnd('/'),
+            null,
+            false,
+            new NetworkProxyFileDownloader(_proxyFactory)));
 
     private static string FormatVersion(Version? version) => version is null
         ? "Unknown"

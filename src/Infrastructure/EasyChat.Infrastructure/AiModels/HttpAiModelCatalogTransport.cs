@@ -1,12 +1,16 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using EasyChat.Contracts.AiModels;
+using EasyChat.Infrastructure.Network;
 
 namespace EasyChat.Infrastructure.AiModels;
 
-public sealed class HttpAiModelCatalogTransport(HttpClient httpClient) : IAiModelCatalogTransport
+public sealed class HttpAiModelCatalogTransport : IAiModelCatalogTransport
 {
-    private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+    private readonly NetworkProxyHandlerFactory _clientFactory;
+
+    internal HttpAiModelCatalogTransport(NetworkProxyHandlerFactory clientFactory) =>
+        _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
 
     public async Task<IReadOnlyList<string>> FetchModelsAsync(
         AiModelCatalogRequest request,
@@ -39,7 +43,8 @@ public sealed class HttpAiModelCatalogTransport(HttpClient httpClient) : IAiMode
             httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", request.ApiKey);
         }
 
-        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        using var client = _clientFactory.CreateHttpClient();
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);

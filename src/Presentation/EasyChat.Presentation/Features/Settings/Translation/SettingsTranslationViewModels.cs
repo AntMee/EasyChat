@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
+using Avalonia.Threading;
 using EasyChat.Contracts.AiModels;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
@@ -15,6 +16,8 @@ namespace EasyChat.Presentation.Features.Settings.Translation
     {
         private readonly DialogManager _dialogManager;
         private readonly IAiModelCatalogTransport _catalog;
+        private readonly SettingsSession _settings;
+        private readonly ToastManager _toasts;
         private readonly CustomAiModelState? _existing;
         private CancellationTokenSource? _scheduledModelFetch;
         private CancellationTokenSource? _activeModelFetch;
@@ -33,10 +36,14 @@ namespace EasyChat.Presentation.Features.Settings.Translation
         public AiModelEditDialogViewModel(
             DialogManager dialogManager,
             IAiModelCatalogTransport catalog,
+            SettingsSession settings,
+            ToastManager toasts,
             CustomAiModelState? existing = null)
         {
             _dialogManager = dialogManager;
             _catalog = catalog;
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _toasts = toasts ?? throw new ArgumentNullException(nameof(toasts));
             _existing = existing;
             if (existing is null)
             {
@@ -138,7 +145,27 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                 ResetModelConfirmation();
             }
         }
-        public bool UseProxy { get => _useProxy; set => this.RaiseAndSetIfChanged(ref _useProxy, value); }
+        public bool UseProxy
+        {
+            get => _useProxy;
+            set
+            {
+                if (value && !HasConfiguredNetworkProxy())
+                {
+                    ShowNetworkProxyRequired();
+                    if (_useProxy)
+                        this.RaiseAndSetIfChanged(ref _useProxy, false);
+                    else
+                        this.RaisePropertyChanged(nameof(UseProxy));
+                    Dispatcher.UIThread.Post(
+                        () => this.RaisePropertyChanged(nameof(UseProxy)),
+                        DispatcherPriority.Background);
+                    return;
+                }
+
+                this.RaiseAndSetIfChanged(ref _useProxy, value);
+            }
+        }
         public bool EnableThinking { get => _enableThinking; set => this.RaiseAndSetIfChanged(ref _enableThinking, value); }
         public bool IsFetchingModels { get => _isFetchingModels; private set => this.RaiseAndSetIfChanged(ref _isFetchingModels, value); }
         public string FetchModelsError { get => _fetchModelsError; private set => this.RaiseAndSetIfChanged(ref _fetchModelsError, value); }
@@ -177,6 +204,13 @@ namespace EasyChat.Presentation.Features.Settings.Translation
 
         private void Save()
         {
+            if (UseProxy && !HasConfiguredNetworkProxy())
+            {
+                ShowNetworkProxyRequired();
+                UseProxy = false;
+                return;
+            }
+
             CancelModelFetches();
             var keys = _existing?.ApiKeys.ToList() ?? [];
             if (keys.Count == 0)
@@ -194,6 +228,18 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                 EnableThinking));
             _dialogManager.Close(this);
         }
+
+        private bool HasConfiguredNetworkProxy() => _settings.Proxy.Mode switch
+        {
+            NetworkProxyMode.System => true,
+            NetworkProxyMode.Custom => Uri.TryCreate(_settings.Proxy.ProxyUrl, UriKind.Absolute, out _),
+            _ => false
+        };
+
+        private void ShowNetworkProxyRequired() => _toasts
+            .CreateToast(Resources.NetworkProxy)
+            .WithContent(Resources.NetworkProxyRequired)
+            .ShowWarning();
 
         private void Cancel()
         {

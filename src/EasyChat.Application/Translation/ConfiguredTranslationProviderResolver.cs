@@ -54,9 +54,9 @@ internal sealed class ConfiguredTranslationProviderResolver
         var settings = _settings.Current;
         var configuration = ResolveMachine(settings, id, name)
                             ?? throw new ArgumentException("A valid machine translation provider is required.");
-        var provider = _factory.Create(new MachineTranslationProviderOptions(
+        var provider = _factory.Create(MachineTranslationProviderOptions.WithProxy(
             configuration,
-            ResolveProxyUrl(settings.Proxy, configuration.UseProxy),
+            ResolveProxy(settings.NetworkProxy, configuration.UseProxy),
             _messages.RequestError));
         return new ResolvedMachineTranslationProvider(provider, configuration);
     }
@@ -91,9 +91,9 @@ internal sealed class ConfiguredTranslationProviderResolver
         CustomAiModelSettings model)
     {
         var configuration = Map(model);
-        var provider = _factory.Create(new AiTranslationProviderOptions(
+        var provider = _factory.Create(AiTranslationProviderOptions.WithProxy(
             configuration,
-            ResolveProxyUrl(settings.Proxy, configuration.UseProxy)));
+            ResolveProxy(settings.NetworkProxy, configuration.UseProxy)));
         return new ResolvedAiTranslationProvider(provider, configuration);
     }
 
@@ -191,8 +191,19 @@ internal sealed class ConfiguredTranslationProviderResolver
         provider.ModelType,
         SelectRandom(provider.ApiKeys) ?? string.Empty);
 
-    private static string? ResolveProxyUrl(ProxySettings proxy, bool useProxy) =>
-        useProxy && !string.IsNullOrEmpty(proxy.ProxyUrl) ? proxy.ProxyUrl : null;
+    private static TranslationProxyOptions ResolveProxy(ProxySettings proxy, bool useProxy)
+    {
+        if (!useProxy || proxy.Mode == NetworkProxyMode.None)
+            return TranslationProxyOptions.Direct;
+
+        return proxy.Mode switch
+        {
+            NetworkProxyMode.System => new TranslationProxyOptions(NetworkProxyMode.System, null),
+            NetworkProxyMode.Custom when Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out _) =>
+                new TranslationProxyOptions(NetworkProxyMode.Custom, proxy.ProxyUrl),
+            _ => TranslationProxyOptions.Direct
+        };
+    }
 
     private static T? SelectRandom<T>(IReadOnlyList<T> items) where T : class =>
         items.Count == 0 ? null : items[Random.Shared.Next(items.Count)];

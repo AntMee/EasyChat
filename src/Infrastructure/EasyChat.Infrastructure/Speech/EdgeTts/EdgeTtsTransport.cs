@@ -4,6 +4,8 @@ using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using EasyChat.Contracts.Speech;
+using EasyChat.Contracts.Settings;
+using EasyChat.Infrastructure.Network;
 
 namespace EasyChat.Infrastructure.Speech.EdgeTts;
 
@@ -22,13 +24,20 @@ internal sealed class EdgeTtsTransport : IEdgeTtsTransport
     private const string ChromiumVersion = "143.0.3650.75";
     private const string ChromiumMajorVersion = "143";
     private const string GecVersion = "1-" + ChromiumVersion;
+    private readonly NetworkProxyHandlerFactory? _networkProxy;
+
+    public EdgeTtsTransport()
+    {
+    }
+
+    public EdgeTtsTransport(ISettingsUseCases settings) => _networkProxy = new NetworkProxyHandlerFactory(settings);
 
     public async ValueTask<ReadOnlyMemory<byte>> SynthesizeAsync(
         TtsSynthesisRequest request,
         CancellationToken cancellationToken)
     {
         using var client = new ClientWebSocket();
-        Configure(client.Options);
+        Configure(client.Options, _networkProxy?.CreateWebSocketProxy());
         var connectionId = Guid.NewGuid().ToString("N");
         var uri = new Uri(
             $"wss://{BaseUrl}/edge/v1?TrustedClientToken={TrustedClientToken}"
@@ -92,8 +101,9 @@ internal sealed class EdgeTtsTransport : IEdgeTtsTransport
         return Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(value + TrustedClientToken)));
     }
 
-    private static void Configure(ClientWebSocketOptions options)
+    private static void Configure(ClientWebSocketOptions options, System.Net.IWebProxy? proxy)
     {
+        options.Proxy = proxy;
         options.SetRequestHeader(
             "User-Agent",
             $"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

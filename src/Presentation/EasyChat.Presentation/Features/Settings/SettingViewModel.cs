@@ -21,6 +21,8 @@ using ToastNotification = ShadUI.Notification;
 
 namespace EasyChat.Presentation.Features.Settings;
 
+public sealed record NetworkProxyModeOption(NetworkProxyMode Mode, string DisplayName);
+
 public sealed class SettingViewModel : NavigationPageViewModel
 {
     private static readonly Uri AsrModelDownloadsUri = new(
@@ -122,6 +124,11 @@ public sealed class SettingViewModel : NavigationPageViewModel
         TestTencentConnectionCommand = ReactiveCommand.CreateFromTask(() => TestMachineConnectionAsync("Tencent"));
         TestGoogleConnectionCommand = ReactiveCommand.CreateFromTask(() => TestMachineConnectionAsync("Google"));
         TestDeepLConnectionCommand = ReactiveCommand.CreateFromTask(() => TestMachineConnectionAsync("DeepL"));
+        ToggleAiModelProxyCommand = ReactiveCommand.Create<CustomAiModelState>(ToggleAiModelProxy);
+        ToggleBaiduProxyCommand = ReactiveCommand.Create<LiveBaiduSettings>(ToggleBaiduProxy);
+        ToggleTencentProxyCommand = ReactiveCommand.Create<LiveTencentSettings>(ToggleTencentProxy);
+        ToggleGoogleProxyCommand = ReactiveCommand.Create<LiveGoogleSettings>(ToggleGoogleProxy);
+        ToggleDeepLProxyCommand = ReactiveCommand.Create<LiveDeepLSettings>(ToggleDeepLProxy);
 
         DownloadOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(StartDownloadOcrModel);
         CancelOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(CancelOcrModel);
@@ -239,6 +246,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public List<LanguageSettings> DisplayLanguages { get; }
     public List<LanguageSettings> NativeLanguages { get; }
     public List<ClosingBehavior> ClosingBehaviors { get; } = Enum.GetValues<ClosingBehavior>().ToList();
+    public List<NetworkProxyModeOption> NetworkProxyModes { get; } =
+    [
+        new(NetworkProxyMode.System, Resources.SystemProxy),
+        new(NetworkProxyMode.None, Resources.NoProxy),
+        new(NetworkProxyMode.Custom, Resources.CustomProxy)
+    ];
     public List<string> ScreenshotModes { get; } = ["Precise", "Quick"];
     public List<OcrRecognitionMode> OcrRecognitionModes { get; } = Enum.GetValues<OcrRecognitionMode>().ToList();
     public List<string> MachineTransProviders { get; } = ["Baidu", "Tencent", "Google", "DeepL"];
@@ -260,6 +273,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public LiveAiModelSettings AiModelConf => _settings.AiModel;
     public ObservableCollection<CustomAiModelState> ConfiguredModels => AiModelConf.ConfiguredModels;
     public LiveMachineTranslationSettings MachineTransConf => _settings.MachineTranslation;
+    public LiveProxySettings NetworkProxyConf => _settings.Proxy;
+    [Obsolete("Use NetworkProxyConf.")]
     public LiveProxySettings ProxyConf => _settings.Proxy;
     public LiveOcrSettings OcrConf => _settings.Ocr;
     public LiveResultSettings ResultConf => _settings.Result;
@@ -594,6 +609,11 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ReactiveCommand<Unit, Unit> TestTencentConnectionCommand { get; }
     public ReactiveCommand<Unit, Unit> TestGoogleConnectionCommand { get; }
     public ReactiveCommand<Unit, Unit> TestDeepLConnectionCommand { get; }
+    public ReactiveCommand<CustomAiModelState, Unit> ToggleAiModelProxyCommand { get; }
+    public ReactiveCommand<LiveBaiduSettings, Unit> ToggleBaiduProxyCommand { get; }
+    public ReactiveCommand<LiveTencentSettings, Unit> ToggleTencentProxyCommand { get; }
+    public ReactiveCommand<LiveGoogleSettings, Unit> ToggleGoogleProxyCommand { get; }
+    public ReactiveCommand<LiveDeepLSettings, Unit> ToggleDeepLProxyCommand { get; }
 
     private void OnModelsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -874,6 +894,45 @@ public sealed class SettingViewModel : NavigationPageViewModel
             setTesting(false);
         }
     }
+
+    private void ToggleAiModelProxy(CustomAiModelState model) => ValidateProviderProxy(
+        () => model.UseProxy,
+        value => model.UseProxy = value);
+
+    private void ToggleBaiduProxy(LiveBaiduSettings provider) => ValidateProviderProxy(
+        () => provider.UseProxy,
+        value => provider.UseProxy = value);
+
+    private void ToggleTencentProxy(LiveTencentSettings provider) => ValidateProviderProxy(
+        () => provider.UseProxy,
+        value => provider.UseProxy = value);
+
+    private void ToggleGoogleProxy(LiveGoogleSettings provider) => ValidateProviderProxy(
+        () => provider.UseProxy,
+        value => provider.UseProxy = value);
+
+    private void ToggleDeepLProxy(LiveDeepLSettings provider) => ValidateProviderProxy(
+        () => provider.UseProxy,
+        value => provider.UseProxy = value);
+
+    private void ValidateProviderProxy(Func<bool> isEnabled, Action<bool> setEnabled)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!isEnabled() || HasConfiguredNetworkProxy())
+                return;
+
+            setEnabled(false);
+            ShowToast(Resources.NetworkProxy, Resources.NetworkProxyRequired, ToastNotification.Warning);
+        }, DispatcherPriority.Background);
+    }
+
+    private bool HasConfiguredNetworkProxy() => NetworkProxyConf.Mode switch
+    {
+        NetworkProxyMode.System => true,
+        NetworkProxyMode.Custom => Uri.TryCreate(NetworkProxyConf.ProxyUrl, UriKind.Absolute, out _),
+        _ => false
+    };
 
     private List<LanguageSettings> BuildDisplayLanguages() => BuildLanguages(includeAuto: false)
         .Where(language => language.Id is "en" or "zh-Hans")

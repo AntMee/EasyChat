@@ -1039,6 +1039,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("FullScreenTip", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Press Esc to exit fullscreen..
+        /// </summary>
+        public static string FullScreenExitHint {
+            get {
+                return ResourceManager.GetString("FullScreenExitHint", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Gemini.
@@ -1669,6 +1678,24 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("Proxy", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Network Proxy.
+        /// </summary>
+        public static string NetworkProxy {
+            get {
+                return ResourceManager.GetString("NetworkProxy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Applies to network requests such as model downloads, voice synthesis, model catalogs, and updates. AI and machine translation use their own proxy settings..
+        /// </summary>
+        public static string NetworkProxyDescription {
+            get {
+                return ResourceManager.GetString("NetworkProxyDescription", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to http://username:password@server:port.
@@ -1689,20 +1716,47 @@ namespace EasyChat.Presentation.Lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Using for TranslationAPI requests. Like OpenAI, Gemini etc..
-        /// </summary>
-        public static string ProxyTypeQuestion {
-            get {
-                return ResourceManager.GetString("ProxyTypeQuestion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Proxy Url.
         /// </summary>
         public static string ProxyUrl {
             get {
                 return ResourceManager.GetString("ProxyUrl", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to System proxy.
+        /// </summary>
+        public static string SystemProxy {
+            get {
+                return ResourceManager.GetString("SystemProxy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Do not use proxy.
+        /// </summary>
+        public static string NoProxy {
+            get {
+                return ResourceManager.GetString("NoProxy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Custom proxy.
+        /// </summary>
+        public static string CustomProxy {
+            get {
+                return ResourceManager.GetString("CustomProxy", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Please enable a system proxy or configure a custom proxy in General settings first.
+        /// </summary>
+        public static string NetworkProxyRequired {
+            get {
+                return ResourceManager.GetString("NetworkProxyRequired", resourceCulture);
             }
         }
         

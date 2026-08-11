@@ -25,7 +25,7 @@ public sealed class TranslationProviderFactory : ITranslationProviderFactory
             provider.ApiUrl,
             provider.ApiKey,
             provider.Model,
-            options.ProxyUrl,
+            options.Proxy,
             provider.EnableThinking);
     }
 
@@ -38,25 +38,25 @@ public sealed class TranslationProviderFactory : ITranslationProviderFactory
             BaiduTranslationProviderConfiguration baidu => new BaiduTranslationProvider(
                 baidu.AppId,
                 baidu.AppKey,
-                options.ProxyUrl,
+                options.Proxy,
                 () => options.RequestErrorMessage,
                 _loggerFactory.CreateLogger<BaiduTranslationProvider>()),
             TencentTranslationProviderConfiguration tencent => new TencentTranslationProvider(
                 tencent.SecretId,
                 tencent.SecretKey,
-                options.ProxyUrl,
+                options.Proxy,
                 () => options.RequestErrorMessage,
                 _loggerFactory.CreateLogger<TencentTranslationProvider>()),
             GoogleTranslationProviderConfiguration google => new GoogleTranslationProvider(
                 google.Model,
                 google.ApiKey,
-                options.ProxyUrl,
+                options.Proxy,
                 () => options.RequestErrorMessage,
                 _loggerFactory.CreateLogger<GoogleTranslationProvider>()),
             DeepLTranslationProviderConfiguration deepL => new DeepLTranslationProvider(
                 deepL.ModelType,
                 deepL.ApiKey,
-                options.ProxyUrl),
+                options.Proxy),
             _ => throw new ArgumentException(
                 $"Unknown machine translation provider: {provider.Name}",
                 nameof(options))

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -18,6 +19,16 @@ public sealed class BaiduTranslationProvider : ITranslationProvider, IDisposable
         string appId,
         string secretKey,
         string? proxy,
+        Func<string> requestError,
+        ILogger logger)
+        : this(appId, secretKey, TranslationProxyOptions.FromLegacyUrl(proxy), requestError, logger)
+    {
+    }
+
+    public BaiduTranslationProvider(
+        string appId,
+        string secretKey,
+        TranslationProxyOptions proxy,
         Func<string> requestError,
         ILogger logger)
         : this(
@@ -109,6 +120,11 @@ internal sealed class BaiduTranslationClient : IBaiduTranslationClient
     private readonly string _secretKey;
 
     public BaiduTranslationClient(string appId, string secretKey, string? proxy)
+        : this(appId, secretKey, TranslationProxyOptions.FromLegacyUrl(proxy))
+    {
+    }
+
+    public BaiduTranslationClient(string appId, string secretKey, TranslationProxyOptions proxy)
         : this(appId, secretKey, new RestClient(CreateOptions(proxy)))
     {
     }
@@ -143,10 +159,17 @@ internal sealed class BaiduTranslationClient : IBaiduTranslationClient
     }
 
     internal static RestClientOptions CreateOptions(string? proxy)
+        => CreateOptions(TranslationProxyOptions.FromLegacyUrl(proxy));
+
+    internal static RestClientOptions CreateOptions(TranslationProxyOptions proxy)
     {
         var options = new RestClientOptions(BaseUrl);
-        if (proxy != null)
-            options.Proxy = new WebProxy(proxy);
+        options.Proxy = proxy.Mode switch
+        {
+            NetworkProxyMode.System => WebRequest.DefaultWebProxy,
+            NetworkProxyMode.Custom when Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out var uri) => new WebProxy(uri),
+            _ => new WebProxy()
+        };
         return options;
     }
 

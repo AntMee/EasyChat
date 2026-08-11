@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using EasyChat.Contracts.Settings;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
 
@@ -270,6 +271,9 @@ internal sealed class DeepLTranslationSettingsDto
 [JsonObject(MemberSerialization.OptIn)]
 internal sealed class ProxySettingsDto
 {
+    [JsonProperty]
+    public NetworkProxyMode? Mode { get; set; }
+
     [JsonProperty]
     public string ProxyUrl { get; set; } = string.Empty;
 }

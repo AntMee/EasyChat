@@ -1,4 +1,5 @@
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Settings;
 
 namespace EasyChat.Contracts.Ocr;
 
@@ -169,7 +170,26 @@ public sealed record OcrRecognitionRequest(
     OcrRecognitionMode Mode = OcrRecognitionMode.Normal,
     int IdleTimeoutSeconds = 300);
 
-public sealed record OcrModelDownloadOptions(string? ProxyUrl, bool UseProxy);
+public sealed record OcrModelDownloadOptions
+{
+    public OcrModelDownloadOptions(NetworkProxyMode proxyMode, string? proxyUrl)
+    {
+        ProxyMode = proxyMode;
+        ProxyUrl = proxyUrl;
+    }
+
+    public OcrModelDownloadOptions(string? proxyUrl, bool useProxy)
+        : this(useProxy
+            ? string.IsNullOrWhiteSpace(proxyUrl) ? NetworkProxyMode.System : NetworkProxyMode.Custom
+            : NetworkProxyMode.None,
+            proxyUrl)
+    {
+    }
+
+    public NetworkProxyMode ProxyMode { get; init; }
+    public string? ProxyUrl { get; init; }
+    public bool UseProxy => ProxyMode is not NetworkProxyMode.None;
+}
 
 public interface IOcrRecognizer
 {
