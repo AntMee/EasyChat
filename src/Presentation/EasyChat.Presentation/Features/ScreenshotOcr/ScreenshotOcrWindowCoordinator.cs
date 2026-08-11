@@ -11,6 +11,7 @@ using EasyChat.Presentation.Features.TextAssist;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
+using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.ImageTranslation;
 using EasyChat.Presentation.Lang;
 using Microsoft.Extensions.Logging;
@@ -38,6 +39,7 @@ public sealed class ScreenshotOcrWindowCoordinator(
     ITextAssistWindowCoordinator textAssist,
     ITranslationWindowCoordinator translation,
     ScreenshotCaptureCoordinator capture,
+    SettingsSession settings,
     TranslationLanguageOptions translationLanguages,
     ToastManager toasts,
     ILoggerFactory loggerFactory)
@@ -82,9 +84,14 @@ public sealed class ScreenshotOcrWindowCoordinator(
                     var view = new ScreenshotOcrWindowView(viewModel);
                     if (anchor is { } point)
                         view.PositionNear(point);
+                    if (settings.IsInitialized && settings.Screenshot.ClosePreviousOcrWindow)
+                    {
+                        foreach (var existing in _windows.ToArray())
+                            existing.Close();
+                    }
                     view.Closed += (_, _) => _windows.Remove(view);
                     _windows.Add(view);
-                    view.Show();
+                    view.ShowInForeground();
                     bitmap = null;
                     session = null!;
                 }

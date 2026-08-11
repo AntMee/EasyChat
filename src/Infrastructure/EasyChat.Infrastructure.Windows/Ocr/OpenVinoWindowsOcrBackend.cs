@@ -558,7 +558,7 @@ internal sealed class OpenVinoWindowsOcrBackend : IWindowsOcrBackend
                 "system" => WebRequest.DefaultWebProxy,
                 "direct" => new WebProxy(),
                 _ => new WebProxy(proxyUrl!)
-            };
+            } ?? new WebProxy(proxyUrl!);
             _configuredDownloadProxy = key;
         }
     }

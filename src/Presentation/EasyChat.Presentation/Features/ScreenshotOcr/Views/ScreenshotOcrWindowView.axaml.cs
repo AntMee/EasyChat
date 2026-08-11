@@ -25,6 +25,7 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
     private readonly ScreenshotOcrWindowViewModel? _viewModel;
     private readonly OcrImageViewport? _viewport;
     private ScreenshotOcrResetConfirmationDialogViewModel? _resetConfirmation;
+    private bool _isPinned;
     private bool _disposed;
 
     public ScreenshotOcrWindowView()
@@ -148,7 +149,11 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
         viewModel.ConfirmResetAsync = ShowResetConfirmationAsync;
         Opened += OnOpened;
         Closed += OnClosed;
-        KeyDown += OnWindowKeyDown;
+        AddHandler(
+            KeyDownEvent,
+            OnWindowKeyDown,
+            RoutingStrategies.Tunnel,
+            handledEventsToo: true);
     }
 
     internal void PositionNear(PhysicalScreenPoint point)
@@ -162,6 +167,20 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
         Position = new PixelPoint(
             area.X + Math.Max(0, (area.Width - width) / 2),
             area.Y + Math.Max(0, (area.Height - height) / 2));
+    }
+
+    internal void ShowInForeground()
+    {
+        Topmost = true;
+        Show();
+        Activate();
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_disposed)
+                return;
+            Topmost = _isPinned;
+            Activate();
+        }, Avalonia.Threading.DispatcherPriority.Input);
     }
 
     private async void OnOpened(object? sender, EventArgs e)
@@ -197,9 +216,10 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
 
     private void Pin_OnClick(object? sender, RoutedEventArgs e)
     {
-        Topmost = !Topmost;
+        _isPinned = !_isPinned;
+        Topmost = _isPinned;
         if (this.FindControl<MaterialIcon>("PinIcon") is { } icon)
-            icon.Kind = Topmost ? MaterialIconKind.Pin : MaterialIconKind.PinOutline;
+            icon.Kind = _isPinned ? MaterialIconKind.Pin : MaterialIconKind.PinOutline;
     }
 
     private void ZoomOut_OnClick(object? sender, RoutedEventArgs e) => _viewport?.ZoomOut();
@@ -256,8 +276,10 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
-            Close();
+        if (e.Key != Key.Escape)
+            return;
+        e.Handled = true;
+        Close();
     }
 
     private PhysicalScreenPoint GetPopupAnchor(object? sender)

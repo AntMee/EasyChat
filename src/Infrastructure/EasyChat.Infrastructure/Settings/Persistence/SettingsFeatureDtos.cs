@@ -234,6 +234,9 @@ internal sealed class ScreenshotSettingsDto
 
     [JsonProperty]
     public int OcrIdleTimeoutSeconds { get; set; } = ScreenshotSettings.DefaultOcrIdleTimeoutSeconds;
+
+    [JsonProperty]
+    public bool ClosePreviousOcrWindow { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]

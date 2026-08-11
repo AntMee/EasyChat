@@ -56,6 +56,7 @@ public sealed class SettingsPersistenceContractTests
             Assert.AreEqual(
                 ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
                 result.Value.Screenshot.OcrIdleTimeoutSeconds);
+            Assert.IsFalse(result.Value.Screenshot.ClosePreviousOcrWindow);
             Assert.AreEqual("EdgeTTS", result.Value.Tts.Provider);
             var expectedPrompts = ReadBuiltInPrompts(result.Value.General.DisplayLanguage);
             AssertPromptAssetWasImported(expectedPrompts, result.Value.Prompts);
@@ -70,7 +71,7 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
-    public async Task ScreenshotOcrMode_RoundTripsAndOldFilesDefaultToNormal()
+    public async Task ScreenshotOcrSettings_RoundTripAndOldFilesUseCompatibleDefaults()
     {
         var directory = CreateTemporaryDirectory();
         try
@@ -83,7 +84,8 @@ public sealed class SettingsPersistenceContractTests
                 Screenshot = initial.Value.Screenshot with
                 {
                     OcrMode = OcrRecognitionMode.IdleRelease,
-                    OcrIdleTimeoutSeconds = 45
+                    OcrIdleTimeoutSeconds = 45,
+                    ClosePreviousOcrWindow = true
                 }
             };
 
@@ -94,6 +96,10 @@ public sealed class SettingsPersistenceContractTests
             Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
             Assert.AreEqual(OcrRecognitionMode.IdleRelease, reread.Value.Screenshot.OcrMode);
             Assert.AreEqual(45, reread.Value.Screenshot.OcrIdleTimeoutSeconds);
+            Assert.IsTrue(reread.Value.Screenshot.ClosePreviousOcrWindow);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "Screenshot.json")),
+                "\"ClosePreviousOcrWindow\": true");
 
             await File.WriteAllTextAsync(
                 Path.Combine(directory, "Screenshot.json"),
@@ -110,6 +116,7 @@ public sealed class SettingsPersistenceContractTests
             Assert.AreEqual(
                 ScreenshotSettings.DefaultOcrIdleTimeoutSeconds,
                 previous.Value.Screenshot.OcrIdleTimeoutSeconds);
+            Assert.IsFalse(previous.Value.Screenshot.ClosePreviousOcrWindow);
         }
         finally
         {

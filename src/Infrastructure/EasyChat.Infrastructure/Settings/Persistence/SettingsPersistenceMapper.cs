@@ -400,7 +400,8 @@ internal static class SettingsPersistenceMapper
         Math.Clamp(
             source.OcrIdleTimeoutSeconds,
             ScreenshotSettings.MinOcrIdleTimeoutSeconds,
-            ScreenshotSettings.MaxOcrIdleTimeoutSeconds));
+            ScreenshotSettings.MaxOcrIdleTimeoutSeconds),
+        source.ClosePreviousOcrWindow);
 
     private static ScreenshotSettingsDto ToDto(ScreenshotSettings source) => new()
     {
@@ -410,7 +411,8 @@ internal static class SettingsPersistenceMapper
         OcrIdleTimeoutSeconds = Math.Clamp(
             source.OcrIdleTimeoutSeconds,
             ScreenshotSettings.MinOcrIdleTimeoutSeconds,
-            ScreenshotSettings.MaxOcrIdleTimeoutSeconds)
+            ScreenshotSettings.MaxOcrIdleTimeoutSeconds),
+        ClosePreviousOcrWindow = source.ClosePreviousOcrWindow
     };
 
     private static FixedAreaSettings ToContract(FixedAreaSettingsDto source) => new(

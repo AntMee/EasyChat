@@ -38,7 +38,9 @@
 
     <StackPanel
                 VerticalAlignment="Top"
-                HorizontalAlignment="Stretch" Spacing="0">
+                HorizontalAlignment="Stretch"
+                MaxWidth="{Binding RelativeSource={RelativeSource AncestorType=ScrollViewer}, Path=Viewport.Width}"
+                Spacing="0">
             <Border Classes="SettingsSearchRow"
                     Classes.SearchResult="{Binding IsSearchMode}"
                     IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='screenshot mode precise 截图模式 截图 模式'}">
@@ -177,16 +179,19 @@
 
         <ItemsControl
                       ItemsSource="{Binding VisibleOcrModelItems}"
-                      Margin="4,4,4,0"
+                      Margin="4,4,8,0"
+                      HorizontalAlignment="Stretch"
                       IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='ocr models model import download delete OCR 模型 下载 删除 模型 导入 删除'}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="viewModels:OcrModelDownloadItemViewModel">
                     <shad:Card HasShadow="False"
                             Padding="10,8"
                             Margin="0,0,0,6"
+                            MinWidth="0"
                             HorizontalAlignment="Stretch">
-                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                            <StackPanel Spacing="4">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6"
+                              MinWidth="0">
+                            <StackPanel Spacing="4" MinWidth="0">
                                 <TextBlock FontWeight="SemiBold"
                                            Foreground="{DynamicResource ForegroundColor}"
                                            Text="{Binding DisplayName}" />
@@ -256,6 +261,7 @@
                                          Minimum="0" Maximum="1"
                                          Value="{Binding Progress}"
                                          Height="6"
+                                         Margin="0,0,2,0"
                                          IsVisible="{Binding IsProgressVisible}"
                                          IsIndeterminate="{Binding IsProgressIndeterminate}" />
                             <TextBlock Grid.Row="2" Grid.ColumnSpan="2"

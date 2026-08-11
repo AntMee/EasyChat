@@ -204,8 +204,9 @@
                                   Padding="15"
                                   HorizontalContentAlignment="Stretch"
                                   VerticalContentAlignment="Top">
-                        <Border Padding="0,0,0,20"
-                                HorizontalAlignment="Stretch">
+                        <Border Padding="20,0,20,20"
+                                HorizontalAlignment="Stretch"
+                                Width="{Binding $parent[ScrollViewer].Viewport.Width}">
                             <StackPanel Spacing="14"
                                VerticalAlignment="Top"
                                HorizontalAlignment="Stretch">

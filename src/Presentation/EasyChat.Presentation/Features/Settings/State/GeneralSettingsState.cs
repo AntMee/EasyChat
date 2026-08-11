@@ -230,6 +230,7 @@ public sealed class LiveScreenshotSettings : LiveSettingsSection
     private string? _mode;
     private OcrRecognitionMode _ocrMode;
     private int _ocrIdleTimeoutSeconds;
+    private bool _closePreviousOcrWindow;
 
     public LiveScreenshotSettings(ScreenshotSettings value, Func<SettingsSection, EasyChat.Shared.Results.Result> commit)
         : base(SettingsSection.Screenshot, commit)
@@ -237,6 +238,7 @@ public sealed class LiveScreenshotSettings : LiveSettingsSection
         _mode = value.Mode;
         _ocrMode = value.OcrMode;
         _ocrIdleTimeoutSeconds = value.OcrIdleTimeoutSeconds;
+        _closePreviousOcrWindow = value.ClosePreviousOcrWindow;
         FixedAreas = new ObservableCollection<FixedAreaState>(
             value.FixedAreas.Select(area => new FixedAreaState(area, commit)));
         FixedAreas.CollectionChanged += OnCollectionChanged;
@@ -249,12 +251,18 @@ public sealed class LiveScreenshotSettings : LiveSettingsSection
         get => _ocrIdleTimeoutSeconds;
         set => Set(ref _ocrIdleTimeoutSeconds, value);
     }
+    public bool ClosePreviousOcrWindow
+    {
+        get => _closePreviousOcrWindow;
+        set => Set(ref _closePreviousOcrWindow, value);
+    }
     public ObservableCollection<FixedAreaState> FixedAreas { get; }
     public ScreenshotSettings ToContract() => new(
         Mode,
         FixedAreas.Select(area => area.ToContract()).ToArray(),
         OcrMode,
-        OcrIdleTimeoutSeconds);
+        OcrIdleTimeoutSeconds,
+        ClosePreviousOcrWindow);
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => Commit();
 }

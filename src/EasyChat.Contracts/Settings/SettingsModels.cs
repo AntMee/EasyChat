@@ -250,7 +250,8 @@ public sealed record ScreenshotSettings(
     string? Mode,
     IReadOnlyList<FixedAreaSettings> FixedAreas,
     OcrRecognitionMode OcrMode = OcrRecognitionMode.Normal,
-    int OcrIdleTimeoutSeconds = 300)
+    int OcrIdleTimeoutSeconds = 300,
+    bool ClosePreviousOcrWindow = false)
 {
     public const int DefaultOcrIdleTimeoutSeconds = 300;
     public const int MinOcrIdleTimeoutSeconds = 10;
