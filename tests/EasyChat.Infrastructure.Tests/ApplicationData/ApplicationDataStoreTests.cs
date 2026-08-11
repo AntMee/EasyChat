@@ -45,6 +45,64 @@ public sealed class ApplicationDataStoreTests
     }
 
     [TestMethod]
+    public void Constructor_MigratesLegacyDefaultDataAndCustomLocationPointer()
+    {
+        using var workspace = new TestWorkspace();
+        var defaultRoot = workspace.Directory("roaming-data");
+        var legacyRoot = workspace.Directory("local-data");
+        var customRoot = workspace.Directory("custom-data");
+        var locationFile = workspace.Path("roaming-data", ".data-location.json");
+
+        Write(Path.Combine(legacyRoot, "Configuration", "General.json"), "settings");
+        Write(Path.Combine(legacyRoot, "Models", "ASR", "en-US", "model.onnx"), "asr");
+        Write(
+            Path.Combine(legacyRoot, ".data-location.json"),
+            $$"""{"RootDirectory":"{{customRoot.Replace("\\", "\\\\")}}"}""");
+
+        var store = new ApplicationDataStore(
+            defaultRoot,
+            workspace.Directory("application"),
+            locationFile,
+            workspace.Directory("legacy-ocr"),
+            legacyRoot);
+
+        Assert.AreEqual(Path.GetFullPath(customRoot), store.Current.RootDirectory);
+        Assert.AreEqual(
+            "settings",
+            File.ReadAllText(Path.Combine(customRoot, "Configuration", "General.json")));
+        Assert.AreEqual(
+            "asr",
+            File.ReadAllText(Path.Combine(customRoot, "Models", "ASR", "en-US", "model.onnx")));
+        Assert.IsTrue(File.Exists(locationFile));
+    }
+
+    [TestMethod]
+    public void Constructor_MigratesLegacyDefaultDataToTheNewDefaultRoot()
+    {
+        using var workspace = new TestWorkspace();
+        var defaultRoot = workspace.Directory("roaming-data");
+        var legacyRoot = workspace.Directory("local-data");
+
+        Write(Path.Combine(legacyRoot, "Configuration", "General.json"), "settings");
+        Write(Path.Combine(legacyRoot, "Models", "OCR", "english", "model.xml"), "ocr");
+
+        var store = new ApplicationDataStore(
+            defaultRoot,
+            workspace.Directory("application"),
+            workspace.Path("roaming-data", ".data-location.json"),
+            workspace.Directory("legacy-ocr"),
+            legacyRoot);
+
+        Assert.AreEqual(Path.GetFullPath(defaultRoot), store.Current.RootDirectory);
+        Assert.AreEqual(
+            "settings",
+            File.ReadAllText(Path.Combine(defaultRoot, "Configuration", "General.json")));
+        Assert.AreEqual(
+            "ocr",
+            File.ReadAllText(Path.Combine(defaultRoot, "Models", "OCR", "english", "model.xml")));
+    }
+
+    [TestMethod]
     public async Task ChangeLocationAsync_MigratesEveryDataAreaThenPersistsAndPublishesTheLocation()
     {
         using var workspace = new TestWorkspace();

@@ -10,12 +10,15 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
     private const string SpeechModelsRelativePath = "Models/ASR";
     private const string OcrModelsRelativePath = "Models/OCR";
     private const string LocationFileName = ".data-location.json";
+    private const string ApplicationName = "EasyChat";
 
     private readonly object _sync = new();
     private readonly SemaphoreSlim _changeGate = new(1, 1);
     private readonly string _defaultRootDirectory;
     private readonly string _applicationDirectory;
+    private readonly string? _legacyDataRootDirectory;
     private readonly string? _locationFilePath;
+    private readonly string? _legacyLocationFilePath;
     private readonly string? _legacyOcrDirectory;
     private readonly bool _migrateLegacyData;
     private string _rootDirectory;
@@ -26,13 +29,20 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
         string applicationDirectory,
         bool persistLocation,
         bool migrateLegacyData,
-        string? configurationDirectoryOverride = null)
+        string? configurationDirectoryOverride = null,
+        string? legacyDataRootDirectory = null)
     {
         _defaultRootDirectory = NormalizeDirectory(defaultRootDirectory);
         _applicationDirectory = NormalizeDirectory(applicationDirectory);
+        _legacyDataRootDirectory = legacyDataRootDirectory is null
+            ? null
+            : NormalizeDirectory(legacyDataRootDirectory);
         _locationFilePath = persistLocation
             ? Path.Combine(_defaultRootDirectory, LocationFileName)
             : null;
+        _legacyLocationFilePath = _legacyDataRootDirectory is null
+            ? null
+            : Path.Combine(_legacyDataRootDirectory, LocationFileName);
         _legacyOcrDirectory = migrateLegacyData
             ? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -87,14 +97,16 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
 
     internal static ApplicationDataStore CreateDefault()
     {
+        var legacyRoot = GetLegacyDefaultRootDirectory();
         var defaultRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "EasyChat");
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            ApplicationName);
         return new ApplicationDataStore(
             defaultRoot,
             AppContext.BaseDirectory,
             persistLocation: true,
-            migrateLegacyData: true);
+            migrateLegacyData: true,
+            legacyDataRootDirectory: legacyRoot);
     }
 
     internal static ApplicationDataStore CreateFixed(string configurationDirectory)
@@ -116,11 +128,18 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
         string defaultRootDirectory,
         string applicationDirectory,
         string locationFilePath,
-        string legacyOcrDirectory)
+        string legacyOcrDirectory,
+        string? legacyDataRootDirectory = null)
     {
         _defaultRootDirectory = NormalizeDirectory(defaultRootDirectory);
         _applicationDirectory = NormalizeDirectory(applicationDirectory);
+        _legacyDataRootDirectory = legacyDataRootDirectory is null
+            ? null
+            : NormalizeDirectory(legacyDataRootDirectory);
         _locationFilePath = Path.GetFullPath(locationFilePath);
+        _legacyLocationFilePath = _legacyDataRootDirectory is null
+            ? null
+            : Path.Combine(_legacyDataRootDirectory, LocationFileName);
         _legacyOcrDirectory = NormalizeDirectory(legacyOcrDirectory);
         _migrateLegacyData = true;
         _configurationDirectoryOverride = null;
@@ -189,21 +208,59 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
 
     private string LoadRootDirectory()
     {
-        if (_locationFilePath is null || !File.Exists(_locationFilePath))
-            return _defaultRootDirectory;
+        if (TryLoadRootDirectory(_locationFilePath, out var rootDirectory))
+            return rootDirectory;
 
-        var json = File.ReadAllText(_locationFilePath);
+        if (TryLoadRootDirectory(_legacyLocationFilePath, out rootDirectory))
+        {
+            try
+            {
+                PersistRootDirectory(rootDirectory);
+            }
+            catch (IOException)
+            {
+                // Keep using the legacy pointer when the new location cannot be written yet.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Keep using the legacy pointer when the new location cannot be written yet.
+            }
+
+            return rootDirectory;
+        }
+
+        return _defaultRootDirectory;
+    }
+
+    private static bool TryLoadRootDirectory(string? locationFilePath, out string rootDirectory)
+    {
+        rootDirectory = string.Empty;
+        if (locationFilePath is null || !File.Exists(locationFilePath))
+            return false;
+
+        var json = File.ReadAllText(locationFilePath);
         var pointer = JsonSerializer.Deserialize<LocationPointer>(json)
                       ?? throw new InvalidDataException("The application data location file is empty.");
         if (string.IsNullOrWhiteSpace(pointer.RootDirectory))
             throw new InvalidDataException("The application data location file has no root directory.");
-        return NormalizeDirectory(pointer.RootDirectory);
+        rootDirectory = NormalizeDirectory(pointer.RootDirectory);
+        return true;
     }
 
     private void MigrateLegacyData()
     {
         if (!_migrateLegacyData)
             return;
+
+        if (_legacyDataRootDirectory is not null)
+        {
+            CopyMissingContents(
+                Path.Combine(_legacyDataRootDirectory, ConfigurationDirectoryName),
+                ConfigurationDirectory);
+            CopyMissingContents(
+                Path.Combine(_legacyDataRootDirectory, "Models"),
+                Path.Combine(RootDirectory, "Models"));
+        }
 
         CopyMissingContents(
             Path.Combine(_applicationDirectory, "Configuration"),
@@ -384,6 +441,10 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
 
     private static string NormalizeDirectory(string path) =>
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+
+    private static string GetLegacyDefaultRootDirectory() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        ApplicationName);
 
     private sealed record LocationPointer(string RootDirectory);
 }
