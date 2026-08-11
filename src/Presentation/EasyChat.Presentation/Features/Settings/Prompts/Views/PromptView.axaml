@@ -206,7 +206,6 @@
                                             VerticalContentAlignment="Stretch"
                                             Command="{Binding $parent[ItemsControl].((viewModels:PromptViewModel)DataContext).EditPromptCommand}"
                                             CommandParameter="{Binding}"
-                                            ToolTip.Tip="{x:Static lang:Resources.Edit}"
                                             Cursor="Hand"
                                             Padding="16,14">
                                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
