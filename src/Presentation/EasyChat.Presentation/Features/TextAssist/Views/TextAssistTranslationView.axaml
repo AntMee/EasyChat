@@ -316,7 +316,8 @@
                                        VerticalAlignment="Center" />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1" IsChecked="{Binding DetailedExplanation}"
-                                      IsEnabled="{Binding IsAiProvider}" OnContent="" OffContent="" />
+                                      IsEnabled="{Binding IsAiProvider}" OnContent="" OffContent=""
+                                      Margin="0,0,8,0" />
                     </Grid>
                 </StackPanel>
             </shad:Card>

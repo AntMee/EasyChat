@@ -46,6 +46,26 @@ public sealed class TextAssistTabLayoutTests
             "Hotkey Text Assist windows are opened in one fixed mode and must not expose mode tabs.");
     }
 
+    [TestMethod]
+    public void TranslationConfiguration_InsetsDetailedNotesToggleFromRightEdge()
+    {
+        var document = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "TextAssist",
+            "Views",
+            "TextAssistTranslationView.axaml"));
+
+        var detailedNotesToggle = document.Descendants()
+            .Single(element => element.Name.LocalName == "ToggleSwitch"
+                               && element.Attribute("IsChecked")?.Value == "{Binding DetailedExplanation}");
+
+        Assert.AreEqual("0,0,8,0", detailedNotesToggle.Attribute("Margin")?.Value);
+    }
+
     private static string FindRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
