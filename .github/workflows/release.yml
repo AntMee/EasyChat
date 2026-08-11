@@ -93,6 +93,8 @@ jobs:
       - name: Pack Velopack win channel
         run: |
           # Velopack 1.2.0 maps msiBanner to the dialog image and msiLogo to the top banner.
+          # Either keeps per-user installs unelevated and requests elevation when the user selects all users.
+          # https://docs.velopack.io/packaging/installer#install-location
           vpk pack -u EasyChat -v ${{ env.VERSION }} -p ./publish -e EasyChat.exe -c win -o ./Releases --msi true --instLocation Either -i ./src/Host/EasyChat.Desktop/Assets/easychat-logo.ico --msiBanner ./.github/assets/installer/msi-dialog.bmp --msiLogo ./.github/assets/installer/msi-banner.bmp
 
       - name: Verify Velopack update packages
@@ -142,7 +144,7 @@ jobs:
           Get-ChildItem -LiteralPath ./Releases -Filter '*Setup.exe' -File |
             Remove-Item -Force
 
-      - name: Add install directory selection to MSI packages
+      - name: Customize and verify MSI packages
         shell: pwsh
         run: |
           Get-ChildItem ./Releases/*.msi | ForEach-Object {

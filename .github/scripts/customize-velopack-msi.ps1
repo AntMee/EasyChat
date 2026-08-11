@@ -110,6 +110,31 @@ function Test-MsiDialogExists {
     }
 }
 
+function Assert-MsiPerMachineElevationPolicy {
+    param(
+        [Parameter(Mandatory = $true)] $Database
+    )
+
+    # Velopack's Either scope must set ALLUSERS=1 before leaving the scope
+    # dialog. Windows Installer uses that property to elevate per-machine installs.
+    $sql = "SELECT ``Dialog_`` FROM ``ControlEvent`` WHERE ``Dialog_``='InstallScopeDlg' AND ``Control_``='Next' AND ``Event``='[ALLUSERS]' AND ``Argument``='1' AND ``Ordering`` < 8"
+    $view = Invoke-ComMethod -Target $Database -Name 'OpenView' -Arguments @($sql)
+    $record = $null
+    try {
+        [void](Invoke-ComMethod -Target $view -Name 'Execute' -Arguments $null)
+        $record = Invoke-ComMethod -Target $view -Name 'Fetch' -Arguments $null
+        if ($null -eq $record) {
+            throw 'Velopack MSI does not set ALLUSERS=1 before leaving InstallScopeDlg; all-users installs would not reliably request elevation.'
+        }
+    }
+    finally {
+        if ($null -ne $record) {
+            [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($record)
+        }
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($view)
+    }
+}
+
 function Get-VelopackLocaleOverrides {
     param(
         [Parameter(Mandatory = $true)]
@@ -202,6 +227,7 @@ $database = $null
 try {
     # msiOpenDatabaseModeTransact = 1
     $database = Invoke-ComMethod -Target $installer -Name 'OpenDatabase' -Arguments @($msiPath, 1)
+    Assert-MsiPerMachineElevationPolicy -Database $database
 
     $hasInstallDirDialog = Test-MsiDialogExists -Database $database -Dialog 'InstallDirDlg'
     $hasLanguageDialog = Test-MsiDialogExists -Database $database -Dialog 'LanguageDlg'
