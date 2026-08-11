@@ -31,6 +31,22 @@ public sealed class HomeTabLayoutTests
                                                             && element.Attribute("Padding")?.Value == "24"));
     }
 
+    [TestMethod]
+    public void HomeShortcutSummary_IsAButtonWithCardVisuals()
+    {
+        var document = LoadHomeView();
+        var shortcutButton = document.Descendants()
+            .Single(element => element.Name.LocalName == "Button"
+                               && element.Attribute("Margin")?.Value == "8,0,0,0");
+
+        Assert.AreEqual("UniformGrid", shortcutButton.Parent?.Name.LocalName);
+        Assert.AreEqual("{Binding NavigateToShortcutsCommand}", shortcutButton.Attribute("Command")?.Value);
+        Assert.AreEqual("{DynamicResource CardBackgroundColor}", shortcutButton.Attribute("Background")?.Value);
+        Assert.AreEqual("{DynamicResource BorderColor}", shortcutButton.Attribute("BorderBrush")?.Value);
+        Assert.AreEqual("1", shortcutButton.Attribute("BorderThickness")?.Value);
+        Assert.AreEqual("{DynamicResource LgCornerRadius}", shortcutButton.Attribute("CornerRadius")?.Value);
+    }
+
     private static XDocument LoadHomeView()
     {
         var root = FindRepositoryRoot();

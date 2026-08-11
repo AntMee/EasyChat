@@ -107,28 +107,29 @@
                                        TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </shad:Card>
-                    <shad:Card Margin="8,0,0,0" HasShadow="False" Padding="0">
-                        <Button Background="Transparent"
-                                BorderThickness="0"
-                                Padding="12,10"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch"
-                                HorizontalContentAlignment="Left"
-                                VerticalContentAlignment="Top"
-                                Command="{Binding NavigateToShortcutsCommand}"
-                                Cursor="Hand">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="{x:Static lang:Resources.Shortcut}"
-                                           Classes="Caption"
-                                           Foreground="{DynamicResource MutedColor}" />
-                                <TextBlock Text="{Binding ShortcutCount, StringFormat={}{0}}"
-                                           Classes="h4" />
-                                <TextBlock Text="{x:Static lang:Resources.HomeHealthActionOpenShortcuts}"
-                                           Classes="Caption"
-                                           Foreground="{DynamicResource PrimaryColor}" />
-                            </StackPanel>
-                        </Button>
-                    </shad:Card>
+                    <Button Margin="8,0,0,0"
+                            Background="{DynamicResource CardBackgroundColor}"
+                            BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource LgCornerRadius}"
+                            Padding="12,10"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            VerticalContentAlignment="Top"
+                            Command="{Binding NavigateToShortcutsCommand}"
+                            Cursor="Hand">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{x:Static lang:Resources.Shortcut}"
+                                       Classes="Caption"
+                                       Foreground="{DynamicResource MutedColor}" />
+                            <TextBlock Text="{Binding ShortcutCount, StringFormat={}{0}}"
+                                       Classes="h4" />
+                            <TextBlock Text="{x:Static lang:Resources.HomeHealthActionOpenShortcuts}"
+                                       Classes="Caption"
+                                       Foreground="{DynamicResource PrimaryColor}" />
+                        </StackPanel>
+                    </Button>
                 </UniformGrid>
             </Grid>
         </shad:Card>
