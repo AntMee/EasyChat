@@ -196,7 +196,7 @@ public sealed class TextAssistCommandTests
         return new TestTextAssistEditorViewModel(settings, languages);
     }
 
-    private static SettingsBundle CreateSettings()
+    internal static SettingsBundle CreateSettings()
     {
         var source = CreateLanguage("auto");
         var target = CreateLanguage("zh-Hans");
@@ -295,7 +295,7 @@ public sealed class TextAssistCommandTests
         }
     }
 
-    private sealed class StubSettingsUseCases(SettingsBundle current) : ISettingsUseCases
+    internal sealed class StubSettingsUseCases(SettingsBundle current) : ISettingsUseCases
     {
         public event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
         public event EventHandler<SettingsSaveFailedEventArgs>? SaveFailed

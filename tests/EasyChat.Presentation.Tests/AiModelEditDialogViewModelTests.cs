@@ -3,6 +3,7 @@ using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Settings.Translation;
 using EasyChat.Presentation.Foundation.UiHost;
+using ShadUI;
 
 namespace EasyChat.Presentation.Tests;
 
@@ -86,11 +87,16 @@ public sealed class AiModelEditDialogViewModelTests
     private static AiModelEditDialogViewModel CreateViewModel(
         IAiModelCatalogTransport catalog,
         Action<CustomAiModelSettings?>? onClose = null,
-        CustomAiModelState? existing = null) =>
-        new(new ShadUI.DialogManager(), catalog, existing)
+        CustomAiModelState? existing = null)
+    {
+        var settings = new SettingsSession(
+            new TextAssistCommandTests.StubSettingsUseCases(TextAssistCommandTests.CreateSettings()));
+        Assert.IsTrue(settings.AttachCurrent().IsSuccess);
+        return new(new DialogManager(), catalog, settings, new ToastManager(), existing)
         {
             OnClose = onClose
         };
+    }
 
     private static async Task WaitForAsync(Func<bool> condition)
     {

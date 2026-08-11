@@ -3,6 +3,7 @@ using EasyChat.Contracts.Updates;
 using EasyChat.Presentation.Features.Shell;
 using EasyChat.Presentation.Foundation.Navigation;
 using EasyChat.Shared.Results;
+using ShadUI;
 
 namespace EasyChat.Presentation.Tests;
 
@@ -29,7 +30,7 @@ public sealed class NavigationBadgeTests
     }
 
     private static AboutViewModel CreateAboutPage() =>
-        new(new StubUpdates(), new StubUriLauncher());
+        new(new StubUpdates(), new StubUriLauncher(), new ToastManager());
 
     private sealed class StubUpdates : IApplicationUpdateService
     {

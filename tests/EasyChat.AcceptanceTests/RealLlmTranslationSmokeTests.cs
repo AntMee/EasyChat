@@ -298,7 +298,7 @@ public sealed class RealLlmTranslationSmokeTests
             configuration.ApiUrl,
             configuration.ApiKey,
             configuration.Model,
-            proxy: null);
+            proxy: TranslationProxyOptions.Direct);
     }
 
     private static LiveLlmConfiguration ReadConfigurationOrMarkInconclusive()
