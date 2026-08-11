@@ -3,6 +3,7 @@ using System.Reactive;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
@@ -13,73 +14,103 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Settings.Theme;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
+using EasyChat.Presentation.Shared.Controls;
 using Material.Icons;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
-using SukiUI;
-using SukiUI.Dialogs;
-using SukiUI.Models;
-using SukiUI.Toasts;
+using ShadUI;
+using ThemeMode = EasyChat.Contracts.Settings.ThemeMode;
 
 namespace EasyChat.Presentation.Features.Shell
 {
     public sealed class PageNavigation
     {
-        public event Action<Type>? NavigationRequested;
-        public void NavigateTo<TPage>() where TPage : NavigationPageViewModel =>
-            NavigationRequested?.Invoke(typeof(TPage));
+        public event Action<Type, object?>? NavigationRequested;
+
+        public void NavigateTo<TPage>(object? context = null)
+            where TPage : NavigationPageViewModel =>
+            NavigationRequested?.Invoke(typeof(TPage), context);
+    }
+
+    /// <summary>Optional payload when opening Settings from Home / badges.</summary>
+    public enum SettingsPane
+    {
+        General,
+        Translation,
+        Selection,
+        Tts,
+        Screenshot,
+        Result,
+        Input
     }
 
     public sealed class MainWindowViewModel : ViewModelBase
     {
-        private readonly SukiTheme _theme;
+        public const string UpdateToastManagerKey = "Update";
+
         private readonly SettingsSession _settings;
         private readonly IExternalUriLauncher _uriLauncher;
+        private readonly ShadUI.ToastManager _toasts;
         private NavigationPageViewModel? _activePage;
         private ThemeMode _baseThemeMode;
-        private bool _isApplyingBaseTheme;
+        private ColorThemeOption? _activeColorTheme;
         private bool _isFullScreen;
+        private bool _titleBarVisible;
 
         public MainWindowViewModel(
             IEnumerable<NavigationPageViewModel> pages,
             PageNavigation navigation,
             SettingsSession settings,
             IExternalUriLauncher uriLauncher,
-            ISukiToastManager toastManager,
-            ISukiDialogManager dialogManager)
+            ShadUI.ToastManager shadToastManager,
+            [FromKeyedServices(UpdateToastManagerKey)] ShadUI.ToastManager updateToastManager,
+            ShadUI.DialogManager shadDialogManager)
         {
             _settings = settings;
             _uriLauncher = uriLauncher;
-            ToastManager = toastManager;
-            DialogManager = dialogManager;
+            _toasts = shadToastManager;
+            ShadToastManager = shadToastManager;
+            UpdateToastManager = updateToastManager;
+            ShadDialogManager = shadDialogManager;
             Pages = new ObservableCollection<NavigationPageViewModel>(
                 pages.OrderBy(page => page.Index).ThenBy(page => page.DisplayName));
             _activePage = Pages.FirstOrDefault();
 
-            _theme = SukiTheme.GetInstance();
-            Themes = _theme.ColorThemes;
+            Themes = new ObservableCollection<ColorThemeOption>
+            {
+                new("Blue", Color.Parse("#3B82F6"), Color.Parse("#60A5FA")),
+                new("Purple", Color.Parse("#8B5CF6"), Color.Parse("#A78BFA")),
+                new("Red", Color.Parse("#EF4444"), Color.Parse("#F87171")),
+                new("Orange", Color.Parse("#F97316"), Color.Parse("#FB923C")),
+                new("Green", Color.Parse("#22C55E"), Color.Parse("#4ADE80"))
+            };
             _baseThemeMode = settings.General.BaseTheme;
             _isFullScreen = settings.General.FullScreen;
-            settings.General.TitleBarVisible = !_isFullScreen;
+            _titleBarVisible = !_isFullScreen;
+            // Keep settings in sync without forcing a second chrome write on startup.
+            if (settings.General.TitleBarVisible != _titleBarVisible)
+                settings.General.TitleBarVisible = _titleBarVisible;
             ApplyBaseTheme(_baseThemeMode);
             RestoreColorTheme();
 
             CycleBaseThemeCommand = ReactiveCommand.Create(CycleBaseTheme);
-            ChangeThemeCommand = ReactiveCommand.Create<SukiColorTheme>(_theme.ChangeColorTheme);
+            // Color palette changes remain independent from the base light/dark variant.
+            ChangeThemeCommand = ReactiveCommand.Create<ColorThemeOption>(ApplyColorTheme);
             CreateCustomThemeCommand = ReactiveCommand.Create(CreateCustomTheme);
+            SelectPageCommand = ReactiveCommand.Create<NavigationPageViewModel>(SelectPage);
             ToggleFullScreenCommand = ReactiveCommand.Create(ToggleFullScreen);
             OpenUrlCommand = ReactiveCommand.Create<string>(OpenUrl);
 
             navigation.NavigationRequested += NavigateTo;
-            _theme.OnBaseThemeChanged += OnBaseThemeChanged;
-            _theme.OnColorThemeChanged += OnColorThemeChanged;
         }
 
         public event EventHandler<bool>? FullScreenChanged;
 
         public ObservableCollection<NavigationPageViewModel> Pages { get; }
-        public IReadOnlyList<SukiColorTheme> Themes { get; }
-        public ISukiDialogManager DialogManager { get; }
-        public ISukiToastManager ToastManager { get; }
+        public ObservableCollection<ColorThemeOption> Themes { get; }
+        public ShadUI.DialogManager ShadDialogManager { get; }
+        public ShadUI.ToastManager ShadToastManager { get; }
+        public ShadUI.ToastManager UpdateToastManager { get; }
 
         public NavigationPageViewModel? ActivePage
         {
@@ -89,13 +120,20 @@ namespace EasyChat.Presentation.Features.Shell
 
         public bool TitleBarVisible
         {
-            get => _settings.General.TitleBarVisible;
+            get => _titleBarVisible;
             set
             {
-                if (_settings.General.TitleBarVisible == value)
+                if (_titleBarVisible == value)
                     return;
-                _settings.General.TitleBarVisible = value;
-                this.RaisePropertyChanged();
+                // Paint first — LiveGeneralSettings.Set flushes disk synchronously.
+                this.RaiseAndSetIfChanged(ref _titleBarVisible, value);
+                Dispatcher.UIThread.Post(
+                    () =>
+                    {
+                        if (_settings.General.TitleBarVisible != value)
+                            _settings.General.TitleBarVisible = value;
+                    },
+                    DispatcherPriority.Background);
             }
         }
 
@@ -132,8 +170,9 @@ namespace EasyChat.Presentation.Features.Shell
         };
 
         public ReactiveCommand<Unit, Unit> CycleBaseThemeCommand { get; }
-        public ReactiveCommand<SukiColorTheme, Unit> ChangeThemeCommand { get; }
+        public ReactiveCommand<ColorThemeOption, Unit> ChangeThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> CreateCustomThemeCommand { get; }
+        public ReactiveCommand<NavigationPageViewModel, Unit> SelectPageCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleFullScreenCommand { get; }
         public ReactiveCommand<string, Unit> OpenUrlCommand { get; }
 
@@ -147,7 +186,7 @@ namespace EasyChat.Presentation.Features.Shell
                 StringComparison.OrdinalIgnoreCase));
             if (saved is not null)
             {
-                _theme.ChangeColorTheme(saved);
+                ApplyColorTheme(saved, persist: false, notify: false);
                 return;
             }
 
@@ -159,25 +198,30 @@ namespace EasyChat.Presentation.Features.Shell
 
             try
             {
-                var custom = new SukiColorTheme(
+                var custom = new ColorThemeOption(
                     _settings.General.ColorTheme,
                     Color.Parse(_settings.General.CustomThemePrimaryColor),
-                    Color.Parse(_settings.General.CustomThemeAccentColor));
-                _theme.AddColorTheme(custom);
-                _theme.ChangeColorTheme(custom);
+                    Color.Parse(_settings.General.CustomThemeAccentColor),
+                    IsCustom: true);
+                Themes.Add(custom);
+                ApplyColorTheme(custom, persist: false, notify: false);
             }
             catch (FormatException)
             {
-                // Manually edited invalid colors fall back to SukiUI's active theme.
+                // Manually edited invalid colors leave ShadUI's default palette active.
             }
         }
 
-        private void NavigateTo(Type pageType)
+        private void NavigateTo(Type pageType, object? context)
         {
             var page = Pages.FirstOrDefault(candidate => candidate.GetType() == pageType);
-            if (page is not null)
-                ActivePage = page;
+            if (page is null)
+                return;
+            ActivePage = page;
+            if (page is SettingViewModel settings && context is SettingsPane pane)
+                settings.OpenPane(pane);
         }
+
 
         private void CycleBaseTheme() => ChangeBaseTheme(BaseThemeMode switch
         {
@@ -191,76 +235,118 @@ namespace EasyChat.Presentation.Features.Shell
             if (BaseThemeMode == mode)
                 return;
 
+            // Paint first, persist after the frame — FlushSection rebuilds the whole bundle + disk.
             BaseThemeMode = mode;
-            _settings.General.BaseTheme = mode;
             ApplyBaseTheme(mode);
-            ToastManager.CreateSimpleInfoToast()
-                .WithTitle(Resources.ThemeChangedTitle)
-                .WithContent($"{Resources.ThemeChangedContent} {CurrentThemeModeName}.")
-                .Queue();
+            var modeToSave = mode;
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (BaseThemeMode != modeToSave
+                        || _settings.General.BaseTheme == modeToSave)
+                        return;
+                    _settings.General.BaseTheme = modeToSave;
+                },
+                DispatcherPriority.ApplicationIdle);
         }
 
         private void ApplyBaseTheme(ThemeMode mode)
         {
             var application = Application.Current
                 ?? throw new InvalidOperationException("Avalonia application is not initialized.");
-            var activeColorTheme = _theme.ActiveColorTheme;
 
-            _isApplyingBaseTheme = true;
-            try
+            var target = mode switch
             {
-                application.RequestedThemeVariant = mode switch
+                ThemeMode.Light => ThemeVariant.Light,
+                ThemeMode.Dark => ThemeVariant.Dark,
+                _ => ThemeVariant.Default
+            };
+
+            // A variant change is a single paint and does not reapply the color palette.
+            if (Equals(application.RequestedThemeVariant, target))
+                return;
+
+            application.RequestedThemeVariant = target;
+        }
+
+        private void ApplyColorTheme(ColorThemeOption theme) =>
+            ApplyColorTheme(theme, persist: true, notify: true);
+
+        private void ApplyColorTheme(ColorThemeOption theme, bool persist, bool notify)
+        {
+            if (_activeColorTheme == theme)
+                return;
+
+            var resources = (Application.Current
+                ?? throw new InvalidOperationException("Avalonia application is not initialized."))
+                .Resources;
+            resources["PrimaryColor"] = theme.PrimaryColor;
+            resources["PrimaryColor75"] = WithOpacity(theme.PrimaryColor, 0.75);
+            resources["PrimaryColor50"] = WithOpacity(theme.PrimaryColor, 0.50);
+            resources["PrimaryColor10"] = WithOpacity(theme.PrimaryColor, 0.10);
+            resources["PrimaryForegroundColor"] = ContrastingForeground(theme.PrimaryColor);
+            resources["SecondaryColor"] = theme.AccentColor;
+            resources["SecondaryColor75"] = WithOpacity(theme.AccentColor, 0.75);
+            resources["SecondaryColor50"] = WithOpacity(theme.AccentColor, 0.50);
+            resources["SecondaryForegroundColor"] = ContrastingForeground(theme.AccentColor);
+            _activeColorTheme = theme;
+
+            if (persist)
+            {
+                _settings.General.ColorTheme = theme.DisplayName;
+                if (theme.IsCustom)
                 {
-                    ThemeMode.Light => ThemeVariant.Light,
-                    ThemeMode.Dark => ThemeVariant.Dark,
-                    _ => ThemeVariant.Default
-                };
-                if (activeColorTheme is not null)
-                    _theme.ChangeColorTheme(activeColorTheme);
+                    _settings.General.CustomThemePrimaryColor = theme.PrimaryColor.ToString();
+                    _settings.General.CustomThemeAccentColor = theme.AccentColor.ToString();
+                }
             }
-            finally
+
+            if (notify)
             {
-                _isApplyingBaseTheme = false;
+                _toasts.CreateToast(Resources.ColorChangedTitle)
+                    .WithContent($"{Resources.ColorChangedContent} {theme.DisplayName}.")
+                    .ShowInfo();
             }
         }
 
-        private void OnBaseThemeChanged(ThemeVariant _)
+        private void SelectPage(NavigationPageViewModel page) => ActivePage = page;
+
+        private static Color WithOpacity(Color color, double opacity) =>
+            Color.FromArgb((byte)Math.Round(byte.MaxValue * opacity), color.R, color.G, color.B);
+
+        private static Color ContrastingForeground(Color color)
         {
-            if (_isApplyingBaseTheme || _theme.ActiveColorTheme is not { } activeColorTheme)
-                return;
-
-            _isApplyingBaseTheme = true;
-            try
-            {
-                _theme.ChangeColorTheme(activeColorTheme);
-            }
-            finally
-            {
-                _isApplyingBaseTheme = false;
-            }
+            var luminance = (0.2126 * color.R) + (0.7152 * color.G) + (0.0722 * color.B);
+            return luminance > 160 ? Color.Parse("#18181B") : Colors.White;
         }
 
-        private void OnColorThemeChanged(SukiColorTheme theme)
+        private void CreateCustomTheme()
         {
-            if (_isApplyingBaseTheme)
-                return;
-            _settings.General.ColorTheme = theme.DisplayName;
-            ToastManager.CreateSimpleInfoToast()
-                .WithTitle(Resources.ColorChangedTitle)
-                .WithContent($"{Resources.ColorChangedContent} {theme.DisplayName}.")
-                .Queue();
+            var viewModel = new CustomThemeDialogViewModel(ShadDialogManager, AddCustomTheme);
+            ShadDialogManager.CreateDialog(viewModel).Show();
         }
 
-        private void CreateCustomTheme() => DialogManager.CreateDialog()
-            .WithViewModel(dialog => new CustomThemeDialogViewModel(_theme, dialog, _settings.General))
-            .TryShow();
+        private void AddCustomTheme(ColorThemeOption theme)
+        {
+            Themes.Add(theme);
+            ApplyColorTheme(theme);
+        }
 
         private void ToggleFullScreen()
         {
-            IsFullScreen = !IsFullScreen;
-            _settings.General.FullScreen = IsFullScreen;
-            TitleBarVisible = !IsFullScreen;
-            FullScreenChanged?.Invoke(this, IsFullScreen);
+            var next = !IsFullScreen;
+            // Order: local state → window state event → deferred settings flush.
+            // Sync settings flush + badge refresh on this path caused hitch/twitch.
+            IsFullScreen = next;
+            TitleBarVisible = !next;
+            FullScreenChanged?.Invoke(this, next);
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (_settings.General.FullScreen != next)
+                        _settings.General.FullScreen = next;
+                },
+                DispatcherPriority.Background);
         }
 
         private void OpenUrl(string value)
@@ -273,28 +359,115 @@ namespace EasyChat.Presentation.Features.Shell
 
 namespace EasyChat.Presentation.Features.Shell
 {
+    public sealed class HomeHealthItem
+    {
+        public HomeHealthItem(
+            string title,
+            string description,
+            bool isDone,
+            MaterialIconKind icon,
+            string actionText,
+            ReactiveCommand<Unit, Unit> actionCommand)
+        {
+            Title = title;
+            Description = description;
+            IsDone = isDone;
+            Icon = icon;
+            ActionText = actionText;
+            ActionCommand = actionCommand;
+        }
+
+        public string Title { get; }
+        public string Description { get; }
+        public bool IsDone { get; }
+        public bool NeedsAction => !IsDone;
+        public MaterialIconKind Icon { get; }
+        public string ActionText { get; }
+        public ReactiveCommand<Unit, Unit> ActionCommand { get; }
+        public HomeStatusKind StatusKind => IsDone ? HomeStatusKind.Success : HomeStatusKind.Warning;
+        public string StatusText => IsDone ? Resources.HomeStatusReady : Resources.HomeStatusNeedsSetup;
+    }
+
+    public sealed class HomeQuickAction(
+        string title,
+        string description,
+        MaterialIconKind icon,
+        ReactiveCommand<Unit, Unit> command)
+    {
+        public string Title { get; } = title;
+        public string Description { get; } = description;
+        public MaterialIconKind Icon { get; } = icon;
+        public ReactiveCommand<Unit, Unit> Command { get; } = command;
+    }
+
     public sealed class HomeViewModel : NavigationPageViewModel
     {
         private readonly IApplicationUpdateService _updates;
+        private readonly PageNavigation _navigation;
+        private readonly SettingsSession _settings;
         private string _latestVersion = "-";
+        private IReadOnlyList<HomeHealthItem> _healthItems = [];
 
         public HomeViewModel(
             SettingsSession settings,
             TranslationLanguageOptions languages,
-            IApplicationUpdateService updates)
+            IApplicationUpdateService updates,
+            PageNavigation navigation)
             : base(Resources.Home, MaterialIconKind.Home)
         {
             _updates = updates;
+            _navigation = navigation;
+            _settings = settings;
             GeneralConfig = settings.General;
             ConfiguredModels = settings.AiModel.ConfiguredModels;
             AvailableLanguages = languages.All;
-            GeneralConfig.PropertyChanged += (_, args) =>
+            GeneralConfig.PropertyChanged += OnGeneralPropertyChanged;
+            ConfiguredModels.CollectionChanged += (_, _) => RaiseDashboardProperties();
+            settings.Shortcut.Entries.CollectionChanged += (_, _) => RaiseDashboardProperties();
+            NavigateToSettingsCommand = ReactiveCommand.Create(() =>
+                _navigation.NavigateTo<SettingViewModel>(SettingsPane.Translation));
+            NavigateToShortcutsCommand = ReactiveCommand.Create(() =>
+                _navigation.NavigateTo<EasyChat.Presentation.Features.Shortcuts.ShortcutViewModel>());
+            NavigateToSpeechCommand = ReactiveCommand.Create(() =>
+                _navigation.NavigateTo<EasyChat.Presentation.Features.Speech.SpeechRecognitionViewModel>());
+            NavigateToTextAssistCommand = ReactiveCommand.Create(() =>
+                _navigation.NavigateTo<EasyChat.Presentation.Features.TextAssist.TextAssistTranslationPageViewModel>());
+            NavigateToPromptsCommand = ReactiveCommand.Create(() =>
+                _navigation.NavigateTo<EasyChat.Presentation.Features.Settings.Prompts.PromptViewModel>());
+            OpenEngineSettingsCommand = ReactiveCommand.Create(() =>
+                _navigation.NavigateTo<SettingViewModel>(SettingsPane.Translation));
+            NavigateToAboutCommand = ReactiveCommand.Create(() =>
+                _navigation.NavigateTo<AboutViewModel>());
+            SwapLanguagesCommand = ReactiveCommand.Create(SwapLanguages);
+            DismissOnboardingCommand = ReactiveCommand.Create(() =>
             {
-                if (args.PropertyName == nameof(LiveGeneralSettings.SourceLanguage))
-                    this.RaisePropertyChanged(nameof(SelectedSourceLanguage));
-                else if (args.PropertyName == nameof(LiveGeneralSettings.TargetLanguage))
-                    this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
-            };
+                GeneralConfig.HomeOnboardingDismissed = true;
+                this.RaisePropertyChanged(nameof(ShowOnboarding));
+            });
+            QuickActions =
+            [
+                new HomeQuickAction(
+                    Resources.Page_SpeechRecognition,
+                    Resources.HomeQuickSpeechHint,
+                    MaterialIconKind.Microphone,
+                    NavigateToSpeechCommand),
+                new HomeQuickAction(
+                    Resources.TextAssistTranslate,
+                    Resources.HomeQuickTextAssistHint,
+                    MaterialIconKind.Translate,
+                    NavigateToTextAssistCommand),
+                new HomeQuickAction(
+                    Resources.Shortcut,
+                    Resources.HomeQuickShortcutHint,
+                    MaterialIconKind.Keyboard,
+                    NavigateToShortcutsCommand),
+                new HomeQuickAction(
+                    Resources.Prompts,
+                    Resources.HomeQuickPromptHint,
+                    MaterialIconKind.TextBox,
+                    NavigateToPromptsCommand)
+            ];
+            RefreshHealthItems();
             _ = CheckForUpdateAsync();
         }
 
@@ -325,6 +498,142 @@ namespace EasyChat.Presentation.Features.Shell
         public string CurrentVersion => _updates.CurrentVersion;
         public string LatestVersion { get => _latestVersion; private set => this.RaiseAndSetIfChanged(ref _latestVersion, value); }
 
+        public int ConfiguredModelCount => ConfiguredModels.Count;
+        public int ShortcutCount => _settings.Shortcut.Entries.Count;
+        public bool IsUsingAiEngine =>
+            string.Equals(GeneralConfig.TransEngine, "AiModel", StringComparison.OrdinalIgnoreCase);
+        public int EngineTabIndex
+        {
+            get => IsUsingAiEngine ? 0 : 1;
+            set
+            {
+                if (value is < 0 or > 1)
+                    return;
+
+                var engine = value == 0
+                    ? TranslationEngineNames.AiModel
+                    : TranslationEngineNames.MachineTrans;
+                if (!string.Equals(GeneralConfig.TransEngine, engine, StringComparison.OrdinalIgnoreCase))
+                    GeneralConfig.TransEngine = engine;
+            }
+        }
+        public bool IsEngineReady => IsUsingAiEngine
+            ? ConfiguredModels.Count > 0 && !string.IsNullOrWhiteSpace(GeneralConfig.UsingAiModelId)
+            : !string.IsNullOrWhiteSpace(GeneralConfig.UsingMachineTrans);
+        public bool NeedsConfiguration => !IsEngineReady;
+        public string EngineStatusText => IsEngineReady ? Resources.HomeStatusReady : Resources.HomeStatusNeedsSetup;
+        public HomeStatusKind EngineStatusKind => IsEngineReady ? HomeStatusKind.Success : HomeStatusKind.Warning;
+        public string EngineSummaryText => IsUsingAiEngine
+            ? (ConfiguredModels.FirstOrDefault(model => model.Id == GeneralConfig.UsingAiModelId)?.Name
+               ?? Resources.NotSet)
+            : (GeneralConfig.UsingMachineTrans ?? Resources.NotSet);
+        public string EngineKindText => IsUsingAiEngine ? Resources.AIEngine : Resources.MachineTranslation;
+        public string CapabilitySummaryText =>
+            string.Format(Resources.HomeCapabilitySummary, ConfiguredModelCount, ShortcutCount);
+        public string SourceLanguageDisplay => DisplayLanguage(SelectedSourceLanguage);
+        public string TargetLanguageDisplay => DisplayLanguage(SelectedTargetLanguage);
+        public string LanguagePairDisplay => $"{SourceLanguageDisplay}  →  {TargetLanguageDisplay}";
+
+        public bool HasIncompleteHealth => HealthItems.Any(item => !item.IsDone);
+        public bool ShowOnboarding => !GeneralConfig.HomeOnboardingDismissed && HasIncompleteHealth;
+        public IReadOnlyList<HomeHealthItem> HealthItems
+        {
+            get => _healthItems;
+            private set => this.RaiseAndSetIfChanged(ref _healthItems, value);
+        }
+
+        public ReactiveCommand<Unit, Unit> NavigateToSettingsCommand { get; }
+        public ReactiveCommand<Unit, Unit> NavigateToShortcutsCommand { get; }
+        public ReactiveCommand<Unit, Unit> NavigateToSpeechCommand { get; }
+        public ReactiveCommand<Unit, Unit> NavigateToTextAssistCommand { get; }
+        public ReactiveCommand<Unit, Unit> NavigateToPromptsCommand { get; }
+        public ReactiveCommand<Unit, Unit> NavigateToAboutCommand { get; }
+        public ReactiveCommand<Unit, Unit> OpenEngineSettingsCommand { get; }
+        public ReactiveCommand<Unit, Unit> SwapLanguagesCommand { get; }
+        public ReactiveCommand<Unit, Unit> DismissOnboardingCommand { get; }
+        public IReadOnlyList<HomeQuickAction> QuickActions { get; }
+
+        private void OnGeneralPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(LiveGeneralSettings.SourceLanguage))
+            {
+                this.RaisePropertyChanged(nameof(SelectedSourceLanguage));
+                this.RaisePropertyChanged(nameof(SourceLanguageDisplay));
+                this.RaisePropertyChanged(nameof(LanguagePairDisplay));
+            }
+            else if (args.PropertyName == nameof(LiveGeneralSettings.TargetLanguage))
+            {
+                this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
+                this.RaisePropertyChanged(nameof(TargetLanguageDisplay));
+                this.RaisePropertyChanged(nameof(LanguagePairDisplay));
+            }
+            else if (args.PropertyName is nameof(LiveGeneralSettings.TransEngine)
+                     or nameof(LiveGeneralSettings.UsingAiModelId)
+                     or nameof(LiveGeneralSettings.UsingMachineTrans))
+                RaiseDashboardProperties();
+            else if (args.PropertyName == nameof(LiveGeneralSettings.HomeOnboardingDismissed))
+                this.RaisePropertyChanged(nameof(ShowOnboarding));
+        }
+
+        private void RaiseDashboardProperties()
+        {
+            this.RaisePropertyChanged(nameof(ConfiguredModelCount));
+            this.RaisePropertyChanged(nameof(ShortcutCount));
+            this.RaisePropertyChanged(nameof(IsUsingAiEngine));
+            this.RaisePropertyChanged(nameof(EngineTabIndex));
+            this.RaisePropertyChanged(nameof(IsEngineReady));
+            this.RaisePropertyChanged(nameof(NeedsConfiguration));
+            this.RaisePropertyChanged(nameof(EngineStatusText));
+            this.RaisePropertyChanged(nameof(EngineStatusKind));
+            this.RaisePropertyChanged(nameof(EngineSummaryText));
+            this.RaisePropertyChanged(nameof(EngineKindText));
+            this.RaisePropertyChanged(nameof(CapabilitySummaryText));
+            this.RaisePropertyChanged(nameof(SourceLanguageDisplay));
+            this.RaisePropertyChanged(nameof(TargetLanguageDisplay));
+            this.RaisePropertyChanged(nameof(LanguagePairDisplay));
+            RefreshHealthItems();
+            this.RaisePropertyChanged(nameof(HasIncompleteHealth));
+            this.RaisePropertyChanged(nameof(ShowOnboarding));
+        }
+
+        private static string DisplayLanguage(LanguageSettings language) =>
+            LanguageDisplayNames.ForUi(language.ChineseName, language.EnglishName);
+
+        private void RefreshHealthItems()
+        {
+            HealthItems =
+            [
+                new HomeHealthItem(
+                    Resources.HomeHealthEngineTitle,
+                    IsEngineReady ? Resources.HomeHealthEngineDone : Resources.HomeHealthEngineTodo,
+                    IsEngineReady,
+                    MaterialIconKind.Robot,
+                    Resources.HomeHealthActionOpenSettings,
+                    NavigateToSettingsCommand),
+                new HomeHealthItem(
+                    Resources.HomeHealthShortcutTitle,
+                    ShortcutCount > 0
+                        ? string.Format(Resources.HomeHealthShortcutDone, ShortcutCount)
+                        : Resources.HomeHealthShortcutTodo,
+                    ShortcutCount > 0,
+                    MaterialIconKind.Keyboard,
+                    Resources.HomeHealthActionOpenShortcuts,
+                    NavigateToShortcutsCommand)
+            ];
+        }
+
+        private void SwapLanguages()
+        {
+            var source = GeneralConfig.SourceLanguage;
+            GeneralConfig.SourceLanguage = GeneralConfig.TargetLanguage;
+            GeneralConfig.TargetLanguage = source;
+            this.RaisePropertyChanged(nameof(SelectedSourceLanguage));
+            this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
+            this.RaisePropertyChanged(nameof(SourceLanguageDisplay));
+            this.RaisePropertyChanged(nameof(TargetLanguageDisplay));
+            this.RaisePropertyChanged(nameof(LanguagePairDisplay));
+        }
+
         private LanguageSettings ResolveLanguage(string id) =>
             AvailableLanguages.FirstOrDefault(language => language.Id == id)
             ?? AvailableLanguages[0];
@@ -338,7 +647,28 @@ namespace EasyChat.Presentation.Features.Shell
 
     public sealed class AboutViewModel : NavigationPageViewModel
     {
-        public AboutViewModel() : base(Resources.About, MaterialIconKind.InformationOutline, 10) { }
+        private readonly IExternalUriLauncher _uriLauncher;
+
+        public AboutViewModel(
+            IApplicationUpdateService updates,
+            IExternalUriLauncher uriLauncher)
+            : base(Resources.About, MaterialIconKind.InformationOutline, 10)
+        {
+            ArgumentNullException.ThrowIfNull(updates);
+            _uriLauncher = uriLauncher ?? throw new ArgumentNullException(nameof(uriLauncher));
+            Version = updates.CurrentVersion;
+            OpenUrlCommand = ReactiveCommand.Create<string>(OpenUrl);
+        }
+
+        public string Version { get; }
+        public ReactiveCommand<string, Unit> OpenUrlCommand { get; }
+
+        private void OpenUrl(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                return;
+            _uriLauncher.Open(uri);
+        }
     }
 }
 
@@ -346,7 +676,7 @@ namespace EasyChat.Presentation.Features.Shell
 {
     public sealed class CloseBehaviorDialogViewModel : ConventionViewModelBase
     {
-        private readonly ISukiDialog _dialog;
+        private readonly ShadUI.DialogManager _dialogManager;
         private readonly LiveGeneralSettings _settings;
         private readonly Action _ensureTrayVisible;
         private readonly Action _minimize;
@@ -354,13 +684,13 @@ namespace EasyChat.Presentation.Features.Shell
         private bool _isRemember;
 
         public CloseBehaviorDialogViewModel(
-            ISukiDialog dialog,
+            ShadUI.DialogManager dialogManager,
             LiveGeneralSettings settings,
             Action ensureTrayVisible,
             Action minimize,
             Action exit)
         {
-            _dialog = dialog;
+            _dialogManager = dialogManager;
             _settings = settings;
             _ensureTrayVisible = ensureTrayVisible
                 ?? throw new ArgumentNullException(nameof(ensureTrayVisible));
@@ -368,11 +698,14 @@ namespace EasyChat.Presentation.Features.Shell
             _exit = exit;
             MinimizeCommand = ReactiveCommand.Create(Minimize);
             ExitAppCommand = ReactiveCommand.Create(Exit);
+            // Close was already cancelled on the window; cancel only dismisses the prompt.
+            CancelCommand = ReactiveCommand.Create(() => _dialogManager.Close(this));
         }
 
         public bool IsRemember { get => _isRemember; set => this.RaiseAndSetIfChanged(ref _isRemember, value); }
         public ReactiveCommand<Unit, Unit> MinimizeCommand { get; }
         public ReactiveCommand<Unit, Unit> ExitAppCommand { get; }
+        public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
         private void Minimize()
         {
@@ -380,7 +713,7 @@ namespace EasyChat.Presentation.Features.Shell
                 _settings.ClosingBehavior = ClosingBehavior.MinimizeToTray;
             _ensureTrayVisible();
             _minimize();
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private void Exit()
@@ -388,7 +721,7 @@ namespace EasyChat.Presentation.Features.Shell
             if (IsRemember)
                 _settings.ClosingBehavior = ClosingBehavior.ExitApp;
             _exit();
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
     }
 }

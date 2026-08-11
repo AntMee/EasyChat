@@ -4,115 +4,280 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings.Prompts;assembly=EasyChat.Presentation"
              xmlns:state="clr-namespace:EasyChat.Presentation.Features.Settings.State;assembly=EasyChat.Presentation"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              x:DataType="viewModels:PromptViewModel"
              mc:Ignorable="d"
-             Focusable="True">
+             Focusable="True"
+             Background="{DynamicResource GhostColor}">
 
-    <Grid RowDefinitions="Auto,*,Auto" Margin="25">
-        <!-- Header -->
-        <TextBlock Text="{x:Static lang:Resources.Prompts}"
-                   FontSize="28"
-                   FontWeight="Bold"
-                   Margin="0 0 0 20" />
+    <UserControl.Styles>
+        <Style Selector="Button.PromptEntry">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="RenderTransform" Value="scale(1)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                    <TransformOperationsTransition Property="RenderTransform"
+                                                   Duration="0:0:0.12"
+                                                   Easing="CircularEaseOut" />
+                </Transitions>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.PromptEntry:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+        </Style>
+        <Style Selector="Button.PromptEntry:pressed">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Opacity" Value="0.80" />
+            <Setter Property="RenderTransform" Value="scale(0.985)" />
+        </Style>
+        <Style Selector="Button.PromptIconAction">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.PromptIconAction:pointerover">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.PromptDelete">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource DestructiveColor}" />
+        </Style>
+        <Style Selector="Button.PromptDelete:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource DestructiveColor}" />
+        </Style>
+        <Style Selector="Button.PromptDelete:pressed">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="shad|Card.PromptCard">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HasShadow" Value="True" />
+        </Style>
+        <Style Selector="shad|Card.PromptCard:pointerover">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="HasShadow" Value="True" />
+        </Style>
+    </UserControl.Styles>
 
-        <!-- Prompts List -->
-        <ScrollViewer Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Prompts}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="state:PromptEntryState">
-                        <suki:GlassCard Margin="0 0 0 15" Padding="20">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <!-- Prompt Info -->
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="8">
-                                    <!-- Name Row -->
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <TextBlock Text="{Binding Name}"
-                                                   FontSize="18"
-                                                   FontWeight="SemiBold" />
-                                        <!-- Default Badge -->
-                                        <Border IsVisible="{Binding IsDefault}"
-                                                Background="{DynamicResource SukiPrimaryColor}"
-                                                CornerRadius="4"
-                                                Padding="8 2">
-                                            <TextBlock Text="{x:Static lang:Resources.DefaultPrompt}"
-                                                       FontSize="12"
-                                                       Foreground="White" />
-                                        </Border>
-                                    </StackPanel>
-                                    <!-- Role Preview -->
-                                    <TextBlock Text="{Binding RolePreview}"
-                                               FontSize="13"
-                                               Opacity="0.7"
-                                               TextWrapping="Wrap"
-                                               MaxWidth="600" />
-                                </StackPanel>
+    <Grid RowDefinitions="Auto,*"
+          Margin="32,28,32,28"
+          MaxWidth="1120"
+          HorizontalAlignment="Stretch">
 
-                                <!-- Actions -->
-                                <Border Grid.Column="1"
-                                        CornerRadius="8"
-                                        ClipToBounds="True"
-                                        VerticalAlignment="Center">
-                                    <StackPanel Orientation="Horizontal" Spacing="0">
-                                        <!-- Set Default Button -->
-                                        <Button Classes="Flat Warning"
-                                                CornerRadius="0"
-                                                ToolTip.Tip="{x:Static lang:Resources.SetAsDefault}"
-                                                Command="{Binding $parent[ItemsControl].((viewModels:PromptViewModel)DataContext).SetDefaultCommand}"
-                                                CommandParameter="{Binding}"
-                                                IsVisible="{Binding !IsDefault}">
-                                            <Button.Content>
-                                                <avalonia:MaterialIcon Kind="Star" />
-                                            </Button.Content>
-                                        </Button>
+        <shad:Card Grid.Row="0"
+                   Padding="22,20"
+                   HasShadow="False">
+            <Grid RowDefinitions="Auto,Auto">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Spacing="5" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="{x:Static lang:Resources.Prompts}"
+                                       Classes="h2"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.Name="{x:Static lang:Resources.Prompts}" />
+                            <shad:Badge Content="{Binding FilteredPromptCount}"
+                                        IsVisible="{Binding HasPrompts}"
+                                        VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Static lang:Resources.PromptParametersHint}"
+                                   LineHeight="20"
+                                   Foreground="{DynamicResource MutedColor}"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="720" />
+                    </StackPanel>
 
-                                        <!-- Edit Button -->
-                                        <Button Classes="Flat"
-                                                CornerRadius="0"
-                                                ToolTip.Tip="{x:Static lang:Resources.Edit}"
-                                                Command="{Binding $parent[ItemsControl].((viewModels:PromptViewModel)DataContext).EditPromptCommand}"
-                                                CommandParameter="{Binding}">
-                                            <Button.Content>
-                                                <avalonia:MaterialIcon Kind="Pencil" />
-                                            </Button.Content>
-                                        </Button>
+                    <Button Grid.Column="1"
+                            Classes="Primary"
+                            Command="{Binding AddPromptCommand}"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <avalonia:MaterialIcon Kind="Plus" Width="16" Height="16" />
+                            <TextBlock Text="{x:Static lang:Resources.AddPrompt}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
 
-                                        <!-- Delete Button -->
-                                        <Button Classes="Flat Danger"
-                                                CornerRadius="0"
-                                                ToolTip.Tip="{x:Static lang:Resources.Delete}"
-                                                Command="{Binding $parent[ItemsControl].((viewModels:PromptViewModel)DataContext).RemovePromptCommand}"
-                                                CommandParameter="{Binding}">
-                                            <Button.Content>
-                                                <avalonia:MaterialIcon Kind="TrashCan" />
-                                            </Button.Content>
-                                        </Button>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                        </suki:GlassCard>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                <TextBox Grid.Row="1"
+                         Text="{Binding SearchText, Mode=TwoWay}"
+                         shad:ControlAssist.Label="{x:Static lang:Resources.PromptSearchPlaceholder}"
+                         Classes="Clearable"
+                         Margin="0,18,0,0"
+                         MinHeight="40"
+                         AutomationProperties.Name="{x:Static lang:Resources.PromptSearchPlaceholder}">
+                    <TextBox.InnerRightContent>
+                        <avalonia:MaterialIcon Kind="Magnify"
+                                               Width="17" Height="17"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MutedColor}" />
+                    </TextBox.InnerRightContent>
+                </TextBox>
+            </Grid>
+        </shad:Card>
 
-        <!-- Add Button -->
-        <Button Grid.Row="2"
-                Classes="Flat"
-                Command="{Binding AddPromptCommand}"
-                HorizontalAlignment="Left"
-                Margin="0 10 0 0">
-            <Button.Content>
-                <StackPanel Orientation="Horizontal" Spacing="5">
-                    <avalonia:MaterialIcon Kind="Plus" />
-                    <TextBlock Text="{x:Static lang:Resources.AddPrompt}" />
+        <Grid Grid.Row="1" Margin="0,16,0,0">
+            <shad:Card IsVisible="{Binding HasNoPrompts}"
+                       Padding="30,34"
+                       HasShadow="True"
+                       VerticalAlignment="Top">
+                <StackPanel Spacing="12" HorizontalAlignment="Center" MaxWidth="420">
+                    <Border Width="58" Height="58" CornerRadius="16"
+                            Background="{DynamicResource GhostColor}">
+                        <avalonia:MaterialIcon Kind="TextBoxOutline"
+                                               Width="28" Height="28"
+                                               Foreground="{DynamicResource PrimaryColor}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="{x:Static lang:Resources.PromptParametersHint}"
+                               Classes="Muted"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               HorizontalAlignment="Center" />
+                    <Button Classes="Primary"
+                            HorizontalAlignment="Center"
+                            Command="{Binding AddPromptCommand}"
+                            Content="{x:Static lang:Resources.AddPrompt}" />
                 </StackPanel>
-            </Button.Content>
-        </Button>
+            </shad:Card>
+
+            <shad:Card IsVisible="{Binding HasNoSearchResults}"
+                       Padding="30,34"
+                       HasShadow="True"
+                       VerticalAlignment="Top">
+                <StackPanel Spacing="12" HorizontalAlignment="Center">
+                    <avalonia:MaterialIcon Kind="MagnifyClose"
+                                           Width="32" Height="32"
+                                           Foreground="{DynamicResource MutedColor}"
+                                           HorizontalAlignment="Center" />
+                    <TextBlock Text="{x:Static lang:Resources.PromptNoSearchResults}"
+                               Classes="Muted"
+                               TextAlignment="Center" />
+                </StackPanel>
+            </shad:Card>
+
+            <ScrollViewer IsVisible="{Binding HasFilteredPrompts}"
+                          Margin="0,0,-15,0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding FilteredPrompts}"
+                              Margin="0,0,15,0"
+                              HorizontalAlignment="Stretch">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="state:PromptEntryState">
+                            <shad:Card Classes="PromptCard"
+                                       Padding="0"
+                                       Margin="0,0,0,10"
+                                       HorizontalAlignment="Stretch"
+                                       ClipToBounds="True">
+                                <Grid ColumnDefinitions="*,Auto,Auto">
+                                    <Button Classes="PromptEntry"
+                                            Grid.ColumnSpan="3"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            VerticalContentAlignment="Stretch"
+                                            Command="{Binding $parent[ItemsControl].((viewModels:PromptViewModel)DataContext).EditPromptCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="{x:Static lang:Resources.Edit}"
+                                            Cursor="Hand"
+                                            Padding="16,14">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                                                <Border Width="38" Height="38" CornerRadius="11"
+                                                        Background="{DynamicResource GhostColor}"
+                                                        VerticalAlignment="Top">
+                                                    <avalonia:MaterialIcon Kind="TextBoxOutline"
+                                                                           Width="19" Height="19"
+                                                                           Foreground="{DynamicResource PrimaryColor}"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal"
+                                                                Spacing="10"
+                                                                VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   Classes="Large"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource ForegroundColor}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center" />
+                                                        <shad:Badge IsVisible="{Binding IsDefault}"
+                                                                    Content="{x:Static lang:Resources.DefaultPrompt}" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding ContentPreview}"
+                                                               TextWrapping="Wrap"
+                                                               MaxHeight="42"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Foreground="{DynamicResource MutedColor}" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Border Grid.Column="1" Width="34" />
+                                            <Border Grid.Column="2" Width="34" />
+                                        </Grid>
+                                    </Button>
+
+                                    <Button Grid.Column="1"
+                                            Classes="Icon PromptIconAction"
+                                            ZIndex="1"
+                                            HorizontalAlignment="Center"
+                                            Command="{Binding $parent[ItemsControl].((viewModels:PromptViewModel)DataContext).SetDefaultCommand}"
+                                            CommandParameter="{Binding}"
+                                            IsVisible="{Binding !IsDefault}"
+                                            ToolTip.Tip="{x:Static lang:Resources.SetAsDefault}"
+                                            MinWidth="34"
+                                            MinHeight="34"
+                                            Margin="0,14,2,14">
+                                        <avalonia:MaterialIcon Kind="StarOutline" Width="16" Height="16" />
+                                    </Button>
+                                    <Button Grid.Column="2"
+                                            Classes="Icon PromptDelete"
+                                            ZIndex="1"
+                                            HorizontalAlignment="Center"
+                                            Command="{Binding $parent[ItemsControl].((viewModels:PromptViewModel)DataContext).RemovePromptCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="{x:Static lang:Resources.Delete}"
+                                            MinWidth="34"
+                                            MinHeight="34"
+                                            Margin="2,14,16,14">
+                                        <avalonia:MaterialIcon Kind="TrashCan"
+                                                               Width="16" Height="16"
+                                                               Foreground="{DynamicResource DestructiveColor}" />
+                                    </Button>
+                                </Grid>
+                            </shad:Card>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </UserControl>

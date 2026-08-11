@@ -1,102 +1,81 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
         xmlns:controls="using:EasyChat.Presentation.Features.TextAssist.Controls"
         xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
-        xmlns:settings="clr-namespace:EasyChat.Contracts.Settings;assembly=EasyChat.Contracts"
-        xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+        xmlns:sharedControls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
         xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
         xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
-        xmlns:suki="https://github.com/kikipoulet/SukiUI"
         x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistResultWindowView"
         x:DataType="vm:TextAssistResultWindowViewModel"
         Width="500" Height="420" MinWidth="380" MinHeight="180"
         WindowDecorations="None" TransparencyLevelHint="Transparent" Background="Transparent"
-        TransparencyBackgroundFallback="Transparent" CornerRadius="8"
-        Foreground="{DynamicResource SukiText}"
+        Foreground="{DynamicResource ForegroundColor}"
         Topmost="True" ShowInTaskbar="False" CanResize="True" Focusable="False" ShowActivated="False"
         WindowStartupLocation="Manual">
-    <Window.Resources>
-        <ResourceDictionary>
-                <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="TextAssistSurfaceBrush" Color="#FFFCFCFD" />
-                    <SolidColorBrush x:Key="TextAssistRaisedSurfaceBrush" Color="#FFF1F4F6" />
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="TextAssistSurfaceBrush" Color="#FF202124" />
-                    <SolidColorBrush x:Key="TextAssistRaisedSurfaceBrush" Color="#FF2A2D31" />
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
     <Window.Styles>
-        <Style Selector="Button.DangerClose">
-            <Setter Property="Width" Value="32" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="5" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="#D92D20" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="RenderTransform" Value="scale(1)" />
-            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.16" />
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" />
-                </Transitions>
-            </Setter>
-            <Style Selector="^:pointerover">
-                <Setter Property="Background" Value="#F04438" />
-                <Setter Property="RenderTransform" Value="scale(1.06)" />
-            </Style>
-            <Style Selector="^:pressed">
-                <Setter Property="Background" Value="#B42318" />
-                <Setter Property="RenderTransform" Value="scale(0.94)" />
+        <Style Selector="md|MarkdownRenderer.TextAssistResultMarkdown">
+            <Style Selector="^ md|MarkdownTextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
+                <Setter Property="FontSize" Value="16" />
             </Style>
         </Style>
     </Window.Styles>
     <Grid>
-    <Border Padding="14" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource TextAssistSurfaceBrush}"
-            BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
+    <Border Background="{DynamicResource DialogBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" ClipToBounds="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
+        <Border ClipToBounds="True">
         <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="6">
-                <Border Grid.Column="0" Background="{DynamicResource TextAssistSurfaceBrush}">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <icons:MaterialIcon Kind="{Binding WindowIcon}" Width="19" Height="19"
-                                            Foreground="{DynamicResource SukiPrimaryColor}" />
-                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Border>
-                <sharedControls:LanguageSelector Grid.Column="1" Width="160" Languages="{Binding Languages}" SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
-                          IsVisible="{Binding ShowLanguageSelector}" />
-                <Button Grid.Column="2" Classes="Basic" Command="{Binding RetryCommand}" ToolTip.Tip="{x:Static lang:Resources.Retry}">
-                    <icons:MaterialIcon Kind="Refresh" />
-                </Button>
-                <Button Grid.Column="3" Classes="Basic" Click="OnCopyClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
-                    <icons:MaterialIcon Kind="ContentCopy" />
-                </Button>
-                <Button Grid.Column="4" Classes="DangerClose" Click="OnCloseClick" ToolTip.Tip="{x:Static lang:Resources.Close}">
-                    <icons:MaterialIcon Kind="Close" Foreground="White" />
-                </Button>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <icons:MaterialIcon Kind="{Binding WindowIcon}" Width="19" Height="19"
+                                        Foreground="{DynamicResource PrimaryColor}" />
+                    <TextBlock Text="{Binding Title}"
+                               Classes="Large"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundColor}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                    <sharedControls:LanguageSelector Width="150"
+                                                     Languages="{Binding Languages}"
+                                                     SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
+                                                     IsVisible="{Binding ShowLanguageSelector}" />
+                    <Button Classes="Ghost" Command="{Binding RetryCommand}"
+                            ToolTip.Tip="{x:Static lang:Resources.Retry}" IsEnabled="{Binding !IsBusy}">
+                        <icons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                    </Button>
+                    <Button Classes="Primary"
+                            Click="OnCopyClick"
+                            ToolTip.Tip="{x:Static lang:Resources.Copy}"
+                            IsEnabled="{Binding !IsBusy}"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            AutomationProperties.Name="{x:Static lang:Resources.Copy}">
+                        <icons:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+                    </Button>
+                    <Button Classes="Icon" Click="OnCloseClick"
+                            ToolTip.Tip="{x:Static lang:Resources.Close}"
+                            AutomationProperties.Name="{x:Static lang:Resources.Close}">
+                        <icons:MaterialIcon Kind="Close" Width="16" Height="16"
+                                            Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                </StackPanel>
             </Grid>
             <Grid Grid.Row="1" MinHeight="100">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Spacing="12">
                         <StackPanel Spacing="12" IsVisible="{Binding ShowCorrectionResult}">
-                            <Border Padding="12" CornerRadius="8" Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
-                                    BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
+                            <shad:Card HasShadow="False" Padding="16">
                             <StackPanel Spacing="7">
                                 <TextBlock Text="{x:Static lang:Resources.TextAssistAnnotatedOriginal}" FontWeight="SemiBold" />
                                 <Grid MinHeight="110">
-                                    <Border Background="{DynamicResource TextAssistSurfaceBrush}"
-                                            BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1" />
+                                    <Border Background="{DynamicResource CardBackgroundColor}"
+                                            BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"  CornerRadius="{DynamicResource LgCornerRadius}"  Padding="24" />
                                     <TextBlock x:Name="AnnotatedTextBlock" Text="{Binding SourceText}"
                                                TextWrapping="Wrap" Padding="10,8"
                                                FontFamily="{DynamicResource ContentControlThemeFontFamily}"
-                                               FontSize="16" FontWeight="Normal" LineHeight="23" LetterSpacing="0"
+                                               Classes="Large" LineHeight="23"
                                                PointerMoved="OnOriginalPointerMoved" PointerExited="OnOriginalPointerExited" />
                                     <controls:CorrectionAnnotationLayer x:Name="AnnotationLayer" IsHitTestVisible="False"
                                              Text="{Binding SourceText}" Issues="{Binding Issues}"
@@ -104,34 +83,38 @@
                                              FontSize="16" FontWeight="Normal" LineHeight="23" Padding="10,8"
                                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                                     <Border x:Name="CorrectionHint" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top"
-                                            MaxWidth="390" Padding="9,6" Background="#293038" CornerRadius="6" IsHitTestVisible="False">
-                                        <TextBlock x:Name="CorrectionHintText" Foreground="White" TextWrapping="Wrap" />
+                                            MaxWidth="390"
+                                            Background="{DynamicResource DialogBackgroundColor}"
+                                            BorderBrush="{DynamicResource BorderColor}"
+                                            BorderThickness="1" IsHitTestVisible="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
+                                        <TextBlock x:Name="CorrectionHintText"
+                                                   Foreground="{DynamicResource ForegroundColor}"
+                                                   TextWrapping="Wrap" />
                                     </Border>
                                 </Grid>
                             </StackPanel>
-                            </Border>
-                            <Border Padding="12" CornerRadius="8" Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
-                                    BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
+                            </shad:Card>
+                            <shad:Card HasShadow="False" Padding="16">
                             <StackPanel Spacing="7">
                                 <TextBlock Text="{x:Static lang:Resources.TextAssistCorrectedResult}" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding CorrectedResult}" FontSize="17" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding CorrectedResult}" Classes="Large" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding CorrectionTranslation}" Opacity="0.6" TextWrapping="Wrap" />
                             </StackPanel>
-                            </Border>
+                            </shad:Card>
                             <StackPanel Spacing="8" IsVisible="{Binding HasCorrectionIssues}">
                                 <StackPanel Orientation="Horizontal" Spacing="7">
                                     <icons:MaterialIcon Kind="LightbulbOnOutline" Width="18" Height="18"
-                                                        Foreground="{DynamicResource SukiPrimaryColor}" />
+                                                        Foreground="{DynamicResource PrimaryColor}" />
                                     <TextBlock Text="{x:Static lang:Resources.TextAssistIssues}" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <ItemsControl ItemsSource="{Binding Issues}">
                                     <ItemsControl.ItemTemplate><DataTemplate>
-                                        <Border Padding="11" Margin="0,0,0,6" CornerRadius="7"
-                                                Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
-                                                BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
+                                        <Border Margin="0,0,0,6"
+                                                Background="{DynamicResource GhostColor}"
+                                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
                                             <StackPanel Spacing="4">
                                                 <TextBlock Text="{Binding DisplayCategory}" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource SukiPrimaryColor}" />
+                                                           Foreground="{DynamicResource PrimaryColor}" />
                                                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
                                                 <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Opacity="0.72" />
                                             </StackPanel>
@@ -140,38 +123,40 @@
                                 </ItemsControl>
                             </StackPanel>
                         </StackPanel>
-                        <Border Padding="18" CornerRadius="8" Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
-                                BorderBrush="SeaGreen" BorderThickness="1" IsVisible="{Binding IsCorrectionCorrect}">
+                        <shad:Card HasShadow="False" Padding="16" BorderThickness="1"
+                                BorderBrush="{DynamicResource SuccessColor}"
+                                IsVisible="{Binding IsCorrectionCorrect}">
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-                                <Border Width="44" Height="44" CornerRadius="22" Background="SeaGreen" VerticalAlignment="Center">
-                                    <icons:MaterialIcon Kind="Check" Width="26" Height="26" Foreground="White"
+                                <Border Width="44" Height="44" CornerRadius="22"
+                                        Background="{DynamicResource SuccessColor}" VerticalAlignment="Center">
+                                    <icons:MaterialIcon Kind="Check" Width="26" Height="26"
+                                                        Foreground="{DynamicResource PrimaryForegroundColor}"
                                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                                 <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding CorrectionStatus}" FontSize="18" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding CorrectionStatus}" Classes="Large" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding CorrectionStatusDetail}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
-                        </Border>
+                        </shad:Card>
                         <StackPanel Spacing="12" IsVisible="{Binding IsPolish}">
-                            <Border Padding="12" CornerRadius="8" Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
-                                    BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
-                                <TextBlock Text="{Binding Result}" FontSize="17" TextWrapping="Wrap" />
-                            </Border>
+                            <shad:Card HasShadow="False" Padding="16">
+                                <TextBlock Text="{Binding Result}" Classes="Large" TextWrapping="Wrap" />
+                            </shad:Card>
                             <StackPanel Spacing="8" IsVisible="{Binding HasPolishExplanations}">
                                 <StackPanel Orientation="Horizontal" Spacing="7">
                                     <icons:MaterialIcon Kind="BookOpenVariant" Width="18" Height="18"
-                                                        Foreground="{DynamicResource SukiPrimaryColor}" />
+                                                        Foreground="{DynamicResource PrimaryColor}" />
                                     <TextBlock Text="{Binding PolishExplanationTitle}" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <ItemsControl ItemsSource="{Binding PolishExplanations}">
                                     <ItemsControl.ItemTemplate><DataTemplate>
-                                        <Border Padding="11" Margin="0,0,0,6" CornerRadius="7"
-                                                Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
-                                                BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1">
+                                        <Border Margin="0,0,0,6"
+                                                Background="{DynamicResource GhostColor}"
+                                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}" Padding="16">
                                             <StackPanel Spacing="5">
                                                 <TextBlock Text="{Binding Category}" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource SukiPrimaryColor}" />
+                                                           Foreground="{DynamicResource PrimaryColor}" />
                                                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" IsVisible="{Binding HasOriginal}">
                                                     <TextBlock Text="{Binding $parent[Window].((vm:TextAssistResultWindowViewModel)DataContext).PolishOriginalLabel}" Opacity="0.62" />
                                                     <TextBlock Grid.Column="1" Text="{Binding Original}" TextWrapping="Wrap" />
@@ -189,21 +174,24 @@
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
-                <Border Padding="14" CornerRadius="8" IsVisible="{Binding ShowPlainResult}"
-                        Background="{DynamicResource TextAssistRaisedSurfaceBrush}"
-                        BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1"
+                <shad:Card IsVisible="{Binding ShowPlainResult}" HasShadow="False" Padding="16"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                        <Grid HorizontalAlignment="Stretch">
-                            <md:MarkdownRenderer MarkdownBuilder="{Binding ResultMarkdown}"
-                                                  HorizontalAlignment="Stretch" VerticalAlignment="Top" />
-                        </Grid>
+                        <md:MarkdownRenderer Classes="TextAssistResultMarkdown"
+                                             MarkdownBuilder="{Binding ResultMarkdown}"
+                                             HorizontalAlignment="Stretch"
+                                             VerticalAlignment="Top" />
                     </ScrollViewer>
-                </Border>
-                <suki:Loading Width="24" Height="24" IsVisible="{Binding ShowLoadingIndicator}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </shad:Card>
+                <shad:Loading Width="24" Height="24" IsVisible="{Binding ShowLoadingIndicator}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Grid>
-            <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Foreground="IndianRed" TextWrapping="Wrap" />
+            <!-- Header already owns Retry/Copy/Close; footer only surfaces errors. -->
+            <TextBlock Grid.Row="2"
+                       Text="{Binding ErrorMessage}"
+                       Foreground="{DynamicResource DestructiveColor}"
+                       TextWrapping="Wrap" />
         </Grid>
+        </Border>
     </Border>
         <Border Width="5" HorizontalAlignment="Left" Background="Transparent"
                 Cursor="LeftSide" Tag="West" PointerPressed="OnResizePointerPressed" />
@@ -226,7 +214,8 @@
         <Border Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                 Background="Transparent" Cursor="BottomRightCorner" Tag="SouthEast"
                 PointerPressed="OnResizePointerPressed">
-            <icons:MaterialIcon Kind="ResizeBottomRight" Width="12" Height="12" Opacity="0.42"
+            <icons:MaterialIcon Kind="ResizeBottomRight" Width="12" Height="12"
+                                Foreground="{DynamicResource MutedColor}"
                                 HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,2,2"
                                 IsHitTestVisible="False" />
         </Border>

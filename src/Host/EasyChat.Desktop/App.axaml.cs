@@ -12,14 +12,14 @@ using EasyChat.Presentation.Features.Shell.Views;
 using Material.Icons;
 using Material.Icons.Avalonia;
 using ReactiveUI;
-using SukiUI.Toasts;
+using ShadUI;
 
 namespace EasyChat.Desktop;
 
 public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalonia.Application
 {
-    private const int TrayMenuIconSize = 16;
-    private const int TrayMenuGlyphSize = 12;
+    private const int TrayMenuIconSize = 36;
+    private const int TrayMenuGlyphSize = 34;
 
     public App()
         : this(null!) =>
@@ -48,7 +48,7 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
             _mainWindow = new MainWindow(
                 ui.MainWindowViewModel,
                 ui.Settings,
-                ui.Dialogs,
+                ui.MainWindowViewModel.ShadDialogManager,
                 PrepareForTray);
             desktop.MainWindow = _mainWindow;
             desktop.Exit += OnExit;
@@ -229,13 +229,42 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
         var ui = RequireUi();
         var result = await ui.Updates.CheckAsync();
         if (result.IsFailure || !result.Value.IsUpdateAvailable) return;
-        ui.Toasts
-            .CreateToast()
-            .WithTitle(EasyChat.Presentation.Lang.Resources.NewVersionAvailable)
-            .WithContent(string.Format(EasyChat.Presentation.Lang.Resources.NewVersionContent, result.Value.LatestVersion))
-            .WithActionButton(EasyChat.Presentation.Lang.Resources.Later, _ => { }, true)
-            .WithActionButton(EasyChat.Presentation.Lang.Resources.Update, toast => { _ = DownloadUpdateAsync(ui); }, true)
-            .Queue();
+        var laterButton = new Button { Content = EasyChat.Presentation.Lang.Resources.Later };
+        var updateButton = new Button { Content = EasyChat.Presentation.Lang.Resources.Update };
+        laterButton.Click += (_, _) => ui.UpdateToasts.DismissAll();
+        updateButton.Click += (_, _) =>
+        {
+            ui.UpdateToasts.DismissAll();
+            _ = DownloadUpdateAsync(ui);
+        };
+
+        var content = new StackPanel
+        {
+            Spacing = 12,
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = string.Format(
+                        EasyChat.Presentation.Lang.Resources.NewVersionContent,
+                        result.Value.LatestVersion),
+                    TextWrapping = TextWrapping.Wrap
+                },
+                new StackPanel
+                {
+                    Orientation = Avalonia.Layout.Orientation.Horizontal,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                    Spacing = 8,
+                    Children = { laterButton, updateButton }
+                }
+            }
+        };
+
+        ui.UpdateToasts
+            .CreateToast(EasyChat.Presentation.Lang.Resources.NewVersionAvailable)
+            .WithContent(content)
+            .WithDelay(0)
+            .ShowInfo();
     }
 
     private static async Task WarmUpScreenshotCaptureAsync(IScreenshotCaptureSession capture)
@@ -253,18 +282,20 @@ public sealed partial class App(Func<DesktopUiContext> createUiContext) : Avalon
     private static async Task DownloadUpdateAsync(DesktopUiContext ui)
     {
         var progress = new ProgressBar { Value = 0, ShowProgressText = true };
-        var toast = ui.Toasts.CreateToast()
-            .WithTitle(EasyChat.Presentation.Lang.Resources.Updating)
+        ui.UpdateToasts.DismissAll();
+        ui.UpdateToasts
+            .CreateToast(EasyChat.Presentation.Lang.Resources.Updating)
             .WithContent(progress)
-            .Queue();
+            .WithDelay(0)
+            .ShowInfo();
         var result = await ui.Updates.DownloadAndRestartAsync(new Progress<int>(value => progress.Value = value));
-        ui.Toasts.Dismiss(toast);
+        ui.UpdateToasts.DismissAll();
         if (result.IsFailure)
-            ui.Toasts.CreateToast()
-                .WithTitle(EasyChat.Presentation.Lang.Resources.UpdateFailed)
+            ui.UpdateToasts
+                .CreateToast(EasyChat.Presentation.Lang.Resources.UpdateFailed)
                 .WithContent(EasyChat.Presentation.Lang.Resources.CheckNetwork)
-                .Dismiss().After(TimeSpan.FromSeconds(5))
-                .Queue();
+                .WithDelay(5)
+                .ShowError();
     }
 
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs args)

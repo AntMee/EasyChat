@@ -1,80 +1,288 @@
-<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.SettingView"
+﻿<UserControl x:Class="EasyChat.Presentation.Features.Settings.Views.SettingView"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
-             xmlns:objectModel="clr-namespace:System.Collections.ObjectModel;assembly=System.ObjectModel"
              xmlns:settings="clr-namespace:EasyChat.Presentation.Features.Settings.Views"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:DataType="viewModels:SettingViewModel"
-             mc:Ignorable="d">
+             mc:Ignorable="d"
+             Background="{DynamicResource GhostColor}">
+
+    <UserControl.Styles>
+        <!-- Settings fields must yield width to the detail pane at compact window sizes. -->
+        <Style Selector="ComboBox">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MaxWidth" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="ContentControl.SettingsField">
+            <Setter Property="Width" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+        <Style Selector="Border.SettingsSearchRow.SearchResult">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+        <Style Selector="ComboBox TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+        <Style Selector="ComboBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Styles>
 
     <Panel>
-        <!-- Loading overlay - shown initially -->
         <Grid x:Name="LoadingOverlay" IsVisible="True">
-            <!-- Dark semi-transparent background -->
-            <Border Background="#80000000" />
-            <StackPanel Spacing="15" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <suki:Loading Width="50" Height="50" />
-                <TextBlock Text="{x:Static lang:Resources.Loading}" 
-                           HorizontalAlignment="Center" 
-                           Opacity="0.7" />
+            <Border Background="{DynamicResource GhostColor}" Opacity="0.92" />
+            <StackPanel Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <shad:Loading Width="24" Height="24"
+                              HorizontalAlignment="Center"
+                              Foreground="{DynamicResource PrimaryColor}" />
+                <TextBlock Text="{x:Static lang:Resources.Loading}"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource MutedColor}" />
             </StackPanel>
         </Grid>
-        
-        <!-- Settings content - hidden initially, shown after lazy load -->
-        <Grid x:Name="SettingsContent" IsVisible="False">
-            <suki:SettingsLayout StackSummaryWidth="240">
-                <suki:SettingsLayout.Items>
-                    <objectModel:ObservableCollection x:TypeArguments="suki:SettingsLayoutItem">
-                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.General}">
-                            <suki:SettingsLayoutItem.Content>
+
+        <!-- Master/detail: both panes stretch to the same height (* row fills window). -->
+        <Grid x:Name="SettingsContent"
+              IsVisible="False"
+              ColumnDefinitions="220,*"
+              RowDefinitions="*"
+              Margin="24,20,24,20">
+
+            <!-- Left nav — full height card -->
+            <shad:Card
+                    Margin="0,0,14,0"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch"
+                    HasShadow="False"
+                    Padding="16,18">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Classes="Small"
+                               FontWeight="Bold"
+                               Text="{x:Static lang:Resources.Settings}"
+                               Margin="8,4,8,12" />
+                    <ItemsControl ItemsSource="{Binding NavItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="viewModels:SettingsNavItem">
+                                <ToggleButton
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).SelectPaneCommand}"
+                                        CommandParameter="{Binding Id}"
+                                        IsChecked="{Binding IsSelected}"
+                                        MinHeight="36"
+                                        Padding="10,6"
+                                        VerticalContentAlignment="Center">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10"
+                                              HorizontalAlignment="Stretch">
+                                            <Border Width="28" Height="28" CornerRadius="8"
+                                                    Background="{DynamicResource GhostColor}">
+                                                <avalonia:MaterialIcon Kind="{Binding Icon}"
+                                                                       Width="15" Height="15"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource MutedColor}" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Title}"
+                                                       VerticalAlignment="Center"
+                                                       FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Background="Transparent"
+                                                       Foreground="{DynamicResource ForegroundColor}" />
+                                        </Grid>
+                                    </ToggleButton>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                </DockPanel>
+            </shad:Card>
+
+            <!-- Right detail: equal-height card with left; content scrolls and rows stretch adaptively. -->
+            <shad:Card Grid.Column="1"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch"
+                    HasShadow="False"
+                    Padding="5">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid ColumnDefinitions="*,Auto" Margin="15" MinHeight="36">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="12"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding IsSearchCollapsed}">
+                            <Border Width="32" Height="32" CornerRadius="9"
+                                    Background="{DynamicResource GhostColor}"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding IsBrowseMode}">
+                                <avalonia:MaterialIcon Kind="{Binding SelectedNavItem.Icon}"
+                                                       Width="16" Height="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource PrimaryColor}" />
+                            </Border>
+                            <TextBlock Text="{Binding SelectedNavItem.Title}"
+                                       VerticalAlignment="Center"
+                                       Classes="h4"
+                                       IsVisible="{Binding IsBrowseMode}" />
+                            <TextBlock Text="{x:Static lang:Resources.Settings}"
+                                       VerticalAlignment="Center"
+                                       Classes="h4"
+                                       IsVisible="{Binding IsSearchMode}" />
+                        </StackPanel>
+
+                        <TextBox x:Name="SettingsSearchBox"
+                                 Grid.Column="0" Grid.ColumnSpan="2"
+                                 IsVisible="{Binding IsSearchOpen}"
+                                 Text="{Binding SearchText}"
+                                 shad:ControlAssist.Label="{x:Static lang:Resources.SettingsSearchPlaceholder}"
+                                 KeyDown="OnSearchBoxKeyDown"
+                                 VerticalAlignment="Center"
+                                 Classes="Clearable"
+                                 Margin="0,0,4,0">
+                            <TextBox.InnerRightContent>
+                                <StackPanel Orientation="Horizontal" Spacing="2">
+                                    <avalonia:MaterialIcon Kind="Magnify"
+                                                           Width="16" Height="16"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource MutedColor}" />
+                                    <Button Classes="Icon"
+                                            Width="28" Height="28"
+                                            Padding="0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Command="{Binding CloseSearchCommand}"
+                                            ToolTip.Tip="{x:Static lang:Resources.Close}"
+                                            AutomationProperties.Name="{x:Static lang:Resources.Close}">
+                                        <avalonia:MaterialIcon Kind="Close"
+                                                               Width="16" Height="16"
+                                                               Foreground="{DynamicResource MutedColor}" />
+                                    </Button>
+                                </StackPanel>
+                            </TextBox.InnerRightContent>
+                        </TextBox>
+
+                        <Button Grid.Column="1"
+                                Classes="Icon"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsSearchCollapsed}"
+                                Command="{Binding OpenSearchCommand}"
+                                AutomationProperties.Name="{x:Static lang:Resources.SettingsSearchPlaceholder}"
+                                Click="OnOpenSearchClick"
+                                MinWidth="36"
+                                MinHeight="36"
+                                Background="{DynamicResource GhostColor}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1">
+                            <avalonia:MaterialIcon Kind="Magnify" Width="17" Height="17"
+                                                   Foreground="{DynamicResource MutedColor}" />
+                        </Button>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  HorizontalAlignment="Stretch"
+                                  Margin="0,0,0,0"
+                                  Padding="15"
+                                  HorizontalContentAlignment="Stretch"
+                                  VerticalContentAlignment="Top">
+                        <Border Padding="0,0,0,20"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Spacing="14"
+                               VerticalAlignment="Top"
+                               HorizontalAlignment="Stretch">
+                            <TextBlock Text="{x:Static lang:Resources.SettingsNoSearchResults}"
+                                       Classes="Muted"
+                                       TextWrapping="Wrap"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,32"
+                                       IsVisible="{Binding ShowNoSearchResults}" />
+
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowGeneralSection}">
+                                <TextBlock Classes="Caption"
+                                           FontWeight="Bold"
+                                           Margin="2,4,0,2"
+                                           Text="{x:Static lang:Resources.General}"
+                                           IsVisible="{Binding IsSearchMode}" />
                                 <settings:GeneralSettingsView DataContext="{Binding}" />
-                            </suki:SettingsLayoutItem.Content>
-                        </suki:SettingsLayoutItem>
+                            </StackPanel>
 
-                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.Translation}">
-                            <suki:SettingsLayoutItem.Content>
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowTranslationSection}">
+                                <TextBlock Classes="Caption"
+                                           FontWeight="Bold"
+                                           Margin="2,4,0,2"
+                                           Text="{x:Static lang:Resources.Translation}"
+                                           IsVisible="{Binding IsSearchMode}" />
                                 <settings:TranslationSettingsView DataContext="{Binding}" />
-                            </suki:SettingsLayoutItem.Content>
-                        </suki:SettingsLayoutItem>
+                            </StackPanel>
 
-                        <suki:SettingsLayoutItem Header="划词工具栏">
-                            <suki:SettingsLayoutItem.Content>
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowSelectionSection}">
+                                <TextBlock Classes="Caption"
+                                           FontWeight="Bold"
+                                           Margin="2,4,0,2"
+                                           Text="{x:Static lang:Resources.SelectionToolbarSettings}"
+                                           IsVisible="{Binding IsSearchMode}" />
                                 <settings:SelectionTranslationSettingsView DataContext="{Binding}" />
-                            </suki:SettingsLayoutItem.Content>
-                        </suki:SettingsLayoutItem>
+                            </StackPanel>
 
-                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.Tts}">
-                            <suki:SettingsLayoutItem.Content>
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowTtsSection}">
+                                <TextBlock Classes="Caption"
+                                           FontWeight="Bold"
+                                           Margin="2,4,0,2"
+                                           Text="{x:Static lang:Resources.Tts}"
+                                           IsVisible="{Binding IsSearchMode}" />
                                 <settings:TtsSettingsView DataContext="{Binding}" />
-                            </suki:SettingsLayoutItem.Content>
-                        </suki:SettingsLayoutItem>
+                            </StackPanel>
 
-                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.ScreenshotMode}">
-                            <suki:SettingsLayoutItem.Content>
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowScreenshotSection}">
+                                <TextBlock Classes="Caption"
+                                           FontWeight="Bold"
+                                           Margin="2,4,0,2"
+                                           Text="{x:Static lang:Resources.ScreenshotMode}"
+                                           IsVisible="{Binding IsSearchMode}" />
                                 <settings:ScreenshotSettingsView DataContext="{Binding}" />
-                            </suki:SettingsLayoutItem.Content>
-                        </suki:SettingsLayoutItem>
-                        
-                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.ResultSettings}">
-                            <suki:SettingsLayoutItem.Content>
-                                <settings:ResultSettingsView DataContext="{Binding}" />
-                            </suki:SettingsLayoutItem.Content>
-                        </suki:SettingsLayoutItem>
-                        
-                        <suki:SettingsLayoutItem Header="{x:Static lang:Resources.InputSettings}">
-                            <suki:SettingsLayoutItem.Content>
-                                <settings:InputSettingsView DataContext="{Binding}" />
-                            </suki:SettingsLayoutItem.Content>
-                        </suki:SettingsLayoutItem>
+                            </StackPanel>
 
-                    </objectModel:ObservableCollection>
-                </suki:SettingsLayout.Items>
-            </suki:SettingsLayout>
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowResultSection}">
+                                <TextBlock Classes="Caption"
+                                           FontWeight="Bold"
+                                           Margin="2,4,0,2"
+                                           Text="{x:Static lang:Resources.ResultSettings}"
+                                           IsVisible="{Binding IsSearchMode}" />
+                                <settings:ResultSettingsView DataContext="{Binding}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="10" IsVisible="{Binding ShowInputSection}">
+                                <TextBlock Classes="Caption"
+                                           FontWeight="Bold"
+                                           Margin="2,4,0,2"
+                                           Text="{x:Static lang:Resources.InputSettings}"
+                                           IsVisible="{Binding IsSearchMode}" />
+                                <settings:InputSettingsView DataContext="{Binding}" />
+                            </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </ScrollViewer>
+                </Grid>
+            </shad:Card>
         </Grid>
     </Panel>
-
 </UserControl>

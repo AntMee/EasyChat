@@ -1,4 +1,4 @@
-<UserControl x:Class="EasyChat.Presentation.Shared.Controls.KeySequenceDisplay"
+﻿<UserControl x:Class="EasyChat.Presentation.Shared.Controls.KeySequenceDisplay"
              xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,9 +8,9 @@
 
     <UserControl.Styles>
         <Style Selector="Border.KeyBorder">
-            <Setter Property="Background" Value="{DynamicResource SukiCardBackground}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
-            <Setter Property="BorderThickness" Value="1 1 1 3" />
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor60}" />
+            <Setter Property="BorderThickness" Value="1,1,1,3" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="8 4" />
             <Setter Property="Margin" Value="2" />
@@ -19,7 +19,7 @@
         <Style Selector="TextBlock.KeyText">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundColor}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
     </UserControl.Styles>

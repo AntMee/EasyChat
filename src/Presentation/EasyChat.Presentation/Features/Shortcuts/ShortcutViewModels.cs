@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
-using Avalonia.Controls.Notifications;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Lang;
@@ -9,7 +8,7 @@ using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
-using SukiUI.Dialogs;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Shortcuts
 {
@@ -48,25 +47,30 @@ namespace EasyChat.Presentation.Features.Shortcuts
         private static readonly string[] TextAssistTypes = ["QuickTranslate", "QuickCorrect"];
         private static readonly string[] LanguageTypes = ["SwitchEngineSourceTarget"];
         private readonly SettingsSession _settings;
-        private readonly ISukiDialogManager _dialogs;
+        private readonly DialogManager _dialogManager;
         private readonly TranslationLanguageOptions _languages;
         private ObservableCollection<ShortcutEntryState> _basicShortcuts = [];
         private ObservableCollection<ShortcutEntryState> _languageShortcuts = [];
+        private ObservableCollection<ShortcutEntryState> _activeShortcuts = [];
+        private bool _isBasicCategory = true;
 
         public ShortcutViewModel(
             SettingsSession settings,
-            ISukiDialogManager dialogs,
+            DialogManager dialogManager,
             TranslationLanguageOptions languages)
             : base(Resources.Shortcut, MaterialIconKind.Keyboard, 2)
         {
             _settings = settings;
-            _dialogs = dialogs;
+            _dialogManager = dialogManager;
             _languages = languages;
             Refresh();
             settings.Shortcut.Entries.CollectionChanged += (_, _) => Refresh();
-            AddEntryCommand = ReactiveCommand.Create<string>(AddEntry);
+            AddEntryCommand = ReactiveCommand.Create(AddCurrentCategoryEntry);
+            AddEntryInCategoryCommand = ReactiveCommand.Create<string>(AddEntry);
             EditEntryCommand = ReactiveCommand.Create<ShortcutEntryState>(EditEntry);
             RemoveEntryCommand = ReactiveCommand.Create<ShortcutEntryState>(RemoveEntry);
+            SelectBasicCategoryCommand = ReactiveCommand.Create(() => { IsBasicCategory = true; });
+            SelectLanguageCategoryCommand = ReactiveCommand.Create(() => { IsBasicCategory = false; });
         }
 
         public ObservableCollection<ShortcutEntryState> BasicShortcuts
@@ -79,9 +83,73 @@ namespace EasyChat.Presentation.Features.Shortcuts
             get => _languageShortcuts;
             private set => this.RaiseAndSetIfChanged(ref _languageShortcuts, value);
         }
-        public ReactiveCommand<string, Unit> AddEntryCommand { get; }
+        public ObservableCollection<ShortcutEntryState> ActiveShortcuts
+        {
+            get => _activeShortcuts;
+            private set => this.RaiseAndSetIfChanged(ref _activeShortcuts, value);
+        }
+
+        public bool IsBasicCategory
+        {
+            get => _isBasicCategory;
+            set
+            {
+                if (_isBasicCategory == value)
+                    return;
+                this.RaiseAndSetIfChanged(ref _isBasicCategory, value);
+                this.RaisePropertyChanged(nameof(IsLanguageCategory));
+                this.RaisePropertyChanged(nameof(ActiveCategoryTitle));
+                this.RaisePropertyChanged(nameof(AddButtonLabel));
+                this.RaisePropertyChanged(nameof(EmptyStateMessage));
+                // Update the source collection before notifying visibility bindings.
+                // Otherwise the empty state and the list can remain out of sync when
+                // switching between a populated and an empty category.
+                SyncActiveList();
+                this.RaisePropertyChanged(nameof(ActiveShortcutCount));
+                this.RaisePropertyChanged(nameof(HasActiveShortcuts));
+                this.RaisePropertyChanged(nameof(HasNoActiveShortcuts));
+                this.RaisePropertyChanged(nameof(CategoryTabIndex));
+            }
+        }
+
+        public bool IsLanguageCategory
+        {
+            get => !_isBasicCategory;
+            set
+            {
+                if (value)
+                    IsBasicCategory = false;
+            }
+        }
+
+        /// <summary>0 = basic shortcuts, 1 = language shortcuts. Backs the TabControl switch.</summary>
+        public int CategoryTabIndex
+        {
+            get => _isBasicCategory ? 0 : 1;
+            set
+            {
+                if (value is not (0 or 1))
+                    return;
+                IsBasicCategory = value == 0;
+            }
+        }
+
+        public string ActiveCategoryTitle =>
+            IsBasicCategory ? Resources.BasicShortcuts : Resources.LanguageShortcuts;
+        public string AddButtonLabel =>
+            IsBasicCategory ? Resources.AddBasicShortcut : Resources.AddLanguageShortcut;
+        public string EmptyStateMessage =>
+            IsBasicCategory ? Resources.HomeHealthShortcutTodo : Resources.LanguageShortcutEmptyState;
+        public int ActiveShortcutCount => ActiveShortcuts.Count;
+        public bool HasActiveShortcuts => ActiveShortcuts.Count > 0;
+        public bool HasNoActiveShortcuts => !HasActiveShortcuts;
+
+        public ReactiveCommand<Unit, Unit> AddEntryCommand { get; }
+        public ReactiveCommand<string, Unit> AddEntryInCategoryCommand { get; }
         public ReactiveCommand<ShortcutEntryState, Unit> EditEntryCommand { get; }
         public ReactiveCommand<ShortcutEntryState, Unit> RemoveEntryCommand { get; }
+        public ReactiveCommand<Unit, Unit> SelectBasicCategoryCommand { get; }
+        public ReactiveCommand<Unit, Unit> SelectLanguageCategoryCommand { get; }
 
         private void Refresh()
         {
@@ -89,7 +157,17 @@ namespace EasyChat.Presentation.Features.Shortcuts
                 _settings.Shortcut.Entries.Where(entry => BasicTypes.Contains(entry.ActionType)));
             LanguageShortcuts = new ObservableCollection<ShortcutEntryState>(
                 _settings.Shortcut.Entries.Where(entry => LanguageTypes.Contains(entry.ActionType)));
+            SyncActiveList();
+            this.RaisePropertyChanged(nameof(ActiveShortcutCount));
+            this.RaisePropertyChanged(nameof(HasActiveShortcuts));
+            this.RaisePropertyChanged(nameof(HasNoActiveShortcuts));
         }
+
+        private void SyncActiveList() =>
+            ActiveShortcuts = IsBasicCategory ? BasicShortcuts : LanguageShortcuts;
+
+        private void AddCurrentCategoryEntry() =>
+            AddEntry(IsBasicCategory ? "Basic" : "Language");
 
         private void AddEntry(string category)
         {
@@ -117,31 +195,31 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
         private void ShowEditor(ShortcutEntryState? entry, IReadOnlyList<string> allowed, string defaultAction)
         {
-            _dialogs.CreateDialog()
-                .WithViewModel(dialog => new EasyChat.Presentation.Features.Shortcuts.ShortcutEditDialogViewModel(
-                    dialog, _settings, _languages, allowed, entry, defaultAction)
+            var viewModel = new ShortcutEditDialogViewModel(
+                _dialogManager, _settings, _languages, allowed, entry, defaultAction)
+            {
+                OnClose = result =>
                 {
-                    OnClose = result =>
-                    {
-                        if (result is null)
-                            return;
-                        var replacement = new ShortcutEntryState(result, _settings.FlushSection);
-                        if (entry is null)
-                            _settings.Shortcut.Entries.Add(replacement);
-                        else
-                            _settings.Shortcut.Entries[_settings.Shortcut.Entries.IndexOf(entry)] = replacement;
-                    }
-                })
-                .TryShow();
+                    if (result is null)
+                        return;
+                    var replacement = new ShortcutEntryState(result, _settings.FlushSection);
+                    if (entry is null)
+                        _settings.Shortcut.Entries.Add(replacement);
+                    else
+                        _settings.Shortcut.Entries[_settings.Shortcut.Entries.IndexOf(entry)] = replacement;
+                }
+            };
+            _dialogManager.CreateDialog(viewModel).Show();
         }
 
-        private void RemoveEntry(ShortcutEntryState entry) => _dialogs.CreateDialog()
-            .OfType(NotificationType.Warning)
-            .WithTitle(Resources.ConfirmDeletion)
-            .WithContent(Resources.AreYouSureDelete)
-            .WithActionButton(Resources.Delete, _ => _settings.Shortcut.Entries.Remove(entry), true)
-            .WithActionButton(Resources.Cancel, _ => { }, true)
-            .TryShow();
+        private void RemoveEntry(ShortcutEntryState entry) => _dialogManager
+            .CreateDialog(Resources.ConfirmDeletion, Resources.AreYouSureDelete)
+            .WithPrimaryButton(
+                Resources.Delete,
+                () => _settings.Shortcut.Entries.Remove(entry),
+                DialogButtonStyle.Destructive)
+            .WithCancelButton(Resources.Cancel)
+            .Show();
     }
 }
 
@@ -151,7 +229,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
 
     public sealed class ShortcutEditDialogViewModel : ConventionViewModelBase
     {
-        private readonly ISukiDialog _dialog;
+        private readonly DialogManager _dialogManager;
         private readonly ShortcutEntryState? _existing;
         private readonly SettingsSession _settings;
         private readonly TranslationLanguageOptions _languageOptions;
@@ -174,14 +252,14 @@ namespace EasyChat.Presentation.Features.Shortcuts
         private string _remark = string.Empty;
 
         public ShortcutEditDialogViewModel(
-            ISukiDialog dialog,
+            DialogManager dialogManager,
             SettingsSession settings,
             TranslationLanguageOptions languageOptions,
             IReadOnlyList<string> allowedActionTypes,
             ShortcutEntryState? existing = null,
             string? defaultAction = null)
         {
-            _dialog = dialog;
+            _dialogManager = dialogManager;
             _settings = settings;
             _languageOptions = languageOptions;
             _existing = existing;
@@ -230,7 +308,8 @@ namespace EasyChat.Presentation.Features.Shortcuts
                          : !string.IsNullOrWhiteSpace(parameter))));
             SaveCommand = ReactiveCommand.Create(Save, canSave);
             CancelCommand = ReactiveCommand.Create(Cancel);
-            BeginPrimaryRecording();
+            // Do not auto-start recording here: the view must be attached and focused first,
+            // otherwise key events never reach the capture handlers under dialog chrome.
         }
 
         public sealed record EngineOption(string Name, string Id, bool IsMachine);
@@ -241,7 +320,8 @@ namespace EasyChat.Presentation.Features.Shortcuts
         public IReadOnlyList<string>? AvailableParameterOptions => SelectedAction.ParameterOptions;
         public IReadOnlyList<TextAssistShortcutMode> TextAssistModes { get; } = Enum.GetValues<TextAssistShortcutMode>();
         public string ButtonText => _existing is null ? Resources.Add : Resources.Save;
-        public MaterialIconKind Icon => _existing is null ? MaterialIconKind.Plus : MaterialIconKind.Edit;
+        public string DialogTitle => _existing is null ? Resources.Add : Resources.Edit;
+        public MaterialIconKind Icon => _existing is null ? MaterialIconKind.Plus : MaterialIconKind.Pencil;
         public bool IsComplexSwitchAction => SelectedAction.ActionType == "SwitchEngineSourceTarget";
         public bool IsTextAssistAction => SelectedAction.ActionType is "QuickTranslate" or "QuickCorrect";
         public bool IsModeSelectableTextAssistAction => false;
@@ -497,13 +577,13 @@ namespace EasyChat.Presentation.Features.Shortcuts
                 KeyCombination,
                 _existing?.IsEnabled ?? true,
                 NullIfEmpty(Remark)?.Trim()));
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private void Cancel()
         {
             OnClose?.Invoke(null);
-            _dialog.Dismiss();
+            _dialogManager.Close(this);
         }
 
         private static string? NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value;

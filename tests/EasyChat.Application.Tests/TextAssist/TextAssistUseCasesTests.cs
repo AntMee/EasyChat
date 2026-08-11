@@ -160,6 +160,48 @@ public sealed class TextAssistUseCasesTests
     }
 
     [TestMethod]
+    public async Task StreamAsync_CorrectionKeepsOnlyTheFirstCompletedPayloadForEachVariant()
+    {
+        var bundle = SettingsTestData.CreateBundle() with
+        {
+            AiModel = new AiModelSettings([CreateAiModel("first")]),
+            TextAssist = SettingsTestData.CreateBundle().TextAssist with
+            {
+                SourceLanguageId = "en",
+                AiModelId = "first"
+            }
+        };
+        var settings = new MutableSettingsUseCases(bundle);
+        var factory = new RecordingTranslationProviderFactory();
+        factory.Chat.StreamChunks =
+        [
+            "{\"event\":\"start\",\"mode\":\"correction\",\"language\":\"en\"}\n"
+            + "{\"event\":\"corrected_delta\",\"variant\":1,\"text\":\"First correction\"}\n"
+            + "{\"event\":\"corrected_delta\",\"variant\":1,\"text\":\"Repeated correction\"}\n"
+            + "{\"event\":\"correction_translation_delta\",\"variant\":1,\"text\":\"First translation\"}\n"
+            + "{\"event\":\"correction_translation_delta\",\"variant\":1,\"text\":\"Repeated translation\"}\n"
+            + "{\"event\":\"corrected_delta\",\"variant\":2,\"text\":\"Alternative correction\"}\n"
+            + "{\"event\":\"done\"}\n"
+            + "{\"event\":\"issue\",\"start\":0,\"length\":1,\"category\":\"grammar\",\"message\":\"Trailing issue\",\"suggestion\":\"Ignore\"}\n"
+        ];
+        var useCases = Create(settings, factory);
+
+        var events = await useCases.StreamAsync(new TextAssistRequest(
+            "bad text",
+            TextAssistOperation.Correction)).ToListAsync();
+
+        CollectionAssert.AreEqual(
+            new[] { "First correction", "Alternative correction" },
+            events.OfType<TextAssistCorrectedDeltaEvent>().Select(item => item.Text).ToArray());
+        CollectionAssert.AreEqual(
+            new[] { "First translation" },
+            events.OfType<TextAssistCorrectionTranslationDeltaEvent>().Select(item => item.Text).ToArray());
+        Assert.HasCount(0, events.OfType<TextAssistIssueEvent>());
+        Assert.HasCount(1, events.OfType<TextAssistCompletedEvent>());
+        Assert.IsInstanceOfType<TextAssistCompletedEvent>(events[^1]);
+    }
+
+    [TestMethod]
     public void CorrectionAccumulator_PreservesVariantsAndRejectsInvalidRanges()
     {
         var accumulator = new TextAssistCorrectionAccumulator(5);

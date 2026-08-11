@@ -6,7 +6,7 @@ namespace EasyChat.Desktop.Windows.Capture;
 internal static class ScreenshotWorkerProtocol
 {
     private const int Magic = 0x50414353;
-    private const int Version = 3;
+    private const int Version = 4;
     private const int MaxImageBytes = 128 * 1024 * 1024;
 
     internal static void WriteReady(BinaryWriter writer)
@@ -32,6 +32,7 @@ internal static class ScreenshotWorkerProtocol
         WriteHeader(writer, ScreenshotWorkerMessage.Request);
         writer.Write(request.Precise);
         writer.Write(request.Theme);
+        writer.Write(request.PrimaryColor);
         writer.Write(request.CultureName);
         writer.Write((int)request.DefaultAction);
         writer.Write((int)request.ToolbarMode);
@@ -44,6 +45,7 @@ internal static class ScreenshotWorkerProtocol
             throw new InvalidDataException("Screenshot worker request is invalid.");
         var request = new ScreenshotWorkerRequest(
             reader.ReadBoolean(),
+            reader.ReadString(),
             reader.ReadString(),
             reader.ReadString(),
             (CaptureOverlayAction)reader.ReadInt32(),
@@ -189,6 +191,7 @@ internal static class ScreenshotWorkerProtocol
 internal sealed record ScreenshotWorkerRequest(
     bool Precise,
     string Theme,
+    string PrimaryColor,
     string CultureName,
     CaptureOverlayAction DefaultAction,
     CaptureToolbarMode ToolbarMode);

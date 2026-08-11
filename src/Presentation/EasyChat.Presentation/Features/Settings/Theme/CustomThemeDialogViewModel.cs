@@ -1,30 +1,27 @@
 using System.Reactive;
 using Avalonia.Media;
-using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Navigation;
 using ReactiveUI;
-using SukiUI;
-using SukiUI.Dialogs;
-using SukiUI.Models;
+using ShadUI;
 
 namespace EasyChat.Presentation.Features.Settings.Theme;
 
 public sealed class CustomThemeDialogViewModel : ConventionViewModelBase
 {
-    private readonly SukiTheme _theme;
-    private readonly ISukiDialog _dialog;
-    private readonly LiveGeneralSettings _settings;
+    private readonly Action<ColorThemeOption> _applyTheme;
+    private readonly DialogManager _dialogManager;
     private string _displayName = "Pink";
     private Color _primaryColor = Colors.DeepPink;
     private Color _accentColor = Colors.Pink;
 
-    public CustomThemeDialogViewModel(SukiTheme theme, ISukiDialog dialog, LiveGeneralSettings settings)
+    public CustomThemeDialogViewModel(
+        DialogManager dialogManager,
+        Action<ColorThemeOption> applyTheme)
     {
-        _theme = theme;
-        _dialog = dialog;
-        _settings = settings;
+        _applyTheme = applyTheme;
+        _dialogManager = dialogManager;
         TryCreateThemeCommand = ReactiveCommand.Create(CreateTheme);
-        CancelCommand = ReactiveCommand.Create(dialog.Dismiss);
+        CancelCommand = ReactiveCommand.Create(() => dialogManager.Close(this));
     }
 
     public string DisplayName { get => _displayName; set => this.RaiseAndSetIfChanged(ref _displayName, value); }
@@ -37,12 +34,7 @@ public sealed class CustomThemeDialogViewModel : ConventionViewModelBase
     {
         if (string.IsNullOrWhiteSpace(DisplayName))
             return;
-        var theme = new SukiColorTheme(DisplayName, PrimaryColor, AccentColor);
-        _theme.AddColorTheme(theme);
-        _theme.ChangeColorTheme(theme);
-        _settings.ColorTheme = DisplayName;
-        _settings.CustomThemePrimaryColor = PrimaryColor.ToString();
-        _settings.CustomThemeAccentColor = AccentColor.ToString();
-        _dialog.Dismiss();
+        _applyTheme(new ColorThemeOption(DisplayName, PrimaryColor, AccentColor, IsCustom: true));
+        _dialogManager.Close(this);
     }
 }

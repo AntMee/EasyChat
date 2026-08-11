@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 
 <root>
-    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root"
-                xmlns="">
+    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root" xmlns="">
         <xsd:element name="root" msdata:IsDataSet="true">
 
         </xsd:element>
@@ -138,7 +137,7 @@
         <value>Select a model</value>
     </data>
     <data name="ModelNotInListConfirmation" xml:space="preserve">
-        <value>The model &quot;{0}&quot; is not in the fetched model list. Save it anyway?</value>
+        <value>The model "{0}" is not in the fetched model list. Save it anyway?</value>
     </data>
     <data name="Baidu" xml:space="preserve">
         <value>Baidu</value>
@@ -268,6 +267,9 @@
   </data>
     <data name="AddLanguageShortcut" xml:space="preserve">
     <value>Add Language Shortcut</value>
+  </data>
+    <data name="LanguageShortcutEmptyState" xml:space="preserve">
+    <value>Please add a language switch hotkey.</value>
   </data>
     <data name="Edit" xml:space="preserve">
         <value>Edit</value>
@@ -440,6 +442,12 @@
     <data name="PromptParametersHint" xml:space="preserve">
         <value>Describe the assistant's role, expertise, style, and domain. EasyChat adds the language, task, and output rules automatically.</value>
     </data>
+    <data name="PromptSearchPlaceholder" xml:space="preserve">
+        <value>Search prompts by name or content...</value>
+    </data>
+    <data name="PromptNoSearchResults" xml:space="preserve">
+        <value>No prompts match your search.</value>
+    </data>
     <data name="ResultAutoCloseDelay" xml:space="preserve">
         <value>Auto Close Delay</value>
     </data>
@@ -460,6 +468,9 @@
     </data>
     <data name="RestartToTakeEffect" xml:space="preserve">
         <value>Please restart the application to take effect.</value>
+    </data>
+    <data name="Restart" xml:space="preserve">
+        <value>Restart</value>
     </data>
     <data name="InputSettings" xml:space="preserve">
         <value>Input Window</value>
@@ -568,12 +579,6 @@
     </data>
     <data name="Speech_EnableTranslation" xml:space="preserve">
         <value>Enable Translation</value>
-    </data>
-    <data name="Speech_FontSizeDecrease" xml:space="preserve">
-        <value>Decrease Font Size</value>
-    </data>
-    <data name="Speech_FontSizeIncrease" xml:space="preserve">
-        <value>Increase Font Size</value>
     </data>
     <data name="Speech_RealTimePreview" xml:space="preserve">
         <value>Real-time Preview</value>
@@ -858,7 +863,8 @@
         <value>TTS</value>
     </data>
     <data name="TranslationEngineInfo" xml:space="preserve">
-        <value>AI models provide higher quality translations with support for phonetics, examples, and hints, but may be slower. Machine translation is faster but offers lower quality and lacks these features.</value>
+        <value>AI model: higher quality; phonetics / examples / tips; slower.
+Machine translation: faster; lower quality; no phonetics, examples, or tips.</value>
     </data>
     <data name="Speech_ClearHistory" xml:space="preserve">
         <value>Clear History</value>
@@ -907,15 +913,11 @@
   <data name="TextAssistTranslate" xml:space="preserve"><value>Translate</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>Correct</value></data>
   <data name="TextAssistPolish" xml:space="preserve"><value>Polish</value></data>
-  <data name="TextAssistPolishExplanationTitle" xml:space="preserve"><value>Polish notes</value></data>
-  <data name="TextAssistPolishOriginalLabel" xml:space="preserve"><value>Original</value></data>
-  <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>Revised</value></data>
-  <data name="TextAssistProcessing" xml:space="preserve"><value>Text assist</value></data>
   <data name="TextAssistSummary" xml:space="preserve"><value>Summary</value></data>
-  <data name="TextAssistExplain" xml:space="preserve"><value>Explain</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>No AI model is configured. Add an AI model in Settings.</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>No voice is available for this language.</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>Enter text...</value></data>
+  <data name="TextAssistResultPlaceholder" xml:space="preserve"><value>Waiting for translation...</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>Follow global settings</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>Run</value></data>
   <data name="TextAssistIssues" xml:space="preserve"><value>Issues and suggestions</value></data>
@@ -942,17 +944,7 @@
   <data name="Retry" xml:space="preserve"><value>Retry</value></data>
   <data name="Tts_ConfigureVoices" xml:space="preserve"><value>Configure Voices</value></data>
   <data name="ReadSelectedText" xml:space="preserve"><value>Read selected text</value></data>
-  <data name="OcrModels" xml:space="preserve"><value>Screenshot translation</value></data>
-  <data name="OcrModelsDescription" xml:space="preserve"><value>(Models used to extract text from screenshots; download one before using screenshot translation)</value></data>
-  <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR mode</value></data>
-  <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>Fast</value></data>
-  <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>Normal</value></data>
-  <data name="OcrRecognitionMode_IdleRelease" xml:space="preserve"><value>Idle release</value></data>
-  <data name="OcrRecognitionModeDescription_Fast" xml:space="preserve"><value>Keeps OCR loaded and may use about 500 MB of memory for longer, but subsequent screenshot text recognition is faster. Recommended for users with ample memory who prioritize recognition speed.</value></data>
-  <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>Runs OCR in a temporary process only while recognizing screenshot text, then exits the process to reclaim its memory.</value></data>
-  <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>Keeps OCR loaded for faster consecutive recognition, then exits the process to reclaim memory after the configured period without a new screenshot recognition.</value></data>
-  <data name="OcrIdleTimeout" xml:space="preserve"><value>Close after idle</value></data>
-  <data name="Seconds" xml:space="preserve"><value>seconds</value></data>
+  <data name="OcrModels" xml:space="preserve"><value>OCR models</value></data>
   <data name="OcrUseProxy" xml:space="preserve"><value>Use proxy for model download</value></data>
   <data name="DownloadOcrModels" xml:space="preserve"><value>Download OCR models</value></data>
   <data name="DownloadOcrModel" xml:space="preserve"><value>Download</value></data>
@@ -967,14 +959,12 @@
   <data name="OcrModelDownloadTitle" xml:space="preserve"><value>OCR models</value></data>
   <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR models downloaded successfully.</value></data>
   <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR model download failed</value></data>
-  <data name="AsrModels" xml:space="preserve"><value>Real-time speech recognition</value></data>
-  <data name="AsrModelsDescription" xml:space="preserve"><value>(Models used for real-time speech-to-text recognition; download one before using real-time speech recognition)</value></data>
+  <data name="AsrModels" xml:space="preserve"><value>ASR models</value></data>
+  <data name="AsrModelsDescription" xml:space="preserve"><value>Import one or more model folders, folders containing models, or supported model archives.</value></data>
   <data name="ImportAsrModelFolder" xml:space="preserve"><value>Import folders</value></data>
   <data name="ImportAsrModelArchive" xml:space="preserve"><value>Import archives</value></data>
   <data name="AsrModelArchives" xml:space="preserve"><value>Model archives</value></data>
   <data name="NoAsrModels" xml:space="preserve"><value>No ASR models installed.</value></data>
-  <data name="ShowMoreAsrModels" xml:space="preserve"><value>Show more ASR models</value></data>
-  <data name="ShowLessAsrModels" xml:space="preserve"><value>Show fewer ASR models</value></data>
   <data name="AsrModelsImported" xml:space="preserve"><value>Imported: {0}</value></data>
   <data name="AsrModelsSkipped" xml:space="preserve"><value>Skipped (already installed or duplicated): {0}</value></data>
   <data name="AsrModelsAlreadyInstalled" xml:space="preserve"><value>The selected models are already installed.</value></data>
@@ -983,6 +973,175 @@
   <data name="AsrModelDeleted" xml:space="preserve"><value>Deleted: {0}</value></data>
   <data name="AsrModelDeleteFailed" xml:space="preserve"><value>ASR model deletion failed</value></data>
   <data name="DownloadAsrModels" xml:space="preserve"><value>Download models</value></data>
+
+  <data name="HomeWorkspace" xml:space="preserve">
+    <value>Workspace</value>
+  </data>
+  <data name="HomeWorkspaceSubtitle" xml:space="preserve">
+    <value>Engine, languages, and status</value>
+  </data>
+  <data name="HomeStatusReady" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="HomeStatusNeedsSetup" xml:space="preserve">
+    <value>Needs setup</value>
+  </data>
+  <data name="HomeCapabilitySummary" xml:space="preserve">
+    <value>{0} models · {1} shortcuts</value>
+  </data>
+  <data name="HomeConfigureCta" xml:space="preserve">
+    <value>Configure translation source</value>
+  </data>
+  <data name="HomeSwapLanguages" xml:space="preserve">
+    <value>Swap</value>
+  </data>
+  <data name="HomeLanguagePair" xml:space="preserve">
+    <value>Language direction</value>
+  </data>
+  <data name="ThirdPartyLibraries" xml:space="preserve">
+    <value>Third-party libraries</value>
+  </data>
+
+  <data name="HomeHealthTitle" xml:space="preserve">
+    <value>Setup checklist</value>
+  </data>
+  <data name="HomeHealthEngineTitle" xml:space="preserve">
+    <value>Translation engine</value>
+  </data>
+  <data name="HomeHealthEngineDone" xml:space="preserve">
+    <value>Engine is ready to translate.</value>
+  </data>
+  <data name="HomeHealthEngineTodo" xml:space="preserve">
+    <value>Add an AI model or machine-translation key.</value>
+  </data>
+  <data name="HomeHealthShortcutTitle" xml:space="preserve">
+    <value>Global shortcuts</value>
+  </data>
+  <data name="HomeHealthShortcutDone" xml:space="preserve">
+    <value>{0} shortcut(s) configured.</value>
+  </data>
+  <data name="HomeHealthShortcutTodo" xml:space="preserve">
+    <value>Add screenshot or input-translate hotkeys.</value>
+  </data>
+  <data name="HomeHealthActionOpenSettings" xml:space="preserve">
+    <value>Open settings</value>
+  </data>
+  <data name="HomeHealthActionOpenShortcuts" xml:space="preserve">
+    <value>Open shortcuts</value>
+  </data>
+  <data name="HomeOnboardingTitle" xml:space="preserve">
+    <value>Get started in 3 steps</value>
+  </data>
+  <data name="HomeOnboardingStep1" xml:space="preserve">
+    <value>1. Configure a translation source</value>
+  </data>
+  <data name="HomeOnboardingStep2" xml:space="preserve">
+    <value>2. Bind a global shortcut</value>
+  </data>
+  <data name="HomeOnboardingStep3" xml:space="preserve">
+    <value>3. Press the hotkey to translate</value>
+  </data>
+  <data name="HomeOnboardingDismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="SettingsSearchPlaceholder" xml:space="preserve">
+    <value>Search settings...</value>
+  </data>
+  <data name="SettingsNoSearchResults" xml:space="preserve">
+    <value>No matching settings.</value>
+  </data>
+  <data name="SelectionToolbarSettings" xml:space="preserve">
+    <value>Selection toolbar</value>
+  </data>
+  <data name="SubtitlePreset_Title" xml:space="preserve">
+    <value>Appearance presets</value>
+  </data>
+  <data name="SubtitlePreset_Hint" xml:space="preserve">
+    <value>Apply a ready-made look to primary/secondary colors, sizes, and backgrounds.</value>
+  </data>
+  <data name="SubtitlePreset_ClassicDark" xml:space="preserve">
+    <value>Classic Dark</value>
+  </data>
+  <data name="SubtitlePreset_ClassicDarkDesc" xml:space="preserve">
+    <value>White primary text on a soft dark scrim — default subtitle look.</value>
+  </data>
+  <data name="SubtitlePreset_HighContrast" xml:space="preserve">
+    <value>High Contrast</value>
+  </data>
+  <data name="SubtitlePreset_HighContrastDesc" xml:space="preserve">
+    <value>Yellow primary + white secondary on near-black for maximum legibility.</value>
+  </data>
+  <data name="SubtitlePreset_SoftLight" xml:space="preserve">
+    <value>Soft Light</value>
+  </data>
+  <data name="SubtitlePreset_SoftLightDesc" xml:space="preserve">
+    <value>Dark slate text on a light translucent panel for bright rooms.</value>
+  </data>
+  <data name="SubtitlePreset_Cinema" xml:space="preserve">
+    <value>Cinema</value>
+  </data>
+  <data name="SubtitlePreset_CinemaDesc" xml:space="preserve">
+    <value>Warm cream titles with a deep black stage backdrop.</value>
+  </data>
+  <data name="SubtitlePreset_Neon" xml:space="preserve">
+    <value>Neon</value>
+  </data>
+  <data name="SubtitlePreset_NeonDesc" xml:space="preserve">
+    <value>Cyan primary and pink secondary on a deep navy glass.</value>
+  </data>
+  <data name="HomeQuickActions" xml:space="preserve">
+    <value>Quick actions</value>
+  </data>
+  <data name="HomeQuickSpeechHint" xml:space="preserve">
+    <value>Live recognition and floating subtitles</value>
+  </data>
+  <data name="HomeQuickTextAssistHint" xml:space="preserve">
+    <value>Translate selected text</value>
+  </data>
+  <data name="HomeQuickShortcutHint" xml:space="preserve">
+    <value>Bind global hotkeys</value>
+  </data>
+  <data name="HomeQuickPromptHint" xml:space="preserve">
+    <value>Manage translation prompts</value>
+  </data>
+  <data name="ResultCopyHint" xml:space="preserve">
+    <value>Copied to clipboard</value>
+  </data>
+  <data name="TypingEnterHint" xml:space="preserve">
+    <value>Enter to send</value>
+  </data>
+  <data name="FloatingWindow_IncreaseFont" xml:space="preserve">
+    <value>Increase font size</value>
+  </data>
+  <data name="FloatingWindow_DecreaseFont" xml:space="preserve">
+    <value>Decrease font size</value>
+  </data>
+  <data name="OpenReleases" xml:space="preserve">
+    <value>Open releases</value>
+  </data>
+  <data name="Speech_FontSizeDecrease" xml:space="preserve">
+        <value>Decrease Font Size</value>
+    </data>
+  <data name="Speech_FontSizeIncrease" xml:space="preserve">
+        <value>Increase Font Size</value>
+    </data>
+  <data name="TextAssistPolishExplanationTitle" xml:space="preserve"><value>Polish notes</value></data>
+  <data name="TextAssistPolishOriginalLabel" xml:space="preserve"><value>Original</value></data>
+  <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>Revised</value></data>
+  <data name="TextAssistProcessing" xml:space="preserve"><value>Text assist</value></data>
+  <data name="TextAssistExplain" xml:space="preserve"><value>Explain</value></data>
+  <data name="OcrModelsDescription" xml:space="preserve"><value>(Models used to extract text from screenshots; download one before using screenshot translation)</value></data>
+  <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR mode</value></data>
+  <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>Fast</value></data>
+  <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="OcrRecognitionMode_IdleRelease" xml:space="preserve"><value>Idle release</value></data>
+  <data name="OcrRecognitionModeDescription_Fast" xml:space="preserve"><value>Keeps OCR loaded and may use about 500 MB of memory for longer, but subsequent screenshot text recognition is faster. Recommended for users with ample memory who prioritize recognition speed.</value></data>
+  <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>Runs OCR in a temporary process only while recognizing screenshot text, then exits the process to reclaim its memory.</value></data>
+  <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>Keeps OCR loaded for faster consecutive recognition, then exits the process to reclaim memory after the configured period without a new screenshot recognition.</value></data>
+  <data name="OcrIdleTimeout" xml:space="preserve"><value>Close after idle</value></data>
+  <data name="Seconds" xml:space="preserve"><value>seconds</value></data>
+  <data name="ShowMoreAsrModels" xml:space="preserve"><value>Show more ASR models</value></data>
+  <data name="ShowLessAsrModels" xml:space="preserve"><value>Show fewer ASR models</value></data>
   <data name="ApplicationData" xml:space="preserve"><value>Application data</value></data>
   <data name="ApplicationDataDescription" xml:space="preserve"><value>All configuration, ASR models, and OCR models are stored together in this directory.</value></data>
   <data name="ChangeApplicationDataLocation" xml:space="preserve"><value>Change storage location</value></data>
@@ -1003,4 +1162,27 @@
   <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>Supports {0} languages</value></data>
   <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>View all supported languages</value></data>
   <data name="Action_ScreenshotOcr" xml:space="preserve"><value>Screenshot OCR</value></data>
+  <data name="ScreenshotOcr_PinTooltip" xml:space="preserve"><value>Pin on screen</value></data>
+  <data name="ScreenshotOcr_CopySelectionTooltip" xml:space="preserve"><value>Copy selected text</value></data>
+  <data name="ScreenshotOcr_TranslateSelectionTooltip" xml:space="preserve"><value>Translate selection</value></data>
+  <data name="ScreenshotOcr_ExplainSelectionTooltip" xml:space="preserve"><value>Explain with AI</value></data>
+  <data name="ScreenshotOcr_ReplaceSelectionTooltip" xml:space="preserve"><value>Replace with translation</value></data>
+  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>Replace</value></data>
+  <data name="ScreenshotOcr_ZoomOutTooltip" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="ScreenshotOcr_ZoomInTooltip" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="ScreenshotOcr_OpenImageTooltip" xml:space="preserve"><value>Open image</value></data>
+  <data name="ScreenshotOcr_RecaptureTooltip" xml:space="preserve"><value>Capture again</value></data>
+  <data name="ScreenshotOcr_CopyImageTooltip" xml:space="preserve"><value>Copy current image</value></data>
+  <data name="ScreenshotOcr_UndoTooltip" xml:space="preserve"><value>Undo</value></data>
+  <data name="ScreenshotOcr_RedoTooltip" xml:space="preserve"><value>Redo</value></data>
+  <data name="ScreenshotOcr_RestoreTooltip" xml:space="preserve"><value>Restore original</value></data>
+  <data name="ScreenshotOcr_Recognizing" xml:space="preserve"><value>Recognizing text...</value></data>
+  <data name="ScreenshotOcr_RecognizedText" xml:space="preserve"><value>Recognized text</value></data>
+  <data name="ScreenshotOcr_CharacterCount" xml:space="preserve"><value>{0:N0} characters</value></data>
+  <data name="ScreenshotOcr_RetryTooltip" xml:space="preserve"><value>Retry OCR</value></data>
+  <data name="ScreenshotOcr_CopyTextTooltip" xml:space="preserve"><value>Copy text</value></data>
+  <data name="ScreenshotOcr_TranslateTextTooltip" xml:space="preserve"><value>Translate text</value></data>
+  <data name="ScreenshotOcr_ShowOriginalTooltip" xml:space="preserve"><value>Show original text</value></data>
+  <data name="ScreenshotOcr_OpenImageDialogTitle" xml:space="preserve"><value>Open image for OCR</value></data>
+  <data name="ScreenshotOcr_ImageFileType" xml:space="preserve"><value>Images</value></data>
 </root>

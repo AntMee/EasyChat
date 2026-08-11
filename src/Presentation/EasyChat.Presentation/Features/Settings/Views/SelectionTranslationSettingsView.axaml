@@ -3,131 +3,416 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
-             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
-    <suki:GlassCard>
-        <StackPanel>
-            <DockPanel Margin="0 0 0 10">
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.SelectionActionCard">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor60}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="MinHeight" Value="52" />
+        </Style>
+        <Style Selector="ToggleButton.SelectionActionCard:pointerover">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="ToggleButton.SelectionActionCard:checked">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="ToggleButton.SelectionActionCard:pressed">
+            <Setter Property="Opacity" Value="0.86" />
+        </Style>
+        <Style Selector="ToggleButton.SelectionActionCard.SearchResult">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+    </UserControl.Styles>
+    <!-- No nested surface — parent SettingView already provides the detail card. -->
+    <StackPanel
+                VerticalAlignment="Top"
+                HorizontalAlignment="Stretch" Spacing="0">
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='selection translation enable selection 划词工具栏 翻译 启用'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  >
                 <TextBlock Text="{x:Static lang:Resources.SelectionTranslation}"
-                           VerticalAlignment="Center" FontWeight="Bold" />
-                <ToggleSwitch IsChecked="{Binding SelectionTranslationConf.Enabled}"
-                              HorizontalAlignment="Right"
-                              OnContent="" OffContent="" />
-            </DockPanel>
-            <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="12" Margin="0,5,0,10">
-                <CheckBox Content="{x:Static lang:Resources.TextAssistTranslate}" IsChecked="{Binding SelectionTranslationConf.TranslationEnabled}" />
-                <CheckBox Grid.Column="1" Content="{x:Static lang:Resources.TextAssistCorrect}" IsChecked="{Binding SelectionTranslationConf.CorrectionEnabled}" />
-                <CheckBox Grid.Column="2" Content="{x:Static lang:Resources.TextAssistPolish}" IsChecked="{Binding SelectionTranslationConf.PolishEnabled}" />
-                <CheckBox Grid.Column="3" Content="{x:Static lang:Resources.TextAssistSummary}" IsChecked="{Binding SelectionTranslationConf.SummaryEnabled}" />
-                <CheckBox Grid.Column="4" Content="{x:Static lang:Resources.TextAssistExplain}" IsChecked="{Binding SelectionTranslationConf.ExplanationEnabled}" />
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ToggleSwitch IsChecked="{Binding SelectionTranslationConf.Enabled}"
+                                  OnContent="" OffContent=""
+                                  HorizontalAlignment="Right"
+                                  Margin="0,0,8,0" />
+                </ContentControl>
             </Grid>
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                           Text="{x:Static lang:Resources.SelectionTriggerMode}" />
-                <ComboBox ItemsSource="{Binding SelectionTriggerModes}"
-                          SelectedValue="{Binding SelectedSelectionTriggerMode}"
-                          SelectedValueBinding="{Binding Value}"
-                          MinWidth="150">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource SukiText}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
+            </Border>
+
+            <!-- Capability tiles — same icons as the floating selection toolbar -->
+            <StackPanel Margin="8,4,8,8"
+                        Spacing="8"
+                        IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='selection translation enable 划词 启用 translate correct polish summary explain 翻译 纠正 润色 总结 解释'}">
+                <TextBlock Text="{x:Static lang:Resources.EnableSelectionTranslation}"
+                           Classes="Caption"
+                           FontWeight="Bold"
+                           Margin="4,0,0,0" />
+                <UniformGrid Columns="2" Rows="3">
+                    <ToggleButton
+                                  Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='translate translation 翻译'}"
+                                  IsChecked="{Binding SelectionTranslationConf.TranslationEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Border Width="32" Height="32" CornerRadius="9"
+                                    Background="{DynamicResource PrimaryColor10}">
+                                <avalonia:MaterialIcon Kind="Translate" Width="16" Height="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource PrimaryColor}" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Static lang:Resources.TextAssistTranslate}"
+                                       Classes="Small"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
+                            <avalonia:MaterialIcon Grid.Column="2"
+                                                   Kind="CheckCircle"
+                                                   Width="16" Height="16"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource PrimaryColor}"
+                                                   IsVisible="{Binding SelectionTranslationConf.TranslationEnabled}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <ToggleButton
+                                  Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='correct correction 纠错 纠正'}"
+                                  IsChecked="{Binding SelectionTranslationConf.CorrectionEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Border Width="32" Height="32" CornerRadius="9"
+                                    Background="{DynamicResource GhostColor}">
+                                <avalonia:MaterialIcon Kind="Spellcheck" Width="16" Height="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedColor}" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Static lang:Resources.TextAssistCorrect}"
+                                       Classes="Small"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
+                            <avalonia:MaterialIcon Grid.Column="2"
+                                                   Kind="CheckCircle"
+                                                   Width="16" Height="16"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource PrimaryColor}"
+                                                   IsVisible="{Binding SelectionTranslationConf.CorrectionEnabled}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <ToggleButton
+                                  Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='polish 润色'}"
+                                  IsChecked="{Binding SelectionTranslationConf.PolishEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Border Width="32" Height="32" CornerRadius="9"
+                                    Background="{DynamicResource GhostColor}">
+                                <avalonia:MaterialIcon Kind="FormatPaint" Width="16" Height="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedColor}" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Static lang:Resources.TextAssistPolish}"
+                                       Classes="Small"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
+                            <avalonia:MaterialIcon Grid.Column="2"
+                                                   Kind="CheckCircle"
+                                                   Width="16" Height="16"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource PrimaryColor}"
+                                                   IsVisible="{Binding SelectionTranslationConf.PolishEnabled}" />
+                        </Grid>
+                    </ToggleButton>
+
+                    <ToggleButton
+                                  Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='summary 总结'}"
+                                  IsChecked="{Binding SelectionTranslationConf.SummaryEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Border Width="32" Height="32" CornerRadius="9"
+                                    Background="{DynamicResource GhostColor}">
+                                <avalonia:MaterialIcon Kind="TextShort" Width="16" Height="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedColor}" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Static lang:Resources.TextAssistSummary}"
+                                       Classes="Small"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
+                            <avalonia:MaterialIcon Grid.Column="2"
+                                                   Kind="CheckCircle"
+                                                   Width="16" Height="16"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource PrimaryColor}"
+                                                   IsVisible="{Binding SelectionTranslationConf.SummaryEnabled}" />
+                        </Grid>
+                    </ToggleButton>
+                    <ToggleButton
+                                  Classes="SelectionActionCard"
+                                  Classes.SearchResult="{Binding IsSearchMode}"
+                                  IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='explanation explain 解释 说明'}"
+                                  IsChecked="{Binding SelectionTranslationConf.ExplanationEnabled}"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  ClipToBounds="True">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Border Width="32" Height="32" CornerRadius="9"
+                                    Background="{DynamicResource GhostColor}">
+                                <avalonia:MaterialIcon Kind="LightbulbOnOutline" Width="16" Height="16"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedColor}" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="{x:Static lang:Resources.TextAssistExplain}"
+                                       Classes="Small"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MinWidth="0" />
+                            <avalonia:MaterialIcon Grid.Column="2"
+                                                   Kind="CheckCircle"
+                                                   Width="16" Height="16"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource PrimaryColor}"
+                                                   IsVisible="{Binding SelectionTranslationConf.ExplanationEnabled}" />
+                        </Grid>
+                    </ToggleButton>
+                </UniformGrid>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                           Text="{x:Static lang:Resources.TransEngine}" />
-                <StackPanel Orientation="Horizontal" Spacing="8">
+
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='trigger double drag selection trigger 取词方式 触发 双击 拖选'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  >
+                <TextBlock Text="{x:Static lang:Resources.SelectionTriggerMode}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox ItemsSource="{Binding SelectionTriggerModes}"
+                              SelectedValue="{Binding SelectedSelectionTriggerMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundColor}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ContentControl>
+            </Grid>
+            </Border>
+
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='engine ai machine translation engine 引擎 翻译'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  >
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="{x:Static lang:Resources.TransEngine}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <Border Width="28" Height="28"
+                            CornerRadius="8"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            Cursor="Help"
+                            ToolTip.Tip="{x:Static lang:Resources.TranslationEngineInfo}">
+                        <avalonia:MaterialIcon Kind="HelpCircleOutline"
+                                               Width="15" Height="15"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MutedColor}" />
+                    </Border>
+                </StackPanel>
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
                     <ComboBox SelectedItem="{Binding SelectedSelectionTranslationEngine}"
                               ItemsSource="{Binding TranslationEngineTypes}"
-                              MinWidth="150">
+                              HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <avalonia:MaterialIcon Kind="{Binding Converter={x:Static converts:TranslationEngineStringToIconKindConverter.Instance}}" 
+                                    <avalonia:MaterialIcon Kind="{Binding Converter={x:Static converts:TranslationEngineStringToIconKindConverter.Instance}}"
                                                            Width="16" Height="16" />
                                     <TextBlock Text="{Binding}" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource SukiText}"/>
+                                               Foreground="{DynamicResource ForegroundColor}" />
                                 </StackPanel>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
-                    
-                    <Button Classes="Basic" VerticalAlignment="Center"
-                            ToolTip.Tip="{x:Static lang:Resources.TranslationEngineInfo}">
-                        <avalonia:MaterialIcon Kind="InformationOutline" Width="16" Height="16" 
-                                               Foreground="{DynamicResource SukiLowText}"/>
-                    </Button>
-                </StackPanel>
-            </StackPanel>
-            
-            <!-- AI Model Selection -->
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5" IsVisible="{Binding IsAiTranslationSelected}">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                           Text="{x:Static lang:Resources.UsingAiModel}" />
-                <ComboBox ItemsSource="{Binding ConfiguredModels}"
-                          SelectedValue="{Binding SelectionTranslationConf.AiModelId}"
-                          SelectedValueBinding="{Binding Id}"
-                          MinWidth="150">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Panel Width="20" Height="20">
-                                    <Border ClipToBounds="True" CornerRadius="4">
+                </ContentControl>
+            </Grid>
+            </Border>
+
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='using ai model ai model 大模型 AI 模型'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding IsAiTranslationSelected}">
+                <TextBlock Text="{x:Static lang:Resources.UsingAiModel}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox ItemsSource="{Binding ConfiguredModels}"
+                              SelectedValue="{Binding SelectionTranslationConf.AiModelId}"
+                              SelectedValueBinding="{Binding Id}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="20" Height="20" CornerRadius="4" ClipToBounds="True">
                                         <Image Source="{Binding ModelType, Converter={x:Static converts:AiModelTypeConverters.ToIcon}}"
                                                Stretch="UniformToFill" />
                                     </Border>
-                                </Panel>
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource SukiText}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
-            
-            <!-- Machine Translation Provider Selection -->
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5" IsVisible="{Binding IsMachineTranslationSelected}">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center"
-                           Text="{x:Static lang:Resources.MachineTranslation}" />
-                <ComboBox SelectedItem="{Binding SelectedMachineTranslationProvider}"
-                          ItemsSource="{Binding MachineTransProviders}"
-                          MinWidth="150">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Panel Width="20" Height="20">
-                                    <Border ClipToBounds="True" CornerRadius="4"
-                                            IsVisible="{Binding Converter={x:Static converts:EngineConverters.HasIcon}}">
-                                        <Image Source="{Binding Converter={x:Static converts:EngineConverters.ToIcon}}"
-                                               Stretch="UniformToFill" />
-                                    </Border>
-                                    <avalonia:MaterialIcon Kind="Translate" Width="20" Height="20"
-                                                           IsVisible="{Binding Converter={x:Static converts:EngineConverters.HasNoIcon}}" />
-                                </Panel>
-                                <TextBlock Text="{Binding}" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource SukiText}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="30" Margin="0 5 0 5">
-                <TextBlock FontWeight="Bold" VerticalAlignment="Center" Text="{x:Static lang:Resources.Prompts}" />
-                <ComboBox ItemsSource="{Binding PromptEntries}"
-                          SelectedValue="{Binding SelectionTranslationConf.PromptId}"
-                          SelectedValueBinding="{Binding Id}" MinWidth="220">
-                    <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" Foreground="{DynamicResource SukiText}" /></DataTemplate></ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
-        </StackPanel>
-    </suki:GlassCard>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource ForegroundColor}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ContentControl>
+            </Grid>
+            </Border>
+
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='machine translation machine provider machine translation 机器翻译'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  IsVisible="{Binding IsMachineTranslationSelected}">
+                <TextBlock Text="{x:Static lang:Resources.MachineTranslation}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox SelectedItem="{Binding SelectedMachineTranslationProvider}"
+                              ItemsSource="{Binding MachineTransProviders}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Panel Width="20" Height="20">
+                                        <Border ClipToBounds="True" CornerRadius="4"
+                                                IsVisible="{Binding Converter={x:Static converts:EngineConverters.HasIcon}}">
+                                            <Image Source="{Binding Converter={x:Static converts:EngineConverters.ToIcon}}"
+                                                   Stretch="UniformToFill" />
+                                        </Border>
+                                        <avalonia:MaterialIcon Kind="Translate" Width="20" Height="20"
+                                                               IsVisible="{Binding Converter={x:Static converts:EngineConverters.HasNoIcon}}" />
+                                    </Panel>
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource ForegroundColor}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ContentControl>
+            </Grid>
+            </Border>
+
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='prompt prompts prompt 提示词'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  >
+                <TextBlock Text="{x:Static lang:Resources.Prompts}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox ItemsSource="{Binding PromptEntries}"
+                              SelectedValue="{Binding SelectionTranslationConf.PromptId}"
+                              SelectedValueBinding="{Binding Id}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ForegroundColor}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ContentControl>
+            </Grid>
+            </Border>
+    </StackPanel>
 </UserControl>

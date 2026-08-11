@@ -28,11 +28,15 @@ public sealed class PromptEntryState : LiveSettingsSection
         set
         {
             if (Set(ref _role, value))
+            {
                 this.RaisePropertyChanged(nameof(RolePreview));
+                this.RaisePropertyChanged(nameof(ContentPreview));
+            }
         }
     }
     public bool IsDefault { get => _isDefault; set => Set(ref _isDefault, value); }
     public string RolePreview => Role.Length > 100 ? Role[..100] + "..." : Role;
+    public string ContentPreview => RolePreview;
     public PromptEntrySettings ToContract() => new(Id, Name, Role, IsDefault);
 }
 

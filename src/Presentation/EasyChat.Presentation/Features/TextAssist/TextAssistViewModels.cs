@@ -547,6 +547,7 @@ namespace EasyChat.Presentation.Features.TextAssist
         public ObservableCollection<CorrectionTextSegment> CorrectionSegments { get; } = [];
         public bool HasCorrectedResults => CorrectionVariants.Count > 0;
         public bool HasCorrectionIssues => Issues.Count > 0;
+        public bool HasCorrectionOutput => HasCorrectedResults || HasCorrectionIssues;
 
         protected override async Task RunCoreAsync(CancellationToken cancellationToken)
         {
@@ -589,6 +590,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             }
             this.RaisePropertyChanged(nameof(HasCorrectedResults));
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
+            this.RaisePropertyChanged(nameof(HasCorrectionOutput));
         }
 
         private void ResetResults()
@@ -599,6 +601,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             CorrectionSegments.Clear();
             this.RaisePropertyChanged(nameof(HasCorrectedResults));
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
+            this.RaisePropertyChanged(nameof(HasCorrectionOutput));
         }
 
         private void RebuildCorrectionSegments()

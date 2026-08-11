@@ -1,12 +1,15 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.Settings.State;
+using EasyChat.Presentation.Foundation.Platform;
 using LiveMarkdown.Avalonia;
+using Key = Avalonia.Input.Key;
 
 namespace EasyChat.Presentation.Features.Capture.Views;
 
@@ -71,6 +74,15 @@ public partial class ResultView : Window
         ReCenterPosition();
     });
 
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            Close();
+        }
+    }
+
     public void CloseAfterDelay(int milliseconds) => Dispatcher.UIThread.Post(async void () =>
     {
         await Task.Delay(milliseconds);
@@ -79,6 +91,8 @@ public partial class ResultView : Window
 
     private void ApplyConfiguration(LiveResultSettings settings)
     {
+        // Rounded, decoration-free windows need per-pixel transparency even when the preference is None.
+        TransparencyLevelHint = WindowTransparencyLevels.ForRoundedWindow();
         TrySetBrush(settings.BackgroundColor, brush => MainCard.Background = brush);
         TrySetBrush(settings.WindowBackgroundColor, brush => WindowBackground.Background = brush);
         TrySetColor(settings.FontColor, color => MarkdownResult.Resources["ForegroundColor"] = color);

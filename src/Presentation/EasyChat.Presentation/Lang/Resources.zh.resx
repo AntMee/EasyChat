@@ -1,4 +1,4 @@
-<root>
+﻿<?xml version="1.0" encoding="utf-8"?><root>
     <resheader name="resmimetype">
         <value>text/microsoft-resx</value>
     </resheader>
@@ -255,6 +255,9 @@
     <data name="AddLanguageShortcut" xml:space="preserve">
     <value>添加语种切换热键</value>
   </data>
+    <data name="LanguageShortcutEmptyState" xml:space="preserve">
+    <value>请添加切换语种的热键</value>
+  </data>
     <data name="Edit" xml:space="preserve">
     <value>编辑</value>
   </data>
@@ -426,6 +429,12 @@
     <data name="PromptParametersHint" xml:space="preserve">
         <value>描述助手的角色、专业领域、风格和偏好即可。语言、任务和输出规则由 EasyChat 自动添加。</value>
     </data>
+    <data name="PromptSearchPlaceholder" xml:space="preserve">
+        <value>按名称或内容搜索提示词...</value>
+    </data>
+    <data name="PromptNoSearchResults" xml:space="preserve">
+        <value>没有找到匹配的提示词。</value>
+    </data>
     <data name="ResultAutoCloseDelay" xml:space="preserve">
         <value>自动关闭延迟</value>
     </data>
@@ -446,6 +455,9 @@
     </data>
     <data name="RestartToTakeEffect" xml:space="preserve">
         <value>请重启应用以生效</value>
+    </data>
+    <data name="Restart" xml:space="preserve">
+        <value>重启</value>
     </data>
     <data name="InputSettings" xml:space="preserve">
         <value>输入窗口设置</value>
@@ -566,12 +578,6 @@
     </data>
     <data name="Speech_EnableTranslation" xml:space="preserve">
         <value>启用翻译</value>
-    </data>
-    <data name="Speech_FontSizeDecrease" xml:space="preserve">
-        <value>减小字号</value>
-    </data>
-    <data name="Speech_FontSizeIncrease" xml:space="preserve">
-        <value>增大字号</value>
     </data>
     <data name="Speech_RealTimePreview" xml:space="preserve">
         <value>实时预览</value>
@@ -847,8 +853,8 @@
         <value>语音合成 (TTS)</value>
     </data>
     <data name="TranslationEngineInfo" xml:space="preserve">
-        <value>大模型翻译速度略慢，但是翻译质量更好，并且支持音标、例句、提示等功能。
-机器翻译不支持音标、例句、提示等，并且翻译质量略差，优点是翻译速度很快。</value>
+        <value>大模型：质量更好，支持音标 / 例句 / 提示，速度略慢。
+机器翻译：速度更快，质量一般，不支持音标、例句、提示。</value>
     </data>
     <data name="Speech_ClearHistory" xml:space="preserve">
         <value>清空历史</value>
@@ -897,15 +903,11 @@
   <data name="TextAssistTranslate" xml:space="preserve"><value>翻译</value></data>
   <data name="TextAssistCorrect" xml:space="preserve"><value>纠正</value></data>
   <data name="TextAssistPolish" xml:space="preserve"><value>润色</value></data>
-  <data name="TextAssistPolishExplanationTitle" xml:space="preserve"><value>润色说明</value></data>
-  <data name="TextAssistPolishOriginalLabel" xml:space="preserve"><value>原表达</value></data>
-  <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>润色后</value></data>
-  <data name="TextAssistProcessing" xml:space="preserve"><value>文本处理</value></data>
   <data name="TextAssistSummary" xml:space="preserve"><value>总结</value></data>
-  <data name="TextAssistExplain" xml:space="preserve"><value>解释</value></data>
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>
+  <data name="TextAssistResultPlaceholder" xml:space="preserve"><value>等待翻译...</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
   <data name="TextAssistIssues" xml:space="preserve"><value>错误与修改建议</value></data>
@@ -930,17 +932,7 @@
     <data name="Action_QuickTranslate" xml:space="preserve"><value>快捷翻译</value></data>
     <data name="Action_QuickCorrect" xml:space="preserve"><value>快捷纠正</value></data>
     <data name="ReadSelectedText" xml:space="preserve"><value>读取选中文本</value></data>
-    <data name="OcrModels" xml:space="preserve"><value>截图翻译</value></data>
-    <data name="OcrModelsDescription" xml:space="preserve"><value>（用于截图提取文字的模型，需要下载后才可以正常使用截图翻译）</value></data>
-    <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR 模式</value></data>
-    <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>快速</value></data>
-    <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>普通</value></data>
-    <data name="OcrRecognitionMode_IdleRelease" xml:space="preserve"><value>闲置释放</value></data>
-    <data name="OcrRecognitionModeDescription_Fast" xml:space="preserve"><value>OCR 会保持加载，可能长时间额外占用约 500 MB 内存，但后续截图文字识别速度更快，适合内存充足且追求识别速度的用户。</value></data>
-    <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>仅在截图文字识别时使用临时独立进程，识别完成后退出进程并回收其内存。</value></data>
-    <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>OCR 会保持加载以加快连续识别，并在指定时间内没有新的截图识别后退出进程、回收内存。</value></data>
-    <data name="OcrIdleTimeout" xml:space="preserve"><value>闲置关闭时间</value></data>
-    <data name="Seconds" xml:space="preserve"><value>秒</value></data>
+    <data name="OcrModels" xml:space="preserve"><value>OCR 模型</value></data>
     <data name="OcrUseProxy" xml:space="preserve"><value>下载模型时使用代理</value></data>
     <data name="DownloadOcrModels" xml:space="preserve"><value>下载 OCR 模型</value></data>
     <data name="DownloadOcrModel" xml:space="preserve"><value>下载</value></data>
@@ -957,14 +949,12 @@
     <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR 模型下载失败</value></data>
   <data name="Retry" xml:space="preserve"><value>重试</value></data>
     <data name="Tts_ConfigureVoices" xml:space="preserve"><value>配置语音</value></data>
-    <data name="AsrModels" xml:space="preserve"><value>语音实时识别</value></data>
-    <data name="AsrModelsDescription" xml:space="preserve"><value>（用于语音实时识别文字的模型，需要下载后才可以正常使用语音实时识别）</value></data>
+    <data name="AsrModels" xml:space="preserve"><value>ASR 模型</value></data>
+    <data name="AsrModelsDescription" xml:space="preserve"><value>可一次导入一个或多个模型文件夹、包含模型的文件夹，或受支持的模型压缩包。</value></data>
     <data name="ImportAsrModelFolder" xml:space="preserve"><value>导入文件夹</value></data>
     <data name="ImportAsrModelArchive" xml:space="preserve"><value>导入压缩包</value></data>
     <data name="AsrModelArchives" xml:space="preserve"><value>模型压缩包</value></data>
     <data name="NoAsrModels" xml:space="preserve"><value>尚未安装 ASR 模型。</value></data>
-    <data name="ShowMoreAsrModels" xml:space="preserve"><value>显示更多 ASR 模型</value></data>
-    <data name="ShowLessAsrModels" xml:space="preserve"><value>收起 ASR 模型</value></data>
     <data name="AsrModelsImported" xml:space="preserve"><value>已导入：{0}</value></data>
     <data name="AsrModelsSkipped" xml:space="preserve"><value>已跳过（已安装或重复）：{0}</value></data>
     <data name="AsrModelsAlreadyInstalled" xml:space="preserve"><value>所选模型已经安装。</value></data>
@@ -973,13 +963,182 @@
     <data name="AsrModelDeleted" xml:space="preserve"><value>已删除：{0}</value></data>
     <data name="AsrModelDeleteFailed" xml:space="preserve"><value>ASR 模型删除失败</value></data>
     <data name="DownloadAsrModels" xml:space="preserve"><value>下载模型</value></data>
-    <data name="ApplicationData" xml:space="preserve"><value>应用数据</value></data>
-    <data name="ApplicationDataDescription" xml:space="preserve"><value>所有配置、ASR 模型和 OCR 模型统一保存在此目录中。</value></data>
-    <data name="ChangeApplicationDataLocation" xml:space="preserve"><value>更改保存位置</value></data>
-    <data name="SelectApplicationDataLocation" xml:space="preserve"><value>选择一个空的应用数据目录</value></data>
-    <data name="ApplicationDataMoved" xml:space="preserve"><value>配置和模型已迁移到 {0}。</value></data>
-    <data name="ApplicationDataMoveFailed" xml:space="preserve"><value>无法更改保存位置</value></data>
-    <data name="ApplicationDataMoveBusy" xml:space="preserve"><value>请先等待当前模型操作完成，再更改保存位置。</value></data>
+
+  <data name="HomeWorkspace" xml:space="preserve">
+    <value>工作台</value>
+  </data>
+  <data name="HomeWorkspaceSubtitle" xml:space="preserve">
+    <value>引擎、语言与当前状态</value>
+  </data>
+  <data name="HomeStatusReady" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="HomeStatusNeedsSetup" xml:space="preserve">
+    <value>待配置</value>
+  </data>
+  <data name="HomeCapabilitySummary" xml:space="preserve">
+    <value>{0} 个模型 · {1} 个热键</value>
+  </data>
+  <data name="HomeConfigureCta" xml:space="preserve">
+    <value>去配置翻译源</value>
+  </data>
+  <data name="HomeSwapLanguages" xml:space="preserve">
+    <value>交换</value>
+  </data>
+  <data name="HomeLanguagePair" xml:space="preserve">
+    <value>翻译方向</value>
+  </data>
+  <data name="ThirdPartyLibraries" xml:space="preserve">
+    <value>第三方库</value>
+  </data>
+
+  <data name="HomeHealthTitle" xml:space="preserve">
+    <value>能力检查清单</value>
+  </data>
+  <data name="HomeHealthEngineTitle" xml:space="preserve">
+    <value>翻译引擎</value>
+  </data>
+  <data name="HomeHealthEngineDone" xml:space="preserve">
+    <value>引擎已就绪，可以开始翻译。</value>
+  </data>
+  <data name="HomeHealthEngineTodo" xml:space="preserve">
+    <value>请添加 AI 模型或机器翻译密钥。</value>
+  </data>
+  <data name="HomeHealthShortcutTitle" xml:space="preserve">
+    <value>全局热键</value>
+  </data>
+  <data name="HomeHealthShortcutDone" xml:space="preserve">
+    <value>已配置 {0} 个热键。</value>
+  </data>
+  <data name="HomeHealthShortcutTodo" xml:space="preserve">
+    <value>请添加截图翻译或输入翻译热键。</value>
+  </data>
+  <data name="HomeHealthActionOpenSettings" xml:space="preserve">
+    <value>打开设置</value>
+  </data>
+  <data name="HomeHealthActionOpenShortcuts" xml:space="preserve">
+    <value>打开热键</value>
+  </data>
+  <data name="HomeOnboardingTitle" xml:space="preserve">
+    <value>三步开始使用</value>
+  </data>
+  <data name="HomeOnboardingStep1" xml:space="preserve">
+    <value>1. 配置翻译源</value>
+  </data>
+  <data name="HomeOnboardingStep2" xml:space="preserve">
+    <value>2. 绑定全局热键</value>
+  </data>
+  <data name="HomeOnboardingStep3" xml:space="preserve">
+    <value>3. 按下热键开始翻译</value>
+  </data>
+  <data name="HomeOnboardingDismiss" xml:space="preserve">
+    <value>知道了</value>
+  </data>
+  <data name="SettingsSearchPlaceholder" xml:space="preserve">
+    <value>搜索设置...</value>
+  </data>
+  <data name="SettingsNoSearchResults" xml:space="preserve">
+    <value>没有匹配的设置项。</value>
+  </data>
+  <data name="SelectionToolbarSettings" xml:space="preserve">
+    <value>划词工具栏</value>
+  </data>
+  <data name="SubtitlePreset_Title" xml:space="preserve">
+    <value>外观预设</value>
+  </data>
+  <data name="SubtitlePreset_Hint" xml:space="preserve">
+    <value>一键套用主/副字幕颜色、字号与背景。</value>
+  </data>
+  <data name="SubtitlePreset_ClassicDark" xml:space="preserve">
+    <value>经典暗色</value>
+  </data>
+  <data name="SubtitlePreset_ClassicDarkDesc" xml:space="preserve">
+    <value>白字主字幕 + 浅灰副字幕，柔和深色遮罩。</value>
+  </data>
+  <data name="SubtitlePreset_HighContrast" xml:space="preserve">
+    <value>高对比</value>
+  </data>
+  <data name="SubtitlePreset_HighContrastDesc" xml:space="preserve">
+    <value>黄字主字幕 + 白字副字幕，近黑底，最易读。</value>
+  </data>
+  <data name="SubtitlePreset_SoftLight" xml:space="preserve">
+    <value>柔和亮色</value>
+  </data>
+  <data name="SubtitlePreset_SoftLightDesc" xml:space="preserve">
+    <value>深灰字 + 浅色半透明面板，适合明亮环境。</value>
+  </data>
+  <data name="SubtitlePreset_Cinema" xml:space="preserve">
+    <value>影院</value>
+  </data>
+  <data name="SubtitlePreset_CinemaDesc" xml:space="preserve">
+    <value>暖色奶油字 + 深黑舞台背景。</value>
+  </data>
+  <data name="SubtitlePreset_Neon" xml:space="preserve">
+    <value>霓虹</value>
+  </data>
+  <data name="SubtitlePreset_NeonDesc" xml:space="preserve">
+    <value>青色主字 + 粉色副字，深蓝玻璃底。</value>
+  </data>
+  <data name="HomeQuickActions" xml:space="preserve">
+    <value>快捷入口</value>
+  </data>
+  <data name="HomeQuickSpeechHint" xml:space="preserve">
+    <value>实时识别与浮窗字幕</value>
+  </data>
+  <data name="HomeQuickTextAssistHint" xml:space="preserve">
+    <value>翻译选中的文本</value>
+  </data>
+  <data name="HomeQuickShortcutHint" xml:space="preserve">
+    <value>配置全局热键</value>
+  </data>
+  <data name="HomeQuickPromptHint" xml:space="preserve">
+    <value>管理翻译提示词</value>
+  </data>
+  <data name="ResultCopyHint" xml:space="preserve">
+    <value>已复制到剪贴板</value>
+  </data>
+  <data name="TypingEnterHint" xml:space="preserve">
+    <value>回车发送</value>
+  </data>
+  <data name="FloatingWindow_IncreaseFont" xml:space="preserve">
+    <value>放大字号</value>
+  </data>
+  <data name="FloatingWindow_DecreaseFont" xml:space="preserve">
+    <value>缩小字号</value>
+  </data>
+  <data name="OpenReleases" xml:space="preserve">
+    <value>打开发布页</value>
+  </data>
+  <data name="Speech_FontSizeDecrease" xml:space="preserve">
+        <value>减小字号</value>
+    </data>
+  <data name="Speech_FontSizeIncrease" xml:space="preserve">
+        <value>增大字号</value>
+    </data>
+  <data name="TextAssistPolishExplanationTitle" xml:space="preserve"><value>润色说明</value></data>
+  <data name="TextAssistPolishOriginalLabel" xml:space="preserve"><value>原表达</value></data>
+  <data name="TextAssistPolishRevisedLabel" xml:space="preserve"><value>润色后</value></data>
+  <data name="TextAssistProcessing" xml:space="preserve"><value>文本处理</value></data>
+  <data name="TextAssistExplain" xml:space="preserve"><value>解释</value></data>
+  <data name="OcrModelsDescription" xml:space="preserve"><value>（用于截图提取文字的模型，需要下载后才可以正常使用截图翻译）</value></data>
+  <data name="OcrRecognitionMode" xml:space="preserve"><value>OCR 模式</value></data>
+  <data name="OcrRecognitionMode_Fast" xml:space="preserve"><value>快速</value></data>
+  <data name="OcrRecognitionMode_Normal" xml:space="preserve"><value>普通</value></data>
+  <data name="OcrRecognitionMode_IdleRelease" xml:space="preserve"><value>闲置释放</value></data>
+  <data name="OcrRecognitionModeDescription_Fast" xml:space="preserve"><value>OCR 会保持加载，可能长时间额外占用约 500 MB 内存，但后续截图文字识别速度更快，适合内存充足且追求识别速度的用户。</value></data>
+  <data name="OcrRecognitionModeDescription_Normal" xml:space="preserve"><value>仅在截图文字识别时使用临时独立进程，识别完成后退出进程并回收其内存。</value></data>
+  <data name="OcrRecognitionModeDescription_IdleRelease" xml:space="preserve"><value>OCR 会保持加载以加快连续识别，并在指定时间内没有新的截图识别后退出进程、回收内存。</value></data>
+  <data name="OcrIdleTimeout" xml:space="preserve"><value>闲置关闭时间</value></data>
+  <data name="Seconds" xml:space="preserve"><value>秒</value></data>
+  <data name="ShowMoreAsrModels" xml:space="preserve"><value>显示更多 ASR 模型</value></data>
+  <data name="ShowLessAsrModels" xml:space="preserve"><value>收起 ASR 模型</value></data>
+  <data name="ApplicationData" xml:space="preserve"><value>应用数据</value></data>
+  <data name="ApplicationDataDescription" xml:space="preserve"><value>所有配置、ASR 模型和 OCR 模型统一保存在此目录中。</value></data>
+  <data name="ChangeApplicationDataLocation" xml:space="preserve"><value>更改保存位置</value></data>
+  <data name="SelectApplicationDataLocation" xml:space="preserve"><value>选择一个空的应用数据目录</value></data>
+  <data name="ApplicationDataMoved" xml:space="preserve"><value>配置和模型已迁移到 {0}。</value></data>
+  <data name="ApplicationDataMoveFailed" xml:space="preserve"><value>无法更改保存位置</value></data>
+  <data name="ApplicationDataMoveBusy" xml:space="preserve"><value>请先等待当前模型操作完成，再更改保存位置。</value></data>
   <data name="OcrUniversalModel" xml:space="preserve"><value>通用模型</value></data>
   <data name="OcrUniversalModelDescription" xml:space="preserve"><value>覆盖中、英、日及多种拉丁语系语言。</value></data>
   <data name="OcrKoreanV4Model" xml:space="preserve"><value>韩文模型</value></data>
@@ -993,4 +1152,27 @@
   <data name="OcrSupportedLanguageCount" xml:space="preserve"><value>支持 {0} 种语言</value></data>
   <data name="ViewOcrSupportedLanguages" xml:space="preserve"><value>查看全部支持语言</value></data>
   <data name="Action_ScreenshotOcr" xml:space="preserve"><value>截图 OCR</value></data>
+  <data name="ScreenshotOcr_PinTooltip" xml:space="preserve"><value>固定在屏幕上</value></data>
+  <data name="ScreenshotOcr_CopySelectionTooltip" xml:space="preserve"><value>复制选中文本</value></data>
+  <data name="ScreenshotOcr_TranslateSelectionTooltip" xml:space="preserve"><value>翻译选中文本</value></data>
+  <data name="ScreenshotOcr_ExplainSelectionTooltip" xml:space="preserve"><value>使用 AI 解释</value></data>
+  <data name="ScreenshotOcr_ReplaceSelectionTooltip" xml:space="preserve"><value>替换为翻译</value></data>
+  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>替换</value></data>
+  <data name="ScreenshotOcr_ZoomOutTooltip" xml:space="preserve"><value>缩小</value></data>
+  <data name="ScreenshotOcr_ZoomInTooltip" xml:space="preserve"><value>放大</value></data>
+  <data name="ScreenshotOcr_OpenImageTooltip" xml:space="preserve"><value>打开图片</value></data>
+  <data name="ScreenshotOcr_RecaptureTooltip" xml:space="preserve"><value>重新截图</value></data>
+  <data name="ScreenshotOcr_CopyImageTooltip" xml:space="preserve"><value>复制当前图片</value></data>
+  <data name="ScreenshotOcr_UndoTooltip" xml:space="preserve"><value>撤销</value></data>
+  <data name="ScreenshotOcr_RedoTooltip" xml:space="preserve"><value>重做</value></data>
+  <data name="ScreenshotOcr_RestoreTooltip" xml:space="preserve"><value>恢复原图</value></data>
+  <data name="ScreenshotOcr_Recognizing" xml:space="preserve"><value>正在识别文字...</value></data>
+  <data name="ScreenshotOcr_RecognizedText" xml:space="preserve"><value>识别文本</value></data>
+  <data name="ScreenshotOcr_CharacterCount" xml:space="preserve"><value>{0:N0} 个字符</value></data>
+  <data name="ScreenshotOcr_RetryTooltip" xml:space="preserve"><value>重试 OCR</value></data>
+  <data name="ScreenshotOcr_CopyTextTooltip" xml:space="preserve"><value>复制文本</value></data>
+  <data name="ScreenshotOcr_TranslateTextTooltip" xml:space="preserve"><value>翻译文本</value></data>
+  <data name="ScreenshotOcr_ShowOriginalTooltip" xml:space="preserve"><value>显示原文</value></data>
+  <data name="ScreenshotOcr_OpenImageDialogTitle" xml:space="preserve"><value>打开用于 OCR 的图片</value></data>
+  <data name="ScreenshotOcr_ImageFileType" xml:space="preserve"><value>图片</value></data>
 </root>

@@ -207,7 +207,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
                 break;
             case SelectionTranslationDeltaEvent delta:
                 TranslationResult += delta.Text;
-                TranslationMarkdown.Append(delta.Text);
+                TranslationMarkdown.Append(TranslationMarkdownFormatter.PreserveLineBreaks(delta.Text));
                 if (!lookup)
                     _sentenceTranslationSnapshot = TranslationResult;
                 break;
@@ -274,7 +274,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         IsWordMode = false;
         TranslationResult = _sentenceTranslationSnapshot ?? TranslationResult;
         TranslationMarkdown.Clear();
-        TranslationMarkdown.Append(TranslationResult);
+        TranslationMarkdown.Append(TranslationMarkdownFormatter.PreserveLineBreaks(TranslationResult));
     }
 
     private async Task SetErrorAsync(Exception exception)
@@ -284,7 +284,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             TranslationMarkdown.Clear();
-            TranslationMarkdown.Append(message);
+            TranslationMarkdown.Append(TranslationMarkdownFormatter.PreserveLineBreaks(message));
         });
     }
 
@@ -332,6 +332,19 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         exception.Message.Contains("No active AI model", StringComparison.OrdinalIgnoreCase)
             ? Resources.TextAssistNoAiModel
             : Resources.SelectionTranslate_Failed + exception.Message;
+}
+
+internal static class TranslationMarkdownFormatter
+{
+    public static string PreserveLineBreaks(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
+        return normalized.Replace("\n", "  \n", StringComparison.Ordinal);
+    }
 }
 
 public sealed class DictionaryResultViewModel : ReactiveObject

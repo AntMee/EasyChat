@@ -1183,6 +1183,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("LanguageShortcuts", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Please add a language switch hotkey..
+        /// </summary>
+        public static string LanguageShortcutEmptyState {
+            get {
+                return ResourceManager.GetString("LanguageShortcutEmptyState", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Later.
@@ -1471,138 +1480,6 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("OcrModels", resourceCulture);
             }
         }
-
-        public static string OcrModelsDescription {
-            get {
-                return ResourceManager.GetString("OcrModelsDescription", resourceCulture);
-            }
-        }
-
-        public static string OcrRecognitionMode {
-            get {
-                return ResourceManager.GetString("OcrRecognitionMode", resourceCulture);
-            }
-        }
-
-        public static string OcrRecognitionMode_Fast {
-            get {
-                return ResourceManager.GetString("OcrRecognitionMode_Fast", resourceCulture);
-            }
-        }
-
-        public static string OcrRecognitionMode_Normal {
-            get {
-                return ResourceManager.GetString("OcrRecognitionMode_Normal", resourceCulture);
-            }
-        }
-
-        public static string OcrRecognitionMode_IdleRelease {
-            get {
-                return ResourceManager.GetString("OcrRecognitionMode_IdleRelease", resourceCulture);
-            }
-        }
-
-        public static string OcrRecognitionModeDescription_Fast {
-            get {
-                return ResourceManager.GetString("OcrRecognitionModeDescription_Fast", resourceCulture);
-            }
-        }
-
-        public static string OcrRecognitionModeDescription_Normal {
-            get {
-                return ResourceManager.GetString("OcrRecognitionModeDescription_Normal", resourceCulture);
-            }
-        }
-
-        public static string OcrRecognitionModeDescription_IdleRelease {
-            get {
-                return ResourceManager.GetString("OcrRecognitionModeDescription_IdleRelease", resourceCulture);
-            }
-        }
-
-        public static string OcrIdleTimeout {
-            get {
-                return ResourceManager.GetString("OcrIdleTimeout", resourceCulture);
-            }
-        }
-
-        public static string Seconds {
-            get {
-                return ResourceManager.GetString("Seconds", resourceCulture);
-            }
-        }
-
-        public static string OcrUniversalModel {
-            get {
-                return ResourceManager.GetString("OcrUniversalModel", resourceCulture);
-            }
-        }
-
-        public static string OcrUniversalModelDescription {
-            get {
-                return ResourceManager.GetString("OcrUniversalModelDescription", resourceCulture);
-            }
-        }
-
-        public static string OcrKoreanV4Model {
-            get {
-                return ResourceManager.GetString("OcrKoreanV4Model", resourceCulture);
-            }
-        }
-
-        public static string OcrArabicV4Model {
-            get {
-                return ResourceManager.GetString("OcrArabicV4Model", resourceCulture);
-            }
-        }
-
-        public static string OcrDevanagariV4Model {
-            get {
-                return ResourceManager.GetString("OcrDevanagariV4Model", resourceCulture);
-            }
-        }
-
-        public static string OcrTamilV4Model {
-            get {
-                return ResourceManager.GetString("OcrTamilV4Model", resourceCulture);
-            }
-        }
-
-        public static string OcrTeluguV4Model {
-            get {
-                return ResourceManager.GetString("OcrTeluguV4Model", resourceCulture);
-            }
-        }
-
-        public static string OcrKannadaV4Model {
-            get {
-                return ResourceManager.GetString("OcrKannadaV4Model", resourceCulture);
-            }
-        }
-
-        public static string OcrCyrillicV3Model {
-            get {
-                return ResourceManager.GetString("OcrCyrillicV3Model", resourceCulture);
-            }
-        }
-
-        public static string OcrSupportedLanguages {
-            get {
-                return ResourceManager.GetString("OcrSupportedLanguages", resourceCulture);
-            }
-        }
-
-        public static string OcrSupportedLanguageCount {
-            get {
-                return ResourceManager.GetString("OcrSupportedLanguageCount", resourceCulture);
-            }
-        }
-
-        public static string ViewOcrSupportedLanguages {
-            get {
-                return ResourceManager.GetString("ViewOcrSupportedLanguages", resourceCulture);
-            }
-        }
         
         /// <summary>
         ///   Looks up a localized string similar to Use proxy for model download.
@@ -1747,7 +1624,25 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("PromptParametersHint", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to No prompts match your search..
+        /// </summary>
+        public static string PromptNoSearchResults {
+            get {
+                return ResourceManager.GetString("PromptNoSearchResults", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search prompts by name or content....
+        /// </summary>
+        public static string PromptSearchPlaceholder {
+            get {
+                return ResourceManager.GetString("PromptSearchPlaceholder", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Prompts.
         /// </summary>
@@ -1925,6 +1820,15 @@ namespace EasyChat.Presentation.Lang {
         public static string RestartToTakeEffect {
             get {
                 return ResourceManager.GetString("RestartToTakeEffect", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Restart.
+        /// </summary>
+        public static string Restart {
+            get {
+                return ResourceManager.GetString("Restart", resourceCulture);
             }
         }
         
@@ -2343,24 +2247,6 @@ namespace EasyChat.Presentation.Lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Decrease Font Size.
-        /// </summary>
-        public static string Speech_FontSizeDecrease {
-            get {
-                return ResourceManager.GetString("Speech_FontSizeDecrease", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Increase Font Size.
-        /// </summary>
-        public static string Speech_FontSizeIncrease {
-            get {
-                return ResourceManager.GetString("Speech_FontSizeIncrease", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Max Visible Lines.
         /// </summary>
         public static string Speech_MaxHistory {
@@ -2712,56 +2598,11 @@ namespace EasyChat.Presentation.Lang {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Polish notes.
-        /// </summary>
-        public static string TextAssistPolishExplanationTitle {
-            get {
-                return ResourceManager.GetString("TextAssistPolishExplanationTitle", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Original.
-        /// </summary>
-        public static string TextAssistPolishOriginalLabel {
-            get {
-                return ResourceManager.GetString("TextAssistPolishOriginalLabel", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Revised.
-        /// </summary>
-        public static string TextAssistPolishRevisedLabel {
-            get {
-                return ResourceManager.GetString("TextAssistPolishRevisedLabel", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Text assist.
-        /// </summary>
-        public static string TextAssistProcessing {
-            get {
-                return ResourceManager.GetString("TextAssistProcessing", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Summary.
         /// </summary>
         public static string TextAssistSummary {
             get {
                 return ResourceManager.GetString("TextAssistSummary", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Explain.
-        /// </summary>
-        public static string TextAssistExplain {
-            get {
-                return ResourceManager.GetString("TextAssistExplain", resourceCulture);
             }
         }
         
@@ -2809,7 +2650,16 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("TextAssistInputPlaceholderText", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for translation....
+        /// </summary>
+        public static string TextAssistResultPlaceholder {
+            get {
+                return ResourceManager.GetString("TextAssistResultPlaceholder", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Issues and suggestions.
         /// </summary>
@@ -3338,14 +3188,6 @@ namespace EasyChat.Presentation.Lang {
             get { return ResourceManager.GetString("NoAsrModels", resourceCulture); }
         }
 
-        public static string ShowMoreAsrModels {
-            get { return ResourceManager.GetString("ShowMoreAsrModels", resourceCulture); }
-        }
-
-        public static string ShowLessAsrModels {
-            get { return ResourceManager.GetString("ShowLessAsrModels", resourceCulture); }
-        }
-
         public static string AsrModelsImported {
             get { return ResourceManager.GetString("AsrModelsImported", resourceCulture); }
         }
@@ -3378,6 +3220,276 @@ namespace EasyChat.Presentation.Lang {
             get { return ResourceManager.GetString("DownloadAsrModels", resourceCulture); }
         }
 
+        public static string HomeWorkspace {
+            get { return ResourceManager.GetString("HomeWorkspace", resourceCulture); }
+        }
+
+        public static string HomeWorkspaceSubtitle {
+            get { return ResourceManager.GetString("HomeWorkspaceSubtitle", resourceCulture); }
+        }
+
+        public static string HomeStatusReady {
+            get { return ResourceManager.GetString("HomeStatusReady", resourceCulture); }
+        }
+
+        public static string HomeStatusNeedsSetup {
+            get { return ResourceManager.GetString("HomeStatusNeedsSetup", resourceCulture); }
+        }
+
+        public static string HomeCapabilitySummary {
+            get { return ResourceManager.GetString("HomeCapabilitySummary", resourceCulture); }
+        }
+
+        public static string HomeConfigureCta {
+            get { return ResourceManager.GetString("HomeConfigureCta", resourceCulture); }
+        }
+
+        public static string HomeSwapLanguages {
+            get { return ResourceManager.GetString("HomeSwapLanguages", resourceCulture); }
+        }
+
+        public static string HomeLanguagePair {
+            get { return ResourceManager.GetString("HomeLanguagePair", resourceCulture); }
+        }
+
+        public static string ThirdPartyLibraries {
+            get { return ResourceManager.GetString("ThirdPartyLibraries", resourceCulture); }
+        }
+
+        public static string HomeHealthTitle {
+            get { return ResourceManager.GetString("HomeHealthTitle", resourceCulture); }
+        }
+
+        public static string HomeHealthEngineTitle {
+            get { return ResourceManager.GetString("HomeHealthEngineTitle", resourceCulture); }
+        }
+
+        public static string HomeHealthEngineDone {
+            get { return ResourceManager.GetString("HomeHealthEngineDone", resourceCulture); }
+        }
+
+        public static string HomeHealthEngineTodo {
+            get { return ResourceManager.GetString("HomeHealthEngineTodo", resourceCulture); }
+        }
+
+        public static string HomeHealthShortcutTitle {
+            get { return ResourceManager.GetString("HomeHealthShortcutTitle", resourceCulture); }
+        }
+
+        public static string HomeHealthShortcutDone {
+            get { return ResourceManager.GetString("HomeHealthShortcutDone", resourceCulture); }
+        }
+
+        public static string HomeHealthShortcutTodo {
+            get { return ResourceManager.GetString("HomeHealthShortcutTodo", resourceCulture); }
+        }
+
+        public static string HomeHealthActionOpenSettings {
+            get { return ResourceManager.GetString("HomeHealthActionOpenSettings", resourceCulture); }
+        }
+
+        public static string HomeHealthActionOpenShortcuts {
+            get { return ResourceManager.GetString("HomeHealthActionOpenShortcuts", resourceCulture); }
+        }
+
+        public static string HomeOnboardingTitle {
+            get { return ResourceManager.GetString("HomeOnboardingTitle", resourceCulture); }
+        }
+
+        public static string HomeOnboardingStep1 {
+            get { return ResourceManager.GetString("HomeOnboardingStep1", resourceCulture); }
+        }
+
+        public static string HomeOnboardingStep2 {
+            get { return ResourceManager.GetString("HomeOnboardingStep2", resourceCulture); }
+        }
+
+        public static string HomeOnboardingStep3 {
+            get { return ResourceManager.GetString("HomeOnboardingStep3", resourceCulture); }
+        }
+
+        public static string HomeOnboardingDismiss {
+            get { return ResourceManager.GetString("HomeOnboardingDismiss", resourceCulture); }
+        }
+
+        public static string SettingsSearchPlaceholder {
+            get { return ResourceManager.GetString("SettingsSearchPlaceholder", resourceCulture); }
+        }
+
+        public static string SettingsNoSearchResults {
+            get { return ResourceManager.GetString("SettingsNoSearchResults", resourceCulture); }
+        }
+
+        public static string SelectionToolbarSettings {
+            get { return ResourceManager.GetString("SelectionToolbarSettings", resourceCulture); }
+        }
+
+
+
+        public static string TypingEnterHint {
+            get { return ResourceManager.GetString("TypingEnterHint", resourceCulture); }
+        }
+        public static string FloatingWindow_IncreaseFont {
+            get { return ResourceManager.GetString("FloatingWindow_IncreaseFont", resourceCulture); }
+        }
+        public static string FloatingWindow_DecreaseFont {
+            get { return ResourceManager.GetString("FloatingWindow_DecreaseFont", resourceCulture); }
+        }
+        public static string OpenReleases {
+            get { return ResourceManager.GetString("OpenReleases", resourceCulture); }
+        }
+        public static string ResultCopyHint {
+            get { return ResourceManager.GetString("ResultCopyHint", resourceCulture); }
+        }
+        public static string HomeQuickActions {
+            get { return ResourceManager.GetString("HomeQuickActions", resourceCulture); }
+        }
+
+        public static string HomeQuickSpeechHint {
+            get { return ResourceManager.GetString("HomeQuickSpeechHint", resourceCulture); }
+        }
+
+        public static string HomeQuickTextAssistHint {
+            get { return ResourceManager.GetString("HomeQuickTextAssistHint", resourceCulture); }
+        }
+
+        public static string HomeQuickShortcutHint {
+            get { return ResourceManager.GetString("HomeQuickShortcutHint", resourceCulture); }
+        }
+
+        public static string HomeQuickPromptHint {
+            get { return ResourceManager.GetString("HomeQuickPromptHint", resourceCulture); }
+        }
+
+
+        public static string SubtitlePreset_Title {
+            get { return ResourceManager.GetString("SubtitlePreset_Title", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_Hint {
+            get { return ResourceManager.GetString("SubtitlePreset_Hint", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_ClassicDark {
+            get { return ResourceManager.GetString("SubtitlePreset_ClassicDark", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_ClassicDarkDesc {
+            get { return ResourceManager.GetString("SubtitlePreset_ClassicDarkDesc", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_HighContrast {
+            get { return ResourceManager.GetString("SubtitlePreset_HighContrast", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_HighContrastDesc {
+            get { return ResourceManager.GetString("SubtitlePreset_HighContrastDesc", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_SoftLight {
+            get { return ResourceManager.GetString("SubtitlePreset_SoftLight", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_SoftLightDesc {
+            get { return ResourceManager.GetString("SubtitlePreset_SoftLightDesc", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_Cinema {
+            get { return ResourceManager.GetString("SubtitlePreset_Cinema", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_CinemaDesc {
+            get { return ResourceManager.GetString("SubtitlePreset_CinemaDesc", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_Neon {
+            get { return ResourceManager.GetString("SubtitlePreset_Neon", resourceCulture); }
+        }
+
+        public static string SubtitlePreset_NeonDesc {
+            get { return ResourceManager.GetString("SubtitlePreset_NeonDesc", resourceCulture); }
+        }
+
+        public static string SelectionShortcutToolbarTip {
+            get { return ResourceManager.GetString("SelectionShortcutToolbarTip", resourceCulture); }
+        }
+
+        public static string Speech_FontSizeDecrease {
+            get { return ResourceManager.GetString("Speech_FontSizeDecrease", resourceCulture); }
+        }
+
+        public static string Speech_FontSizeIncrease {
+            get { return ResourceManager.GetString("Speech_FontSizeIncrease", resourceCulture); }
+        }
+
+        public static string TextAssistPolishExplanationTitle {
+            get { return ResourceManager.GetString("TextAssistPolishExplanationTitle", resourceCulture); }
+        }
+
+        public static string TextAssistPolishOriginalLabel {
+            get { return ResourceManager.GetString("TextAssistPolishOriginalLabel", resourceCulture); }
+        }
+
+        public static string TextAssistPolishRevisedLabel {
+            get { return ResourceManager.GetString("TextAssistPolishRevisedLabel", resourceCulture); }
+        }
+
+        public static string TextAssistProcessing {
+            get { return ResourceManager.GetString("TextAssistProcessing", resourceCulture); }
+        }
+
+        public static string TextAssistExplain {
+            get { return ResourceManager.GetString("TextAssistExplain", resourceCulture); }
+        }
+
+        public static string OcrModelsDescription {
+            get { return ResourceManager.GetString("OcrModelsDescription", resourceCulture); }
+        }
+
+        public static string OcrRecognitionMode {
+            get { return ResourceManager.GetString("OcrRecognitionMode", resourceCulture); }
+        }
+
+        public static string OcrRecognitionMode_Fast {
+            get { return ResourceManager.GetString("OcrRecognitionMode_Fast", resourceCulture); }
+        }
+
+        public static string OcrRecognitionMode_Normal {
+            get { return ResourceManager.GetString("OcrRecognitionMode_Normal", resourceCulture); }
+        }
+
+        public static string OcrRecognitionMode_IdleRelease {
+            get { return ResourceManager.GetString("OcrRecognitionMode_IdleRelease", resourceCulture); }
+        }
+
+        public static string OcrRecognitionModeDescription_Fast {
+            get { return ResourceManager.GetString("OcrRecognitionModeDescription_Fast", resourceCulture); }
+        }
+
+        public static string OcrRecognitionModeDescription_Normal {
+            get { return ResourceManager.GetString("OcrRecognitionModeDescription_Normal", resourceCulture); }
+        }
+
+        public static string OcrRecognitionModeDescription_IdleRelease {
+            get { return ResourceManager.GetString("OcrRecognitionModeDescription_IdleRelease", resourceCulture); }
+        }
+
+        public static string OcrIdleTimeout {
+            get { return ResourceManager.GetString("OcrIdleTimeout", resourceCulture); }
+        }
+
+        public static string Seconds {
+            get { return ResourceManager.GetString("Seconds", resourceCulture); }
+        }
+
+        public static string ShowMoreAsrModels {
+            get { return ResourceManager.GetString("ShowMoreAsrModels", resourceCulture); }
+        }
+
+        public static string ShowLessAsrModels {
+            get { return ResourceManager.GetString("ShowLessAsrModels", resourceCulture); }
+        }
+
         public static string ApplicationData {
             get { return ResourceManager.GetString("ApplicationData", resourceCulture); }
         }
@@ -3404,6 +3516,150 @@ namespace EasyChat.Presentation.Lang {
 
         public static string ApplicationDataMoveBusy {
             get { return ResourceManager.GetString("ApplicationDataMoveBusy", resourceCulture); }
+        }
+
+        public static string OcrUniversalModel {
+            get { return ResourceManager.GetString("OcrUniversalModel", resourceCulture); }
+        }
+
+        public static string OcrUniversalModelDescription {
+            get { return ResourceManager.GetString("OcrUniversalModelDescription", resourceCulture); }
+        }
+
+        public static string OcrKoreanV4Model {
+            get { return ResourceManager.GetString("OcrKoreanV4Model", resourceCulture); }
+        }
+
+        public static string OcrArabicV4Model {
+            get { return ResourceManager.GetString("OcrArabicV4Model", resourceCulture); }
+        }
+
+        public static string OcrDevanagariV4Model {
+            get { return ResourceManager.GetString("OcrDevanagariV4Model", resourceCulture); }
+        }
+
+        public static string OcrTamilV4Model {
+            get { return ResourceManager.GetString("OcrTamilV4Model", resourceCulture); }
+        }
+
+        public static string OcrTeluguV4Model {
+            get { return ResourceManager.GetString("OcrTeluguV4Model", resourceCulture); }
+        }
+
+        public static string OcrKannadaV4Model {
+            get { return ResourceManager.GetString("OcrKannadaV4Model", resourceCulture); }
+        }
+
+        public static string OcrCyrillicV3Model {
+            get { return ResourceManager.GetString("OcrCyrillicV3Model", resourceCulture); }
+        }
+
+        public static string OcrSupportedLanguages {
+            get { return ResourceManager.GetString("OcrSupportedLanguages", resourceCulture); }
+        }
+
+        public static string OcrSupportedLanguageCount {
+            get { return ResourceManager.GetString("OcrSupportedLanguageCount", resourceCulture); }
+        }
+
+        public static string ViewOcrSupportedLanguages {
+            get { return ResourceManager.GetString("ViewOcrSupportedLanguages", resourceCulture); }
+        }
+
+        public static string Action_ScreenshotOcr {
+            get { return ResourceManager.GetString("Action_ScreenshotOcr", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_PinTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_PinTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CopySelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_CopySelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_TranslateSelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_TranslateSelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ExplainSelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ExplainSelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ReplaceSelectionTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ReplaceSelectionTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_Replace {
+            get { return ResourceManager.GetString("ScreenshotOcr_Replace", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ZoomOutTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ZoomOutTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ZoomInTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ZoomInTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_OpenImageTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_OpenImageTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RecaptureTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RecaptureTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CopyImageTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_CopyImageTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_UndoTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_UndoTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RedoTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RedoTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RestoreTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RestoreTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_Recognizing {
+            get { return ResourceManager.GetString("ScreenshotOcr_Recognizing", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RecognizedText {
+            get { return ResourceManager.GetString("ScreenshotOcr_RecognizedText", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CharacterCount {
+            get { return ResourceManager.GetString("ScreenshotOcr_CharacterCount", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_RetryTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_RetryTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_CopyTextTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_CopyTextTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_TranslateTextTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_TranslateTextTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ShowOriginalTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_ShowOriginalTooltip", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_OpenImageDialogTitle {
+            get { return ResourceManager.GetString("ScreenshotOcr_OpenImageDialogTitle", resourceCulture); }
+        }
+
+        public static string ScreenshotOcr_ImageFileType {
+            get { return ResourceManager.GetString("ScreenshotOcr_ImageFileType", resourceCulture); }
         }
     }
 }

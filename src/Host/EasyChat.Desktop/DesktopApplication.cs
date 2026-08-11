@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Diagnostics;
 using Avalonia;
 using EasyChat.Application.DependencyInjection;
 using EasyChat.Contracts.Shell;
@@ -12,8 +13,6 @@ using EasyChat.Presentation.Features.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using SukiUI.Dialogs;
-using SukiUI.Toasts;
 
 namespace EasyChat.Desktop;
 
@@ -81,6 +80,7 @@ public static class DesktopApplication
         addPlatformServices(services);
         services.AddEasyChatApplication(new TranslationMessages(Resources.RequestError));
         services.AddEasyChatPresentation();
+        services.AddSingleton<IApplicationRestartService, DesktopApplicationRestartService>();
         services.AddSingleton<DesktopInteractionLifecycle>();
         return services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -89,14 +89,17 @@ public static class DesktopApplication
         });
     }
 
-    private static DesktopUiContext CreateUiContext(IServiceProvider services) => new(
-        services.GetRequiredService<SettingsSession>(),
-        services.GetRequiredService<MainWindowViewModel>(),
-        services.GetRequiredService<ISukiDialogManager>(),
-        services.GetRequiredService<DesktopInteractionLifecycle>(),
-        services.GetRequiredService<IApplicationUpdateService>(),
-        services.GetRequiredService<ISukiToastManager>(),
-        services.GetRequiredService<EasyChat.Presentation.Features.Capture.IScreenshotCaptureSession>());
+    private static DesktopUiContext CreateUiContext(IServiceProvider services)
+    {
+        var mainWindowViewModel = services.GetRequiredService<MainWindowViewModel>();
+        return new DesktopUiContext(
+            services.GetRequiredService<SettingsSession>(),
+            mainWindowViewModel,
+            services.GetRequiredService<DesktopInteractionLifecycle>(),
+            services.GetRequiredService<IApplicationUpdateService>(),
+            mainWindowViewModel.UpdateToastManager,
+            services.GetRequiredService<EasyChat.Presentation.Features.Capture.IScreenshotCaptureSession>());
+    }
 
     private static IShellLifecycle StartShell(IServiceProvider services)
     {
@@ -141,6 +144,34 @@ public static class DesktopApplication
         finally
         {
             services.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+    }
+}
+
+internal sealed class DesktopApplicationRestartService : IApplicationRestartService
+{
+    public void Restart()
+    {
+        var processPath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(processPath))
+            return;
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = processPath,
+            UseShellExecute = true,
+            WorkingDirectory = AppContext.BaseDirectory
+        };
+        foreach (var argument in Environment.GetCommandLineArgs().Skip(1))
+            startInfo.ArgumentList.Add(argument);
+
+        if (Process.Start(startInfo) is null)
+            return;
+
+        if (Avalonia.Application.Current?.ApplicationLifetime
+            is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.Shutdown();
         }
     }
 }

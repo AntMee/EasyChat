@@ -1,10 +1,8 @@
-using System.Reflection;
 using System.Reactive.Linq;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Shell;
 using EasyChat.Shared.Results;
-using SukiUI.Dialogs;
 
 namespace EasyChat.Presentation.Tests;
 
@@ -42,7 +40,7 @@ public sealed class CloseBehaviorDialogViewModelTests
         LiveGeneralSettings settings,
         ICollection<string> actions) =>
         new(
-            DispatchProxy.Create<ISukiDialog, NullDialogProxy>(),
+            new ShadUI.DialogManager(),
             settings,
             () => actions.Add("tray"),
             () => actions.Add("hide"),
@@ -84,15 +82,4 @@ public sealed class CloseBehaviorDialogViewModelTests
             });
     }
 
-    public class NullDialogProxy : DispatchProxy
-    {
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
-        {
-            if (targetMethod is null || targetMethod.ReturnType == typeof(void))
-                return null;
-            return targetMethod.ReturnType.IsValueType
-                ? Activator.CreateInstance(targetMethod.ReturnType)
-                : null;
-        }
-    }
 }

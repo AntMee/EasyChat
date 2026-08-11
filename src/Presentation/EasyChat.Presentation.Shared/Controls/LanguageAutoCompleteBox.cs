@@ -144,6 +144,9 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
         if (_attachedTextBox is null)
             return;
 
+        // The selector supplies its own arrow button, so ShadUI's built-in
+        // clear affordance must not occupy the same trailing space.
+        _attachedTextBox.Classes.Remove("Clearable");
         _attachedTextBox.KeyDown += OnTextBoxKeyDown;
         _attachedTextBox.KeyUp += OnTextBoxKeyUp;
         _attachedTextBox.PropertyChanged += OnTextBoxPropertyChanged;
@@ -867,11 +870,11 @@ public sealed class LanguageAutoCompleteBox : AutoCompleteBox
     {
         listItem.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
         listItem.HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
-        listItem.Margin = new Thickness(0, 0, PopupEdgeInset, 0);
+        listItem.Margin = new Thickness(1, 1, PopupEdgeInset, 1);
         listItem.Width = double.NaN;
         listItem.MaxWidth = itemMaxWidth;
-        listItem.Padding = new Thickness(0);
-        listItem.CornerRadius = new CornerRadius(4);
+        listItem.Padding = new Thickness(4, 2);
+        listItem.CornerRadius = new CornerRadius(6);
         listItem.ClipToBounds = true;
     }
 }

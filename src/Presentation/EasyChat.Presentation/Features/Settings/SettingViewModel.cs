@@ -2,11 +2,11 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Reactive;
-using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
 using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Shell;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
@@ -16,7 +16,8 @@ using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
 using Material.Icons;
 using ReactiveUI;
-using SukiUI.Toasts;
+using ShadUI;
+using ToastNotification = ShadUI.Notification;
 
 namespace EasyChat.Presentation.Features.Settings;
 
@@ -34,7 +35,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly ISpeechRecognitionModelRemover _speechModelRemover;
     private readonly IExternalUriLauncher _uriLauncher;
     private readonly ISettingsDialogCoordinator _dialogs;
-    private readonly ISukiToastManager _toasts;
+    private readonly ToastManager _toasts;
+    private readonly IApplicationRestartService? _restartService;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
     private bool _isOcrModelListExpanded;
     private bool _isAsrModelListExpanded;
@@ -47,6 +49,10 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private ObservableCollection<SpeechRecognitionModel> _asrModels = [];
     private bool _isImportingAsrModel;
     private bool _isChangingDataLocation;
+    private string _searchText = string.Empty;
+    private bool _isSearchOpen;
+    private SettingsPaneId _activePane = SettingsPaneId.General;
+    private SettingsNavItem? _selectedNavItem;
 
     public SettingViewModel(
         SettingsSession settings,
@@ -60,7 +66,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ISpeechRecognitionModelRemover speechModelRemover,
         IExternalUriLauncher uriLauncher,
         ISettingsDialogCoordinator dialogs,
-        ISukiToastManager toasts)
+        ToastManager toasts,
+        IApplicationRestartService? restartService = null)
         : base(Resources.Settings, MaterialIconKind.Settings, 1)
     {
         _settings = settings;
@@ -74,6 +81,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         _uriLauncher = uriLauncher;
         _dialogs = dialogs;
         _toasts = toasts;
+        _restartService = restartService;
 
         DisplayLanguages = BuildDisplayLanguages();
         NativeLanguages = BuildLanguages(includeAuto: false);
@@ -124,9 +132,103 @@ public sealed class SettingViewModel : NavigationPageViewModel
             IsAsrModelListExpanded = !IsAsrModelListExpanded;
         });
 
+        NavItems =
+        [
+            new(SettingsPaneId.General, Resources.General, MaterialIconKind.Cog, SettingsSearch.GeneralFields),
+            new(SettingsPaneId.Translation, Resources.Translation, MaterialIconKind.Translate, SettingsSearch.TranslationFields),
+            new(SettingsPaneId.Selection, Resources.SelectionToolbarSettings, MaterialIconKind.CursorDefault, SettingsSearch.SelectionFields),
+            new(SettingsPaneId.Tts, Resources.Tts, MaterialIconKind.VolumeHigh, SettingsSearch.TtsFields),
+            new(SettingsPaneId.Screenshot, Resources.ScreenshotMode, MaterialIconKind.Monitor, SettingsSearch.ScreenshotFields),
+            new(SettingsPaneId.Result, Resources.ResultSettings, MaterialIconKind.DockWindow, SettingsSearch.ResultFields),
+            new(SettingsPaneId.Input, Resources.InputSettings, MaterialIconKind.Keyboard, SettingsSearch.InputFields)
+        ];
+        _selectedNavItem = NavItems[0];
+        _selectedNavItem.IsSelected = true;
+        SelectPaneCommand = ReactiveCommand.Create<SettingsPaneId>(OpenPane);
+        OpenSearchCommand = ReactiveCommand.Create(() => { IsSearchOpen = true; });
+        CloseSearchCommand = ReactiveCommand.Create(CloseSearch);
+
         Dispatcher.UIThread.Post(LoadAvailableFonts);
         Dispatcher.UIThread.Post(() => _ = LoadAsrModelsAsync());
     }
+
+    /// <summary>Browse mode shows one pane; search mode shows all matches.</summary>
+    public bool IsBrowseMode => string.IsNullOrWhiteSpace(SearchText);
+    public bool IsSearchMode => !IsBrowseMode;
+    /// <summary>Expanded search field on the title row (icon-only when collapsed).</summary>
+    public bool IsSearchOpen
+    {
+        get => _isSearchOpen || !string.IsNullOrWhiteSpace(_searchText);
+        private set
+        {
+            if (_isSearchOpen == value)
+                return;
+            this.RaiseAndSetIfChanged(ref _isSearchOpen, value);
+            this.RaisePropertyChanged(nameof(IsSearchCollapsed));
+        }
+    }
+    public bool IsSearchCollapsed => !IsSearchOpen;
+    public IReadOnlyList<SettingsNavItem> NavItems { get; }
+    public ReactiveCommand<SettingsPaneId, Unit> SelectPaneCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenSearchCommand { get; }
+    public ReactiveCommand<Unit, Unit> CloseSearchCommand { get; }
+
+    public SettingsNavItem? SelectedNavItem
+    {
+        get => _selectedNavItem;
+        set
+        {
+            if (value is null || ReferenceEquals(_selectedNavItem, value))
+                return;
+            SetSelectedNav(value);
+            OpenPane(value.Id);
+        }
+    }
+
+    public SettingsPaneId ActivePane
+    {
+        get => _activePane;
+        private set
+        {
+            if (_activePane == value)
+                return;
+            this.RaiseAndSetIfChanged(ref _activePane, value);
+            RaiseSectionVisibility();
+            var match = NavItems.FirstOrDefault(item => item.Id == value);
+            if (match is not null)
+                SetSelectedNav(match);
+        }
+    }
+
+    public void OpenPane(SettingsPaneId pane) => ActivePane = pane;
+
+    private void SetSelectedNav(SettingsNavItem next)
+    {
+        if (ReferenceEquals(_selectedNavItem, next))
+        {
+            next.IsSelected = true;
+            return;
+        }
+
+        if (_selectedNavItem is not null)
+            _selectedNavItem.IsSelected = false;
+        _selectedNavItem = next;
+        next.IsSelected = true;
+        this.RaisePropertyChanged(nameof(SelectedNavItem));
+    }
+
+    /// <summary>Deep-link entry from shell navigation context.</summary>
+    public void OpenPane(EasyChat.Presentation.Features.Shell.SettingsPane pane) =>
+        OpenPane(pane switch
+        {
+            EasyChat.Presentation.Features.Shell.SettingsPane.Translation => SettingsPaneId.Translation,
+            EasyChat.Presentation.Features.Shell.SettingsPane.Selection => SettingsPaneId.Selection,
+            EasyChat.Presentation.Features.Shell.SettingsPane.Tts => SettingsPaneId.Tts,
+            EasyChat.Presentation.Features.Shell.SettingsPane.Screenshot => SettingsPaneId.Screenshot,
+            EasyChat.Presentation.Features.Shell.SettingsPane.Result => SettingsPaneId.Result,
+            EasyChat.Presentation.Features.Shell.SettingsPane.Input => SettingsPaneId.Input,
+            _ => SettingsPaneId.General
+        });
 
     public List<string> DeepLModelTypes { get; } = ["quality_optimized", "prefer_quality_optimized", "latency_optimized"];
     public List<LanguageSettings> DisplayLanguages { get; }
@@ -142,6 +244,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
         new(SelectionTriggerMode.DragSelection, Resources.SelectionTriggerModeDragSelection),
         new(SelectionTriggerMode.All, Resources.SelectionTriggerModeAll)
     ];
+    public IReadOnlyList<string> TransparencyLevels { get; } =
+        EasyChat.Presentation.Foundation.Platform.WindowTransparencyLevels.Preferences;
     public List<InputDeliveryMode> InputDeliveryModes { get; } = Enum.GetValues<InputDeliveryMode>().ToList();
     public List<ResultWindowMode> ResultWindowModes { get; } = Enum.GetValues<ResultWindowMode>().ToList();
     public List<ResultReadAloudMode> ResultReadAloudModes { get; } = Enum.GetValues<ResultReadAloudMode>().ToList();
@@ -229,6 +333,75 @@ public sealed class SettingViewModel : NavigationPageViewModel
         !IsChangingDataLocation && !IsImportingAsrModel && _downloads.Count == 0;
     public List<string> AiProviders => ConfiguredModels.Select(model => model.Name).ToList();
 
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            var next = value ?? string.Empty;
+            if (string.Equals(_searchText, next, StringComparison.Ordinal))
+                return;
+            this.RaiseAndSetIfChanged(ref _searchText, next);
+            if (!string.IsNullOrWhiteSpace(next) && !_isSearchOpen)
+            {
+                _isSearchOpen = true;
+                this.RaisePropertyChanged(nameof(IsSearchOpen));
+                this.RaisePropertyChanged(nameof(IsSearchCollapsed));
+            }
+
+            this.RaisePropertyChanged(nameof(IsBrowseMode));
+            this.RaisePropertyChanged(nameof(IsSearchMode));
+            this.RaisePropertyChanged(nameof(IsSearchOpen));
+            this.RaisePropertyChanged(nameof(IsSearchCollapsed));
+            RaiseSectionVisibility();
+        }
+    }
+
+    /// <summary>Collapse title-row search (also used by Escape in the view).</summary>
+    public void CollapseSearch() => CloseSearch();
+
+    private void CloseSearch()
+    {
+        SearchText = string.Empty;
+        _isSearchOpen = false;
+        this.RaisePropertyChanged(nameof(IsSearchOpen));
+        this.RaisePropertyChanged(nameof(IsSearchCollapsed));
+    }
+
+    public bool ShowGeneralSection => IsSectionVisible(SettingsPaneId.General, Resources.General, SettingsSearch.GeneralFields);
+    // Translation providers/models are managed as a dedicated page and are not part
+    // of the field-level settings search. Keep the page available in browse mode.
+    public bool ShowTranslationSection => IsBrowseMode && ActivePane == SettingsPaneId.Translation;
+    public bool ShowSelectionSection => IsSectionVisible(SettingsPaneId.Selection, Resources.SelectionToolbarSettings, SettingsSearch.SelectionFields);
+    public bool ShowTtsSection => IsSectionVisible(SettingsPaneId.Tts, Resources.Tts, SettingsSearch.TtsFields);
+    public bool ShowScreenshotSection => IsSectionVisible(SettingsPaneId.Screenshot, Resources.ScreenshotMode, SettingsSearch.ScreenshotFields);
+    public bool ShowResultSection => IsSectionVisible(SettingsPaneId.Result, Resources.ResultSettings, SettingsSearch.ResultFields);
+    public bool ShowInputSection => IsSectionVisible(SettingsPaneId.Input, Resources.InputSettings, SettingsSearch.InputFields);
+    public bool HasSearchResults =>
+        ShowGeneralSection || ShowTranslationSection || ShowSelectionSection || ShowTtsSection
+        || ShowScreenshotSection || ShowResultSection || ShowInputSection;
+    public bool ShowNoSearchResults => IsSearchMode && !HasSearchResults;
+
+    private bool IsSectionVisible(SettingsPaneId pane, string header, string fieldKeywords)
+    {
+        if (IsBrowseMode)
+            return ActivePane == pane;
+        return SettingsSearch.MatchesAny(SearchText, header, fieldKeywords);
+    }
+
+    private void RaiseSectionVisibility()
+    {
+        this.RaisePropertyChanged(nameof(ShowGeneralSection));
+        this.RaisePropertyChanged(nameof(ShowTranslationSection));
+        this.RaisePropertyChanged(nameof(ShowSelectionSection));
+        this.RaisePropertyChanged(nameof(ShowTtsSection));
+        this.RaisePropertyChanged(nameof(ShowScreenshotSection));
+        this.RaisePropertyChanged(nameof(ShowResultSection));
+        this.RaisePropertyChanged(nameof(ShowInputSection));
+        this.RaisePropertyChanged(nameof(HasSearchResults));
+        this.RaisePropertyChanged(nameof(ShowNoSearchResults));
+    }
+
     public LanguageSettings SelectedDisplayLanguage
     {
         get => DisplayLanguages.FirstOrDefault(language => language.EnglishName == GeneralConf.DisplayLanguage)
@@ -243,7 +416,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
             CultureInfo.CurrentCulture = culture;
             CultureInfo.CurrentUICulture = culture;
             this.RaisePropertyChanged();
-            ShowToast(Resources.LanguageChanged, Resources.RestartToTakeEffect, NotificationType.Success);
+            ShowToast(
+                Resources.LanguageChanged,
+                Resources.RestartToTakeEffect,
+                ToastNotification.Success,
+                Resources.Restart,
+                RestartApplication);
         }
     }
 
@@ -442,12 +620,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 Resources.AsrModels,
                 string.Join(Environment.NewLine, messages),
                 result.SkippedModels.Count > 0
-                    ? NotificationType.Information
-                    : NotificationType.Success);
+                    ? ToastNotification.Info
+                    : ToastNotification.Success);
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.AsrModelImportFailed, exception.Message, NotificationType.Error);
+            ShowToast(Resources.AsrModelImportFailed, exception.Message, ToastNotification.Error);
         }
         finally
         {
@@ -462,10 +640,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         if (!CanChangeDataLocation)
         {
-            ShowToast(
-                Resources.ApplicationData,
-                Resources.ApplicationDataMoveBusy,
-                NotificationType.Information);
+            ShowToast(Resources.ApplicationData, Resources.ApplicationDataMoveBusy, ToastNotification.Info);
             return;
         }
 
@@ -475,10 +650,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
             var result = await _applicationData.ChangeLocationAsync(rootDirectory);
             if (result.IsFailure)
             {
-                ShowToast(
-                    Resources.ApplicationDataMoveFailed,
-                    result.Error.Message,
-                    NotificationType.Error);
+                ShowToast(Resources.ApplicationDataMoveFailed, result.Error.Message, ToastNotification.Error);
                 return;
             }
 
@@ -487,14 +659,11 @@ public sealed class SettingViewModel : NavigationPageViewModel
             ShowToast(
                 Resources.ApplicationData,
                 string.Format(Resources.ApplicationDataMoved, result.Value.RootDirectory),
-                NotificationType.Success);
+                ToastNotification.Success);
         }
         catch (Exception exception)
         {
-            ShowToast(
-                Resources.ApplicationDataMoveFailed,
-                exception.Message,
-                NotificationType.Error);
+            ShowToast(Resources.ApplicationDataMoveFailed, exception.Message, ToastNotification.Error);
         }
         finally
         {
@@ -516,12 +685,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 ShowToast(
                     Resources.AsrModels,
                     string.Format(Resources.AsrModelDeleted, model.Id),
-                    NotificationType.Success);
+                    ToastNotification.Success);
             }
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.AsrModelDeleteFailed, exception.Message, NotificationType.Error);
+            ShowToast(Resources.AsrModelDeleteFailed, exception.Message, ToastNotification.Error);
         }
         finally
         {
@@ -543,7 +712,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.AsrModels, exception.Message, NotificationType.Error);
+            ShowToast(Resources.AsrModels, exception.Message, ToastNotification.Error);
         }
     }
 
@@ -551,7 +720,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         var result = _uriLauncher.Open(AsrModelDownloadsUri);
         if (result.IsFailure)
-            ShowToast(Resources.AsrModels, result.Error.Message, NotificationType.Error);
+            ShowToast(Resources.AsrModels, result.Error.Message, ToastNotification.Error);
     }
 
     private void StartDownloadOcrModel(OcrModelDownloadItemViewModel item) => _ = DownloadOcrModelAsync(item);
@@ -605,6 +774,35 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
     }
 
+    private string GetOcrLanguageDisplayName(OcrLanguage language)
+    {
+        var translationLanguage = _languages.All.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, language.Id, StringComparison.Ordinal));
+        return translationLanguage is null
+            ? language.DisplayName
+            : LanguageDisplayNames.ForUi(
+                translationLanguage.NativeName,
+                translationLanguage.EnglishName);
+    }
+
+    private static string GetOcrModelDisplayName(string packageId) => packageId switch
+    {
+        "universal-v6-small" => Resources.OcrUniversalModel,
+        "korean-v4" => Resources.OcrKoreanV4Model,
+        "arabic-v4" => Resources.OcrArabicV4Model,
+        "devanagari-v4" => Resources.OcrDevanagariV4Model,
+        "tamil-v4" => Resources.OcrTamilV4Model,
+        "telugu-v4" => Resources.OcrTeluguV4Model,
+        "kannada-v4" => Resources.OcrKannadaV4Model,
+        "cyrillic-v3" => Resources.OcrCyrillicV3Model,
+        _ => packageId
+    };
+
+    private static string GetOcrModelDescription(string packageId) =>
+        packageId == "universal-v6-small"
+            ? Resources.OcrUniversalModelDescription
+            : string.Empty;
+
     private Task TestAiModelConnectionAsync(CustomAiModelState model) => TestConnectionAsync(
         model.Name,
         new TranslationProviderSelection(TranslationEngineNames.AiModel, AiModelId: model.Id),
@@ -639,13 +837,13 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 _languages.Get("zh-Hans"),
                 Provider: provider));
             if (result.IsSuccess)
-                ShowToast(providerName, Resources.ConnectionSuccess, NotificationType.Success);
+                ShowToast(providerName, Resources.ConnectionSuccess, ToastNotification.Success);
             else
-                ShowToast(Resources.ConnectionFailed, $"{providerName}: {result.Error.Message}", NotificationType.Error);
+                ShowToast(Resources.ConnectionFailed, $"{providerName}: {result.Error.Message}", ToastNotification.Error);
         }
         catch (Exception exception)
         {
-            ShowToast(Resources.ConnectionFailed, $"{providerName}: {exception.Message}", NotificationType.Error);
+            ShowToast(Resources.ConnectionFailed, $"{providerName}: {exception.Message}", ToastNotification.Error);
         }
         finally
         {
@@ -662,9 +860,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         var existing = new[] { GeneralConf.SourceLanguage, GeneralConf.TargetLanguage, GeneralConf.NativeLanguage }
             .Where(language => language is not null)
             .Cast<LanguageSettings>();
-        return existing.Concat(_languages.All
-                .Where(language => language.Id != "sr")
-                .Select(ToSettingsLanguage))
+        return existing.Concat(_languages.All.Select(ToSettingsLanguage))
             .Where(language => includeAuto || language.Id != "auto")
             .DistinctBy(language => language.Id)
             .OrderBy(language => language.DisplayName, StringComparer.CurrentCulture)
@@ -687,37 +883,69 @@ public sealed class SettingViewModel : NavigationPageViewModel
             language.ProviderCodes ?? new Dictionary<string, string>());
     }
 
-    private string GetOcrLanguageDisplayName(OcrLanguage language)
+    private void ShowToast(
+        string title,
+        string content,
+        ToastNotification severity,
+        string? actionLabel = null,
+        Action? action = null)
     {
-        var translationLanguage = _languages.All.FirstOrDefault(candidate =>
-            string.Equals(candidate.Id, language.Id, StringComparison.Ordinal));
-        return translationLanguage is null
-            ? language.DisplayName
-            : LanguageDisplayNames.ForUi(
-                translationLanguage.NativeName,
-                translationLanguage.EnglishName);
+        var toast = _toasts.CreateToast(title).WithContent(content);
+        if (!string.IsNullOrWhiteSpace(actionLabel) && action is not null)
+            toast.WithAction(actionLabel, action);
+        switch (severity)
+        {
+            case ToastNotification.Success:
+                toast.ShowSuccess();
+                break;
+            case ToastNotification.Warning:
+                toast.ShowWarning();
+                break;
+            case ToastNotification.Error:
+                toast.ShowError();
+                break;
+            default:
+                toast.ShowInfo();
+                break;
+        }
     }
 
-    private static string GetOcrModelDisplayName(string packageId) => packageId switch
+    private void RestartApplication()
     {
-        "universal-v6-small" => Resources.OcrUniversalModel,
-        "korean-v4" => Resources.OcrKoreanV4Model,
-        "arabic-v4" => Resources.OcrArabicV4Model,
-        "devanagari-v4" => Resources.OcrDevanagariV4Model,
-        "tamil-v4" => Resources.OcrTamilV4Model,
-        "telugu-v4" => Resources.OcrTeluguV4Model,
-        "kannada-v4" => Resources.OcrKannadaV4Model,
-        "cyrillic-v3" => Resources.OcrCyrillicV3Model,
-        _ => packageId
-    };
+        _toasts.DismissAll();
+        _restartService?.Restart();
+    }
+}
 
-    private static string GetOcrModelDescription(string packageId) =>
-        packageId == "universal-v6-small"
-            ? Resources.OcrUniversalModelDescription
-            : string.Empty;
+public enum SettingsPaneId
+{
+    General,
+    Translation,
+    Selection,
+    Tts,
+    Screenshot,
+    Result,
+    Input
+}
 
-    private void ShowToast(string title, string content, NotificationType type) =>
-        _toasts.CreateSimpleInfoToast().OfType(type).WithTitle(title).WithContent(content).Queue();
+public sealed class SettingsNavItem(
+    SettingsPaneId id,
+    string title,
+    MaterialIconKind icon,
+    string searchFields) : ReactiveObject
+{
+    private bool _isSelected;
+
+    public SettingsPaneId Id { get; } = id;
+    public string Title { get; } = title;
+    public MaterialIconKind Icon { get; } = icon;
+    public string SearchFields { get; } = searchFields;
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => this.RaiseAndSetIfChanged(ref _isSelected, value);
+    }
 }
 
 public sealed class ModelCardItem(CustomAiModelState? model)
@@ -744,6 +972,6 @@ public interface ISettingsDialogCoordinator
     void EditDeepLKeys();
     void ManageFixedAreas();
     void ConfigureTts();
+    void ShowInformation(string title, string message);
     void ConfirmDeleteAsrModel(SpeechRecognitionModel model, Action onConfirmed);
-    void ShowInformation(string title, string content);
 }

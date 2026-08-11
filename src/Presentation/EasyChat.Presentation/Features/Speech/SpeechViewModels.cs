@@ -292,6 +292,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             PrimaryFontSize = Math.Max(10, PrimaryFontSize - 2);
             SecondaryFontSize = Math.Max(10, SecondaryFontSize - 2);
         });
+        ApplyAppearancePresetCommand = ReactiveCommand.Create<SubtitleAppearancePreset>(ApplyAppearancePreset);
+        ShowLiveWorkspaceCommand = ReactiveCommand.Create(() => { IsLiveWorkspace = true; });
+        ShowOverlayWorkspaceCommand = ReactiveCommand.Create(() => { IsLiveWorkspace = false; });
 
         _subtitleWindow.VisibilityChanged += OnSubtitleWindowVisibilityChanged;
         _models.ModelsChanged += OnModelsChanged;
@@ -308,6 +311,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     public ObservableCollection<SpeechSubtitleItemViewModel> FloatingSubtitles { get; }
 
     public IReadOnlyList<string> OrientationOptions { get; } = ["Horizontal", "Vertical"];
+    public IReadOnlyList<SubtitleAppearancePreset> AppearancePresets { get; } = SubtitleAppearancePresets.All;
     public IReadOnlyList<KeyValuePair<FloatingDisplayMode, string>> DisplayModeOptions { get; } =
     [
         new(FloatingDisplayMode.Segmented, Resources.Speech_DisplayMode_Segmented),
@@ -333,6 +337,44 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     public ReactiveCommand<Unit, Unit> UnlockFloatingWindowCommand { get; }
     public ReactiveCommand<Unit, Unit> IncreaseFontSizeCommand { get; }
     public ReactiveCommand<Unit, Unit> DecreaseFontSizeCommand { get; }
+    public ReactiveCommand<SubtitleAppearancePreset, Unit> ApplyAppearancePresetCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowLiveWorkspaceCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowOverlayWorkspaceCommand { get; }
+
+    private bool _isLiveWorkspace = true;
+    public bool IsLiveWorkspace
+    {
+        get => _isLiveWorkspace;
+        set
+        {
+            if (_isLiveWorkspace == value)
+                return;
+            this.RaiseAndSetIfChanged(ref _isLiveWorkspace, value);
+            this.RaisePropertyChanged(nameof(IsOverlayWorkspace));
+        }
+    }
+    public bool IsOverlayWorkspace
+    {
+        get => !_isLiveWorkspace;
+        set
+        {
+            if (value)
+                IsLiveWorkspace = false;
+        }
+    }
+
+    /// <summary>0 = live workspace, 1 = overlay workspace. Backs the TabControl switch.</summary>
+    public int WorkspaceTabIndex
+    {
+        get => _isLiveWorkspace ? 0 : 1;
+        set
+        {
+            if (value == 0)
+                IsLiveWorkspace = true;
+            else
+                IsLiveWorkspace = false;
+        }
+    }
 
     public bool IsSupported { get => _isSupported; private set { this.RaiseAndSetIfChanged(ref _isSupported, value); this.RaisePropertyChanged(nameof(IsNotSupported)); } }
     public bool IsNotSupported => !IsSupported;
@@ -833,6 +875,18 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
+    }
+
+    private void ApplyAppearancePreset(SubtitleAppearancePreset preset)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        PrimaryFontSize = preset.PrimaryFontSize;
+        PrimaryFontColor = preset.PrimaryFontColor;
+        SecondaryFontSize = preset.SecondaryFontSize;
+        SecondaryFontColor = preset.SecondaryFontColor;
+        BackgroundColor = preset.BackgroundColor;
+        SubtitleBackgroundColor = preset.SubtitleBackgroundColor;
+        WindowOpacity = preset.WindowOpacity;
     }
 
     private void Set<T>(T value, T current, Action<T> apply, [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)

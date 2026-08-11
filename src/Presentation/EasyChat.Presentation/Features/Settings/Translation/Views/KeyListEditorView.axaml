@@ -1,83 +1,145 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Settings.Translation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-             xmlns:suki="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-             xmlns:theme="https://github.com/kikipoulet/SukiUI"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
              x:Class="EasyChat.Presentation.Features.Settings.Translation.Views.KeyListEditorView"
-             x:DataType="vm:KeyListEditorViewModel">
+             x:DataType="vm:KeyListEditorViewModel"
+             MinWidth="440"
+             MaxWidth="520"
+             Width="480">
 
-    <StackPanel Spacing="20" MinWidth="450">
-        <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" />
+    <UserControl.Styles>
+        <Style Selector="Border.KeyEditorHeader">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="22,18,22,16" />
+        </Style>
+        <Style Selector="Border.KeyItemCard">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor60}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style Selector="Border.KeyItemCard:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="Button.KeyRemoveButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.AddKeyButton">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor60}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource LgCornerRadius}" />
+            <Setter Property="Padding" Value="14,12" />
+        </Style>
+        <Style Selector="Button.AddKeyButton:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+    </UserControl.Styles>
 
-        <ScrollViewer MaxHeight="300" HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Items}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <suki:GlassCard Margin="0,0,0,10" Padding="10">
-                            <Grid ColumnDefinitions="*, Auto">
-                                <ContentControl Content="{Binding}">
-                                    <ContentControl.DataTemplates>
-                                        <!-- String Key Template -->
-                                        <DataTemplate DataType="vm:StringKeyItemViewModel">
-                                            <TextBox Text="{Binding Value}" PlaceholderText="API Key" />
-                                        </DataTemplate>
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Border Classes="KeyEditorHeader">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                <Border Width="40" Height="40" CornerRadius="11"
+                        Background="{DynamicResource PrimaryColor10}">
+                    <avalonia:MaterialIcon Kind="KeyVariant"
+                                           Width="20" Height="20"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PrimaryColor}" />
+                </Border>
+                <TextBlock Grid.Column="1"
+                           FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap"
+                           Text="{Binding Title}"
+                           VerticalAlignment="Center" />
+            </Grid>
+        </Border>
 
-                                        <!-- Baidu Key Template -->
-                                        <DataTemplate DataType="vm:BaiduKeyItemViewModel">
-                                            <StackPanel Spacing="5">
-                                                <TextBox Text="{Binding AppId}" PlaceholderText="App ID"
-                                                         theme:TextBoxExtensions.AddDeleteButton="True" />
-                                                <TextBox Text="{Binding AppKey}" PlaceholderText="App Key"
-                                                         theme:TextBoxExtensions.AddDeleteButton="True"
-                                                         PasswordChar="*" />
-                                            </StackPanel>
-                                        </DataTemplate>
+        <ScrollViewer Grid.Row="1" Margin="0,14,0,0" Padding="22,0" MaxHeight="320" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
+                <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="KeyItemCard">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <ContentControl Content="{Binding}">
+                                        <ContentControl.DataTemplates>
+                                            <DataTemplate DataType="vm:StringKeyItemViewModel">
+                                                <TextBox Text="{Binding Value}" shad:ControlAssist.Label="API Key" />
+                                            </DataTemplate>
+                                            <DataTemplate DataType="vm:BaiduKeyItemViewModel">
+                                                <StackPanel Spacing="8">
+                                                    <TextBox Classes="Clearable" Text="{Binding AppId}" shad:ControlAssist.Label="App ID" />
+                                                    <TextBox Classes="Clearable" Text="{Binding AppKey}" shad:ControlAssist.Label="App Key"
+                                                             PasswordChar="*" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                            <DataTemplate DataType="vm:TencentKeyItemViewModel">
+                                                <StackPanel Spacing="8">
+                                                    <TextBox Classes="Clearable" Text="{Binding SecretId}" shad:ControlAssist.Label="Secret ID" />
+                                                    <TextBox Classes="Clearable" Text="{Binding SecretKey}" shad:ControlAssist.Label="Secret Key"
+                                                             PasswordChar="*" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ContentControl.DataTemplates>
+                                    </ContentControl>
 
-                                        <!-- Tencent Key Template -->
-                                        <DataTemplate DataType="vm:TencentKeyItemViewModel">
-                                            <StackPanel Spacing="5">
-                                                <TextBox Text="{Binding SecretId}" PlaceholderText="Secret ID"
-                                                         theme:TextBoxExtensions.AddDeleteButton="True" />
-                                                <TextBox Text="{Binding SecretKey}" PlaceholderText="Secret Key"
-                                                         theme:TextBoxExtensions.AddDeleteButton="True"
-                                                         PasswordChar="*" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ContentControl.DataTemplates>
-                                </ContentControl>
+                                    <Button Grid.Column="1"
+                                            Classes="KeyRemoveButton"
+                                            VerticalAlignment="Top"
+                                            Margin="0,4,0,0"
+                                            Command="{Binding $parent[UserControl].((vm:KeyListEditorViewModel)DataContext).RemoveCommand}"
+                                            CommandParameter="{Binding}">
+                                        <avalonia:MaterialIcon Kind="TrashCan" Width="16" Height="16"
+                                                               Foreground="{DynamicResource DestructiveColor}" />
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-                                <Button Grid.Column="1"
-                                        Classes="Flat Danger"
-                                        Margin="10,0,0,0"
-                                        VerticalAlignment="Top"
-                                        Command="{Binding $parent[UserControl].((vm:KeyListEditorViewModel)DataContext).RemoveCommand}"
-                                        CommandParameter="{Binding}">
-                                    <avalonia:MaterialIcon Kind="TrashCan" />
-                                </Button>
-                            </Grid>
-                        </suki:GlassCard>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                <Button Command="{Binding AddCommand}"
+                        Classes="AddKeyButton"
+                        HorizontalAlignment="Stretch"
+                        Margin="0" MinHeight="64" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <avalonia:MaterialIcon Kind="Plus" Width="18" Height="18"
+                                               Foreground="{DynamicResource PrimaryColor}" />
+                        <TextBlock Text="{x:Static lang:Resources.AddKey}"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </ScrollViewer>
 
-        <Button Command="{Binding AddCommand}"
-                HorizontalAlignment="Stretch"
-                Classes="Flat">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <avalonia:MaterialIcon Kind="Plus" />
-                <TextBlock Text="{x:Static lang:Resources.AddKey}" />
+        <Border Grid.Row="2" Classes="DialogFooter" Margin="0,12,0,0" Padding="22,14,22,18">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button Content="{x:Static lang:Resources.Cancel}"
+                        Command="{Binding CancelCommand}"
+                        Classes="Ghost"
+                        MinWidth="88" />
+                <Button Content="{x:Static lang:Resources.Save}"
+                        Command="{Binding SaveCommand}"
+                        Classes="Primary"
+                        MinWidth="96" />
             </StackPanel>
-        </Button>
-
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-            <Button Content="{x:Static lang:Resources.Save}" Command="{Binding SaveCommand}" Classes="Flat" />
-            <Button Content="{x:Static lang:Resources.Cancel}" Command="{Binding CancelCommand}" />
-        </StackPanel>
-    </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

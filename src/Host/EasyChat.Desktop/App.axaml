@@ -2,7 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="EasyChat.Desktop.App"
              xmlns:local="using:EasyChat.Desktop"
-             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              RequestedThemeVariant="Default">
     <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
@@ -11,36 +12,57 @@
         <local:ViewLocator />
     </Application.DataTemplates>
 
-    <Application.Styles>
-        <suki:SukiTheme ThemeColor="Blue" />
-        <avalonia:MaterialIconStyles />
-        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
-        <StyleInclude Source="avares://LiveMarkdown.Avalonia/Styles.axaml" />
-    </Application.Styles>
-
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://LiveMarkdown.Avalonia/Defaults.axaml" />
             </ResourceDictionary.MergedDictionaries>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
-                    <Color x:Key="BorderColor">#FFD4D9DE</Color>
-                    <Color x:Key="ForegroundColor">#FF202124</Color>
-                    <Color x:Key="CardBackgroundColor">#FFF1F4F6</Color>
-                    <Color x:Key="SecondaryCardBackgroundColor">#FFE7EBEE</Color>
-                    <Color x:Key="CodeInlineColor">#FF7A4B00</Color>
-                    <Color x:Key="QuoteBorderColor">#FF9A6A00</Color>
+                    <SolidColorBrush x:Key="EcDialogSurfaceBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="EcDialogFooterBrush" Color="#FFF7F7F8" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
-                    <Color x:Key="BorderColor">#FF4A4F56</Color>
-                    <Color x:Key="ForegroundColor">#FFF3F4F6</Color>
-                    <Color x:Key="CardBackgroundColor">#FF2A2D31</Color>
-                    <Color x:Key="SecondaryCardBackgroundColor">#FF34383E</Color>
-                    <Color x:Key="CodeInlineColor">#FFE5C07B</Color>
-                    <Color x:Key="QuoteBorderColor">#FFE5C07B</Color>
+                    <SolidColorBrush x:Key="EcDialogSurfaceBrush" Color="#FF000000" />
+                    <SolidColorBrush x:Key="EcDialogFooterBrush" Color="#FF0D0D0D" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
+            <FontFamily x:Key="ShadUiDemoFontFamily">avares://EasyChat.Desktop/Assets/Fonts#Manrope</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
+
+    <Application.Styles>
+        <shad:ShadTheme />
+        <avalonia:MaterialIconStyles />
+        <StyleInclude Source="avares://LiveMarkdown.Avalonia/Styles.axaml" />
+        <Style Selector="md|MarkdownRenderer ScrollViewer.Table Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+        </Style>
+        <!-- App-wide typeface: keeps CJK rendering across all controls. -->
+        <Style Selector="TextElement">
+            <Setter Property="TextElement.FontFamily" Value="Inter, Microsoft YaHei UI, Microsoft YaHei, PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Noto Sans SC, Segoe UI, sans-serif" />
+        </Style>
+        <!-- Keep the ColorPicker and its popup typography aligned with the ShadUI demo. -->
+        <Style Selector="ColorPicker">
+            <Setter Property="TextElement.FontFamily" Value="{StaticResource ShadUiDemoFontFamily}" />
+        </Style>
+        <Style Selector="ColorPicker TextElement">
+            <Setter Property="TextElement.FontFamily" Value="{StaticResource ShadUiDemoFontFamily}" />
+        </Style>
+        <Style Selector="shad|DialogHost /template/ Border#PART_DialogBackground">
+            <Setter Property="Background" Value="{DynamicResource EcDialogSurfaceBrush}" />
+        </Style>
+        <Style Selector="Border.DialogFooter">
+            <Setter Property="Background" Value="{DynamicResource EcDialogFooterBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="CornerRadius" Value="0,0,8,8" />
+        </Style>
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+    </Application.Styles>
 </Application>

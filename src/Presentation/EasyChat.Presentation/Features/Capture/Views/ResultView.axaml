@@ -1,8 +1,8 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
         xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="EasyChat.Presentation.Features.Capture.Views.ResultView"
@@ -12,16 +12,15 @@
         WindowDecorations="None"
         ExtendClientAreaToDecorationsHint="True"
         Topmost="True"
-        TransparencyLevelHint="Transparent"
-        TransparencyBackgroundFallback="Transparent"
-        CornerRadius="5"
+        TransparencyLevelHint="Blur"
+        CornerRadius="16"
         Background="Transparent"
         Title="ResultView"
-        SizeToContent="WidthAndHeight">
-
+        SizeToContent="WidthAndHeight"
+        KeyDown="OnKeyDown">
     <Window.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="ClassicResultForeground" Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="ClassicResultForeground" Color="#FFFFFFFF" />
             <x:Double x:Key="ClassicResultFontSize">18</x:Double>
         </ResourceDictionary>
     </Window.Resources>
@@ -29,23 +28,37 @@
     <Window.Styles>
         <Style Selector="md|MarkdownRenderer.ClassicResultMarkdown">
             <Style Selector="^ md|MarkdownTextBlock">
-                <Setter Property="Foreground" Value="{DynamicResource ClassicResultForeground}"/>
-                <Setter Property="FontSize" Value="{DynamicResource ClassicResultFontSize}"/>
-                <Setter Property="FontFamily" Value="{DynamicResource ClassicResultFontFamily}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ClassicResultForeground}" />
+                <Setter Property="FontSize" Value="{DynamicResource ClassicResultFontSize}" />
+                <Setter Property="FontFamily" Value="{DynamicResource ClassicResultFontFamily}" />
             </Style>
         </Style>
     </Window.Styles>
 
-    <Border x:Name="WindowBackground" Margin="5" CornerRadius="5" Background="Transparent"
-            ClipToBounds="True">
-        <Border x:Name="MainCard" Padding="10" Background="Transparent" CornerRadius="5"
-                ClipToBounds="True">
-            <Panel>
-                <suki:Loading x:Name="LoadingIndicator" Width="20" Height="20" IsVisible="True" />
-                <md:MarkdownRenderer x:Name="MarkdownResult" Classes="ClassicResultMarkdown" IsVisible="False"
-                                     HorizontalAlignment="Stretch"
-                                     VerticalAlignment="Top" />
-            </Panel>
+    <Border x:Name="WindowBackground"
+            ClipToBounds="True"
+            CornerRadius="{DynamicResource LgCornerRadius}">
+        <Border x:Name="MainCard"
+                Background="{DynamicResource DialogBackgroundColor}"
+                ClipToBounds="True"
+                CornerRadius="{DynamicResource LgCornerRadius}"
+                Padding="5">
+            <Grid MinWidth="160" MinHeight="44">
+                <Panel Margin="10,8,10,6">
+                    <shad:Loading x:Name="LoadingIndicator"
+                                  Width="28" Height="28"
+                                  Foreground="{DynamicResource PrimaryColor}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  IsVisible="True" />
+                    <md:MarkdownRenderer x:Name="MarkdownResult"
+                                         Classes="ClassicResultMarkdown"
+                                         IsVisible="False"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Top"
+                                         MaxWidth="480" />
+                </Panel>
+            </Grid>
         </Border>
     </Border>
 </Window>

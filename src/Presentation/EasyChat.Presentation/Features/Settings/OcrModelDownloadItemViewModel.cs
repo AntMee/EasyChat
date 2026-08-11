@@ -11,6 +11,7 @@ public sealed class OcrModelDownloadItemViewModel : ReactiveObject
     private bool _isFailed;
     private double _progress;
     private string? _errorMessage;
+
     public OcrModelDownloadItemViewModel(
         OcrModelPackage package,
         string displayName,

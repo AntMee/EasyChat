@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
@@ -16,6 +17,7 @@ namespace EasyChat.Presentation.Features.Capture;
 public sealed record ScreenshotCaptureCommand(
     bool Precise,
     ThemeVariant RequestedTheme,
+    string PrimaryColor,
     string CultureName,
     CaptureOverlayAction DefaultAction,
     CaptureToolbarMode ToolbarMode);
@@ -114,6 +116,7 @@ public sealed partial class ScreenshotCaptureWorkerApp : Avalonia.Application
             CultureInfo.CurrentUICulture = culture;
             Lang.Resources.Culture = culture;
             RequestedThemeVariant = command.RequestedTheme;
+            ApplyPrimaryColor(command.PrimaryColor);
 
             var outcome = await _overlays.SelectAsync(
                 command.Precise,
@@ -141,5 +144,26 @@ public sealed partial class ScreenshotCaptureWorkerApp : Avalonia.Application
         {
             _fail(exception);
         }
+    }
+
+    private void ApplyPrimaryColor(string value)
+    {
+        if (!Color.TryParse(value, out var color))
+            return;
+
+        Resources["PrimaryColor"] = color;
+        Resources["PrimaryColor75"] = WithOpacity(color, 0.75);
+        Resources["PrimaryColor50"] = WithOpacity(color, 0.50);
+        Resources["PrimaryColor10"] = WithOpacity(color, 0.10);
+        Resources["PrimaryForegroundColor"] = ContrastingForeground(color);
+    }
+
+    private static Color WithOpacity(Color color, double opacity) =>
+        Color.FromArgb((byte)Math.Round(byte.MaxValue * opacity), color.R, color.G, color.B);
+
+    private static Color ContrastingForeground(Color color)
+    {
+        var luminance = (0.2126 * color.R) + (0.7152 * color.G) + (0.0722 * color.B);
+        return luminance > 160 ? Color.Parse("#18181B") : Colors.White;
     }
 }

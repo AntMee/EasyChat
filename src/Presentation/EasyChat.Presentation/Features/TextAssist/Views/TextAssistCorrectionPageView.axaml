@@ -3,7 +3,8 @@
              xmlns:vm="using:EasyChat.Presentation.Features.TextAssist"
              xmlns:views="using:EasyChat.Presentation.Features.TextAssist.Views"
              x:Class="EasyChat.Presentation.Features.TextAssist.Views.TextAssistCorrectionPageView"
-             x:DataType="vm:TextAssistCorrectionPageViewModel">
+             x:DataType="vm:TextAssistCorrectionPageViewModel"
+             Background="{DynamicResource GhostColor}">
     <Grid Margin="25">
         <views:TextAssistCorrectionView DataContext="{Binding Correction}" />
     </Grid>

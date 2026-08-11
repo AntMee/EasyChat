@@ -20,10 +20,14 @@ public sealed class SettingViewLayoutTests
             "SettingView.axaml");
         var document = XDocument.Load(path);
         var settingsLayout = document.Descendants()
-            .Single(element => element.Name.LocalName == "SettingsLayout");
+            .Single(element => element.Name.LocalName == "Grid"
+                               && element.Attributes().Any(attribute =>
+                                   attribute.Name.LocalName == "Name"
+                                   && attribute.Value == "SettingsContent"));
 
         Assert.IsFalse(settingsLayout.Ancestors().Any(element => element.Name.LocalName == "ScrollViewer"));
-        Assert.AreEqual("240", settingsLayout.Attribute("StackSummaryWidth")?.Value);
+        Assert.AreEqual("220,*", settingsLayout.Attribute("ColumnDefinitions")?.Value);
+        Assert.IsTrue(settingsLayout.Descendants().Any(element => element.Name.LocalName == "ScrollViewer"));
     }
 
     [TestMethod]
@@ -86,6 +90,65 @@ public sealed class SettingViewLayoutTests
         Assert.AreEqual("28", detailsButton.Attribute("Height")?.Value);
         Assert.AreEqual("Transparent", detailsButton.Attribute("Background")?.Value);
         Assert.AreEqual("0", detailsButton.Attribute("BorderThickness")?.Value);
+    }
+
+    [TestMethod]
+    public void GeneralSettings_ProxyToggleDoesNotConsumeInputWidth()
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views",
+            "GeneralSettingsView.axaml");
+        var document = XDocument.Load(path);
+
+        var proxyToggle = document.Descendants()
+            .Single(element => element.Name.LocalName == "CheckBox"
+                               && element.Attribute("IsChecked")?.Value == "{Binding OcrConf.UseProxy}");
+
+        Assert.AreEqual("1", proxyToggle.Attribute("Grid.Row")?.Value);
+        Assert.AreEqual("Left", proxyToggle.Attribute("HorizontalAlignment")?.Value);
+        Assert.AreEqual("Auto,Auto", proxyToggle.Parent?.Attribute("RowDefinitions")?.Value);
+        Assert.IsTrue(proxyToggle.Descendants().Any(element =>
+            element.Name.LocalName == "TextBlock"
+            && element.Attribute("Text")?.Value == "{x:Static lang:Resources.OcrUseProxy}"
+            && element.Attribute("TextWrapping")?.Value == "Wrap"));
+    }
+
+    [TestMethod]
+    public void SettingsForms_FitWithinTheMinimumDetailPaneWidth()
+    {
+        var root = FindRepositoryRoot();
+        var viewsDirectory = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views");
+
+        foreach (var path in Directory.EnumerateFiles(viewsDirectory, "*SettingsView.axaml"))
+        {
+            var document = XDocument.Load(path);
+            var controls = document.Descendants()
+                .Where(element => element.Name.LocalName == "ContentControl"
+                                  && element.Attribute("Grid.Column")?.Value == "1"
+                                  && int.TryParse(element.Attribute("MinWidth")?.Value, out _));
+
+            foreach (var control in controls)
+            {
+                Assert.IsLessThanOrEqualTo(
+                    int.Parse(control.Attribute("MinWidth")!.Value),
+                    180,
+                    $"{Path.GetFileName(path)} requires more width than the settings detail pane has at the minimum window size.");
+            }
+        }
     }
 
     private static string FindRepositoryRoot()

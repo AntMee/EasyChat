@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:EasyChat.Presentation.Features.ScreenshotOcr"
+             xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             mc:Ignorable="d"
+             d:DesignWidth="440" d:DesignHeight="260"
+             x:Class="EasyChat.Presentation.Features.ScreenshotOcr.Views.ScreenshotOcrResetConfirmationDialogView"
+             x:DataType="vm:ScreenshotOcrResetConfirmationDialogViewModel"
+             MinWidth="400"
+             MaxWidth="460"
+             Width="440">
+    <Grid RowDefinitions="Auto,Auto">
+        <StackPanel Margin="28,28,28,0" Spacing="16">
+            <Border Width="48" Height="48"
+                    CornerRadius="14"
+                    HorizontalAlignment="Left"
+                    Background="{DynamicResource DestructiveColor10}">
+                <icons:MaterialIcon Kind="Restart"
+                                    Width="24" Height="24"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="{DynamicResource DestructiveColor}" />
+            </Border>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="{x:Static lang:Resources.ConfirmDeletion}"
+                           Classes="Large"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Message}"
+                           Classes="p"
+                           Foreground="{DynamicResource MutedColor}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </StackPanel>
+
+        <Border Grid.Row="1" Classes="DialogFooter" Margin="0,24,0,0" Padding="28,14,28,28">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10">
+                <Button Classes="Ghost"
+                        Command="{Binding CancelCommand}"
+                        Content="{x:Static lang:Resources.Cancel}" />
+                <Button Classes="Destructive"
+                        Command="{Binding ContinueCommand}"
+                        Content="{x:Static lang:Resources.Confirm}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

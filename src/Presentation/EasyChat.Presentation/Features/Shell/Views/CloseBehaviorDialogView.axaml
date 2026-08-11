@@ -1,25 +1,82 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:EasyChat.Presentation.Features.Shell"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
-             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
+             xmlns:icons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             mc:Ignorable="d"
+             d:DesignWidth="440" d:DesignHeight="300"
              x:Class="EasyChat.Presentation.Features.Shell.Views.CloseBehaviorDialogView"
-             x:DataType="vm:CloseBehaviorDialogViewModel">
-    <StackPanel Spacing="20" Margin="10 40 0 0">
-        <TextBlock Text="{x:Static lang:Resources.CloseToTrayPromptMessage}" TextWrapping="Wrap" />
-        
-        <CheckBox Content="{x:Static lang:Resources.RememberMyChoice}" 
-                  IsChecked="{Binding IsRemember}" />
-        
-        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-            <Button Command="{Binding MinimizeCommand}" 
-                    Content="{x:Static lang:Resources.MinimizeToTray}" 
-                    Classes="Flat"/>
-            <Button Command="{Binding ExitAppCommand}" 
-                    Content="{x:Static lang:Resources.ExitApp}" 
-                    Classes="Default"/>
-        </StackPanel>
-    </StackPanel>
+             x:DataType="vm:CloseBehaviorDialogViewModel"
+             MinWidth="400"
+             MaxWidth="480"
+             Width="460">
+    <Grid RowDefinitions="Auto,Auto">
+        <Border Padding="24,22,24,0">
+            <StackPanel Spacing="18">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                    <Border Width="46" Height="46"
+                            CornerRadius="13"
+                            Background="{DynamicResource PrimaryColor10}">
+                        <icons:MaterialIcon Kind="LogoutVariant"
+                                            Width="23" Height="23"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Foreground="{DynamicResource PrimaryColor}" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Static lang:Resources.CloseToTrayPromptTitle}"
+                                   Classes="Large"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource ForegroundColor}" />
+                        <TextBlock Text="{x:Static lang:Resources.CloseToTrayPromptMessage}"
+                                   Classes="p"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource MutedColor}" />
+                    </StackPanel>
+                </Grid>
+
+                <Border Background="{DynamicResource GhostColor}"
+                        BorderBrush="{DynamicResource BorderColor30}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="12,10">
+                    <CheckBox Content="{x:Static lang:Resources.RememberMyChoice}"
+                              IsChecked="{Binding IsRemember}"
+                              HorizontalAlignment="Left"
+                              VerticalContentAlignment="Center" />
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Classes="DialogFooter" Margin="0,22,0,0" Padding="24,14,24,20">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Command="{Binding CancelCommand}"
+                        Classes="Ghost"
+                        HorizontalContentAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <icons:MaterialIcon Kind="Close" Width="15" Height="15" />
+                        <TextBlock Text="{x:Static lang:Resources.Cancel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding MinimizeCommand}"
+                        Classes="Ghost"
+                        HorizontalContentAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <icons:MaterialIcon Kind="TrayArrowDown" Width="16" Height="16" />
+                        <TextBlock Text="{x:Static lang:Resources.MinimizeToTray}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding ExitAppCommand}"
+                        Classes="Destructive"
+                        HorizontalContentAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <icons:MaterialIcon Kind="Power" Width="15" Height="15" />
+                        <TextBlock Text="{x:Static lang:Resources.ExitApp}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>
