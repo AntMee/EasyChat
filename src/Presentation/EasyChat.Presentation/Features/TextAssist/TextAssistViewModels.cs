@@ -229,6 +229,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             get => Languages.FirstOrDefault(language => language.Id == _sourceLanguageId) ?? Languages.First(language => language.Id == "auto");
             set
             {
+                if (value is null) return;
                 _sourceLanguageId = value.Id;
                 this.RaisePropertyChanged();
                 _settings.TextAssist.SourceLanguageId = value.Id;
@@ -240,6 +241,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             get => Languages.FirstOrDefault(language => language.Id == _targetLanguageId) ?? Languages.First(language => language.Id == "zh-Hans");
             set
             {
+                if (value is null) return;
                 _targetLanguageId = value.Id;
                 this.RaisePropertyChanged();
                 _settings.TextAssist.TargetLanguageId = value.Id;
@@ -895,6 +897,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             get => Languages.FirstOrDefault(language => language.Id == _sourceLanguageId) ?? Languages.First(language => language.Id == "auto");
             set
             {
+                if (value is null) return;
                 _sourceLanguageId = value.Id;
                 _settings.TextAssist.SourceLanguageId = value.Id;
                 this.RaisePropertyChanged();

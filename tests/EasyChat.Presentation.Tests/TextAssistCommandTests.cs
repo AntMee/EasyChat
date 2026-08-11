@@ -154,6 +154,20 @@ public sealed class TextAssistCommandTests
     }
 
     [TestMethod]
+    public void SelectedLanguages_IgnoreNullFromLanguageSelector()
+    {
+        var viewModel = CreateViewModel();
+        var source = viewModel.SelectedSourceLanguage;
+        var target = viewModel.SelectedTargetLanguage;
+
+        viewModel.SelectedSourceLanguage = null!;
+        viewModel.SelectedTargetLanguage = null!;
+
+        Assert.AreEqual(source.Id, viewModel.SelectedSourceLanguage.Id);
+        Assert.AreEqual(target.Id, viewModel.SelectedTargetLanguage.Id);
+    }
+
+    [TestMethod]
     public async Task AutomaticRun_CompletesCommandLifecycleAndAllowsManualRun()
     {
         var viewModel = CreateViewModel();
