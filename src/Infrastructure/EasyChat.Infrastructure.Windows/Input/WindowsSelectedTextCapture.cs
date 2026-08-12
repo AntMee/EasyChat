@@ -132,25 +132,46 @@ public sealed class WindowsSelectedTextCapture : ISelectedTextCapture
             if (!HasExpectedWindowContext(expectedForeground, expectedFocused))
                 return ContextChanged();
 
-            var copyInputs = WindowsKeyCombination.Parse("Ctrl + C");
-            var sent = _native.SendInputs(copyInputs);
-            if (sent != copyInputs.Count)
+            string? text = null;
+            string? copySource = null;
+            var copyInputsSent = false;
+            uint lastSent = 0;
+            var lastInputCount = 0;
+            foreach (var (combination, sourceName) in new[]
+                     {
+                         ("Ctrl + Insert", "Ctrl+Insert"),
+                         ("Ctrl + C", "Ctrl+C")
+                     })
+            {
+                var copyInputs = WindowsKeyCombination.Parse(combination);
+                var sent = _native.SendInputs(copyInputs);
+                lastSent = sent;
+                lastInputCount = copyInputs.Count;
+                if (sent != copyInputs.Count)
+                    continue;
+
+                copyInputsSent = true;
+                for (var attempt = 0; attempt < 20; attempt++)
+                {
+                    await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+                    var read = await _clipboardText.ReadAsync(cancellationToken).ConfigureAwait(false);
+                    if (read.IsSuccess && !string.IsNullOrEmpty(read.Value))
+                    {
+                        text = read.Value;
+                        copySource = sourceName;
+                        break;
+                    }
+                }
+
+                if (text is not null)
+                    break;
+            }
+
+            if (!copyInputsSent && text is null)
             {
                 return Result<SelectedText>.Failure(new Error(
                     "selection.copy-failed",
-                    $"Only {sent} of {copyInputs.Count} copy key events were sent."));
-            }
-
-            string? text = null;
-            for (var attempt = 0; attempt < 20; attempt++)
-            {
-                await Task.Delay(10, cancellationToken).ConfigureAwait(false);
-                var read = await _clipboardText.ReadAsync(cancellationToken).ConfigureAwait(false);
-                if (read.IsSuccess && !string.IsNullOrEmpty(read.Value))
-                {
-                    text = read.Value;
-                    break;
-                }
+                    $"Only {lastSent} of {lastInputCount} copy key events were sent."));
             }
 
             if (snapshot is not null)
@@ -162,7 +183,7 @@ public sealed class WindowsSelectedTextCapture : ISelectedTextCapture
 
             return string.IsNullOrWhiteSpace(text)
                 ? EmptySelection()
-                : Result<SelectedText>.Success(new SelectedText(text, source, "Ctrl+C", position));
+                : Result<SelectedText>.Success(new SelectedText(text, source, copySource!, position));
         }
         finally
         {
