@@ -7,6 +7,7 @@
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
+             xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              x:DataType="viewModels:SettingViewModel"
              mc:Ignorable="d">
     <UserControl.Styles>
@@ -33,6 +34,9 @@
         <Style Selector="ToggleButton.SelectionActionCard.SearchResult">
             <Setter Property="Background" Value="{DynamicResource PrimaryColor10}" />
             <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+        </Style>
+        <Style Selector="Border.SelectionAppRow">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
         </Style>
     </UserControl.Styles>
     <!-- No nested surface — parent SettingView already provides the detail card. -->
@@ -258,6 +262,60 @@
                 </ContentControl>
             </Grid>
             </Border>
+
+            <!-- Selection scope blacklist / whitelist -->
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='filter blacklist whitelist app list running apps selection scope 生效范围 名单 黑白名单 白名单 黑名单 程序 应用'}">
+            <Grid ColumnDefinitions="*,420"
+                  MinHeight="40"
+                  Margin="8,0"
+                  ColumnSpacing="16"
+                  >
+                <TextBlock Text="{x:Static lang:Resources.SelectionFilterMode}"
+                           Classes="Small"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <ContentControl Classes="SettingsField" Grid.Column="1"
+                                MinWidth="180"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Stretch">
+                    <ComboBox ItemsSource="{Binding SelectionFilterModes}"
+                              SelectedValue="{Binding SelectedSelectionFilterMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundColor}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ContentControl>
+            </Grid>
+            </Border>
+
+            <StackPanel Margin="12,6,12,10" Spacing="8"
+                        IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='filter blacklist whitelist app list running apps 生效范围 名单 黑白名单 白名单 黑名单 程序 应用'}">
+                <TextBlock Classes="Caption" FontWeight="Bold"
+                           Text="{x:Static lang:Resources.SelectionFilterAppList}" />
+                <TextBlock Classes="Muted"
+                           TextWrapping="Wrap"
+                           Text="{x:Static lang:Resources.SelectionFilterHint}" />
+                <Button Command="{Binding ManageSelectionAppListCommand}"
+                        Classes="Outline"
+                        HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{x:Static lang:Resources.ManageAppList}"
+                                   VerticalAlignment="Center" />
+                        <shad:Badge Content="{Binding SelectionTranslationConf.AppList.Count}"
+                                    IsVisible="{Binding SelectionTranslationConf.HasApps}"
+                                    CornerRadius="4"
+                                    Padding="6,1"
+                                    VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
 
             <Border Classes="SettingsSearchRow"
                     Classes.SearchResult="{Binding IsSearchMode}"

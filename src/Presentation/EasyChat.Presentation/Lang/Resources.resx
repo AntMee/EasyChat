@@ -793,6 +793,51 @@
     <data name="SelectionTriggerModeAll" xml:space="preserve">
         <value>All</value>
     </data>
+    <data name="SelectionFilterMode" xml:space="preserve">
+        <value>Selection Scope</value>
+    </data>
+    <data name="SelectionFilterDisabled" xml:space="preserve">
+        <value>Disabled</value>
+    </data>
+    <data name="SelectionFilterBlacklist" xml:space="preserve">
+        <value>Blacklist</value>
+    </data>
+    <data name="SelectionFilterWhitelist" xml:space="preserve">
+        <value>Whitelist</value>
+    </data>
+    <data name="SelectionFilterAppList" xml:space="preserve">
+        <value>Application List</value>
+    </data>
+    <data name="SelectionFilterHint" xml:space="preserve">
+        <value>Limit where the selection toolbar activates. In whitelist mode it only works inside the listed applications; in blacklist mode it never works inside them. This list does not affect selection shortcut hotkeys — they keep working in every application.</value>
+    </data>
+    <data name="SelectionFilterEmptyList" xml:space="preserve">
+        <value>No applications in the list yet.</value>
+    </data>
+    <data name="ManageAppList" xml:space="preserve">
+        <value>Manage List</value>
+    </data>
+    <data name="SelectionAppListTitle" xml:space="preserve">
+        <value>Application List</value>
+    </data>
+    <data name="AddRunningApps" xml:space="preserve">
+        <value>Add Running Applications</value>
+    </data>
+    <data name="RunningAppPickerTitle" xml:space="preserve">
+        <value>Add Running Applications</value>
+    </data>
+    <data name="SearchRunningApps" xml:space="preserve">
+        <value>Search running applications...</value>
+    </data>
+    <data name="NoRunningApps" xml:space="preserve">
+        <value>No running applications with a window were found.</value>
+    </data>
+    <data name="NoRunningAppSearchResults" xml:space="preserve">
+        <value>No applications match your search.</value>
+    </data>
+    <data name="AddToAppList" xml:space="preserve">
+        <value>Add</value>
+    </data>
     <data name="SelectionTranslate_Title" xml:space="preserve">
         <value>Selection Translation</value>
     </data>

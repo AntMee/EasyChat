@@ -84,6 +84,13 @@ public enum SelectionTriggerMode
     All = 2
 }
 
+public enum SelectionFilterMode
+{
+    Disabled = 0,
+    Blacklist = 1,
+    Whitelist = 2
+}
+
 public sealed record LanguageSettings(
     string Id,
     string ChineseName,
@@ -297,6 +304,13 @@ public sealed record SpeechRecognitionSettings(
     double WindowHeight,
     string? PromptId = null);
 
+/// <summary>A persisted application list entry for the selection blacklist/whitelist.</summary>
+public sealed record SelectionAppEntrySettings(
+    string Identifier,
+    string? DisplayName = null,
+    string? Description = null,
+    ReadOnlyMemory<byte>? IconPng = null);
+
 public sealed record SelectionTranslationSettings(
     bool Enabled,
     string Provider,
@@ -308,7 +322,13 @@ public sealed record SelectionTranslationSettings(
     bool CorrectionEnabled,
     bool PolishEnabled,
     bool SummaryEnabled,
-    bool ExplanationEnabled = true);
+    bool ExplanationEnabled = true,
+    SelectionFilterMode FilterMode = SelectionFilterMode.Disabled,
+    IReadOnlyList<SelectionAppEntrySettings>? AppList = null)
+{
+    /// <summary>The normalized application list; never null regardless of persisted data.</summary>
+    public IReadOnlyList<SelectionAppEntrySettings> SafeAppList => AppList ?? [];
+}
 
 public sealed record TtsSettings(
     string Provider,

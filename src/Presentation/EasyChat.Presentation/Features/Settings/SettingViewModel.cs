@@ -118,6 +118,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ConfigureTtsCommand = ReactiveCommand.Create(_dialogs.ConfigureTts);
         OpenAsrModelDownloadsCommand = ReactiveCommand.Create(OpenAsrModelDownloads);
         DeleteAsrModelCommand = ReactiveCommand.Create<SpeechRecognitionModel>(ConfirmDeleteAsrModel);
+        ManageSelectionAppListCommand = ReactiveCommand.Create(_dialogs.ManageSelectionApps);
 
         TestAiModelConnectionCommand = ReactiveCommand.CreateFromTask<CustomAiModelState>(TestAiModelConnectionAsync);
         TestBaiduConnectionCommand = ReactiveCommand.CreateFromTask(() => TestMachineConnectionAsync("Baidu"));
@@ -261,6 +262,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
         new(SelectionTriggerMode.DoubleClick, Resources.SelectionTriggerModeDoubleClick),
         new(SelectionTriggerMode.DragSelection, Resources.SelectionTriggerModeDragSelection),
         new(SelectionTriggerMode.All, Resources.SelectionTriggerModeAll)
+    ];
+    public List<SelectionFilterModeOption> SelectionFilterModes { get; } =
+    [
+        new(SelectionFilterMode.Disabled, Resources.SelectionFilterDisabled),
+        new(SelectionFilterMode.Blacklist, Resources.SelectionFilterBlacklist),
+        new(SelectionFilterMode.Whitelist, Resources.SelectionFilterWhitelist)
     ];
     public IReadOnlyList<string> TransparencyLevels { get; } =
         EasyChat.Presentation.Foundation.Platform.WindowTransparencyLevels.Preferences;
@@ -521,6 +528,16 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
     }
 
+    public SelectionFilterMode SelectedSelectionFilterMode
+    {
+        get => SelectionTranslationConf.FilterMode;
+        set
+        {
+            SelectionTranslationConf.FilterMode = value;
+            this.RaisePropertyChanged();
+        }
+    }
+
     public string SelectedSelectionTranslationEngine
     {
         get => SelectionTranslationConf.Provider == TranslationEngineNames.AiModel
@@ -590,6 +607,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ReactiveCommand<Unit, Unit> ConfigureTtsCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenAsrModelDownloadsCommand { get; }
     public ReactiveCommand<SpeechRecognitionModel, Unit> DeleteAsrModelCommand { get; }
+    public ReactiveCommand<Unit, Unit> ManageSelectionAppListCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DownloadOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> CancelOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DeleteOcrModelCommand { get; }
@@ -1054,6 +1072,8 @@ public sealed class ModelCardItem(CustomAiModelState? model)
 
 public sealed record SelectionTriggerModeOption(SelectionTriggerMode Value, string DisplayName);
 
+public sealed record SelectionFilterModeOption(SelectionFilterMode Value, string DisplayName);
+
 public interface ISettingsDialogCoordinator
 {
     void EditAiModel(CustomAiModelState? model);
@@ -1067,4 +1087,5 @@ public interface ISettingsDialogCoordinator
     void ConfigureTts();
     void ShowInformation(string title, string message);
     void ConfirmDeleteAsrModel(SpeechRecognitionModel model, Action onConfirmed);
+    void ManageSelectionApps();
 }

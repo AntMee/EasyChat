@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
+using ReactiveUI;
 
 namespace EasyChat.Presentation.Features.Settings.State;
 
@@ -267,6 +268,33 @@ public sealed class LiveScreenshotSettings : LiveSettingsSection
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => Commit();
 }
 
+public sealed class SelectionAppItemState : ReactiveObject
+{
+    public SelectionAppItemState(
+        string identifier,
+        string displayName,
+        string? description,
+        ReadOnlyMemory<byte> iconPng)
+    {
+        Identifier = identifier;
+        DisplayName = displayName;
+        Description = description;
+        IconPng = iconPng;
+    }
+
+    /// <summary>Persisted process identity (for example "chrome.exe").</summary>
+    public string Identifier { get; }
+
+    /// <summary>Stable process display name captured when the item was added.</summary>
+    public string DisplayName { get; }
+
+    /// <summary>Stable software description (for example "Google Chrome"); not the window title.</summary>
+    public string? Description { get; }
+
+    /// <summary>PNG icon bytes captured when the item was added; persisted with the entry.</summary>
+    public ReadOnlyMemory<byte> IconPng { get; }
+}
+
 public sealed class LiveSelectionTranslationSettings : LiveSettingsSection
 {
     private bool _enabled;
@@ -280,6 +308,7 @@ public sealed class LiveSelectionTranslationSettings : LiveSettingsSection
     private bool _polishEnabled;
     private bool _summaryEnabled;
     private bool _explanationEnabled;
+    private SelectionFilterMode _filterMode;
 
     public LiveSelectionTranslationSettings(
         SelectionTranslationSettings value,
@@ -297,6 +326,19 @@ public sealed class LiveSelectionTranslationSettings : LiveSettingsSection
         _polishEnabled = value.PolishEnabled;
         _summaryEnabled = value.SummaryEnabled;
         _explanationEnabled = value.ExplanationEnabled;
+        _filterMode = value.FilterMode;
+        AppList = new ObservableCollection<SelectionAppItemState>(
+            value.SafeAppList.Select(entry => new SelectionAppItemState(
+                entry.Identifier,
+                entry.DisplayName ?? entry.Identifier,
+                entry.Description,
+                entry.IconPng ?? ReadOnlyMemory<byte>.Empty)));
+        AppList.CollectionChanged += (_, _) =>
+        {
+            Commit();
+            this.RaisePropertyChanged(nameof(HasApps));
+            this.RaisePropertyChanged(nameof(HasNoApps));
+        };
     }
 
     public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
@@ -310,8 +352,17 @@ public sealed class LiveSelectionTranslationSettings : LiveSettingsSection
     public bool PolishEnabled { get => _polishEnabled; set => Set(ref _polishEnabled, value); }
     public bool SummaryEnabled { get => _summaryEnabled; set => Set(ref _summaryEnabled, value); }
     public bool ExplanationEnabled { get => _explanationEnabled; set => Set(ref _explanationEnabled, value); }
+    public SelectionFilterMode FilterMode { get => _filterMode; set => Set(ref _filterMode, value); }
+    public ObservableCollection<SelectionAppItemState> AppList { get; }
+    public bool HasApps => AppList.Count > 0;
+    public bool HasNoApps => AppList.Count == 0;
 
     public SelectionTranslationSettings ToContract() => new(
         Enabled, Provider, MachineProvider, AiModelId, PromptId, TriggerMode,
-        TranslationEnabled, CorrectionEnabled, PolishEnabled, SummaryEnabled, ExplanationEnabled);
+        TranslationEnabled, CorrectionEnabled, PolishEnabled, SummaryEnabled, ExplanationEnabled,
+        FilterMode, AppList.Select(item => new SelectionAppEntrySettings(
+            item.Identifier,
+            item.DisplayName,
+            item.Description,
+            item.IconPng)).ToArray());
 }

@@ -1,4 +1,5 @@
 using EasyChat.Contracts.AiModels;
+using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Presentation.Lang;
@@ -16,7 +17,8 @@ public sealed class SettingsDialogCoordinator(
     SettingsSession settings,
     IAiModelCatalogTransport modelCatalog,
     ITtsUseCases tts,
-    IScreenRegionPicker regionPicker) : ISettingsDialogCoordinator
+    IScreenRegionPicker regionPicker,
+    IRunningProcessCatalog runningProcesses) : ISettingsDialogCoordinator
 {
     private readonly DialogManager _dialogs = dialogs;
     private readonly ToastManager _toasts = toasts;
@@ -24,6 +26,7 @@ public sealed class SettingsDialogCoordinator(
     private readonly IAiModelCatalogTransport _modelCatalog = modelCatalog;
     private readonly ITtsUseCases _tts = tts;
     private readonly IScreenRegionPicker _regionPicker = regionPicker;
+    private readonly IRunningProcessCatalog _runningProcesses = runningProcesses;
 
     public void EditAiModel(CustomAiModelState? model)
     {
@@ -124,6 +127,12 @@ public sealed class SettingsDialogCoordinator(
         _dialogs.CreateDialog(title, message)
             .WithPrimaryButton(Resources.Confirm, (Action)(() => { }))
             .Show();
+
+    public void ManageSelectionApps()
+    {
+        var viewModel = new SelectionAppListDialogViewModel(_dialogs, _settings, _runningProcesses);
+        _dialogs.CreateDialog(viewModel).Show();
+    }
 
     private void SaveModel(CustomAiModelState? existing, CustomAiModelSettings? value)
     {

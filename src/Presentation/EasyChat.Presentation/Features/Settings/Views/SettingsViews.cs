@@ -22,6 +22,16 @@ public partial class SelectionTranslationSettingsView : UserControl
     public SelectionTranslationSettingsView() => InitializeComponent();
 }
 
+public partial class RunningAppPickerDialogView : UserControl
+{
+    public RunningAppPickerDialogView() => InitializeComponent();
+}
+
+public partial class SelectionAppListDialogView : UserControl
+{
+    public SelectionAppListDialogView() => InitializeComponent();
+}
+
 public partial class TranslationSettingsView : UserControl
 {
     public TranslationSettingsView() => InitializeComponent();

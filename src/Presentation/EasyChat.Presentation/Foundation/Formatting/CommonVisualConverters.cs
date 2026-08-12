@@ -4,11 +4,35 @@ using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Lang;
 using Material.Icons;
 
 namespace EasyChat.Presentation.Foundation.Formatting;
+
+public sealed class PngBytesToBitmapConverter : IValueConverter
+{
+    public static readonly PngBytesToBitmapConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not ReadOnlyMemory<byte> bytes || bytes.Length == 0)
+            return null;
+        try
+        {
+            using var stream = new MemoryStream(bytes.ToArray());
+            return new Bitmap(stream);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
 
 public sealed class BoolToColorConverter : IMultiValueConverter
 {

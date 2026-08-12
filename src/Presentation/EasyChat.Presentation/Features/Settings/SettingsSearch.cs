@@ -41,7 +41,7 @@ public static class SettingsSearch
     public const string TranslationFields =
         "model ai engine key baidu tencent google deepl api proxy 模型 翻译 密钥 引擎";
     public const string SelectionFields =
-        "selection translation enable translate correct correction polish summary explanation trigger engine using ai model machine translation prompt selection toolbar 划词工具栏 翻译 启用 纠错 润色 总结 解释 取词方式 触发 引擎 大模型 AI 模型 机器翻译 提示词";
+        "selection translation enable translate correct correction polish summary explanation trigger engine using ai model machine translation prompt selection toolbar filter blacklist whitelist app list running apps 划词工具栏 翻译 启用 纠错 润色 总结 解释 取词方式 触发 引擎 大模型 AI 模型 机器翻译 提示词 生效范围 名单 黑白名单 白名单 黑名单 程序 应用";
     public const string SpeechFields =
         "speech tts provider configure voices voice asr models speech recognition model import delete 语音 TTS 提供商 配置语音 配置 音色 ASR 模型 语音识别 导入 删除";
     public const string ScreenshotFields =

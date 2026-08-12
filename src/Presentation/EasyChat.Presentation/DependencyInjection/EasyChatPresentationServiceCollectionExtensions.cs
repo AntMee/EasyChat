@@ -4,6 +4,7 @@ using EasyChat.Presentation.Features.Capture.Views;
 using EasyChat.Presentation.Features.Settings;
 using EasyChat.Presentation.Features.Settings.Prompts;
 using EasyChat.Presentation.Features.Settings.Prompts.Views;
+using EasyChat.Presentation.Features.Settings.Views;
 using EasyChat.Presentation.Features.Input;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.TextAssist;
@@ -45,7 +46,9 @@ public static class EasyChatPresentationServiceCollectionExtensions
             .Register<TtsEditVoiceDialogView, TtsEditVoiceDialogViewModel>()
             .Register<TtsPreviewInputDialogView, TtsPreviewInputDialogViewModel>()
             .Register<ShortcutEditDialogView, ShortcutEditDialogViewModel>()
-            .Register<PromptEditDialogView, PromptEditDialogViewModel>());
+            .Register<PromptEditDialogView, PromptEditDialogViewModel>()
+            .Register<RunningAppPickerDialogView, RunningAppPickerDialogViewModel>()
+            .Register<SelectionAppListDialogView, SelectionAppListDialogViewModel>());
         services.AddSingleton<ShadUI.ToastManager>();
         services.AddKeyedSingleton<ShadUI.ToastManager>(
             MainWindowViewModel.UpdateToastManagerKey,

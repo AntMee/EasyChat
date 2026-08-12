@@ -41,6 +41,7 @@ public sealed class SelectionInteractionCoordinatorTests
             new FakeWindowFocus(),
             new FakeClipboardSnapshots(),
             selectedText,
+            new FakeRunningProcessCatalog(),
             delay,
             NullLogger<SelectionInteractionCoordinator>.Instance);
 
@@ -89,6 +90,7 @@ public sealed class SelectionInteractionCoordinatorTests
             new FakeWindowFocus(),
             new FakeClipboardSnapshots(),
             new FakeSelectedTextUseCases(),
+            new FakeRunningProcessCatalog(),
             new FakeDelay(),
             NullLogger<SelectionInteractionCoordinator>.Instance);
 
@@ -183,6 +185,104 @@ public sealed class SelectionInteractionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task Whitelist_BlocksCaptureWhenForegroundAppIsNotListed()
+    {
+        var bundle = CreateBundleWithFilter(SelectionFilterMode.Whitelist, "notepad.exe");
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        var processes = new FakeRunningProcessCatalog { Identifier = "app.exe" };
+        await using var coordinator = CreateCoordinator(bundle, pointer, selectedText, sink, processes);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            DateTimeOffset.UtcNow));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            DateTimeOffset.UtcNow.AddMilliseconds(30)));
+
+        await Task.Delay(50);
+        Assert.IsNull(selectedText.Command);
+    }
+
+    [TestMethod]
+    public async Task Whitelist_AllowsCaptureWhenForegroundAppIsListed()
+    {
+        var bundle = CreateBundleWithFilter(SelectionFilterMode.Whitelist, "app.exe");
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        await using var coordinator = CreateCoordinator(bundle, pointer, selectedText, sink);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            DateTimeOffset.UtcNow));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            DateTimeOffset.UtcNow.AddMilliseconds(30)));
+
+        var capture = await sink.Captured.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.AreEqual("selected", capture.SelectedText.Text);
+    }
+
+    [TestMethod]
+    public async Task Blacklist_BlocksCaptureWhenForegroundAppIsListed()
+    {
+        var bundle = CreateBundleWithFilter(SelectionFilterMode.Blacklist, "app.exe");
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        await using var coordinator = CreateCoordinator(bundle, pointer, selectedText, sink);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            DateTimeOffset.UtcNow));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            DateTimeOffset.UtcNow.AddMilliseconds(30)));
+
+        await Task.Delay(50);
+        Assert.IsNull(selectedText.Command);
+    }
+
+    [TestMethod]
+    public async Task Blacklist_AllowsCaptureWhenForegroundAppIsNotListed()
+    {
+        var bundle = CreateBundleWithFilter(SelectionFilterMode.Blacklist, "notepad.exe");
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        var processes = new FakeRunningProcessCatalog { Identifier = "app.exe" };
+        await using var coordinator = CreateCoordinator(bundle, pointer, selectedText, sink, processes);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            DateTimeOffset.UtcNow));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            DateTimeOffset.UtcNow.AddMilliseconds(30)));
+
+        var capture = await sink.Captured.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.AreEqual("selected", capture.SelectedText.Text);
+    }
+
+    [TestMethod]
     public async Task DisabledSelectionMonitoring_StillDismissesAnExternalToolbarClick()
     {
         var initial = SettingsTestData.CreateBundle();
@@ -200,6 +300,7 @@ public sealed class SelectionInteractionCoordinatorTests
             new FakeWindowFocus(),
             new FakeClipboardSnapshots(),
             selectedText,
+            new FakeRunningProcessCatalog(),
             new FakeDelay(),
             NullLogger<SelectionInteractionCoordinator>.Instance);
 
@@ -215,6 +316,44 @@ public sealed class SelectionInteractionCoordinatorTests
         Assert.AreEqual(1, sink.ExternalPointerPressCount);
         Assert.IsNull(selectedText.Command);
     }
+
+    private static SettingsBundle CreateBundleWithFilter(
+        SelectionFilterMode mode,
+        params string[] appList) =>
+        SettingsTestData.CreateBundle() with
+        {
+            SelectionTranslation = new SelectionTranslationSettings(
+                true,
+                "AiModel",
+                null,
+                null,
+                null,
+                SelectionTriggerMode.All,
+                true,
+                true,
+                false,
+                true,
+                false,
+                mode,
+                appList.Select(identifier => new SelectionAppEntrySettings(identifier)).ToArray())
+        };
+
+    private static SelectionInteractionCoordinator CreateCoordinator(
+        SettingsBundle bundle,
+        FakePointerMonitor pointer,
+        FakeSelectedTextUseCases selectedText,
+        FakeSink sink,
+        FakeRunningProcessCatalog? processes = null) =>
+        new(
+            new FakeSettings(bundle),
+            new AvailablePlatformAccess(),
+            pointer,
+            new FakeWindowFocus(),
+            new FakeClipboardSnapshots(),
+            selectedText,
+            processes ?? new FakeRunningProcessCatalog(),
+            new FakeDelay(),
+            NullLogger<SelectionInteractionCoordinator>.Instance);
 
     private static SelectionInteractionCoordinator CreateEnabledCoordinator(
         FakePointerMonitor pointer,
@@ -237,6 +376,7 @@ public sealed class SelectionInteractionCoordinatorTests
             new FakeWindowFocus(),
             new FakeClipboardSnapshots(),
             selectedText,
+            new FakeRunningProcessCatalog(),
             new FakeDelay(),
             NullLogger<SelectionInteractionCoordinator>.Instance);
     }
@@ -411,6 +551,24 @@ public sealed class SelectionInteractionCoordinatorTests
                 Delays.Add(delay);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeRunningProcessCatalog : IRunningProcessCatalog
+    {
+        public string? Identifier { get; set; } = "app.exe";
+        public bool FailResolve { get; set; }
+
+        public ValueTask<IReadOnlyList<RunningProcessDescriptor>> GetRunningProcessesAsync(
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult<IReadOnlyList<RunningProcessDescriptor>>(
+                Array.Empty<RunningProcessDescriptor>());
+
+        public ValueTask<Result<string>> ResolveProcessIdentifierAsync(
+            ExternalTargetToken target,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(FailResolve
+                ? Result<string>.Failure(new Error("running-process.unavailable", "unavailable"))
+                : Result<string>.Success(Identifier ?? "app.exe"));
     }
 
     private sealed class FakeSettings(SettingsBundle current) : ISettingsUseCases

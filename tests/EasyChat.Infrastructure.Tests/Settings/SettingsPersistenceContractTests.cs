@@ -372,6 +372,64 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
+    public async Task SelectionFilter_RoundTripsAndOldFilesDefaultToDisabled()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+            Assert.AreEqual(SelectionFilterMode.Disabled, initial.Value.SelectionTranslation.FilterMode);
+            Assert.IsEmpty(initial.Value.SelectionTranslation.SafeAppList);
+
+            var changed = initial.Value with
+            {
+                SelectionTranslation = initial.Value.SelectionTranslation with
+                {
+                    FilterMode = SelectionFilterMode.Whitelist,
+                    AppList =
+                    [
+                        new SelectionAppEntrySettings("chrome.exe", "chrome", "Google Chrome", new ReadOnlyMemory<byte>([1, 2, 3])),
+                        new SelectionAppEntrySettings("notepad.exe")
+                    ]
+                }
+            };
+            var write = await gateway.WriteAsync(SettingsSection.SelectionTranslation, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.AreEqual(SelectionFilterMode.Whitelist, reread.Value.SelectionTranslation.FilterMode);
+            Assert.HasCount(2, reread.Value.SelectionTranslation.SafeAppList);
+            Assert.AreEqual("chrome.exe", reread.Value.SelectionTranslation.SafeAppList[0].Identifier);
+            Assert.AreEqual("chrome", reread.Value.SelectionTranslation.SafeAppList[0].DisplayName);
+            Assert.AreEqual("Google Chrome", reread.Value.SelectionTranslation.SafeAppList[0].Description);
+            Assert.IsTrue(reread.Value.SelectionTranslation.SafeAppList[0].IconPng is { IsEmpty: false });
+            Assert.AreEqual("notepad.exe", reread.Value.SelectionTranslation.SafeAppList[1].Identifier);
+            var json = await File.ReadAllTextAsync(Path.Combine(directory, "SelectionTranslation.json"));
+            StringAssert.Contains(json, "\"FilterMode\": 2");
+            StringAssert.Contains(json, "\"Google Chrome\"");
+
+            // A legacy identifier-only JSON list must still load as entries without metadata.
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "SelectionTranslation.json"),
+                "{ \"Enabled\": true, \"AppList\": [\"msedge.exe\"] }");
+            var legacy = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(legacy.IsSuccess, legacy.Error.Message);
+            Assert.AreEqual(SelectionFilterMode.Disabled, legacy.Value.SelectionTranslation.FilterMode);
+            Assert.HasCount(1, legacy.Value.SelectionTranslation.SafeAppList);
+            Assert.AreEqual("msedge.exe", legacy.Value.SelectionTranslation.SafeAppList[0].Identifier);
+            Assert.IsNull(legacy.Value.SelectionTranslation.SafeAppList[0].DisplayName);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
     [DataRow("English")]
     [DataRow("Simplified Chinese")]
     public async Task BuiltInPromptAssets_UseDisplayLanguageOnFirstCreation(

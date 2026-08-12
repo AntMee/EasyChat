@@ -22,3 +22,8 @@ publish/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+
+# llm agent
+/.reasonix/
+reasonix.toml

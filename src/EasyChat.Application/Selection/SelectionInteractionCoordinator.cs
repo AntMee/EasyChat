@@ -20,11 +20,14 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     private readonly IWindowFocus _windowFocus;
     private readonly IClipboardSnapshots _clipboardSnapshots;
     private readonly ISelectedTextUseCases _selectedText;
+    private readonly IRunningProcessCatalog _runningProcesses;
     private readonly ISelectionDelay _delay;
     private readonly ILogger<SelectionInteractionCoordinator> _logger;
     private readonly SemaphoreSlim _eventGate = new(1, 1);
     private readonly object _lifecycle = new();
     private readonly object _tasksSync = new();
+    private readonly object _processCacheSync = new();
+    private readonly Dictionary<ExternalTargetToken, string?> _processIdentifierCache = [];
     private readonly HashSet<Task> _pendingTasks = [];
 
     private CancellationTokenSource? _lifetime;
@@ -48,9 +51,10 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         IWindowFocus windowFocus,
         IClipboardSnapshots clipboardSnapshots,
         ISelectedTextUseCases selectedText,
+        IRunningProcessCatalog runningProcesses,
         ILogger<SelectionInteractionCoordinator> logger)
         : this(settings, platformAccess, pointerMonitor, windowFocus, clipboardSnapshots, selectedText,
-            new SystemSelectionDelay(), logger)
+            runningProcesses, new SystemSelectionDelay(), logger)
     {
     }
 
@@ -61,6 +65,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         IWindowFocus windowFocus,
         IClipboardSnapshots clipboardSnapshots,
         ISelectedTextUseCases selectedText,
+        IRunningProcessCatalog runningProcesses,
         ISelectionDelay delay,
         ILogger<SelectionInteractionCoordinator> logger)
     {
@@ -70,6 +75,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         _windowFocus = windowFocus ?? throw new ArgumentNullException(nameof(windowFocus));
         _clipboardSnapshots = clipboardSnapshots ?? throw new ArgumentNullException(nameof(clipboardSnapshots));
         _selectedText = selectedText ?? throw new ArgumentNullException(nameof(selectedText));
+        _runningProcesses = runningProcesses ?? throw new ArgumentNullException(nameof(runningProcesses));
         _delay = delay ?? throw new ArgumentNullException(nameof(delay));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -106,6 +112,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
             _lifetime = null;
             Interlocked.Increment(ref _generation);
             _downPoint = null;
+            _processIdentifierCache.Clear();
         }
 
         lifetime?.Cancel();
@@ -242,7 +249,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         CancellationToken cancellationToken)
     {
         var config = _settings.Current.SelectionTranslation;
-        if (!config.Enabled)
+        if (!config.Enabled || !await IsTargetAllowedAsync(config, cancellationToken).ConfigureAwait(false))
         {
             if (pointerEvent.Action != PointerAction.PrimaryPressed)
                 return;
@@ -476,6 +483,45 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     {
         var result = await pending.ConfigureAwait(false);
         return result.IsSuccess ? result.Value : ExternalTargetToken.None;
+    }
+
+    private async Task<bool> IsTargetAllowedAsync(
+        SelectionTranslationSettings config,
+        CancellationToken cancellationToken)
+    {
+        if (config.FilterMode == SelectionFilterMode.Disabled)
+            return true;
+
+        var foreground = await ReadTargetAsync(
+            _windowFocus.GetForegroundTargetAsync(cancellationToken)).ConfigureAwait(false);
+        if (foreground.IsEmpty)
+            return true;
+
+        var identifier = await ResolveProcessIdentifierAsync(foreground, cancellationToken).ConfigureAwait(false);
+        return SelectionFilterPolicy.IsAllowed(config.FilterMode, config.SafeAppList, identifier);
+    }
+
+    private async Task<string?> ResolveProcessIdentifierAsync(
+        ExternalTargetToken target,
+        CancellationToken cancellationToken)
+    {
+        lock (_processCacheSync)
+        {
+            if (_processIdentifierCache.TryGetValue(target, out var cached))
+                return cached;
+        }
+
+        var result = await _runningProcesses.ResolveProcessIdentifierAsync(target, cancellationToken)
+            .ConfigureAwait(false);
+        var identifier = result.IsSuccess ? result.Value : null;
+        lock (_processCacheSync)
+        {
+            if (_processIdentifierCache.Count > 256)
+                _processIdentifierCache.Clear();
+            _processIdentifierCache[target] = identifier;
+        }
+
+        return identifier;
     }
 
     private static bool HandlesDrag(SelectionTriggerMode mode) =>

@@ -30,6 +30,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IGlobalHotkeys, WindowsGlobalHotkeys>();
         services.AddSingleton<IWindowFocus, WindowsWindowFocus>();
         services.AddSingleton<IWindowInputTransparency, WindowsWindowInputTransparency>();
+        services.AddSingleton<IRunningProcessCatalog, WindowsRunningProcessCatalog>();
         services.AddSingleton<WindowsOwnedWindowBehavior>();
         services.AddSingleton<IGlobalPointerMonitor, WindowsGlobalPointerMonitor>();
         services.AddSingleton<IPointerPosition, WindowsPointerPosition>();

@@ -783,6 +783,51 @@
     <data name="SelectionTriggerModeAll" xml:space="preserve">
         <value>全部</value>
     </data>
+    <data name="SelectionFilterMode" xml:space="preserve">
+        <value>划词生效范围</value>
+    </data>
+    <data name="SelectionFilterDisabled" xml:space="preserve">
+        <value>关闭</value>
+    </data>
+    <data name="SelectionFilterBlacklist" xml:space="preserve">
+        <value>黑名单</value>
+    </data>
+    <data name="SelectionFilterWhitelist" xml:space="preserve">
+        <value>白名单</value>
+    </data>
+    <data name="SelectionFilterAppList" xml:space="preserve">
+        <value>程序名单</value>
+    </data>
+    <data name="SelectionFilterHint" xml:space="preserve">
+        <value>限制划词工具栏的生效范围。白名单模式下，划词只在名单内的程序中生效；黑名单模式下，划词在名单内的程序中不生效。该名单不影响划词热键（快捷键）的使用，热键在所有程序中始终有效。</value>
+    </data>
+    <data name="SelectionFilterEmptyList" xml:space="preserve">
+        <value>名单中还没有程序。</value>
+    </data>
+    <data name="ManageAppList" xml:space="preserve">
+        <value>管理名单</value>
+    </data>
+    <data name="SelectionAppListTitle" xml:space="preserve">
+        <value>程序名单</value>
+    </data>
+    <data name="AddRunningApps" xml:space="preserve">
+        <value>添加运行中程序</value>
+    </data>
+    <data name="RunningAppPickerTitle" xml:space="preserve">
+        <value>添加运行中的程序</value>
+    </data>
+    <data name="SearchRunningApps" xml:space="preserve">
+        <value>搜索运行中的程序…</value>
+    </data>
+    <data name="NoRunningApps" xml:space="preserve">
+        <value>没有找到带窗口的运行中程序。</value>
+    </data>
+    <data name="NoRunningAppSearchResults" xml:space="preserve">
+        <value>没有匹配的程序。</value>
+    </data>
+    <data name="AddToAppList" xml:space="preserve">
+        <value>添加</value>
+    </data>
     <data name="SelectionTranslate_Title" xml:space="preserve">
         <value>划词翻译</value>
     </data>

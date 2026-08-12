@@ -2166,6 +2166,141 @@ namespace EasyChat.Presentation.Lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Selection Scope.
+        /// </summary>
+        public static string SelectionFilterMode {
+            get {
+                return ResourceManager.GetString("SelectionFilterMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Disabled.
+        /// </summary>
+        public static string SelectionFilterDisabled {
+            get {
+                return ResourceManager.GetString("SelectionFilterDisabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Blacklist.
+        /// </summary>
+        public static string SelectionFilterBlacklist {
+            get {
+                return ResourceManager.GetString("SelectionFilterBlacklist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Whitelist.
+        /// </summary>
+        public static string SelectionFilterWhitelist {
+            get {
+                return ResourceManager.GetString("SelectionFilterWhitelist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Application List.
+        /// </summary>
+        public static string SelectionFilterAppList {
+            get {
+                return ResourceManager.GetString("SelectionFilterAppList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Limit where the selection toolbar activates. In whitelist mode it only works inside the listed applications; in blacklist mode it never works inside them. This list does not affect selection shortcut hotkeys — they keep working in every application..
+        /// </summary>
+        public static string SelectionFilterHint {
+            get {
+                return ResourceManager.GetString("SelectionFilterHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No applications in the list yet..
+        /// </summary>
+        public static string SelectionFilterEmptyList {
+            get {
+                return ResourceManager.GetString("SelectionFilterEmptyList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage List.
+        /// </summary>
+        public static string ManageAppList {
+            get {
+                return ResourceManager.GetString("ManageAppList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Application List.
+        /// </summary>
+        public static string SelectionAppListTitle {
+            get {
+                return ResourceManager.GetString("SelectionAppListTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add Running Applications.
+        /// </summary>
+        public static string AddRunningApps {
+            get {
+                return ResourceManager.GetString("AddRunningApps", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add Running Applications.
+        /// </summary>
+        public static string RunningAppPickerTitle {
+            get {
+                return ResourceManager.GetString("RunningAppPickerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Search running applications....
+        /// </summary>
+        public static string SearchRunningApps {
+            get {
+                return ResourceManager.GetString("SearchRunningApps", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No running applications with a window were found..
+        /// </summary>
+        public static string NoRunningApps {
+            get {
+                return ResourceManager.GetString("NoRunningApps", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No applications match your search..
+        /// </summary>
+        public static string NoRunningAppSearchResults {
+            get {
+                return ResourceManager.GetString("NoRunningAppSearchResults", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add.
+        /// </summary>
+        public static string AddToAppList {
+            get {
+                return ResourceManager.GetString("AddToAppList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Double Click.
         /// </summary>
         public static string SelectionTriggerModeDoubleClick {

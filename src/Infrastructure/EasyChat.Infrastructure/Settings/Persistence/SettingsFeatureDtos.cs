@@ -57,6 +57,13 @@ internal enum SelectionTriggerModeDto
     All = 2
 }
 
+internal enum SelectionFilterModeDto
+{
+    Disabled = 0,
+    Blacklist = 1,
+    Whitelist = 2
+}
+
 [JsonObject(MemberSerialization.OptIn)]
 internal sealed class ShortcutSettingsDto
 {
@@ -387,6 +394,34 @@ internal sealed class SelectionTranslationSettingsDto
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public bool? ExplanationEnabled { get; set; }
+
+    [JsonProperty]
+    public SelectionFilterModeDto FilterMode { get; set; }
+
+    /// <summary>Persisted list entries with stable display metadata (name, description, icon).</summary>
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public List<SelectionAppEntryDto> AppEntries { get; set; } = [];
+
+    /// <summary>Identifier-only list written alongside <see cref="AppEntries"/> so older
+    /// builds can still read the list without the richer metadata.</summary>
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public List<string> AppList { get; set; } = [];
+}
+
+[JsonObject(MemberSerialization.OptIn)]
+internal sealed class SelectionAppEntryDto
+{
+    [JsonProperty]
+    public string Identifier { get; set; } = string.Empty;
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? DisplayName { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? Description { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public byte[]? IconPng { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]

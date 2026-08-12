@@ -498,18 +498,36 @@ internal static class SettingsPersistenceMapper
     };
 
     private static SelectionTranslationSettings ToContract(
-        SelectionTranslationSettingsDto source) => new(
-        source.Enabled,
-        source.Provider,
-        source.MachineProvider,
-        source.AiModelId,
-        source.PromptId,
-        (SelectionTriggerMode)(int)source.TriggerMode,
-        source.TranslationEnabled,
-        source.CorrectionEnabled,
-        source.PolishEnabled,
-        source.SummaryEnabled,
-        source.ExplanationEnabled ?? true);
+        SelectionTranslationSettingsDto source)
+    {
+        var entries = source.AppEntries.Count > 0
+            ? source.AppEntries.Select(ToContract).ToArray()
+            : source.AppList
+                .Where(identifier => !string.IsNullOrWhiteSpace(identifier))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(identifier => new SelectionAppEntrySettings(identifier))
+                .ToArray();
+        return new SelectionTranslationSettings(
+            source.Enabled,
+            source.Provider,
+            source.MachineProvider,
+            source.AiModelId,
+            source.PromptId,
+            (SelectionTriggerMode)(int)source.TriggerMode,
+            source.TranslationEnabled,
+            source.CorrectionEnabled,
+            source.PolishEnabled,
+            source.SummaryEnabled,
+            source.ExplanationEnabled ?? true,
+            (SelectionFilterMode)(int)source.FilterMode,
+            entries);
+    }
+
+    private static SelectionAppEntrySettings ToContract(SelectionAppEntryDto source) => new(
+        source.Identifier,
+        source.DisplayName,
+        source.Description,
+        source.IconPng is null ? null : new ReadOnlyMemory<byte>(source.IconPng));
 
     private static SelectionTranslationSettingsDto ToDto(
         SelectionTranslationSettings source) => new()
@@ -524,8 +542,19 @@ internal static class SettingsPersistenceMapper
             CorrectionEnabled = source.CorrectionEnabled,
             PolishEnabled = source.PolishEnabled,
             SummaryEnabled = source.SummaryEnabled,
-            ExplanationEnabled = source.ExplanationEnabled
+            ExplanationEnabled = source.ExplanationEnabled,
+            FilterMode = (SelectionFilterModeDto)(int)source.FilterMode,
+            AppEntries = source.SafeAppList.Select(ToDto).ToList(),
+            AppList = source.SafeAppList.Select(entry => entry.Identifier).ToList()
         };
+
+    private static SelectionAppEntryDto ToDto(SelectionAppEntrySettings source) => new()
+    {
+        Identifier = source.Identifier,
+        DisplayName = source.DisplayName,
+        Description = source.Description,
+        IconPng = source.IconPng is { IsEmpty: false } bytes ? bytes.ToArray() : null
+    };
 
     private static TtsSettings ToContract(TtsSettingsDto source) => new(
         source.Provider,
