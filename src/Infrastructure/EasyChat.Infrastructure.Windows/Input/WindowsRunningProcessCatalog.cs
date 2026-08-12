@@ -64,6 +64,7 @@ public sealed class WindowsRunningProcessCatalog : IRunningProcessCatalog
     private static IReadOnlyList<RunningProcessDescriptor> ReadProcesses(
         CancellationToken cancellationToken)
     {
+        var visibleWindows = EnumerateVisibleWindows(cancellationToken);
         var result = new List<RunningProcessDescriptor>();
         foreach (var process in Process.GetProcesses())
         {
@@ -72,7 +73,7 @@ public sealed class WindowsRunningProcessCatalog : IRunningProcessCatalog
                 cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    if (process.Id == 0 || string.IsNullOrEmpty(process.MainWindowTitle))
+                    if (process.Id == 0 || !visibleWindows.TryGetValue(process.Id, out var windowTitle))
                         continue;
 
                     var executablePath = GetProcessPath(process.Id);
@@ -84,7 +85,7 @@ public sealed class WindowsRunningProcessCatalog : IRunningProcessCatalog
                         identifier,
                         process.ProcessName,
                         ReadDescription(executablePath),
-                        process.MainWindowTitle,
+                        windowTitle,
                         ReadIconPng(executablePath)));
                 }
                 catch
@@ -95,6 +96,47 @@ public sealed class WindowsRunningProcessCatalog : IRunningProcessCatalog
         }
 
         return result;
+    }
+
+    private static Dictionary<int, string?> EnumerateVisibleWindows(
+        CancellationToken cancellationToken)
+    {
+        var windows = new Dictionary<int, string?>();
+        EnumWindows((window, _) =>
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return false;
+            if (!IsWindowVisible(window))
+                return true;
+
+            GetWindowThreadProcessId(window, out var processId);
+            if (processId == 0)
+                return true;
+
+            var title = ReadWindowTitle(window);
+            if (!windows.TryGetValue((int)processId, out var existingTitle)
+                || string.IsNullOrWhiteSpace(existingTitle) && !string.IsNullOrWhiteSpace(title))
+            {
+                windows[(int)processId] = title;
+            }
+
+            return true;
+        }, IntPtr.Zero);
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return windows;
+    }
+
+    private static string? ReadWindowTitle(IntPtr window)
+    {
+        var length = GetWindowTextLength(window);
+        if (length <= 0)
+            return null;
+
+        var title = new StringBuilder(length + 1);
+        return GetWindowText(window, title, title.Capacity) > 0
+            ? title.ToString()
+            : null;
     }
 
     private static string? ResolveIdentifier(int processId, string? fallbackProcessName = null)
@@ -175,6 +217,22 @@ public sealed class WindowsRunningProcessCatalog : IRunningProcessCatalog
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+    private delegate bool EnumWindowsCallback(IntPtr window, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumWindows(EnumWindowsCallback callback, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowTextLength(IntPtr window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, StringBuilder text, int maxCount);
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
