@@ -74,6 +74,120 @@ public sealed class SelectionInteractionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task DragSelection_SkipsCaptureWhenScreenshotAppChangesForegroundAfterRelease()
+    {
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        var focus = new FakeWindowFocus();
+        focus.ForegroundValues.Enqueue("foreground");
+        focus.ForegroundValues.Enqueue("screenshot-worker");
+        focus.ForegroundValues.Enqueue("foreground");
+        await using var coordinator = CreateEnabledCoordinator(pointer, selectedText, sink, focus);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var timestamp = DateTimeOffset.UtcNow;
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            timestamp));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            timestamp.AddMilliseconds(30)));
+
+        await Task.Delay(100);
+
+        Assert.IsNull(selectedText.Command);
+    }
+
+    [TestMethod]
+    public async Task DragSelection_SkipsCaptureWhenScreenshotChangesClipboardDuringGesture()
+    {
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        await using var coordinator = CreateEnabledCoordinator(pointer, selectedText, sink);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var timestamp = DateTimeOffset.UtcNow;
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            timestamp,
+            ClipboardSequence: 10));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            timestamp.AddMilliseconds(30),
+            ClipboardSequence: 11));
+
+        await Task.Delay(100);
+
+        Assert.IsNull(selectedText.Command);
+    }
+
+    [TestMethod]
+    public async Task DragSelection_SkipsCaptureWhenPointerIsOnForeignOverlay()
+    {
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        await using var coordinator = CreateEnabledCoordinator(pointer, selectedText, sink);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var timestamp = DateTimeOffset.UtcNow;
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            timestamp,
+            new ExternalTargetToken("foreground"),
+            PointerTarget: new ExternalTargetToken("pixpin-overlay")));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            timestamp.AddMilliseconds(30),
+            new ExternalTargetToken("foreground"),
+            PointerTarget: new ExternalTargetToken("pixpin-overlay")));
+
+        await Task.Delay(100);
+
+        Assert.IsNull(selectedText.Command);
+    }
+
+    [TestMethod]
+    public async Task DragSelection_SkipsCaptureWhenPointerTargetIsFullscreenOverlay()
+    {
+        var pointer = new FakePointerMonitor();
+        var selectedText = new FakeSelectedTextUseCases();
+        var sink = new FakeSink();
+        await using var coordinator = CreateEnabledCoordinator(pointer, selectedText, sink);
+
+        coordinator.Start(sink);
+        await pointer.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var timestamp = DateTimeOffset.UtcNow;
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryPressed,
+            new PhysicalScreenPoint(10, 20),
+            timestamp,
+            new ExternalTargetToken("foreground"),
+            PointerTargetIsOverlay: true));
+        pointer.Publish(new GlobalPointerEvent(
+            PointerAction.PrimaryReleased,
+            new PhysicalScreenPoint(30, 40),
+            timestamp.AddMilliseconds(30),
+            new ExternalTargetToken("foreground"),
+            PointerTargetIsOverlay: true));
+
+        await Task.Delay(100);
+
+        Assert.IsNull(selectedText.Command);
+    }
+
+    [TestMethod]
     public async Task DisposeAsync_WaitsForQueuedPointerWorkBeforeDisposingItsGate()
     {
         var initial = SettingsTestData.CreateBundle();
@@ -358,7 +472,8 @@ public sealed class SelectionInteractionCoordinatorTests
     private static SelectionInteractionCoordinator CreateEnabledCoordinator(
         FakePointerMonitor pointer,
         FakeSelectedTextUseCases selectedText,
-        FakeSink sink)
+        FakeSink sink,
+        FakeWindowFocus? focus = null)
     {
         var initial = SettingsTestData.CreateBundle();
         var bundle = initial with
@@ -373,7 +488,7 @@ public sealed class SelectionInteractionCoordinatorTests
             new FakeSettings(bundle),
             new AvailablePlatformAccess(),
             pointer,
-            new FakeWindowFocus(),
+            focus ?? new FakeWindowFocus(),
             new FakeClipboardSnapshots(),
             selectedText,
             new FakeRunningProcessCatalog(),
@@ -422,9 +537,14 @@ public sealed class SelectionInteractionCoordinatorTests
 
     private sealed class FakeWindowFocus : IWindowFocus
     {
+        public Queue<string> ForegroundValues { get; } = [];
+
         public ValueTask<Result<ExternalTargetToken>> GetForegroundTargetAsync(
-            CancellationToken cancellationToken = default) =>
-            ValueTask.FromResult(Result<ExternalTargetToken>.Success(new ExternalTargetToken("foreground")));
+            CancellationToken cancellationToken = default)
+        {
+            var value = ForegroundValues.Count > 0 ? ForegroundValues.Dequeue() : "foreground";
+            return ValueTask.FromResult(Result<ExternalTargetToken>.Success(new ExternalTargetToken(value)));
+        }
 
         public ValueTask<Result<ExternalTargetToken>> GetFocusedTargetAsync(
             CancellationToken cancellationToken = default) =>

@@ -11,7 +11,12 @@ public enum PointerAction
 public sealed record GlobalPointerEvent(
     PointerAction Action,
     PhysicalScreenPoint Position,
-    DateTimeOffset Timestamp);
+    DateTimeOffset Timestamp,
+    ExternalTargetToken ForegroundTarget = default,
+    uint ClipboardSequence = 0,
+    ExternalTargetToken PointerTarget = default,
+    ExternalTargetToken CapturedTarget = default,
+    bool PointerTargetIsOverlay = false);
 
 public interface IPointerMonitorRegistration : IDisposable;
 

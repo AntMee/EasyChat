@@ -261,7 +261,12 @@ public sealed class WindowsGlobalPointerMonitor : IGlobalPointerMonitor, IDispos
         var pointerEvent = new GlobalPointerEvent(
             action,
             new PhysicalScreenPoint(point.X, point.Y),
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            WindowsTargetTokens.FromHandle(WindowsWindowQuery.GetForegroundWindowHandle()),
+            WindowsClipboardBackend.GetCurrentChangeToken(),
+            WindowsTargetTokens.FromHandle(_backend.RootWindow(_backend.WindowFromPoint(point))),
+            WindowsTargetTokens.FromHandle(WindowsWindowQuery.GetMouseCaptureWindow()),
+            WindowsWindowQuery.IsLikelyOverlayWindow(_backend.RootWindow(_backend.WindowFromPoint(point))));
         foreach (var callback in callbacks)
         {
             try

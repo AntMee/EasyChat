@@ -36,6 +36,9 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
     private PhysicalScreenPoint? _downPoint;
     private ExternalTargetToken _foregroundAtMouseDown;
     private ExternalTargetToken _focusedAtMouseDown;
+    private ExternalTargetToken _pointerTargetAtMouseDown;
+    private ExternalTargetToken _capturedTargetAtMouseDown;
+    private uint _clipboardSequenceAtMouseDown;
     private DateTimeOffset _lastDoubleClickTime;
     private PhysicalScreenPoint _lastDoubleClickPoint;
     private DateTimeOffset _lastBlockedGestureTime;
@@ -290,8 +293,12 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
             return;
         }
 
-        _foregroundAtMouseDown = await ReadTargetAsync(
-            _windowFocus.GetForegroundTargetAsync(cancellationToken)).ConfigureAwait(false);
+        _foregroundAtMouseDown = pointerEvent.ForegroundTarget.IsEmpty
+            ? await ReadTargetAsync(_windowFocus.GetForegroundTargetAsync(cancellationToken)).ConfigureAwait(false)
+            : pointerEvent.ForegroundTarget;
+        _pointerTargetAtMouseDown = pointerEvent.PointerTarget;
+        _capturedTargetAtMouseDown = pointerEvent.CapturedTarget;
+        _clipboardSequenceAtMouseDown = pointerEvent.ClipboardSequence;
         _focusedAtMouseDown = await ReadTargetAsync(
             _windowFocus.GetFocusedTargetAsync(cancellationToken)).ConfigureAwait(false);
 
@@ -304,6 +311,21 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         }
 
         await sink.OnExternalPointerPressedAsync(pointerEvent.Position, cancellationToken).ConfigureAwait(false);
+        if (IsForeignPointerTarget(pointerEvent)
+            || pointerEvent.PointerTargetIsOverlay
+            || (!_pointerTargetAtMouseDown.IsEmpty
+                && !pointerEvent.PointerTarget.IsEmpty
+                && _pointerTargetAtMouseDown != pointerEvent.PointerTarget)
+            || IsForeignCaptureTarget(pointerEvent)
+            || (!_capturedTargetAtMouseDown.IsEmpty
+                && !pointerEvent.CapturedTarget.IsEmpty
+                && _capturedTargetAtMouseDown != pointerEvent.CapturedTarget))
+        {
+            BlockGesture(pointerEvent);
+            Interlocked.Increment(ref _generation);
+            _downPoint = null;
+            return;
+        }
         if (surface.BlocksSelectionCapture)
         {
             BlockGesture(pointerEvent);
@@ -343,13 +365,20 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
             || Distance(down, pointerEvent.Position) <= DragThreshold)
             return;
 
+        if (HasExternalGestureContextChanged(pointerEvent))
+            return;
+
         var clipboardToken = await CaptureClipboardTokenAsync(cancellationToken).ConfigureAwait(false);
+        var foregroundAtRelease = pointerEvent.ForegroundTarget.IsEmpty
+            ? await ReadTargetAsync(_windowFocus.GetForegroundTargetAsync(cancellationToken)).ConfigureAwait(false)
+            : pointerEvent.ForegroundTarget;
         var generation = Interlocked.Read(ref _generation);
         Track(CaptureAfterDelayAsync(
             SelectionGesture.Drag,
             pointerEvent.Position,
             _foregroundAtMouseDown,
             _focusedAtMouseDown,
+            foregroundAtRelease,
             clipboardToken,
             generation,
             DragCaptureDelay,
@@ -380,12 +409,22 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         _lastDoubleClickTime = pointerEvent.Timestamp;
         _lastDoubleClickPoint = pointerEvent.Position;
         var clipboardToken = await CaptureClipboardTokenAsync(cancellationToken).ConfigureAwait(false);
+        var foregroundAtDoubleClick = pointerEvent.ForegroundTarget.IsEmpty
+            ? await ReadTargetAsync(_windowFocus.GetForegroundTargetAsync(cancellationToken)).ConfigureAwait(false)
+            : pointerEvent.ForegroundTarget;
+        if (IsForeignPointerTarget(pointerEvent))
+            return;
+        if (!_foregroundAtMouseDown.IsEmpty
+            && !foregroundAtDoubleClick.IsEmpty
+            && _foregroundAtMouseDown != foregroundAtDoubleClick)
+            return;
         var generation = Interlocked.Read(ref _generation);
         Track(CaptureAfterDelayAsync(
             SelectionGesture.DoubleClick,
             pointerEvent.Position,
             _foregroundAtMouseDown,
             _focusedAtMouseDown,
+            foregroundAtDoubleClick,
             clipboardToken,
             generation,
             DoubleClickCaptureDelay,
@@ -398,6 +437,7 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
         PhysicalScreenPoint point,
         ExternalTargetToken foreground,
         ExternalTargetToken focused,
+        ExternalTargetToken foregroundAtTrigger,
         IClipboardChangeToken? clipboardToken,
         long generation,
         TimeSpan delay,
@@ -409,6 +449,12 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
             await _delay.WaitAsync(delay, cancellationToken).ConfigureAwait(false);
             if (generation != Interlocked.Read(ref _generation))
                 return;
+
+            if (!await IsForegroundUnchangedAsync(foregroundAtTrigger, cancellationToken).ConfigureAwait(false))
+            {
+                _logger.LogDebug("Skipping selection capture because another application changed focus during the gesture.");
+                return;
+            }
 
             if (clipboardToken is not null)
             {
@@ -450,6 +496,52 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
             _logger.LogError(exception, "Unable to capture text from the selection gesture.");
         }
     }
+
+    private async ValueTask<bool> IsForegroundUnchangedAsync(
+        ExternalTargetToken foregroundAtTrigger,
+        CancellationToken cancellationToken)
+    {
+        if (foregroundAtTrigger.IsEmpty)
+            return true;
+
+        var current = await ReadTargetAsync(
+            _windowFocus.GetForegroundTargetAsync(cancellationToken)).ConfigureAwait(false);
+        return current.IsEmpty || current == foregroundAtTrigger;
+    }
+
+    private bool HasExternalGestureContextChanged(GlobalPointerEvent pointerEvent)
+    {
+        var foregroundChanged = !_foregroundAtMouseDown.IsEmpty
+                                && !pointerEvent.ForegroundTarget.IsEmpty
+                                && _foregroundAtMouseDown != pointerEvent.ForegroundTarget;
+        var clipboardChanged = _clipboardSequenceAtMouseDown != 0
+                               && pointerEvent.ClipboardSequence != 0
+                               && _clipboardSequenceAtMouseDown != pointerEvent.ClipboardSequence;
+        var pointerTargetChanged = !_pointerTargetAtMouseDown.IsEmpty
+                                   && !pointerEvent.PointerTarget.IsEmpty
+                                   && _pointerTargetAtMouseDown != pointerEvent.PointerTarget;
+        var capturedTargetChanged = !_capturedTargetAtMouseDown.IsEmpty
+                                    && !pointerEvent.CapturedTarget.IsEmpty
+                                    && _capturedTargetAtMouseDown != pointerEvent.CapturedTarget;
+        return foregroundChanged
+               || clipboardChanged
+               || pointerTargetChanged
+               || capturedTargetChanged
+               || pointerEvent.PointerTargetIsOverlay
+               || IsForeignPointerTarget(pointerEvent)
+               || IsForeignCaptureTarget(pointerEvent);
+    }
+
+    private bool IsForeignPointerTarget(GlobalPointerEvent pointerEvent) =>
+        !pointerEvent.PointerTarget.IsEmpty
+        && !pointerEvent.ForegroundTarget.IsEmpty
+        && pointerEvent.PointerTarget != pointerEvent.ForegroundTarget;
+
+    private bool IsForeignCaptureTarget(GlobalPointerEvent pointerEvent) =>
+        !pointerEvent.CapturedTarget.IsEmpty
+        && !pointerEvent.ForegroundTarget.IsEmpty
+        && pointerEvent.CapturedTarget != pointerEvent.ForegroundTarget
+        && pointerEvent.CapturedTarget != _focusedAtMouseDown;
 
     private async ValueTask<IClipboardChangeToken?> CaptureClipboardTokenAsync(
         CancellationToken cancellationToken)
