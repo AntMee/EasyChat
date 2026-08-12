@@ -107,6 +107,27 @@ public sealed class TextAssistCommandTests
     }
 
     [TestMethod]
+    public void CorrectionProjection_AcceptsPartialResultWhenDoneEventIsMissing()
+    {
+        var projection = new TextAssistCorrectionProjection("Hello, world");
+
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+        projection.Apply(new TextAssistCorrectedDeltaEvent("Hello, world."));
+
+        projection.EnsureComplete();
+        Assert.AreEqual("Hello, world.", projection.CorrectedText);
+    }
+
+    [TestMethod]
+    public void CorrectionProjection_RejectsIncompleteStreamWithoutCorrectedText()
+    {
+        var projection = new TextAssistCorrectionProjection("Hello, world");
+        projection.Apply(new TextAssistStartedEvent("correction", "English", null));
+
+        Assert.Throws<InvalidOperationException>(projection.EnsureComplete);
+    }
+
+    [TestMethod]
     public void CorrectionProjection_UsesOriginalSnippetToCorrectAnIssueRange()
     {
         const string source = "She go to school.";

@@ -313,6 +313,8 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
         {
             InitializeComponent();
             PointerPressed += OnSurfacePointerPressed;
+            Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
         }
 
         public TextAssistResultWindowView(
@@ -352,12 +354,50 @@ namespace EasyChat.Presentation.Features.TextAssist.Views
             if (_viewModel is not null) _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
 
+        private void OnLoaded(object? sender, RoutedEventArgs e)
+        {
+            ConnectAnnotationLayout();
+            if (this.FindControl<TextBox>("AnnotatedTextBox") is { } textBox)
+                textBox.TemplateApplied += OnAnnotatedTextBoxTemplateApplied;
+        }
+
+        private void OnUnloaded(object? sender, RoutedEventArgs e)
+        {
+            if (this.FindControl<CorrectionAnnotationLayer>("AnnotationLayer") is { } annotation)
+                annotation.LayoutPresenter = null;
+            if (this.FindControl<TextBox>("AnnotatedTextBox") is { } textBox)
+                textBox.TemplateApplied -= OnAnnotatedTextBoxTemplateApplied;
+        }
+
+        private void OnAnnotatedTextBoxTemplateApplied(object? sender, TemplateAppliedEventArgs e) =>
+            ConnectAnnotationLayout();
+
+        private void ConnectAnnotationLayout()
+        {
+            var annotation = this.FindControl<CorrectionAnnotationLayer>("AnnotationLayer");
+            var textBox = this.FindControl<TextBox>("AnnotatedTextBox");
+            if (annotation is null || textBox is null)
+                return;
+            annotation.LayoutPresenter = textBox.GetVisualDescendants().OfType<TextPresenter>().FirstOrDefault();
+        }
+
         private async void OnCopyClick(object? sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_viewModel?.CopyText)) return;
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
             if (clipboard is null) return;
             await clipboard.SetTextAsync(_viewModel.CopyText);
+            CopyFeedback.Show(sender as Control, EasyChat.Presentation.Lang.Resources.Copied);
+        }
+
+        private async void OnCopyCorrectionClick(object? sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: CorrectionVariant variant })
+                return;
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is null)
+                return;
+            await clipboard.SetTextAsync(variant.Text);
             CopyFeedback.Show(sender as Control, EasyChat.Presentation.Lang.Resources.Copied);
         }
 

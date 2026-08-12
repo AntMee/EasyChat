@@ -530,6 +530,11 @@ namespace EasyChat.Presentation.Features.TextAssist
             ILogger logger)
             : base(settings, languages, textAssist, correction: true, logger)
         {
+            PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(IsBusy))
+                    this.RaisePropertyChanged(nameof(ShowResultLoadingIndicator));
+            };
         }
 
         public string InputText
@@ -550,6 +555,7 @@ namespace EasyChat.Presentation.Features.TextAssist
         public bool HasCorrectedResults => CorrectionVariants.Count > 0;
         public bool HasCorrectionIssues => Issues.Count > 0;
         public bool HasCorrectionOutput => HasCorrectedResults || HasCorrectionIssues;
+        public bool ShowResultLoadingIndicator => IsBusy && !HasCorrectedResults;
 
         protected override async Task RunCoreAsync(CancellationToken cancellationToken)
         {
@@ -582,7 +588,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             foreach (var pair in projection.CorrectedVariants.OrderBy(pair => pair.Key))
             {
                 projection.Translations.TryGetValue(pair.Key, out var translation);
-                CorrectionVariants.Add(new CorrectionVariant(pair.Value, translation ?? string.Empty));
+                CorrectionVariants.Add(new CorrectionVariant(pair.Key, pair.Value, translation ?? string.Empty));
             }
             if (!TextAssistCorrectionProjection.HasSameIssueInstances(Issues, projection.Issues))
             {
@@ -590,9 +596,7 @@ namespace EasyChat.Presentation.Features.TextAssist
                 foreach (var issue in projection.Issues) Issues.Add(issue);
                 RebuildCorrectionSegments();
             }
-            this.RaisePropertyChanged(nameof(HasCorrectedResults));
-            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
-            this.RaisePropertyChanged(nameof(HasCorrectionOutput));
+            RaiseCorrectionOutputProperties();
         }
 
         private void ResetResults()
@@ -601,9 +605,15 @@ namespace EasyChat.Presentation.Features.TextAssist
             CorrectionVariants.Clear();
             Issues.Clear();
             CorrectionSegments.Clear();
+            RaiseCorrectionOutputProperties();
+        }
+
+        private void RaiseCorrectionOutputProperties()
+        {
             this.RaisePropertyChanged(nameof(HasCorrectedResults));
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
             this.RaisePropertyChanged(nameof(HasCorrectionOutput));
+            this.RaisePropertyChanged(nameof(ShowResultLoadingIndicator));
         }
 
         private void RebuildCorrectionSegments()
@@ -626,7 +636,7 @@ namespace EasyChat.Presentation.Features.TextAssist
     }
 
     public sealed record CorrectionTextSegment(string Text, bool IsIssue, string? Suggestion);
-    public sealed record CorrectionVariant(string Text, string Translation);
+    public sealed record CorrectionVariant(int Variant, string Text, string Translation);
 
     public sealed class TextAssistAnnotationViewModel(TextAssistTranslationAnnotationEvent value)
     {
@@ -760,7 +770,8 @@ namespace EasyChat.Presentation.Features.TextAssist
         public void EnsureComplete()
         {
             if (!_started) throw new InvalidOperationException("Correction stream did not start.");
-            if (!_completed) throw new InvalidOperationException("Correction stream did not complete.");
+            if (!_completed && !_corrected.Values.Any(value => value.Length > 0))
+                throw new InvalidOperationException("Correction stream did not complete.");
         }
 
         private static void Append(
@@ -908,15 +919,21 @@ namespace EasyChat.Presentation.Features.TextAssist
         public ObservableStringBuilder ResultMarkdown { get; } = new();
         public string CorrectedResult { get => _correctedResult; private set => this.RaiseAndSetIfChanged(ref _correctedResult, value); }
         public string CorrectionTranslation { get => _correctionTranslation; private set => this.RaiseAndSetIfChanged(ref _correctionTranslation, value); }
+        public ObservableCollection<CorrectionVariant> CorrectionVariants { get; } = [];
         public ObservableCollection<TextAssistIssueViewModel> Issues { get; } = [];
         public ObservableCollection<TextAssistPolishExplanationEvent> PolishExplanations { get; } = [];
+        public bool HasCorrectedResults => CorrectionVariants.Count > 0;
         public bool HasCorrectionIssues => Issues.Count > 0;
         public bool HasPolishExplanations => IsPolish && PolishExplanations.Count > 0;
         public bool IsCorrectionCorrect { get => _isCorrectionCorrect; private set => this.RaiseAndSetIfChanged(ref _isCorrectionCorrect, value); }
         public bool ShowCorrectionResult => IsCorrection && !IsCorrectionCorrect;
         public string CorrectionStatus => IsCorrectionCorrect ? "未发现问题" : string.Empty;
         public string CorrectionStatusDetail => IsCorrectionCorrect ? "选中的文本语法、拼写和表达均正确。" : string.Empty;
-        public string CopyText => IsCorrection ? (IsCorrectionCorrect ? SourceText : CorrectedResult) : Result;
+        public string CopyText => IsCorrection
+            ? (IsCorrectionCorrect
+                ? SourceText
+                : CorrectionVariants.FirstOrDefault()?.Text ?? CorrectedResult)
+            : Result;
         public string SourceText { get => _sourceText; set => this.RaiseAndSetIfChanged(ref _sourceText, value); }
         public string ErrorMessage { get => _errorMessage; private set => this.RaiseAndSetIfChanged(ref _errorMessage, value); }
         public bool IsBusy
@@ -940,6 +957,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             }
         }
         public bool ShowLoadingIndicator => IsBusy && !HasStreamingContent;
+        public bool ShowCorrectionLoadingIndicator => IsCorrection && IsBusy && !HasCorrectedResults;
         public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
         public Task InitializeAsync(string sourceText, TextAssistOperation operation)
@@ -1036,13 +1054,18 @@ namespace EasyChat.Presentation.Features.TextAssist
         {
             CorrectedResult = correction.CorrectedText;
             CorrectionTranslation = correction.Translations.TryGetValue(1, out var translation) ? translation : string.Empty;
+            CorrectionVariants.Clear();
+            foreach (var pair in correction.CorrectedVariants.OrderBy(pair => pair.Key))
+            {
+                correction.Translations.TryGetValue(pair.Key, out var variantTranslation);
+                CorrectionVariants.Add(new CorrectionVariant(pair.Key, pair.Value, variantTranslation ?? string.Empty));
+            }
             if (!TextAssistCorrectionProjection.HasSameIssueInstances(Issues, correction.Issues))
             {
                 Issues.Clear();
                 foreach (var issue in correction.Issues) Issues.Add(issue);
             }
-            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
-            this.RaisePropertyChanged(nameof(CopyText));
+            RaiseCorrectionOutputProperties();
             UpdateStreamingContent();
         }
 
@@ -1089,12 +1112,13 @@ namespace EasyChat.Presentation.Features.TextAssist
                 await Dispatcher.UIThread.InvokeAsync(() => ResultMarkdown.Clear());
             CorrectedResult = string.Empty;
             CorrectionTranslation = string.Empty;
+            CorrectionVariants.Clear();
             Issues.Clear();
             PolishExplanations.Clear();
             IsCorrectionCorrect = false;
             ErrorMessage = string.Empty;
             HasStreamingContent = false;
-            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
+            RaiseCorrectionOutputProperties();
             this.RaisePropertyChanged(nameof(HasPolishExplanations));
             RaiseCorrectionProperties();
         }
@@ -1125,6 +1149,15 @@ namespace EasyChat.Presentation.Features.TextAssist
             this.RaisePropertyChanged(nameof(CorrectionStatus));
             this.RaisePropertyChanged(nameof(CorrectionStatusDetail));
             this.RaisePropertyChanged(nameof(CopyText));
+            this.RaisePropertyChanged(nameof(ShowCorrectionLoadingIndicator));
+        }
+
+        private void RaiseCorrectionOutputProperties()
+        {
+            this.RaisePropertyChanged(nameof(HasCorrectedResults));
+            this.RaisePropertyChanged(nameof(HasCorrectionIssues));
+            this.RaisePropertyChanged(nameof(CopyText));
+            this.RaisePropertyChanged(nameof(ShowCorrectionLoadingIndicator));
         }
 
         private static TranslationLanguage ToContract(LanguageSettings language) => new(

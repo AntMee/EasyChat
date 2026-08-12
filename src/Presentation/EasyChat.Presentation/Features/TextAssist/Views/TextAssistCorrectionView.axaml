@@ -81,60 +81,58 @@
             <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
     </UserControl.Styles>
-    <!--
-      Match translation layout: primary editor fills the available space while the
-      correction details remain in a bounded, vertically resizable region below it.
-    -->
     <Grid RowDefinitions="*,Auto,Auto"
-          RowSpacing="0"
+          RowSpacing="12"
           MinHeight="0"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
-
-        <Grid Grid.Row="0" MinHeight="0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="{Binding HasCorrectionOutput, Converter={x:Static converters:BoolToGridLengthConverter.Instance}, ConverterParameter=220}" />
-            </Grid.RowDefinitions>
-            <!-- Primary editor: grows with available height -->
-            <shad:Card Grid.Row="0"
-                    Classes="OriginalEditorCard"
-                    VerticalAlignment="Stretch"
-                    HorizontalAlignment="Stretch" HasShadow="True" ClipToBounds="True">
+        <Grid Grid.Row="0"
+              MinHeight="0"
+              ColumnDefinitions="1.05*,0.95*"
+              ColumnSpacing="12">
+            <shad:Card Grid.Column="0"
+                       Classes="OriginalEditorCard"
+                       VerticalAlignment="Stretch"
+                       HorizontalAlignment="Stretch"
+                       HasShadow="True"
+                       ClipToBounds="True">
                 <Grid RowDefinitions="Auto,*" RowSpacing="10" MinHeight="0">
-                    <TextBlock Classes="SectionTitle" Text="{x:Static lang:Resources.SourceLang}" FontWeight="SemiBold" />
+                    <TextBlock Classes="SectionTitle"
+                               Text="{x:Static lang:Resources.SourceLang}"
+                               FontWeight="SemiBold" />
                     <Grid Grid.Row="1" Classes="OriginalEditor" MinHeight="0">
-                    <TextBox x:Name="AnnotatedTextBox"
-                             Classes="OriginalTextBox"
-                             Text="{Binding InputText, Mode=TwoWay}"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
-                             VerticalAlignment="Stretch"
-                             VerticalContentAlignment="Top"
-                             BorderThickness="0"
-                             Background="Transparent"
-                             PointerMoved="OnOriginalPointerMoved"
-                             PointerExited="OnOriginalPointerExited" />
-                    <controls:CorrectionAnnotationLayer x:Name="AnnotationLayer"
-                             Classes="OriginalAnnotation"
-                             IsHitTestVisible="False"
-                             Text="{Binding InputText}"
-                             Issues="{Binding Issues}"
-                             FontSize="16"
-                             HorizontalAlignment="Stretch"
-                             VerticalAlignment="Stretch" />
+                        <TextBox x:Name="AnnotatedTextBox"
+                                 Classes="OriginalTextBox"
+                                 Text="{Binding InputText, Mode=TwoWay}"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 PlaceholderText="{x:Static lang:Resources.TextAssistInputPlaceholderText}"
+                                 VerticalAlignment="Stretch"
+                                 VerticalContentAlignment="Top"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 PointerMoved="OnOriginalPointerMoved"
+                                 PointerExited="OnOriginalPointerExited" />
+                        <controls:CorrectionAnnotationLayer x:Name="AnnotationLayer"
+                                                            Classes="OriginalAnnotation"
+                                                            IsHitTestVisible="False"
+                                                            Text="{Binding InputText}"
+                                                            Issues="{Binding Issues}"
+                                                            FontSize="16"
+                                                            HorizontalAlignment="Stretch"
+                                                            VerticalAlignment="Stretch" />
                         <Border x:Name="CorrectionHint"
-                            IsVisible="False"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Top"
-                            Margin="12"
-                            MaxWidth="420"
-                            Background="{DynamicResource PrimaryColor}"
-                            BorderBrush="{DynamicResource PrimaryColor}"
-                            BorderThickness="1"
-                                IsHitTestVisible="False" CornerRadius="{DynamicResource LgCornerRadius}" Padding="8,5">
+                                IsVisible="False"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Margin="12"
+                                MaxWidth="420"
+                                Background="{DynamicResource PrimaryColor}"
+                                BorderBrush="{DynamicResource PrimaryColor}"
+                                BorderThickness="1"
+                                IsHitTestVisible="False"
+                                CornerRadius="{DynamicResource LgCornerRadius}"
+                                Padding="8,5">
                             <TextBlock x:Name="CorrectionHintText"
                                        Foreground="{DynamicResource PrimaryForegroundColor}"
                                        TextWrapping="Wrap" />
@@ -143,99 +141,117 @@
                 </Grid>
             </shad:Card>
 
-            <GridSplitter Grid.Row="1"
-                          Height="1"
-                          HorizontalAlignment="Stretch"
-                          Margin="0,8,0,8"
-                          Background="{DynamicResource BorderColor}"
-                          Opacity="0.65"
-                          Cursor="SizeNorthSouth"
-                          ResizeDirection="Rows"
-                          ResizeBehavior="PreviousAndNext"
-                          IsVisible="{Binding HasCorrectionOutput}" />
+            <shad:Card Grid.Column="1"
+                       Classes="CorrectionResultCard"
+                       HasShadow="True"
+                       ClipToBounds="True">
+                <Grid RowDefinitions="Auto,*"
+                      RowSpacing="10"
+                      MinHeight="0">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="7"
+                                    IsVisible="{Binding HasCorrectedResults}">
+                            <avalonia:MaterialIcon Kind="TextBoxEditOutline"
+                                                   Width="16"
+                                                   Height="16"
+                                                   Foreground="{DynamicResource PrimaryColor}" />
+                            <TextBlock Classes="SectionTitle"
+                                       Text="{x:Static lang:Resources.TextAssistCorrectedResult}"
+                                       FontWeight="SemiBold" />
+                        </StackPanel>
+                        <shad:Loading Grid.Column="1"
+                                      Width="18"
+                                      Height="18"
+                                      IsVisible="{Binding ShowResultLoadingIndicator}" />
+                    </Grid>
+                    <Grid Grid.Row="1" MinHeight="0">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <StackPanel Classes="EditorSections">
+                                <ItemsControl ItemsSource="{Binding CorrectionVariants}"
+                                              IsVisible="{Binding HasCorrectedResults}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Classes="IssueCard"
+                                                    Margin="0,0,0,8"
+                                                    Background="{DynamicResource CardBackgroundColor}"
+                                                    BorderBrush="{DynamicResource BorderColor}"
+                                                    BorderThickness="1"
+                                                    BoxShadow="{DynamicResource Shadow}"
+                                                    ClipToBounds="True">
+                                                <Grid ColumnDefinitions="*,Auto"
+                                                      ColumnSpacing="8">
+                                                    <StackPanel Spacing="6">
+                                                        <TextBlock Text="{Binding Variant, StringFormat=方案 {0}}"
+                                                                   Opacity="0.62"
+                                                                   FontWeight="SemiBold" />
+                                                        <TextBox Classes="VariantTextBox"
+                                                                 Text="{Binding Text}"
+                                                                 IsReadOnly="True"
+                                                                 AcceptsReturn="True"
+                                                                 TextWrapping="Wrap"
+                                                                 FontSize="15"
+                                                                 VerticalContentAlignment="Top"
+                                                                 BorderThickness="0"
+                                                                 Background="Transparent" />
+                                                        <TextBlock Text="{Binding Translation}"
+                                                                   Foreground="{DynamicResource ForegroundColor}"
+                                                                   Opacity="0.58"
+                                                                   TextWrapping="Wrap"
+                                                                   IsVisible="{Binding Translation, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}" />
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1"
+                                                            Classes="Icon"
+                                                            Tag="{Binding}"
+                                                            Click="OnCopyCorrectionClick"
+                                                            ToolTip.Tip="{x:Static lang:Resources.Copy}"
+                                                            VerticalAlignment="Top">
+                                                        <avalonia:MaterialIcon Kind="ContentCopy" />
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-            <!-- Results + issues under the expanding editor; hidden until output exists -->
-            <ScrollViewer Grid.Row="2"
-                          MinHeight="80"
-                          HorizontalScrollBarVisibility="Disabled"
-                          VerticalScrollBarVisibility="Auto"
-                          IsVisible="{Binding HasCorrectionOutput}">
-                <StackPanel Classes="EditorSections" Spacing="12">
-                <shad:Card Classes="CorrectionResultCard"
-                           IsVisible="{Binding HasCorrectedResults}"
-                           HasShadow="True"
-                           ClipToBounds="True">
-                    <StackPanel Spacing="8">
-                        <TextBlock Classes="SectionTitle"
-                                   Text="{x:Static lang:Resources.TextAssistCorrectedResult}"
-                                   FontWeight="SemiBold" />
-                        <ItemsControl ItemsSource="{Binding CorrectionVariants}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                                        <StackPanel Spacing="3">
-                                            <TextBox Classes="VariantTextBox"
-                                                     Text="{Binding Text}"
-                                                     IsReadOnly="True"
-                                                     AcceptsReturn="True"
-                                                     TextWrapping="Wrap"
-                                                     FontSize="18"
-                                                     VerticalContentAlignment="Top"
-                                                     BorderThickness="0"
-                                                     Background="Transparent" />
-                                            <TextBlock Text="{Binding Translation}"
-                                                       Foreground="{DynamicResource ForegroundColor}"
-                                                       Opacity="0.58"
-                                                       TextWrapping="Wrap"
-                                                       IsVisible="{Binding Translation, Converter={x:Static dataConverters:StringConverters.IsNotNullOrEmpty}}" />
-                                        </StackPanel>
-                                        <Button Grid.Column="1"
-                                                Classes="Icon"
-                                                Tag="{Binding}"
-                                                Click="OnCopyCorrectionClick"
-                                                ToolTip.Tip="{x:Static lang:Resources.Copy}"
-                                                VerticalAlignment="Top">
-                                            <avalonia:MaterialIcon Kind="ContentCopy" />
-                                        </Button>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </shad:Card>
-
-                <StackPanel Spacing="8" IsVisible="{Binding HasCorrectionIssues}">
-                    <TextBlock Classes="SectionTitle"
-                               Text="{x:Static lang:Resources.TextAssistIssues}"
-                               FontWeight="SemiBold" />
-                    <ItemsControl ItemsSource="{Binding Issues}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Classes="IssueCard"
-                                        Margin="0,0,0,6"
-                                        Background="{DynamicResource CardBackgroundColor}"
-                                        BorderBrush="{DynamicResource BorderColor}"
-                                        BorderThickness="1"
-                                        BoxShadow="{DynamicResource Shadow}"
-                                        ClipToBounds="True">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="{Binding DisplayCategory}"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource ForegroundColor}" />
-                                        <TextBlock Text="{Binding Message}"
-                                                   TextWrapping="Wrap"
-                                                   Foreground="{DynamicResource ForegroundColor}" />
-                                        <TextBlock Text="{Binding Suggestion}"
-                                                   Foreground="{DynamicResource PrimaryColor}"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
+                                <StackPanel Spacing="8"
+                                            IsVisible="{Binding HasCorrectionIssues}">
+                                    <TextBlock Classes="SectionTitle"
+                                               Text="{x:Static lang:Resources.TextAssistIssues}"
+                                               FontWeight="SemiBold" />
+                                    <ItemsControl ItemsSource="{Binding Issues}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="IssueCard"
+                                                        Margin="0,0,0,6"
+                                                        Background="{DynamicResource CardBackgroundColor}"
+                                                        BorderBrush="{DynamicResource BorderColor}"
+                                                        BorderThickness="1"
+                                                        BoxShadow="{DynamicResource Shadow}"
+                                                        ClipToBounds="True">
+                                                    <StackPanel Spacing="4">
+                                                        <TextBlock Text="{Binding DisplayCategory}"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource ForegroundColor}" />
+                                                        <TextBlock Text="{Binding Message}"
+                                                                   TextWrapping="Wrap"
+                                                                   Foreground="{DynamicResource ForegroundColor}" />
+                                                        <TextBlock Text="{Binding Suggestion}"
+                                                                   Foreground="{DynamicResource PrimaryColor}"
+                                                                   TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </shad:Card>
         </Grid>
 
         <shad:Card Grid.Row="1"

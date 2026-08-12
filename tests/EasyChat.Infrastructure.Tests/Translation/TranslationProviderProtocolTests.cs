@@ -184,6 +184,15 @@ public sealed class TranslationProviderProtocolTests
         Assert.AreNotSame(direct.Transport, proxied.Transport);
     }
 
+    [TestMethod]
+    public void OpenAiHttpClient_DoesNotImposeATotalStreamingTimeout()
+    {
+        using var client = OpenAiSdkChatClientFactory.CreateHttpClient(
+            TranslationProxyOptions.FromLegacyUrl(null));
+
+        Assert.AreEqual(Timeout.InfiniteTimeSpan, client.Timeout);
+    }
+
     private sealed class RecordingDeepLClient : IDeepLTranslationClient
     {
         public ModelType ModelType { get; private set; }

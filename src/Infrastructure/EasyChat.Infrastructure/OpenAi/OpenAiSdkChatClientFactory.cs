@@ -50,10 +50,18 @@ internal static class OpenAiSdkChatClientFactory
             Endpoint = new Uri(apiUrl)
         };
 
-        options.Transport = new HttpClientPipelineTransport(new HttpClient(CreateProxyHandler(proxy)));
+        options.Transport = new HttpClientPipelineTransport(CreateHttpClient(proxy));
 
         return options;
     }
+
+    internal static HttpClient CreateHttpClient(TranslationProxyOptions proxy)
+        => new(CreateProxyHandler(proxy))
+        {
+            // Streaming responses can legitimately run longer than HttpClient's 100-second default.
+            // Callers still control request lifetime through their cancellation tokens.
+            Timeout = Timeout.InfiniteTimeSpan
+        };
 
     internal static HttpClientHandler CreateProxyHandler(string? proxy)
         => CreateProxyHandler(TranslationProxyOptions.FromLegacyUrl(proxy));
