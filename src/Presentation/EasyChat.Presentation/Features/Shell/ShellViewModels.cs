@@ -724,7 +724,7 @@ namespace EasyChat.Presentation.Features.Shell
                 .WithContent(content)
                 .WithDelay(0)
                 .Show();
-            var result = await _updates.DownloadAndRestartAsync(new Progress<int>(value =>
+            var result = await _updates.DownloadAndRestartAsync(UpdateToastContentFactory.CreateProgressReporter(value =>
             {
                 progress.Value = Math.Clamp(value, 0, 100);
                 progressText.Text = $"{progress.Value:0}%";

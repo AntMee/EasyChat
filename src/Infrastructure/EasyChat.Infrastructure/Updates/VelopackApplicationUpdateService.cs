@@ -63,7 +63,12 @@ public sealed class VelopackApplicationUpdateService(
                 return Result.Failure(new Error("updates.none-pending", "No application update is pending."));
 
             var manager = CreateManager();
-            await manager.DownloadUpdatesAsync(_pending, value => progress?.Report(value)).ConfigureAwait(false);
+            await manager.DownloadUpdatesAsync(
+                _pending,
+                value => progress?.Report(value),
+                cancellationToken).ConfigureAwait(false);
+            // Ensure the UI has rendered completion before Velopack replaces the process.
+            progress?.Report(100);
             manager.ApplyUpdatesAndRestart(_pending);
             return Result.Success();
         }

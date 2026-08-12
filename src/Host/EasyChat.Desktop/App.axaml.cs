@@ -335,7 +335,7 @@ public sealed partial class App(
             .WithContent(content)
             .WithDelay(0)
             .Show();
-        var result = await ui.Updates.DownloadAndRestartAsync(new Progress<int>(value =>
+        var result = await ui.Updates.DownloadAndRestartAsync(UpdateToastContentFactory.CreateProgressReporter(value =>
         {
             progress.Value = Math.Clamp(value, 0, 100);
             progressText.Text = $"{progress.Value:0}%";

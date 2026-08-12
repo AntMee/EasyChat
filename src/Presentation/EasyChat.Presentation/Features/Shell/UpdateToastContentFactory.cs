@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Threading;
 using Material.Icons;
 using Material.Icons.Avalonia;
 
@@ -8,6 +9,15 @@ namespace EasyChat.Presentation.Features.Shell;
 
 public static class UpdateToastContentFactory
 {
+    /// <summary>
+    /// Adapts background-thread update callbacks to the UI thread synchronously.
+    /// Velopack may restart the process as soon as its callback returns, so an
+    /// asynchronous Progress&lt;T&gt; would leave the final UI updates queued behind
+    /// the restart.
+    /// </summary>
+    public static IProgress<int> CreateProgressReporter(Action<int> report) =>
+        new DispatcherProgress(report);
+
     public static StackPanel CreateAvailabilityContent(
         string latestVersion,
         Action dismissAction,
@@ -96,22 +106,23 @@ public static class UpdateToastContentFactory
         };
         progressText.Classes.Add("Muted");
 
-        var header = new Grid
+        var progressRow = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             ColumnSpacing = 8,
             Children =
             {
-                CreateIconSurface(),
+                progress,
                 progressText
             }
         };
+        Grid.SetColumn(progress, 0);
         Grid.SetColumn(progressText, 1);
 
         return new StackPanel
         {
             Spacing = 6,
-            Children = { header, progress }
+            Children = { progressRow }
         };
     }
 
@@ -142,5 +153,23 @@ public static class UpdateToastContentFactory
         };
         icon.Classes.Add("UpdateToastIcon");
         return icon;
+    }
+
+    private sealed class DispatcherProgress(Action<int> report) : IProgress<int>
+    {
+        private readonly Action<int> _report = report ?? throw new ArgumentNullException(nameof(report));
+
+        public void Report(int value)
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                _report(value);
+                return;
+            }
+
+            Dispatcher.UIThread.InvokeAsync(() => _report(value))
+                .GetAwaiter()
+                .GetResult();
+        }
     }
 }
