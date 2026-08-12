@@ -14,15 +14,22 @@ public sealed class WindowsGlobalPointerMonitor : IGlobalPointerMonitor, IDispos
     private readonly object _callbacksSync = new();
     private readonly Dictionary<long, Action<GlobalPointerEvent>> _callbacks = [];
     private readonly WindowsPointerHookCallback _procedure;
+    private readonly WindowsWinEventCallback _moveSizeProcedure;
     private readonly IWindowsMessageThread _messageThread;
     private readonly IWindowsPointerHookBackend _backend;
     private readonly ILogger<WindowsGlobalPointerMonitor> _logger;
     private IntPtr _hook;
+    private IntPtr _moveSizeHook;
     private long _nextRegistrationId;
     private long _lastClickTick;
     private NativePoint _lastClickPosition;
     private bool _hasLastClick;
     private bool _disposed;
+    private IntPtr _gestureWindow;
+    private NativeWindowRect _gestureRect;
+    private bool _hasGestureWindow;
+    private bool _hasGestureRect;
+    private bool _windowMoveActive;
 
     public WindowsGlobalPointerMonitor(ILogger<WindowsGlobalPointerMonitor> logger)
         : this(logger, new WindowsMessageThread(), new NativeWindowsPointerHookBackend())
@@ -38,6 +45,7 @@ public sealed class WindowsGlobalPointerMonitor : IGlobalPointerMonitor, IDispos
         _messageThread = messageThread ?? throw new ArgumentNullException(nameof(messageThread));
         _backend = backend ?? throw new ArgumentNullException(nameof(backend));
         _procedure = HandleHook;
+        _moveSizeProcedure = HandleMoveSizeEvent;
     }
 
     public IPointerMonitorRegistration Start(Action<GlobalPointerEvent> callback)
@@ -119,15 +127,26 @@ public sealed class WindowsGlobalPointerMonitor : IGlobalPointerMonitor, IDispos
         if (shouldBeInstalled && _hook == IntPtr.Zero)
         {
             _hook = _backend.Install(_procedure);
+            _moveSizeHook = _backend.InstallMoveSize(_moveSizeProcedure);
+            if (_moveSizeHook == IntPtr.Zero)
+            {
+                _backend.Uninstall(_hook);
+                _hook = IntPtr.Zero;
+                throw new InvalidOperationException("Unable to install the Windows move/size event hook.");
+            }
             _logger.LogInformation("Windows global pointer monitor started.");
         }
         else if (!shouldBeInstalled && _hook != IntPtr.Zero)
         {
+            if (_moveSizeHook != IntPtr.Zero)
+                _backend.UninstallMoveSize(_moveSizeHook);
+            _moveSizeHook = IntPtr.Zero;
             if (!_backend.Uninstall(_hook))
                 _logger.LogWarning("Unable to remove the Windows global mouse hook: {Error}", _backend.LastError);
             else
                 _logger.LogInformation("Windows global pointer monitor stopped.");
             _hook = IntPtr.Zero;
+            ClearGestureWindow();
         }
     }
 
@@ -150,6 +169,7 @@ public sealed class WindowsGlobalPointerMonitor : IGlobalPointerMonitor, IDispos
             var nativeEvent = _backend.ReadEvent(data);
             if (message == LeftButtonDown)
             {
+                BeginGestureWindow(nativeEvent.Point);
                 var now = Environment.TickCount64;
                 if (_hasLastClick
                     && now - _lastClickTick <= _backend.DoubleClickTime
@@ -166,11 +186,70 @@ public sealed class WindowsGlobalPointerMonitor : IGlobalPointerMonitor, IDispos
             }
             else
             {
+                var wasWindowMove = _windowMoveActive || HasGestureWindowMoved();
+                ClearGestureWindow();
+                if (wasWindowMove)
+                {
+                    Publish(PointerAction.WindowMoveStarted, nativeEvent.Point);
+                    return _backend.CallNext(hook, code, message, data);
+                }
                 Publish(PointerAction.PrimaryReleased, nativeEvent.Point);
             }
         }
 
         return _backend.CallNext(hook, code, message, data);
+    }
+
+    private void HandleMoveSizeEvent(
+        IntPtr hook,
+        uint eventType,
+        IntPtr hwnd,
+        int objectId,
+        int childId,
+        uint eventThread,
+        uint eventTime)
+    {
+        if (eventType != 0x000A || objectId != 0 || childId != 0 || hwnd == IntPtr.Zero)
+            return;
+
+        var root = _backend.RootWindow(hwnd);
+        if (root == _gestureWindow && root != IntPtr.Zero)
+            _windowMoveActive = true;
+    }
+
+    private void BeginGestureWindow(NativePoint point)
+    {
+        _gestureWindow = _backend.RootWindow(_backend.WindowFromPoint(point));
+        _hasGestureWindow = _gestureWindow != IntPtr.Zero;
+        _windowMoveActive = false;
+        _gestureRect = default;
+        _hasGestureRect = _hasGestureWindow
+            && _backend.TryGetWindowRect(_gestureWindow, out _gestureRect);
+    }
+
+    private bool HasGestureWindowMoved()
+    {
+        if (!_hasGestureWindow)
+            return false;
+        if (!_backend.IsWindow(_gestureWindow))
+            return true;
+        if (!_hasGestureRect)
+            return true;
+        if (!_backend.TryGetWindowRect(_gestureWindow, out var current))
+            return true;
+        return current.Left != _gestureRect.Left
+            || current.Top != _gestureRect.Top
+            || current.Right != _gestureRect.Right
+            || current.Bottom != _gestureRect.Bottom;
+    }
+
+    private void ClearGestureWindow()
+    {
+        _gestureWindow = IntPtr.Zero;
+        _gestureRect = default;
+        _hasGestureWindow = false;
+        _hasGestureRect = false;
+        _windowMoveActive = false;
     }
 
     private void Publish(PointerAction action, NativePoint point)

@@ -65,6 +65,8 @@ public sealed class WindowsGlobalPointerMonitorTests
         public int LastError => 0;
         public int InstallCount { get; private set; }
         public int UninstallCount { get; private set; }
+        public int MoveSizeInstallCount { get; private set; }
+        public int MoveSizeUninstallCount { get; private set; }
         public bool AllCallsWereDispatched { get; private set; } = true;
 
         public IntPtr Install(WindowsPointerHookCallback callback)
@@ -80,7 +82,33 @@ public sealed class WindowsGlobalPointerMonitorTests
             return true;
         }
 
+        public IntPtr InstallMoveSize(WindowsWinEventCallback callback)
+        {
+            RecordDispatchState();
+            MoveSizeInstallCount++;
+            return new IntPtr(100 + MoveSizeInstallCount);
+        }
+
+        public bool UninstallMoveSize(IntPtr hook)
+        {
+            RecordDispatchState();
+            MoveSizeUninstallCount++;
+            return true;
+        }
+
         public NativePointerEvent ReadEvent(IntPtr data) => new(new NativePoint(0, 0));
+
+        public IntPtr WindowFromPoint(NativePoint point) => IntPtr.Zero;
+
+        public IntPtr RootWindow(IntPtr window) => window;
+
+        public bool TryGetWindowRect(IntPtr window, out NativeWindowRect rect)
+        {
+            rect = default;
+            return false;
+        }
+
+        public bool IsWindow(IntPtr window) => false;
 
         public IntPtr CallNext(IntPtr hook, int code, IntPtr message, IntPtr data) => IntPtr.Zero;
 

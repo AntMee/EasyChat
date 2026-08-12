@@ -272,6 +272,10 @@ public sealed class SelectionInteractionCoordinator : ISelectionInteractionUseCa
             case PointerAction.PrimaryDoubleClick:
                 await HandleDoubleClickAsync(pointerEvent, config, cancellationToken).ConfigureAwait(false);
                 break;
+            case PointerAction.WindowMoveStarted:
+                Interlocked.Increment(ref _generation);
+                _downPoint = null;
+                break;
         }
     }
 

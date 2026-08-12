@@ -4,7 +4,8 @@ public enum PointerAction
 {
     PrimaryPressed,
     PrimaryReleased,
-    PrimaryDoubleClick
+    PrimaryDoubleClick,
+    WindowMoveStarted
 }
 
 public sealed record GlobalPointerEvent(
