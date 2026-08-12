@@ -115,16 +115,23 @@ function Assert-MsiPerMachineElevationPolicy {
         [Parameter(Mandatory = $true)] $Database
     )
 
-    # Velopack's Either scope must set ALLUSERS=1 before leaving the scope
-    # dialog. Windows Installer uses that property to elevate per-machine installs.
-    $sql = "SELECT ``Dialog_`` FROM ``ControlEvent`` WHERE ``Dialog_``='InstallScopeDlg' AND ``Control_``='Next' AND ``Event``='[ALLUSERS]' AND ``Argument``='1' AND ``Ordering`` < 8"
+    # A PerMachine MSI has ALLUSERS=1 in the Property table. Older Either-scope
+    # packages set it through the InstallScopeDlg control event instead.
+    $sql = "SELECT ``Property`` FROM ``Property`` WHERE ``Property``='ALLUSERS' AND ``Value``='1'"
     $view = Invoke-ComMethod -Target $Database -Name 'OpenView' -Arguments @($sql)
     $record = $null
     try {
         [void](Invoke-ComMethod -Target $view -Name 'Execute' -Arguments $null)
         $record = Invoke-ComMethod -Target $view -Name 'Fetch' -Arguments $null
         if ($null -eq $record) {
-            throw 'Velopack MSI does not set ALLUSERS=1 before leaving InstallScopeDlg; all-users installs would not reliably request elevation.'
+            [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($view)
+            $view = Invoke-ComMethod -Target $Database -Name 'OpenView' -Arguments @(
+                "SELECT ``Dialog_`` FROM ``ControlEvent`` WHERE ``Dialog_``='InstallScopeDlg' AND ``Control_``='Next' AND ``Event``='[ALLUSERS]' AND ``Argument``='1' AND ``Ordering`` < 8")
+            [void](Invoke-ComMethod -Target $view -Name 'Execute' -Arguments $null)
+            $record = Invoke-ComMethod -Target $view -Name 'Fetch' -Arguments $null
+        }
+        if ($null -eq $record) {
+            throw 'Velopack MSI is not configured as a per-machine installer (ALLUSERS=1); it would not reliably request elevation.'
         }
     }
     finally {
