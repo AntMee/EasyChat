@@ -2859,7 +2859,7 @@ namespace EasyChat.Presentation.Lang {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Waiting for translation....
+        ///   Looks up a localized string similar to Waiting to start.
         /// </summary>
         public static string TextAssistResultPlaceholder {
             get {

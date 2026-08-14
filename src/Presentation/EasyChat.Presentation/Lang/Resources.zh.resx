@@ -976,7 +976,7 @@
   <data name="TextAssistNoAiModel" xml:space="preserve"><value>未配置可用的 AI 模型，请在设置中添加 AI 模型。</value></data>
   <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>
-  <data name="TextAssistResultPlaceholder" xml:space="preserve"><value>等待翻译...</value></data>
+  <data name="TextAssistResultPlaceholder" xml:space="preserve"><value>等待开始</value></data>
   <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
   <data name="TextAssistIssues" xml:space="preserve"><value>错误与修改建议</value></data>

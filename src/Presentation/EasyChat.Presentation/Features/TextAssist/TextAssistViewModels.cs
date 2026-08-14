@@ -533,7 +533,10 @@ namespace EasyChat.Presentation.Features.TextAssist
             PropertyChanged += (_, args) =>
             {
                 if (args.PropertyName == nameof(IsBusy))
+                {
                     this.RaisePropertyChanged(nameof(ShowResultLoadingIndicator));
+                    this.RaisePropertyChanged(nameof(ShowResultPlaceholder));
+                }
             };
         }
 
@@ -556,6 +559,7 @@ namespace EasyChat.Presentation.Features.TextAssist
         public bool HasCorrectionIssues => Issues.Count > 0;
         public bool HasCorrectionOutput => HasCorrectedResults || HasCorrectionIssues;
         public bool ShowResultLoadingIndicator => IsBusy && !HasCorrectedResults;
+        public bool ShowResultPlaceholder => !IsBusy && !HasCorrectionOutput;
 
         protected override async Task RunCoreAsync(CancellationToken cancellationToken)
         {
@@ -614,6 +618,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             this.RaisePropertyChanged(nameof(HasCorrectionIssues));
             this.RaisePropertyChanged(nameof(HasCorrectionOutput));
             this.RaisePropertyChanged(nameof(ShowResultLoadingIndicator));
+            this.RaisePropertyChanged(nameof(ShowResultPlaceholder));
         }
 
         private void RebuildCorrectionSegments()
