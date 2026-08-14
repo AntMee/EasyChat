@@ -1029,7 +1029,7 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="OcrModelDownloadCompleted" xml:space="preserve"><value>OCR models downloaded successfully.</value></data>
   <data name="OcrModelDownloadFailed" xml:space="preserve"><value>OCR model download failed</value></data>
   <data name="AsrModels" xml:space="preserve"><value>ASR models</value></data>
-  <data name="AsrModelsDescription" xml:space="preserve"><value>Import one or more model folders, folders containing models, or supported model archives.</value></data>
+  <data name="AsrModelsDescription" xml:space="preserve"><value>Download supported models in the app, or import one or more model folders, folders containing models, or supported model archives.</value></data>
   <data name="ImportAsrModelFolder" xml:space="preserve"><value>Import folders</value></data>
   <data name="ImportAsrModelArchive" xml:space="preserve"><value>Import archives</value></data>
   <data name="AsrModelArchives" xml:space="preserve"><value>Model archives</value></data>
@@ -1042,6 +1042,14 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="AsrModelDeleted" xml:space="preserve"><value>Deleted: {0}</value></data>
   <data name="AsrModelDeleteFailed" xml:space="preserve"><value>ASR model deletion failed</value></data>
   <data name="DownloadAsrModels" xml:space="preserve"><value>Download models</value></data>
+  <data name="DownloadAsrModel" xml:space="preserve"><value>Download</value></data>
+  <data name="RetryAsrModel" xml:space="preserve"><value>Retry</value></data>
+  <data name="AsrModelDownloaded" xml:space="preserve"><value>Downloaded</value></data>
+  <data name="AsrModelDownloading" xml:space="preserve"><value>Downloading</value></data>
+  <data name="AsrModelNotDownloaded" xml:space="preserve"><value>Not downloaded</value></data>
+  <data name="AsrModelDownloadFailed" xml:space="preserve"><value>ASR model download failed</value></data>
+  <data name="ManualDownloadAsrModels" xml:space="preserve"><value>Manual download</value></data>
+  <data name="AsrModelDownloadNotice" xml:space="preserve"><value>Models are downloaded from GitHub. Users in mainland China may encounter network issues. Configure a proxy in General settings, use Watt Toolkit or a similar tool to accelerate GitHub downloads, or download manually and then import.</value></data>
 
   <data name="HomeWorkspace" xml:space="preserve">
     <value>Workspace</value>

@@ -44,6 +44,8 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
             throw new ArgumentException("At least one model source is required.", nameof(request));
         foreach (var sourcePath in request.SourcePaths)
             ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        if (request.TargetModelId is not null)
+            _ = ValidateModelIdentifier(request.TargetModelId);
         await _importGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -136,7 +138,13 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
                 throw new InvalidDataException("No compatible MicroASR model was found in the selected source.");
             }
 
-            var result = InstallPackages(packages, stagingRoot, cancellationToken);
+            if (request.TargetModelId is not null && packages.Length != 1)
+            {
+                throw new InvalidDataException(
+                    "A target model ID can only be used when the source contains exactly one compatible MicroASR model.");
+            }
+
+            var result = InstallPackages(packages, stagingRoot, request.TargetModelId, cancellationToken);
             if (result.ImportedModels.Count > 0)
                 _modelsChanged?.Invoke();
             return result;
@@ -164,6 +172,7 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
     private SpeechRecognitionModelImportResult InstallPackages(
         IReadOnlyList<SpeechModelPackage> packages,
         string stagingRoot,
+        string? targetModelId,
         CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(ModelsDirectory);
@@ -184,7 +193,7 @@ public sealed class MicroAsrSpeechRecognitionModelInstaller :
         foreach (var package in packages.OrderBy(item => item.Locale, StringComparer.OrdinalIgnoreCase))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var id = ValidateModelIdentifier(package.Locale);
+            var id = targetModelId ?? ValidateModelIdentifier(package.Locale);
             if (!identifiers.Add(id))
             {
                 AddSkipped(id);

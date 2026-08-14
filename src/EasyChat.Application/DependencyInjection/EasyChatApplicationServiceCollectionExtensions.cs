@@ -49,6 +49,7 @@ public static class EasyChatApplicationServiceCollectionExtensions
         services.AddSingleton<ITextAssistUseCases, TextAssistUseCases>();
         services.AddSingleton<ITtsUseCases, TtsUseCases>();
         services.AddSingleton<ISpeechRecognitionUseCases, SpeechRecognitionUseCases>();
+        services.AddSingleton<ISpeechRecognitionModelDownloadUseCases, SpeechRecognitionModelDownloadUseCases>();
         services.AddSingleton<IScreenshotUseCases, ScreenshotUseCases>();
         services.AddSingleton<IOcrRecognitionUseCases, OcrRecognitionUseCases>();
         services.AddSingleton<IOcrModelUseCases, OcrModelUseCases>();

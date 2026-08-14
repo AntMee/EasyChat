@@ -9,13 +9,20 @@ public sealed class NetworkProxyHandlerFactory(ISettingsUseCases settings)
 
     public HttpClient CreateHttpClient() => new(CreateHttpHandler(), disposeHandler: true);
 
+    public HttpClient CreateHttpClient(NetworkProxyMode mode, string? proxyUrl) =>
+        new(CreateHttpHandler(mode, proxyUrl), disposeHandler: true);
+
     public HttpClientHandler CreateHttpHandler()
     {
         var proxy = Current;
-        return proxy.Mode switch
+        return CreateHttpHandler(proxy.Mode, proxy.ProxyUrl);
+    }
+
+    public HttpClientHandler CreateHttpHandler(NetworkProxyMode mode, string? proxyUrl) =>
+        mode switch
         {
             NetworkProxyMode.None => new HttpClientHandler { UseProxy = false },
-            NetworkProxyMode.Custom when Uri.TryCreate(proxy.ProxyUrl, UriKind.Absolute, out var uri) => new HttpClientHandler
+            NetworkProxyMode.Custom when Uri.TryCreate(proxyUrl, UriKind.Absolute, out var uri) => new HttpClientHandler
             {
                 UseProxy = true,
                 Proxy = new WebProxy(uri)
@@ -23,7 +30,6 @@ public sealed class NetworkProxyHandlerFactory(ISettingsUseCases settings)
             NetworkProxyMode.Custom => new HttpClientHandler { UseProxy = false },
             _ => new HttpClientHandler { UseProxy = true }
         };
-    }
 
     public IWebProxy? CreateWebSocketProxy()
     {

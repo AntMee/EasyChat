@@ -70,6 +70,7 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
             provider.GetRequiredService<MicroAsrSpeechRecognitionModelInstaller>());
         services.AddSingleton<ISpeechRecognitionModelRemover>(provider =>
             provider.GetRequiredService<MicroAsrSpeechRecognitionModelInstaller>());
+        services.AddSingleton<ISpeechRecognitionModelDownloadStore, MicroAsrSpeechRecognitionModelDownloadStore>();
         return services;
     }
 }

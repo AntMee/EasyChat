@@ -31,7 +31,7 @@ public sealed class SettingViewLayoutTests
     }
 
     [TestMethod]
-    public void SpeechSettings_AsrModelsUseCollapsibleListBindings()
+    public void SpeechSettings_AsrModelDownloadsUseCollapsibleListBindings()
     {
         var root = FindRepositoryRoot();
         var path = Path.Combine(
@@ -48,17 +48,58 @@ public sealed class SettingViewLayoutTests
         var modelList = document.Descendants()
             .Single(element => element.Name.LocalName == "ItemsControl"
                                && element.Attribute("ItemsSource")?.Value == "{Binding VisibleAsrModels}");
+        var downloads = document.Descendants()
+            .Single(element => element.Name.LocalName == "ItemsControl"
+                               && element.Attribute("ItemsSource")?.Value == "{Binding VisibleAsrModelItems}");
+
+        Assert.AreEqual("{Binding HasImportedAsrModels}", modelList.Attribute("IsVisible")?.Value);
         var toggle = document.Descendants()
             .Single(element => element.Name.LocalName == "Button"
                                && element.Attribute("Command")?.Value == "{Binding ToggleAsrModelListCommand}");
 
-        Assert.AreEqual("{Binding HasAsrModels}", modelList.Attribute("IsVisible")?.Value);
+        Assert.IsNotNull(downloads);
         Assert.AreEqual(
             "{Binding IsAsrModelListToggleVisible}",
             toggle.Attribute("IsVisible")?.Value);
         Assert.AreEqual(
             "{Binding AsrModelListToggleText}",
             toggle.Attribute("ToolTip.Tip")?.Value);
+    }
+
+    [TestMethod]
+    public void SpeechSettings_AsrModelDownloadsKeepManualImportFallback()
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views",
+            "SpeechSettingsView.axaml");
+        var document = XDocument.Load(path);
+
+        var downloads = document.Descendants()
+            .Single(element => element.Name.LocalName == "ItemsControl"
+                               && element.Attribute("ItemsSource")?.Value == "{Binding VisibleAsrModelItems}");
+        var manualDownload = document.Descendants()
+            .Single(element => element.Name.LocalName == "Button"
+                               && element.Attribute("Command")?.Value == "{Binding OpenAsrModelDownloadsCommand}");
+
+        Assert.IsNotNull(downloads);
+        Assert.AreEqual("AsrManualDownloadLink", manualDownload.Attribute("Classes")?.Value);
+        Assert.AreEqual("3", manualDownload.Attribute("Grid.Column")?.Value);
+        Assert.IsTrue(document.Descendants().Any(element =>
+            element.Name.LocalName == "TextBlock" &&
+            element.Attribute("Text")?.Value == "{x:Static lang:Resources.AsrModelDownloadNotice}"));
+        Assert.AreEqual(1, document.Descendants().Count(element =>
+            element.Name.LocalName == "Button" &&
+            element.Attribute("Click")?.Value == "ImportAsrModelFolder_OnClick"));
+        Assert.AreEqual(1, document.Descendants().Count(element =>
+            element.Name.LocalName == "Button" &&
+            element.Attribute("Click")?.Value == "ImportAsrModelArchive_OnClick"));
     }
 
     [TestMethod]

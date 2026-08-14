@@ -33,6 +33,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly ITranslationUseCases _translation;
     private readonly ITranslationLanguageCatalog _languages;
     private readonly ISpeechRecognitionModelCatalog _speechModels;
+    private readonly ISpeechRecognitionModelDownloadUseCases _speechModelDownloads;
     private readonly ISpeechRecognitionModelInstaller _speechModelInstaller;
     private readonly ISpeechRecognitionModelRemover _speechModelRemover;
     private readonly IExternalUriLauncher _uriLauncher;
@@ -41,6 +42,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly IApplicationRestartService? _restartService;
     private readonly IApplicationAutoStartService _autoStartService;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
+    private readonly Dictionary<SpeechRecognitionModelDownloadItemViewModel, CancellationTokenSource> _asrDownloads = [];
     private bool _isOcrModelListExpanded;
     private bool _isAsrModelListExpanded;
     private bool _isTestingBaidu;
@@ -66,6 +68,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ITranslationUseCases translation,
         ITranslationLanguageCatalog languages,
         ISpeechRecognitionModelCatalog speechModels,
+        ISpeechRecognitionModelDownloadUseCases speechModelDownloads,
         ISpeechRecognitionModelInstaller speechModelInstaller,
         ISpeechRecognitionModelRemover speechModelRemover,
         IExternalUriLauncher uriLauncher,
@@ -81,6 +84,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         _translation = translation;
         _languages = languages;
         _speechModels = speechModels;
+        _speechModelDownloads = speechModelDownloads;
         _speechModelInstaller = speechModelInstaller;
         _speechModelRemover = speechModelRemover;
         _uriLauncher = uriLauncher;
@@ -100,7 +104,10 @@ public sealed class SettingViewModel : NavigationPageViewModel
                 string.Format(
                     Resources.OcrSupportedLanguages,
                     string.Join(", ", package.SupportedLanguages.Select(GetOcrLanguageDisplayName))),
-                _ocr.IsModelDownloaded(package))));
+                 _ocr.IsModelDownloaded(package))));
+        AsrModelItems = new ObservableCollection<SpeechRecognitionModelDownloadItemViewModel>(
+            _speechModelDownloads.ModelPackages.Select(package =>
+                new SpeechRecognitionModelDownloadItemViewModel(package, isDownloaded: false)));
 
         RefreshModelCards();
         AiModelConf.ConfiguredModels.CollectionChanged += OnModelsChanged;
@@ -117,6 +124,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
         ManageFixedAreasCommand = ReactiveCommand.Create(_dialogs.ManageFixedAreas);
         ConfigureTtsCommand = ReactiveCommand.Create(_dialogs.ConfigureTts);
         OpenAsrModelDownloadsCommand = ReactiveCommand.Create(OpenAsrModelDownloads);
+        DownloadAsrModelCommand = ReactiveCommand.Create<SpeechRecognitionModelDownloadItemViewModel>(StartDownloadAsrModel);
+        CancelAsrModelCommand = ReactiveCommand.Create<SpeechRecognitionModelDownloadItemViewModel>(CancelAsrModel);
         DeleteAsrModelCommand = ReactiveCommand.Create<SpeechRecognitionModel>(ConfirmDeleteAsrModel);
         ManageSelectionAppListCommand = ReactiveCommand.Create(_dialogs.ManageSelectionApps);
 
@@ -291,6 +300,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ObservableCollection<PromptEntryState> PromptEntries => _settings.Prompts.Entries;
     public LiveTtsSettings TtsConf => _settings.Tts;
     public ObservableCollection<OcrModelDownloadItemViewModel> OcrModelItems { get; }
+    public ObservableCollection<SpeechRecognitionModelDownloadItemViewModel> AsrModelItems { get; }
     public ObservableCollection<ModelCardItem> ModelCardsWithAddButton
     {
         get => _modelCardsWithAddButton;
@@ -310,20 +320,24 @@ public sealed class SettingViewModel : NavigationPageViewModel
             this.RaisePropertyChanged(nameof(VisibleAsrModels));
             this.RaisePropertyChanged(nameof(HasAsrModels));
             this.RaisePropertyChanged(nameof(HasNoAsrModels));
-            this.RaisePropertyChanged(nameof(IsAsrModelListToggleVisible));
+            this.RaisePropertyChanged(nameof(HasImportedAsrModels));
         }
     }
     public IEnumerable<SpeechRecognitionModel> VisibleAsrModels =>
-        IsAsrModelListExpanded ? AsrModels : AsrModels.Take(3);
+        AsrModels.Where(model => !AsrModelItems.Any(item =>
+            string.Equals(item.Id, model.Id, StringComparison.OrdinalIgnoreCase)));
     public bool HasAsrModels => AsrModels.Count > 0;
     public bool HasNoAsrModels => !HasAsrModels;
+    public bool HasImportedAsrModels => VisibleAsrModels.Any();
+    public IEnumerable<SpeechRecognitionModelDownloadItemViewModel> VisibleAsrModelItems =>
+        IsAsrModelListExpanded ? AsrModelItems : AsrModelItems.Take(3);
     public bool IsAsrModelListExpanded
     {
         get => _isAsrModelListExpanded;
         private set
         {
             this.RaiseAndSetIfChanged(ref _isAsrModelListExpanded, value);
-            this.RaisePropertyChanged(nameof(VisibleAsrModels));
+            this.RaisePropertyChanged(nameof(VisibleAsrModelItems));
             this.RaisePropertyChanged(nameof(AsrModelListToggleIcon));
             this.RaisePropertyChanged(nameof(AsrModelListToggleText));
         }
@@ -331,7 +345,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public MaterialIconKind AsrModelListToggleIcon => IsAsrModelListExpanded
         ? MaterialIconKind.ExpandLess
         : MaterialIconKind.ExpandMore;
-    public bool IsAsrModelListToggleVisible => AsrModels.Count > 3;
+    public bool IsAsrModelListToggleVisible => AsrModelItems.Count > 3;
     public string AsrModelListToggleText => IsAsrModelListExpanded
         ? Resources.ShowLessAsrModels
         : Resources.ShowMoreAsrModels;
@@ -342,10 +356,13 @@ public sealed class SettingViewModel : NavigationPageViewModel
         {
             this.RaiseAndSetIfChanged(ref _isImportingAsrModel, value);
             this.RaisePropertyChanged(nameof(CanImportAsrModel));
+            this.RaisePropertyChanged(nameof(CanDownloadAsrModel));
             this.RaisePropertyChanged(nameof(CanChangeDataLocation));
         }
     }
-    public bool CanImportAsrModel => !IsImportingAsrModel;
+    public bool IsDownloadingAsrModel => _asrDownloads.Count > 0;
+    public bool CanImportAsrModel => !IsImportingAsrModel && !IsDownloadingAsrModel;
+    public bool CanDownloadAsrModel => !IsImportingAsrModel;
     public string ApplicationDataRoot => _applicationData.Current.RootDirectory;
     public bool IsChangingDataLocation
     {
@@ -357,7 +374,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
     }
     public bool CanChangeDataLocation =>
-        !IsChangingDataLocation && !IsImportingAsrModel && _downloads.Count == 0;
+        !IsChangingDataLocation && !IsImportingAsrModel && !IsDownloadingAsrModel && _downloads.Count == 0;
     public List<string> AiProviders => ConfiguredModels.Select(model => model.Name).ToList();
 
     public string SearchText
@@ -606,6 +623,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ReactiveCommand<Unit, Unit> ManageFixedAreasCommand { get; }
     public ReactiveCommand<Unit, Unit> ConfigureTtsCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenAsrModelDownloadsCommand { get; }
+    public ReactiveCommand<SpeechRecognitionModelDownloadItemViewModel, Unit> DownloadAsrModelCommand { get; }
+    public ReactiveCommand<SpeechRecognitionModelDownloadItemViewModel, Unit> CancelAsrModelCommand { get; }
     public ReactiveCommand<SpeechRecognitionModel, Unit> DeleteAsrModelCommand { get; }
     public ReactiveCommand<Unit, Unit> ManageSelectionAppListCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DownloadOcrModelCommand { get; }
@@ -764,6 +783,11 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         var models = await _speechModels.GetModelsAsync();
         AsrModels = new ObservableCollection<SpeechRecognitionModel>(models);
+        var installedIds = models
+            .Select(model => model.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in AsrModelItems)
+            item.SyncDownloaded(installedIds.Contains(item.Id));
     }
 
     private async Task LoadAsrModelsAsync()
@@ -783,6 +807,57 @@ public sealed class SettingViewModel : NavigationPageViewModel
         var result = _uriLauncher.Open(AsrModelDownloadsUri);
         if (result.IsFailure)
             ShowToast(Resources.AsrModels, result.Error.Message, ToastNotification.Error);
+    }
+
+    private void StartDownloadAsrModel(SpeechRecognitionModelDownloadItemViewModel item) =>
+        _ = DownloadAsrModelAsync(item);
+
+    private async Task DownloadAsrModelAsync(SpeechRecognitionModelDownloadItemViewModel item)
+    {
+        if (!CanDownloadAsrModel || item.IsDownloading || item.IsDownloaded || _asrDownloads.ContainsKey(item))
+            return;
+
+        var cancellation = new CancellationTokenSource();
+        _asrDownloads.Add(item, cancellation);
+        RaiseAsrDownloadStateChanged();
+        item.StartDownload();
+        try
+        {
+            await _speechModelDownloads.DownloadModelAsync(
+                item.Package,
+                new Progress<double>(item.SetProgress),
+                cancellation.Token);
+            await RefreshAsrModelsAsync();
+            item.CompleteDownload();
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            item.CancelDownload();
+        }
+        catch (Exception exception)
+        {
+            item.FailDownload(exception.Message);
+        }
+        finally
+        {
+            _asrDownloads.Remove(item);
+            RaiseAsrDownloadStateChanged();
+            cancellation.Dispose();
+        }
+    }
+
+    private void CancelAsrModel(SpeechRecognitionModelDownloadItemViewModel item)
+    {
+        if (_asrDownloads.TryGetValue(item, out var cancellation))
+            cancellation.Cancel();
+    }
+
+    private void RaiseAsrDownloadStateChanged()
+    {
+        this.RaisePropertyChanged(nameof(IsDownloadingAsrModel));
+        this.RaisePropertyChanged(nameof(CanImportAsrModel));
+        this.RaisePropertyChanged(nameof(CanDownloadAsrModel));
+        this.RaisePropertyChanged(nameof(CanChangeDataLocation));
     }
 
     private void StartDownloadOcrModel(OcrModelDownloadItemViewModel item) => _ = DownloadOcrModelAsync(item);

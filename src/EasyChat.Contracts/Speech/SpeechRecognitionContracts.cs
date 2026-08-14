@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.Settings;
 
 namespace EasyChat.Contracts.Speech;
 
@@ -59,12 +60,14 @@ public enum SpeechRecognitionModelImportSourceKind
 
 public sealed record SpeechRecognitionModelImportRequest(
     IReadOnlyList<string> SourcePaths,
-    SpeechRecognitionModelImportSourceKind SourceKind)
+    SpeechRecognitionModelImportSourceKind SourceKind,
+    string? TargetModelId = null)
 {
     public SpeechRecognitionModelImportRequest(
         string sourcePath,
-        SpeechRecognitionModelImportSourceKind sourceKind)
-        : this([sourcePath], sourceKind)
+        SpeechRecognitionModelImportSourceKind sourceKind,
+        string? targetModelId = null)
+        : this([sourcePath], sourceKind, targetModelId)
     {
     }
 }
@@ -72,6 +75,17 @@ public sealed record SpeechRecognitionModelImportRequest(
 public sealed record SpeechRecognitionModelImportResult(
     IReadOnlyList<SpeechRecognitionModel> ImportedModels,
     IReadOnlyList<SpeechRecognitionModel> SkippedModels);
+
+public sealed record SpeechRecognitionModelDownloadPackage(
+    string Id,
+    Uri DownloadUri)
+{
+    public SpeechRecognitionModel Model { get; } = new(Id);
+}
+
+public sealed record SpeechRecognitionModelDownloadOptions(
+    NetworkProxyMode ProxyMode,
+    string? ProxyUrl);
 
 public interface ISpeechRecognitionModelInstaller
 {
@@ -84,6 +98,27 @@ public interface ISpeechRecognitionModelRemover
 {
     ValueTask<bool> DeleteAsync(
         string modelId,
+        CancellationToken cancellationToken = default);
+}
+
+public interface ISpeechRecognitionModelDownloadStore
+{
+    IReadOnlyList<SpeechRecognitionModelDownloadPackage> ModelPackages { get; }
+
+    Task<SpeechRecognitionModelImportResult> DownloadModelAsync(
+        SpeechRecognitionModelDownloadPackage package,
+        SpeechRecognitionModelDownloadOptions options,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default);
+}
+
+public interface ISpeechRecognitionModelDownloadUseCases
+{
+    IReadOnlyList<SpeechRecognitionModelDownloadPackage> ModelPackages { get; }
+
+    Task<SpeechRecognitionModelImportResult> DownloadModelAsync(
+        SpeechRecognitionModelDownloadPackage package,
+        IProgress<double>? progress = null,
         CancellationToken cancellationToken = default);
 }
 

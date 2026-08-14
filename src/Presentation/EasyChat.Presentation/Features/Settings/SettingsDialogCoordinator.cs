@@ -39,14 +39,17 @@ public sealed class SettingsDialogCoordinator(
 
     public void DeleteAiModel(CustomAiModelState model) =>
         _dialogs.CreateDialog(Resources.ConfirmDeletion, Resources.ConfirmDeleteModel)
-            .WithPrimaryButton(Resources.Delete, (Action)(() => _settings.AiModel.ConfiguredModels.Remove(model)))
-            .WithSecondaryButton(Resources.Cancel, (Action)(() => { }))
+            .WithPrimaryButton(
+                Resources.Delete,
+                () => _settings.AiModel.ConfiguredModels.Remove(model),
+                DialogButtonStyle.Destructive)
+            .WithCancelButton(Resources.Cancel)
             .Show();
 
     public void ConfirmDeleteAsrModel(SpeechRecognitionModel model, Action onConfirmed) =>
         _dialogs.CreateDialog(Resources.ConfirmDeletion, string.Format(Resources.ConfirmDeleteAsrModel, model.Id))
-            .WithPrimaryButton(Resources.Delete, onConfirmed)
-            .WithSecondaryButton(Resources.Cancel, (Action)(() => { }))
+            .WithPrimaryButton(Resources.Delete, onConfirmed, DialogButtonStyle.Destructive)
+            .WithCancelButton(Resources.Cancel)
             .Show();
 
     public void EditAiModelKeys(CustomAiModelState model) => ShowStringKeys(

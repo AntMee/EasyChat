@@ -1019,7 +1019,7 @@
   <data name="Retry" xml:space="preserve"><value>重试</value></data>
     <data name="Tts_ConfigureVoices" xml:space="preserve"><value>配置语音</value></data>
     <data name="AsrModels" xml:space="preserve"><value>ASR 模型</value></data>
-    <data name="AsrModelsDescription" xml:space="preserve"><value>可一次导入一个或多个模型文件夹、包含模型的文件夹，或受支持的模型压缩包。</value></data>
+    <data name="AsrModelsDescription" xml:space="preserve"><value>可在应用内下载支持的模型，也可一次导入一个或多个模型文件夹、包含模型的文件夹，或受支持的模型压缩包。</value></data>
     <data name="ImportAsrModelFolder" xml:space="preserve"><value>导入文件夹</value></data>
     <data name="ImportAsrModelArchive" xml:space="preserve"><value>导入压缩包</value></data>
     <data name="AsrModelArchives" xml:space="preserve"><value>模型压缩包</value></data>
@@ -1032,6 +1032,14 @@
     <data name="AsrModelDeleted" xml:space="preserve"><value>已删除：{0}</value></data>
     <data name="AsrModelDeleteFailed" xml:space="preserve"><value>ASR 模型删除失败</value></data>
     <data name="DownloadAsrModels" xml:space="preserve"><value>下载模型</value></data>
+    <data name="DownloadAsrModel" xml:space="preserve"><value>下载</value></data>
+    <data name="RetryAsrModel" xml:space="preserve"><value>重试</value></data>
+    <data name="AsrModelDownloaded" xml:space="preserve"><value>已下载</value></data>
+    <data name="AsrModelDownloading" xml:space="preserve"><value>下载中</value></data>
+    <data name="AsrModelNotDownloaded" xml:space="preserve"><value>未下载</value></data>
+    <data name="AsrModelDownloadFailed" xml:space="preserve"><value>ASR 模型下载失败</value></data>
+    <data name="ManualDownloadAsrModels" xml:space="preserve"><value>手动下载</value></data>
+    <data name="AsrModelDownloadNotice" xml:space="preserve"><value>模型从 GitHub 下载，中国大陆用户可能遇到网络问题，可在通用设置中配置代理，或使用 Watt Toolkit 等工具加速 GitHub 下载，也可手动下载后导入。</value></data>
 
   <data name="HomeWorkspace" xml:space="preserve">
     <value>工作台</value>

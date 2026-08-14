@@ -29,6 +29,12 @@
             <Setter Property="RadiusX" Value="4" />
             <Setter Property="RadiusY" Value="4" />
         </Style>
+        <Style Selector="Button.AsrManualDownloadLink">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
     </UserControl.Styles>
     <StackPanel
                 VerticalAlignment="Top"
@@ -74,44 +80,125 @@
                        Text="{x:Static lang:Resources.AsrModels}" />
             <TextBlock Classes="Muted" TextWrapping="Wrap"
                        Text="{x:Static lang:Resources.AsrModelsDescription}" />
+            <TextBlock Classes="Muted" TextWrapping="Wrap"
+                       Text="{x:Static lang:Resources.AsrModelDownloadNotice}" />
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal"
-                    Spacing="8"
-                    HorizontalAlignment="Stretch"
-                    Margin="8,0,8,8"
-                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete ASR 模型 语音识别 导入 删除 语音识别 模型 导入 删除'}">
-            <Button Classes="Ghost"
-                    Command="{Binding OpenAsrModelDownloadsCommand}"
-                    IsEnabled="{Binding CanImportAsrModel}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <avalonia:MaterialIcon Kind="Download" Width="16" Height="16" />
-                    <TextBlock Text="{x:Static lang:Resources.DownloadAsrModels}" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
-            <Button Classes="Ghost"
+        <ItemsControl ItemsSource="{Binding VisibleAsrModelItems}"
+                      Margin="4,0,8,0"
+                      HorizontalAlignment="Stretch"
+                      IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model download import delete ASR 模型 语音识别 下载 导入 删除'}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="viewModels:SpeechRecognitionModelDownloadItemViewModel">
+                    <shad:Card HasShadow="False"
+                               Padding="10,8"
+                               Margin="0,0,0,6"
+                               MinWidth="0"
+                               HorizontalAlignment="Stretch">
+                        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="6" MinWidth="0">
+                            <Border Width="24" Height="16" CornerRadius="2" ClipToBounds="True" VerticalAlignment="Center">
+                                <Image Source="{Binding Model.Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
+                                       Stretch="UniformToFill" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="4" MinWidth="0">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundColor}"
+                                               Text="{Binding DisplayName}" />
+                                    <TextBlock Classes="Caption" VerticalAlignment="Center" Text="{Binding Id}" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Classes="Muted"
+                                               Foreground="{DynamicResource MutedColor}"
+                                               Text="{Binding StatusText}" />
+                                    <TextBlock Classes="Muted" Text="{Binding ProgressText}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DownloadAsrModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        IsEnabled="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).CanDownloadAsrModel}"
+                                        ToolTip.Tip="{Binding ActionText}"
+                                        IsVisible="{Binding IsActionVisible}">
+                                    <avalonia:MaterialIcon Kind="Download" Width="16" Height="16" />
+                                </Button>
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).CancelAsrModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static lang:Resources.Cancel}"
+                                        IsVisible="{Binding IsCancelVisible}">
+                                    <avalonia:MaterialIcon Kind="Cancel" Width="16" Height="16" />
+                                </Button>
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DeleteAsrModelCommand}"
+                                        CommandParameter="{Binding Model}"
+                                        IsEnabled="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).CanImportAsrModel}"
+                                        ToolTip.Tip="{x:Static lang:Resources.Delete}"
+                                        IsVisible="{Binding IsDeleteVisible}">
+                                    <avalonia:MaterialIcon Kind="Delete" Width="16" Height="16"
+                                                           Foreground="{DynamicResource DestructiveColor}" />
+                                </Button>
+                            </StackPanel>
+                            <ProgressBar Grid.Row="1" Grid.ColumnSpan="3"
+                                         Classes="ModelProgress"
+                                         Minimum="0" Maximum="1"
+                                         Value="{Binding Progress}"
+                                         Height="6"
+                                         Margin="0,0,2,0"
+                                         IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                            <TextBlock Grid.Row="2" Grid.ColumnSpan="3"
+                                       Classes="Muted"
+                                       Text="{Binding ErrorMessage}"
+                                       IsVisible="{Binding IsFailed}"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </shad:Card>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button HorizontalAlignment="Center"
+                Classes="Icon"
+                Command="{Binding ToggleAsrModelListCommand}"
+                ToolTip.Tip="{Binding AsrModelListToggleText}"
+                IsVisible="{Binding IsAsrModelListToggleVisible}">
+            <avalonia:MaterialIcon Kind="{Binding AsrModelListToggleIcon}" />
+        </Button>
+
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto"
+              ColumnSpacing="8"
+              HorizontalAlignment="Stretch"
+              Margin="8,0,8,8"
+              IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model download import delete ASR 模型 语音识别 下载 导入 删除'}">
+            <Button Grid.Column="0"
+                    Classes="Ghost"
                     Click="ImportAsrModelFolder_OnClick"
-                    IsEnabled="{Binding CanImportAsrModel}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center">
+                    IsEnabled="{Binding CanImportAsrModel}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <avalonia:MaterialIcon Kind="FolderOpen" Width="16" Height="16" />
                     <TextBlock Text="{x:Static lang:Resources.ImportAsrModelFolder}" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Button Classes="Ghost"
+            <Button Grid.Column="1"
+                    Classes="Ghost"
                     Click="ImportAsrModelArchive_OnClick"
-                    IsEnabled="{Binding CanImportAsrModel}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center">
+                    IsEnabled="{Binding CanImportAsrModel}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <avalonia:MaterialIcon Kind="ArchiveArrowUp" Width="16" Height="16" />
                     <TextBlock Text="{x:Static lang:Resources.ImportAsrModelArchive}" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
-        </StackPanel>
+            <Button Grid.Column="3"
+                    Classes="AsrManualDownloadLink"
+                    HorizontalAlignment="Right"
+                    Command="{Binding OpenAsrModelDownloadsCommand}"
+                    ToolTip.Tip="{x:Static lang:Resources.ManualDownloadAsrModels}">
+                <TextBlock Text="{x:Static lang:Resources.ManualDownloadAsrModels}"
+                           Foreground="{DynamicResource PrimaryColor}"
+                           TextDecorations="Underline" />
+            </Button>
+        </Grid>
 
         <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete ASR 模型 语音识别 导入 删除 语音识别 模型 导入 删除'}">
         <ProgressBar Classes="ModelProgress"
@@ -131,7 +218,7 @@
         <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete ASR 模型 语音识别 导入 删除 语音识别 模型 导入 删除'}">
         <ItemsControl
                       ItemsSource="{Binding VisibleAsrModels}"
-                      IsVisible="{Binding HasAsrModels}"
+                      IsVisible="{Binding HasImportedAsrModels}"
                       Margin="4,0,4,0">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="speech:SpeechRecognitionModel">
@@ -145,11 +232,10 @@
                                 <Image Source="{Binding Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
                                        Stretch="UniformToFill" />
                             </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
                                 <TextBlock Text="{Binding Converter={x:Static converts:SpeechRecognitionModelConverters.ToDisplayName}}"
                                            Foreground="{DynamicResource ForegroundColor}" />
-                                <TextBlock Classes="Caption"
-                                           Text="{Binding Id}" />
+                                <TextBlock Classes="Caption" VerticalAlignment="Center" Text="{Binding Id}" />
                             </StackPanel>
                             <Button Grid.Column="2"
                                     Classes="Icon"
@@ -165,15 +251,6 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        </Border>
-        <Border IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='asr models speech recognition model import delete ASR 模型 语音识别 导入 删除 语音识别 模型 导入 删除'}">
-        <Button HorizontalAlignment="Center"
-                Classes="Icon"
-                Command="{Binding ToggleAsrModelListCommand}"
-                ToolTip.Tip="{Binding AsrModelListToggleText}"
-                IsVisible="{Binding IsAsrModelListToggleVisible}">
-            <avalonia:MaterialIcon Kind="{Binding AsrModelListToggleIcon}" />
-        </Button>
         </Border>
 </StackPanel>
 </UserControl>

@@ -131,6 +131,30 @@ public sealed class MicroAsrSpeechRecognitionModelInstallerTests
     }
 
     [TestMethod]
+    public async Task ImportArchiveUsesTargetModelIdWhenConfigurationHasNoLocale()
+    {
+        using var workspace = new TestWorkspace();
+        var source = workspace.CreateDirectory("source-model");
+        CreateModel(source, "zh-CN", includeVad: true, includeOutputLocale: false);
+        var archive = workspace.PathFor($"easychat-asr-{Guid.NewGuid():N}.zip");
+        ZipFile.CreateFromDirectory(source, archive);
+        var models = workspace.PathFor("application", "Models");
+        var installer = new MicroAsrSpeechRecognitionModelInstaller(models);
+
+        var result = await installer.ImportAsync(new SpeechRecognitionModelImportRequest(
+            archive,
+            SpeechRecognitionModelImportSourceKind.Archive,
+            targetModelId: "zh-CN"));
+
+        CollectionAssert.AreEqual(
+            new[] { "zh-CN" },
+            result.ImportedModels.Select(model => model.Id).ToArray());
+        Assert.IsTrue(Directory.Exists(Path.Combine(models, "zh-CN")));
+        Assert.IsFalse(Directory.EnumerateDirectories(models)
+            .Any(path => Path.GetFileName(path).StartsWith("easychat-asr-", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [TestMethod]
     public async Task ImportArchivesSkipsDuplicateLocalesAndContinuesBatch()
     {
         using var workspace = new TestWorkspace();

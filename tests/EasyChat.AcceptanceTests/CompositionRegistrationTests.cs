@@ -85,6 +85,8 @@ public sealed class CompositionRegistrationTests
             provider.GetRequiredService<ITtsUseCases>());
         Assert.IsInstanceOfType<SpeechRecognitionUseCases>(
             provider.GetRequiredService<ISpeechRecognitionUseCases>());
+        Assert.IsInstanceOfType<SpeechRecognitionModelDownloadUseCases>(
+            provider.GetRequiredService<ISpeechRecognitionModelDownloadUseCases>());
         Assert.IsNotNull(provider.GetRequiredService<IGlobalPointerMonitor>());
         Assert.IsNotNull(provider.GetRequiredService<ISelectedTextCapture>());
         Assert.IsNotNull(provider.GetRequiredService<IAudioCaptureSourceCatalog>());
