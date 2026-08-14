@@ -21,6 +21,7 @@ namespace EasyChat.Presentation.Features.Settings.Translation
         private readonly CustomAiModelState? _existing;
         private CancellationTokenSource? _scheduledModelFetch;
         private CancellationTokenSource? _activeModelFetch;
+        private bool _hasInitialized;
         private bool _isFetchingModels;
         private bool _isModelConfirmationRequired;
         private string _fetchModelsError = string.Empty;
@@ -65,7 +66,9 @@ namespace EasyChat.Presentation.Features.Settings.Translation
                 viewModel => viewModel.Model,
                 viewModel => viewModel.Name,
                 viewModel => viewModel.SelectedModelType,
-                (url, model, name, type) =>
+                viewModel => viewModel.IsFetchingModels,
+                (url, model, name, type, isFetching) =>
+                    !isFetching &&
                     !string.IsNullOrWhiteSpace(url) &&
                     !string.IsNullOrWhiteSpace(model) &&
                     (type != AiModelType.Custom || !string.IsNullOrWhiteSpace(name)));
@@ -189,6 +192,15 @@ namespace EasyChat.Presentation.Features.Settings.Translation
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
         public ReactiveCommand<Unit, Unit> FetchModelsCommand { get; }
         public Action<CustomAiModelSettings?>? OnClose { get; init; }
+
+        public Task InitializeAsync()
+        {
+            if (_hasInitialized || _existing is null)
+                return Task.CompletedTask;
+
+            _hasInitialized = true;
+            return FetchModelsAsync(showErrors: true);
+        }
 
         private void RequestSave()
         {

@@ -34,6 +34,7 @@ public sealed class SettingsDialogCoordinator(
         {
             OnClose = result => SaveModel(model, result)
         };
+        _ = viewModel.InitializeAsync();
         _dialogs.CreateDialog(viewModel).Show();
     }
 

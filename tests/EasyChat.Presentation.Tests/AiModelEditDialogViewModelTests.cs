@@ -63,6 +63,37 @@ public sealed class AiModelEditDialogViewModelTests
     }
 
     [TestMethod]
+    public async Task ExistingModel_InitializationFetchesModelsAndAllowsSavingWithoutConfirmation()
+    {
+        CustomAiModelSettings? saved = null;
+        var existing = new CustomAiModelState(
+            new CustomAiModelSettings(
+                "model-id",
+                "Existing",
+                AiModelType.OpenAi,
+                ["api-key"],
+                "https://api.openai.com/v1",
+                "existing-model",
+                false,
+                false),
+            _ => EasyChat.Shared.Results.Result.Success());
+        var catalog = new RecordingCatalog(["existing-model", "another-model"]);
+        var viewModel = CreateViewModel(catalog, result => saved = result, existing);
+
+        await viewModel.InitializeAsync();
+        await viewModel.InitializeAsync();
+
+        Assert.AreEqual(1, catalog.CallCount);
+        CollectionAssert.Contains(viewModel.AvailableModels, "existing-model");
+
+        ((System.Windows.Input.ICommand)viewModel.SaveCommand).Execute(null);
+        await WaitForAsync(() => saved is not null);
+
+        Assert.IsFalse(viewModel.IsModelConfirmationRequired);
+        Assert.AreEqual("existing-model", saved!.Model);
+    }
+
+    [TestMethod]
     public async Task UnknownModel_RequiresConfirmationBeforeSaving()
     {
         CustomAiModelSettings? saved = null;
