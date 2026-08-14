@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using EasyChat.Contracts.Platform;
 using EasyChat.Presentation.Features.ScreenshotOcr.Controls;
+using EasyChat.Presentation.Foundation.UiHost;
 using LangResources = EasyChat.Presentation.Lang.Resources;
 using Material.Icons;
 using Material.Icons.Avalonia;
@@ -32,7 +33,11 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
     {
         InitializeComponent();
         // ShadUI 0.2.4 resets RootCornerRadius while applying its Windows template.
-        Opened += (_, _) => ApplyRootCornerRadius();
+        Opened += (_, _) =>
+        {
+            ApplyRootCornerRadius();
+            ShadWindowFrameFix.Apply(this);
+        };
         AddHandler(PointerPressedEvent, OnResizePointerPressed, RoutingStrategies.Tunnel);
         PointerMoved += OnResizePointerMoved;
         PointerExited += (_, _) => Cursor = null;

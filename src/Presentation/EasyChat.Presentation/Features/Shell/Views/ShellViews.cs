@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Shell;
+using EasyChat.Presentation.Foundation.UiHost;
 using ShadUI;
 
 namespace EasyChat.Presentation.Features.Shell.Views
@@ -26,7 +27,11 @@ namespace EasyChat.Presentation.Features.Shell.Views
         {
             InitializeComponent();
             // ShadUI 0.2.4 resets RootCornerRadius while applying its Windows template.
-            Opened += (_, _) => ApplyRootCornerRadius();
+            Opened += (_, _) =>
+            {
+                ApplyRootCornerRadius();
+                ShadWindowFrameFix.Apply(this);
+            };
             AddHandler(PointerPressedEvent, OnResizePointerPressed, RoutingStrategies.Tunnel);
             AddHandler(KeyDownEvent, OnEscapeKey, RoutingStrategies.Tunnel, handledEventsToo: true);
             AddHandler(KeyUpEvent, OnEscapeKey, RoutingStrategies.Tunnel, handledEventsToo: true);
