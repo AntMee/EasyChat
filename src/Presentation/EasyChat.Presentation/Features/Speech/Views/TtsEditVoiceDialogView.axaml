@@ -50,30 +50,28 @@
                     <TextBox Text="{Binding SearchText}"
                              shad:ControlAssist.Label="{x:Static lang:Resources.Tts_SearchVoices}"
                              Margin="0,0,0,8"/>
-                    <shad:Card HasShadow="False">
-                        <ListBox ItemsSource="{Binding FilteredVoices}"
-                                 SelectedItem="{Binding SelectedVoice}"
-                                 Height="300"
-                                 Background="Transparent">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Spacing="2" Margin="4,6">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <avalonia:MaterialIcon Kind="AccountVoice" Width="16" Height="16"
-                                                                   Foreground="{DynamicResource PrimaryColor}" />
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource ForegroundColor}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="{Binding LanguageId}" Classes="Muted"/>
-                                            <TextBlock Text="{Binding Gender}" Classes="Muted"/>
-                                            <TextBlock Text="{Binding Id}" Classes="Muted"/>
-                                        </StackPanel>
+                    <ListBox ItemsSource="{Binding FilteredVoices}"
+                             SelectedItem="{Binding SelectedVoice}"
+                             Height="300"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="2" Margin="4,5">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <avalonia:MaterialIcon Kind="AccountVoice" Width="16" Height="16"
+                                                               Foreground="{DynamicResource PrimaryColor}" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ForegroundColor}"/>
                                     </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </shad:Card>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding LanguageId}" Classes="Muted"/>
+                                        <TextBlock Text="{Binding Gender}" Classes="Muted"/>
+                                        <TextBlock Text="{Binding Id}" Classes="Muted"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

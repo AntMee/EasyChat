@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Speech"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
+             xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="500"
@@ -39,9 +40,7 @@
             </Grid>
         </Border>
 
-        <shad:Card Grid.Row="1"
-                Margin="22,14,22,0"
-                HasShadow="False">
+        <Grid Grid.Row="1" Margin="18,10,18,0">
             <Grid>
                 <TextBlock Text="{x:Static lang:Resources.Tts_NoVoicesConfigured}"
                            IsVisible="{Binding !ConfiguredVoices.Count}"
@@ -50,29 +49,43 @@
                 <ListBox ItemsSource="{Binding ConfiguredVoices}"
                          SelectedItem="{Binding SelectedConfiguredVoice}"
                          Background="Transparent">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListBox.Styles>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid ColumnDefinitions="*,2*,*" MinHeight="36">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <TextBlock Text="{Binding Language.EnglishName}" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource ForegroundColor}" />
-                                    <TextBlock Text="{Binding Language.ChineseName}" Classes="Muted"
-                                               VerticalAlignment="Center" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="8" Grid.Column="1">
+                            <Grid ColumnDefinitions="190,*,Auto" ColumnSpacing="14" MinHeight="32" Margin="8,4">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                                    <Border Width="22" Height="16" CornerRadius="2" ClipToBounds="True"
+                                            VerticalAlignment="Center">
+                                        <Image Source="{Binding Language.Icon, Converter={x:Static converts:LanguageFlagConverters.ToIcon}}"
+                                               Stretch="UniformToFill" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Language.EnglishName}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ForegroundColor}" />
+                                        <TextBlock Text="{Binding Language.ChineseName}" Classes="Muted" />
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="8" Grid.Column="1"
+                                            VerticalAlignment="Center">
                                     <avalonia:MaterialIcon Kind="AccountVoice" Width="16" Height="16"
                                                            Foreground="{DynamicResource MutedColor}" />
                                     <TextBlock Text="{Binding VoiceName}"
-                                               Foreground="{DynamicResource ForegroundColor}" />
+                                               Foreground="{DynamicResource ForegroundColor}"
+                                               TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                                 <TextBlock Text="{Binding VoiceLocale}" Grid.Column="2"
-                                           HorizontalAlignment="Right" Classes="Muted" />
+                                           VerticalAlignment="Center" Classes="Muted" />
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
-        </shad:Card>
+        </Grid>
 
         <Border Grid.Row="2" Classes="DialogFooter" Margin="0,12,0,0" Padding="22,14,22,18">
             <Grid ColumnDefinitions="*,Auto">

@@ -55,8 +55,7 @@ public sealed class TtsUseCases : ITtsUseCases
         var provider = ResolveProvider(providerId);
         var preferences = _settings.Current.Tts.ProviderVoicePreferences;
         if (preferences.TryGetValue(provider.ProviderId, out var voices)
-            && voices.TryGetValue(languageId, out var configuredVoice)
-            && !string.IsNullOrWhiteSpace(configuredVoice))
+            && TryResolveConfiguredVoice(voices, languageId, out var configuredVoice))
         {
             return Result<string?>.Success(configuredVoice);
         }
@@ -72,6 +71,33 @@ public sealed class TtsUseCases : ITtsUseCases
                         candidate.Id.Contains("en", StringComparison.OrdinalIgnoreCase));
         return Result<string?>.Success(voice?.Id);
     }
+
+    private static bool TryResolveConfiguredVoice(
+        IReadOnlyDictionary<string, string> voices,
+        string languageId,
+        out string configuredVoice)
+    {
+        var primaryLanguage = GetPrimaryLanguage(languageId);
+        var configured = voices
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Value)
+                           && string.Equals(
+                               GetPrimaryLanguage(pair.Key),
+                               primaryLanguage,
+                               StringComparison.OrdinalIgnoreCase))
+            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(configured.Value))
+        {
+            configuredVoice = configured.Value;
+            return true;
+        }
+
+        configuredVoice = string.Empty;
+        return false;
+    }
+
+    private static string GetPrimaryLanguage(string languageId) =>
+        languageId.Split('-', StringSplitOptions.RemoveEmptyEntries)[0];
 
     public ValueTask<Result<AudioTrack>> SynthesizeAsync(
         TtsSynthesisRequest request,

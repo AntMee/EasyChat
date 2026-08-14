@@ -117,7 +117,10 @@ public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
         ConfiguredVoices = new ObservableCollection<ConfiguredVoiceItem>(configured.Select(preference =>
         {
             var language = _languages.FirstOrDefault(item =>
-                               string.Equals(item.Id, preference.Key, StringComparison.OrdinalIgnoreCase))
+                               string.Equals(
+                                   GetPrimaryLanguage(item.Id),
+                                   GetPrimaryLanguage(preference.Key),
+                                   StringComparison.OrdinalIgnoreCase))
                            ?? new TtsLanguageItem(new TtsLanguage(
                                preference.Key, preference.Key, string.Empty,
                                preference.Key, string.Empty, "unknown.png"));
@@ -186,6 +189,9 @@ public sealed class TtsVoiceSettingsDialogViewModel : ConventionViewModelBase
 
     private void ShowError(string message) =>
         _toasts.CreateToast(Resources.Tts_ErrorOpeningDialog).WithContent(message).ShowError();
+
+    private static string GetPrimaryLanguage(string languageId) =>
+        languageId.Split('-', StringSplitOptions.RemoveEmptyEntries)[0];
 }
 
 public sealed class TtsEditVoiceDialogViewModel : ConventionViewModelBase

@@ -233,7 +233,7 @@ public sealed class LiveTtsSettings : LiveSettingsSection
         _provider = value.Provider;
         ProviderVoicePreferences = value.ProviderVoicePreferences.ToDictionary(
             provider => provider.Key,
-            provider => new Dictionary<string, string>(provider.Value),
+            provider => NormalizeVoicePreferences(provider.Value),
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -242,7 +242,7 @@ public sealed class LiveTtsSettings : LiveSettingsSection
 
     public string? GetVoiceForLanguage(string provider, string languageId) =>
         ProviderVoicePreferences.TryGetValue(provider, out var voices)
-        && voices.TryGetValue(languageId, out var voice)
+        && voices.TryGetValue(GetPrimaryLanguage(languageId), out var voice)
             ? voice
             : null;
 
@@ -250,13 +250,14 @@ public sealed class LiveTtsSettings : LiveSettingsSection
     {
         if (!ProviderVoicePreferences.TryGetValue(provider, out var voices))
             ProviderVoicePreferences[provider] = voices = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        voices[languageId] = voiceId;
+        voices[GetPrimaryLanguage(languageId)] = voiceId;
         Commit();
     }
 
     public void RemoveVoiceForLanguage(string provider, string languageId)
     {
-        if (ProviderVoicePreferences.TryGetValue(provider, out var voices) && voices.Remove(languageId))
+        if (ProviderVoicePreferences.TryGetValue(provider, out var voices)
+            && voices.Remove(GetPrimaryLanguage(languageId)))
             Commit();
     }
 
@@ -266,4 +267,17 @@ public sealed class LiveTtsSettings : LiveSettingsSection
             provider => provider.Key,
             provider => (IReadOnlyDictionary<string, string>)new Dictionary<string, string>(provider.Value),
             StringComparer.OrdinalIgnoreCase));
+
+    private static Dictionary<string, string> NormalizeVoicePreferences(
+        IReadOnlyDictionary<string, string> preferences) =>
+        preferences
+            .Where(preference => !string.IsNullOrWhiteSpace(preference.Value))
+            .GroupBy(preference => GetPrimaryLanguage(preference.Key), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Last().Value,
+                StringComparer.OrdinalIgnoreCase);
+
+    private static string GetPrimaryLanguage(string languageId) =>
+        languageId.Split('-', StringSplitOptions.RemoveEmptyEntries)[0];
 }

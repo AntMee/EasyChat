@@ -46,6 +46,34 @@ public sealed class TtsUseCasesTests
         Assert.AreEqual("voice.mp3", output.Path);
     }
 
+    [TestMethod]
+    public async Task ResolvePreferredVoiceAsync_IgnoresRegionalLanguageSubtags()
+    {
+        var initial = SettingsTestData.CreateBundle();
+        var settings = new MutableSettingsUseCases(initial with
+        {
+            Tts = new TtsSettings(
+                TtsProviderIds.EdgeTts,
+                new Dictionary<string, IReadOnlyDictionary<string, string>>
+                {
+                    [TtsProviderIds.EdgeTts] = new Dictionary<string, string>
+                    {
+                        ["ja-JP"] = "ja-JP-NanamiNeural"
+                    }
+                })
+        });
+        var useCases = new TtsUseCases(
+            [new FakeProvider(TtsProviderIds.EdgeTts)],
+            settings,
+            new FakeOutputWriter(),
+            new FakePlaybackQueue());
+
+        var voice = await useCases.ResolvePreferredVoiceAsync("ja");
+
+        Assert.IsTrue(voice.IsSuccess);
+        Assert.AreEqual("ja-JP-NanamiNeural", voice.Value);
+    }
+
     private sealed class FakeProvider(string providerId) : ITtsSynthesisProvider
     {
         public string ProviderId { get; } = providerId;
