@@ -184,7 +184,7 @@ internal sealed class ResultSettingsDto
     public string WindowBackgroundColor { get; set; } = "#CC000000";
 
     [JsonProperty]
-    public ResultWindowModeDto ScreenshotResultMode { get; set; }
+    public ResultWindowModeDto ScreenshotResultMode { get; set; } = ResultWindowModeDto.Dictionary;
 
     [JsonProperty]
     public ResultReadAloudModeDto ReadAloudMode { get; set; }
@@ -206,7 +206,7 @@ internal sealed class InputSettingsDto
     public int KeySendDelay { get; set; } = 10;
 
     [JsonProperty]
-    public InputDeliveryModeDto DeliveryMode { get; set; } = InputDeliveryModeDto.Paste;
+    public InputDeliveryModeDto DeliveryMode { get; set; } = InputDeliveryModeDto.Message;
 
     [JsonProperty]
     public bool ReverseTranslateLanguage { get; set; } = true;
@@ -384,16 +384,16 @@ internal sealed class SelectionTranslationSettingsDto
     public bool TranslationEnabled { get; set; } = true;
 
     [JsonProperty]
-    public bool CorrectionEnabled { get; set; }
+    public bool CorrectionEnabled { get; set; } = true;
 
     [JsonProperty]
-    public bool PolishEnabled { get; set; }
+    public bool PolishEnabled { get; set; } = true;
 
     [JsonProperty]
-    public bool SummaryEnabled { get; set; }
+    public bool SummaryEnabled { get; set; } = true;
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public bool? ExplanationEnabled { get; set; }
+    public bool? ExplanationEnabled { get; set; } = true;
 
     [JsonProperty]
     public SelectionFilterModeDto FilterMode { get; set; }
