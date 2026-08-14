@@ -81,23 +81,57 @@ internal static class SettingsPersistenceMapper
             StringComparer.Ordinal)
     };
 
-    private static GeneralSettings ToContract(GeneralSettingsDto source) => new(
-        ToContract(source.SourceLanguage),
-        ToContract(source.TargetLanguage),
-        source.DisplayLanguage,
-        source.NativeLanguage is null ? null : ToContract(source.NativeLanguage),
-        (ClosingBehavior)(int)source.ClosingBehavior,
-        source.TransEngine,
-        source.UsingAiModel,
-        source.UsingAiModelId,
-        source.UsingMachineTransId,
-        source.UsingMachineTrans,
-        ToThemeMode(source.BaseTheme),
-        source.ColorTheme,
-        source.CustomThemePrimaryColor,
-        source.CustomThemeAccentColor,
-        source.TitleBarVisible,
-        source.FullScreen);
+    private static GeneralSettings ToContract(GeneralSettingsDto source)
+    {
+        var customThemes = (source.CustomColorThemes ?? [])
+            .Where(theme => !string.IsNullOrWhiteSpace(theme.Id)
+                            && !string.IsNullOrWhiteSpace(theme.DisplayName)
+                            && !string.IsNullOrWhiteSpace(theme.PrimaryColor)
+                            && !string.IsNullOrWhiteSpace(theme.AccentColor))
+            .Select(ToContract)
+            .ToArray();
+        var activeTheme = source.ColorTheme;
+
+        // Versions before the theme catalog stored only the active custom palette.
+        // Materialize it as a catalog entry while preserving the selected theme.
+        if (customThemes.Length == 0
+            && !string.IsNullOrWhiteSpace(source.ColorTheme)
+            && !string.IsNullOrWhiteSpace(source.CustomThemePrimaryColor)
+            && !string.IsNullOrWhiteSpace(source.CustomThemeAccentColor))
+        {
+            var legacyThemeId = $"legacy-custom:{source.ColorTheme}";
+            customThemes =
+            [
+                new CustomColorThemeSettings(
+                    legacyThemeId,
+                    source.ColorTheme,
+                    source.CustomThemePrimaryColor,
+                    source.CustomThemeAccentColor)
+            ];
+            activeTheme = legacyThemeId;
+        }
+
+        return new GeneralSettings(
+            ToContract(source.SourceLanguage),
+            ToContract(source.TargetLanguage),
+            source.DisplayLanguage,
+            source.NativeLanguage is null ? null : ToContract(source.NativeLanguage),
+            (ClosingBehavior)(int)source.ClosingBehavior,
+            source.TransEngine,
+            source.UsingAiModel,
+            source.UsingAiModelId,
+            source.UsingMachineTransId,
+            source.UsingMachineTrans,
+            ToThemeMode(source.BaseTheme),
+            activeTheme,
+            source.CustomThemePrimaryColor,
+            source.CustomThemeAccentColor,
+            source.TitleBarVisible,
+            source.FullScreen)
+        {
+            CustomColorThemes = customThemes
+        };
+    }
 
     private static GeneralSettingsDto ToDto(GeneralSettings source) => new()
     {
@@ -115,8 +149,23 @@ internal static class SettingsPersistenceMapper
         ColorTheme = source.ColorTheme,
         CustomThemePrimaryColor = source.CustomThemePrimaryColor,
         CustomThemeAccentColor = source.CustomThemeAccentColor,
+        CustomColorThemes = source.CustomColorThemes.Select(ToDto).ToList(),
         TitleBarVisible = source.TitleBarVisible,
         FullScreen = source.FullScreen
+    };
+
+    private static CustomColorThemeSettings ToContract(CustomColorThemeSettingsDto source) => new(
+        source.Id,
+        source.DisplayName,
+        source.PrimaryColor,
+        source.AccentColor);
+
+    private static CustomColorThemeSettingsDto ToDto(CustomColorThemeSettings source) => new()
+    {
+        Id = source.Id,
+        DisplayName = source.DisplayName,
+        PrimaryColor = source.PrimaryColor,
+        AccentColor = source.AccentColor
     };
 
     private static ThemeMode ToThemeMode(string? value)

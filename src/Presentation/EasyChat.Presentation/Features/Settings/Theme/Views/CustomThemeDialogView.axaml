@@ -27,7 +27,7 @@
                 </Border>
                 <TextBlock Grid.Column="1"
                            Classes="Large" TextWrapping="Wrap"
-                           Text="{x:Static lang:Resources.CreateCustom}"
+                           Text="{Binding DialogTitle}"
                            VerticalAlignment="Center" />
             </Grid>
         </Border>
@@ -64,7 +64,7 @@
                 <Button Command="{Binding TryCreateThemeCommand}"
                         Classes="Primary"
                         MinWidth="96"
-                        Content="{x:Static lang:Resources.Create}" />
+                        Content="{Binding SubmitLabel}" />
             </StackPanel>
         </Border>
     </Grid>

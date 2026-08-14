@@ -47,6 +47,7 @@ namespace EasyChat.Presentation.Features.Shell
     public sealed class MainWindowViewModel : ViewModelBase
     {
         public const string UpdateToastManagerKey = "Update";
+        private const string DefaultColorThemeId = "builtin:blue";
 
         private readonly SettingsSession _settings;
         private readonly IExternalUriLauncher _uriLauncher;
@@ -78,11 +79,12 @@ namespace EasyChat.Presentation.Features.Shell
 
             Themes = new ObservableCollection<ColorThemeOption>
             {
-                new("Blue", Color.Parse("#3B82F6"), Color.Parse("#60A5FA")),
-                new("Purple", Color.Parse("#8B5CF6"), Color.Parse("#A78BFA")),
-                new("Red", Color.Parse("#EF4444"), Color.Parse("#F87171")),
-                new("Orange", Color.Parse("#F97316"), Color.Parse("#FB923C")),
-                new("Green", Color.Parse("#22C55E"), Color.Parse("#4ADE80"))
+                new("builtin:black", "Black", Color.Parse("#000000"), Color.Parse("#333333")),
+                new(DefaultColorThemeId, "Blue", Color.Parse("#3B82F6"), Color.Parse("#60A5FA")),
+                new("builtin:purple", "Purple", Color.Parse("#8B5CF6"), Color.Parse("#A78BFA")),
+                new("builtin:red", "Red", Color.Parse("#EF4444"), Color.Parse("#F87171")),
+                new("builtin:orange", "Orange", Color.Parse("#F97316"), Color.Parse("#FB923C")),
+                new("builtin:green", "Green", Color.Parse("#22C55E"), Color.Parse("#4ADE80"))
             };
             _baseThemeMode = settings.General.BaseTheme;
             _isFullScreen = settings.General.FullScreen;
@@ -97,6 +99,8 @@ namespace EasyChat.Presentation.Features.Shell
             // Color palette changes remain independent from the base light/dark variant.
             ChangeThemeCommand = ReactiveCommand.Create<ColorThemeOption>(ApplyColorTheme);
             CreateCustomThemeCommand = ReactiveCommand.Create(CreateCustomTheme);
+            EditCustomThemeCommand = ReactiveCommand.Create<ColorThemeOption>(EditCustomTheme);
+            DeleteCustomThemeCommand = ReactiveCommand.Create<ColorThemeOption>(ConfirmDeleteCustomTheme);
             SelectPageCommand = ReactiveCommand.Create<NavigationPageViewModel>(SelectPage);
             ToggleFullScreenCommand = ReactiveCommand.Create(ToggleFullScreen);
             OpenUrlCommand = ReactiveCommand.Create<string>(OpenUrl);
@@ -172,6 +176,8 @@ namespace EasyChat.Presentation.Features.Shell
         public ReactiveCommand<Unit, Unit> CycleBaseThemeCommand { get; }
         public ReactiveCommand<ColorThemeOption, Unit> ChangeThemeCommand { get; }
         public ReactiveCommand<Unit, Unit> CreateCustomThemeCommand { get; }
+        public ReactiveCommand<ColorThemeOption, Unit> EditCustomThemeCommand { get; }
+        public ReactiveCommand<ColorThemeOption, Unit> DeleteCustomThemeCommand { get; }
         public ReactiveCommand<NavigationPageViewModel, Unit> SelectPageCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleFullScreenCommand { get; }
         public ReactiveCommand<string, Unit> OpenUrlCommand { get; }
@@ -184,39 +190,39 @@ namespace EasyChat.Presentation.Features.Shell
 
         private void RestoreColorTheme()
         {
-            if (string.IsNullOrWhiteSpace(_settings.General.ColorTheme))
-                return;
+            foreach (var savedTheme in _settings.General.CustomColorThemes)
+            {
+                try
+                {
+                    Themes.Add(new ColorThemeOption(
+                        savedTheme.Id,
+                        savedTheme.DisplayName,
+                        Color.Parse(savedTheme.PrimaryColor),
+                        Color.Parse(savedTheme.AccentColor),
+                        IsCustom: true));
+                }
+                catch (FormatException)
+                {
+                    // Invalid persisted entries are skipped; the remaining catalog stays usable.
+                }
+            }
+
             var saved = Themes.FirstOrDefault(theme => string.Equals(
-                theme.DisplayName,
-                _settings.General.ColorTheme,
-                StringComparison.OrdinalIgnoreCase));
-            if (saved is not null)
-            {
-                ApplyColorTheme(saved, persist: false, notify: false);
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_settings.General.CustomThemePrimaryColor) ||
-                string.IsNullOrWhiteSpace(_settings.General.CustomThemeAccentColor))
-            {
-                return;
-            }
-
-            try
-            {
-                var custom = new ColorThemeOption(
-                    _settings.General.ColorTheme,
-                    Color.Parse(_settings.General.CustomThemePrimaryColor),
-                    Color.Parse(_settings.General.CustomThemeAccentColor),
-                    IsCustom: true);
-                Themes.Add(custom);
-                ApplyColorTheme(custom, persist: false, notify: false);
-            }
-            catch (FormatException)
-            {
-                // Manually edited invalid colors leave ShadUI's default palette active.
-            }
+                            theme.Id,
+                            _settings.General.ColorTheme,
+                            StringComparison.OrdinalIgnoreCase))
+                        ?? Themes.FirstOrDefault(theme => string.Equals(
+                            theme.DisplayName,
+                            _settings.General.ColorTheme,
+                            StringComparison.OrdinalIgnoreCase));
+            ApplyColorTheme(saved ?? GetDefaultColorTheme(), persist: false, notify: false);
         }
+
+        private ColorThemeOption GetDefaultColorTheme() =>
+            Themes.First(theme => string.Equals(
+                theme.Id,
+                DefaultColorThemeId,
+                StringComparison.OrdinalIgnoreCase));
 
         private void NavigateTo(Type pageType, object? context)
         {
@@ -299,11 +305,16 @@ namespace EasyChat.Presentation.Features.Shell
 
             if (persist)
             {
-                _settings.General.ColorTheme = theme.DisplayName;
+                _settings.General.ColorTheme = theme.Id;
                 if (theme.IsCustom)
                 {
                     _settings.General.CustomThemePrimaryColor = theme.PrimaryColor.ToString();
                     _settings.General.CustomThemeAccentColor = theme.AccentColor.ToString();
+                }
+                else
+                {
+                    _settings.General.CustomThemePrimaryColor = null;
+                    _settings.General.CustomThemeAccentColor = null;
                 }
             }
 
@@ -335,8 +346,99 @@ namespace EasyChat.Presentation.Features.Shell
         private void AddCustomTheme(ColorThemeOption theme)
         {
             Themes.Add(theme);
+            _settings.General.CustomColorThemes.Add(ToSettingsTheme(theme));
             ApplyColorTheme(theme);
         }
+
+        private void EditCustomTheme(ColorThemeOption theme)
+        {
+            if (!theme.IsCustom)
+                return;
+
+            var viewModel = new CustomThemeDialogViewModel(
+                ShadDialogManager,
+                updatedTheme => ReplaceCustomTheme(theme, updatedTheme),
+                theme);
+            ShadDialogManager.CreateDialog(viewModel).Show();
+        }
+
+        private void ReplaceCustomTheme(ColorThemeOption original, ColorThemeOption updated)
+        {
+            var index = IndexOfTheme(original);
+            if (index < 0)
+                return;
+
+            Themes[index] = updated;
+            var settingsIndex = IndexOfCustomTheme(original.Id);
+            if (settingsIndex >= 0)
+                _settings.General.CustomColorThemes[settingsIndex] = ToSettingsTheme(updated);
+            if (ReferenceEquals(_activeColorTheme, original))
+                ApplyColorTheme(updated);
+        }
+
+        private void ConfirmDeleteCustomTheme(ColorThemeOption theme)
+        {
+            if (!theme.IsCustom)
+                return;
+
+            ShadDialogManager.CreateDialog(Resources.ConfirmDeletion, Resources.AreYouSureDelete)
+                .WithPrimaryButton(
+                    Resources.Delete,
+                    () => DeleteCustomTheme(theme),
+                    DialogButtonStyle.Destructive)
+                .WithCancelButton(Resources.Cancel)
+                .Show();
+        }
+
+        private void DeleteCustomTheme(ColorThemeOption theme)
+        {
+            var index = IndexOfTheme(theme);
+            if (index < 0)
+                return;
+
+            Themes.RemoveAt(index);
+            var settingsIndex = IndexOfCustomTheme(theme.Id);
+            if (settingsIndex >= 0)
+                _settings.General.CustomColorThemes.RemoveAt(settingsIndex);
+            if (ReferenceEquals(_activeColorTheme, theme))
+            {
+                _activeColorTheme = null;
+                ApplyColorTheme(GetDefaultColorTheme(), persist: true, notify: false);
+            }
+        }
+
+        private int IndexOfTheme(ColorThemeOption theme)
+        {
+            for (var index = 0; index < Themes.Count; index++)
+            {
+                if (ReferenceEquals(Themes[index], theme))
+                    return index;
+            }
+
+            return -1;
+        }
+
+        private int IndexOfCustomTheme(string id)
+        {
+            for (var index = 0; index < _settings.General.CustomColorThemes.Count; index++)
+            {
+                if (string.Equals(
+                        _settings.General.CustomColorThemes[index].Id,
+                        id,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static CustomColorThemeSettings ToSettingsTheme(ColorThemeOption theme) => new(
+            theme.Id,
+            theme.DisplayName,
+            theme.PrimaryColor.ToString(),
+            theme.AccentColor.ToString());
 
         private void ToggleFullScreen()
         {

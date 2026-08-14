@@ -124,7 +124,9 @@ internal sealed class GeneralSettingsDto
     }
 
     [JsonProperty]
-    public string? ColorTheme { get; set; }
+    // Keep the current blue palette as the default for new and legacy settings.
+    // Json.NET leaves an initialized property untouched when older files omit it.
+    public string? ColorTheme { get; set; } = "builtin:blue";
 
     [JsonProperty]
     public string? CustomThemePrimaryColor { get; set; }
@@ -133,10 +135,29 @@ internal sealed class GeneralSettingsDto
     public string? CustomThemeAccentColor { get; set; }
 
     [JsonProperty]
+    public List<CustomColorThemeSettingsDto> CustomColorThemes { get; set; } = [];
+
+    [JsonProperty]
     public bool TitleBarVisible { get; set; } = true;
 
     [JsonProperty]
     public bool FullScreen { get; set; }
+}
+
+[JsonObject(MemberSerialization.OptIn)]
+internal sealed class CustomColorThemeSettingsDto
+{
+    [JsonProperty]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonProperty]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [JsonProperty]
+    public string PrimaryColor { get; set; } = string.Empty;
+
+    [JsonProperty]
+    public string AccentColor { get; set; } = string.Empty;
 }
 
 [JsonObject(MemberSerialization.OptIn)]

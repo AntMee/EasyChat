@@ -124,7 +124,16 @@ public sealed record GeneralSettings(
     string? CustomThemeAccentColor,
     bool TitleBarVisible,
     bool FullScreen,
-    bool HomeOnboardingDismissed = false);
+    bool HomeOnboardingDismissed = false)
+{
+    public IReadOnlyList<CustomColorThemeSettings> CustomColorThemes { get; init; } = [];
+}
+
+public sealed record CustomColorThemeSettings(
+    string Id,
+    string DisplayName,
+    string PrimaryColor,
+    string AccentColor);
 
 public sealed record AiModelSettings(
     IReadOnlyList<CustomAiModelSettings> ConfiguredModels);

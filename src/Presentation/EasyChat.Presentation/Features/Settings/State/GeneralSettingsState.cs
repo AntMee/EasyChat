@@ -43,6 +43,8 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
         _colorTheme = value.ColorTheme;
         _customThemePrimaryColor = value.CustomThemePrimaryColor;
         _customThemeAccentColor = value.CustomThemeAccentColor;
+        CustomColorThemes = new ObservableCollection<CustomColorThemeSettings>(value.CustomColorThemes ?? []);
+        CustomColorThemes.CollectionChanged += (_, _) => Commit();
         _titleBarVisible = value.TitleBarVisible;
         _fullScreen = value.FullScreen;
         _homeOnboardingDismissed = value.HomeOnboardingDismissed;
@@ -62,6 +64,7 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
     public string? ColorTheme { get => _colorTheme; set => Set(ref _colorTheme, value); }
     public string? CustomThemePrimaryColor { get => _customThemePrimaryColor; set => Set(ref _customThemePrimaryColor, value); }
     public string? CustomThemeAccentColor { get => _customThemeAccentColor; set => Set(ref _customThemeAccentColor, value); }
+    public ObservableCollection<CustomColorThemeSettings> CustomColorThemes { get; }
     public bool TitleBarVisible { get => _titleBarVisible; set => Set(ref _titleBarVisible, value); }
     public bool FullScreen { get => _fullScreen; set => Set(ref _fullScreen, value); }
     public bool HomeOnboardingDismissed
@@ -74,7 +77,10 @@ public sealed class LiveGeneralSettings : LiveSettingsSection
         SourceLanguage, TargetLanguage, DisplayLanguage, NativeLanguage, ClosingBehavior,
         TransEngine, UsingAiModel, UsingAiModelId, UsingMachineTransId, UsingMachineTrans,
         BaseTheme, ColorTheme, CustomThemePrimaryColor, CustomThemeAccentColor,
-        TitleBarVisible, FullScreen, HomeOnboardingDismissed);
+        TitleBarVisible, FullScreen, HomeOnboardingDismissed)
+    {
+        CustomColorThemes = CustomColorThemes.ToArray()
+    };
 }
 
 public sealed class LiveProxySettings : LiveSettingsSection

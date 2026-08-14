@@ -44,6 +44,20 @@
         <Style Selector="Button.TitleBarMenuItem:pressed">
             <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
         </Style>
+        <Style Selector="Button.TitleBarMenuAction">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="Margin" Value="2,0,0,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.TitleBarMenuAction:pointerover">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+        </Style>
+        <Style Selector="Button.TitleBarMenuAction:pressed">
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+        </Style>
 
     </shad:Window.Styles>
 
@@ -120,25 +134,45 @@
                                 <ItemsControl ItemsSource="{Binding Themes}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type theme:ColorThemeOption}">
-                                            <Button Classes="TitleBarMenuItem"
-                                                    Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ChangeThemeCommand}"
-                                                    CommandParameter="{Binding}"
-                                                    HorizontalAlignment="Stretch"
-                                                    VerticalContentAlignment="Center">
-                                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                                    <Border Width="18" Height="18">
-                                                        <Ellipse Width="12" Height="12"
-                                                                 HorizontalAlignment="Center"
-                                                                 VerticalAlignment="Center"
-                                                                 Fill="{Binding PrimaryBrush}"
-                                                                 Stroke="{DynamicResource BorderColor60}"
-                                                                 StrokeThickness="1" />
-                                                    </Border>
-                                                    <TextBlock Text="{Binding DisplayName}"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource ForegroundColor}" />
-                                                </StackPanel>
-                                            </Button>
+                                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                                <Button Classes="TitleBarMenuItem"
+                                                        Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ChangeThemeCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        HorizontalAlignment="Stretch"
+                                                        VerticalContentAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                                        <Border Width="18" Height="18">
+                                                            <Ellipse Width="12" Height="12"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center"
+                                                                     Fill="{Binding PrimaryBrush}"
+                                                                     Stroke="{DynamicResource BorderColor60}"
+                                                                     StrokeThickness="1" />
+                                                        </Border>
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource ForegroundColor}" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Grid.Column="1"
+                                                        Classes="Icon TitleBarMenuAction"
+                                                        Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).EditCustomThemeCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        ToolTip.Tip="{x:Static lang:Resources.Edit}"
+                                                        AutomationProperties.Name="{x:Static lang:Resources.Edit}"
+                                                        IsVisible="{Binding IsCustom}">
+                                                    <avalonia:MaterialIcon Kind="Pencil" Width="16" Height="16" />
+                                                </Button>
+                                                <Button Grid.Column="2"
+                                                        Classes="Icon TitleBarMenuAction"
+                                                        Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).DeleteCustomThemeCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        ToolTip.Tip="{x:Static lang:Resources.Delete}"
+                                                        AutomationProperties.Name="{x:Static lang:Resources.Delete}"
+                                                        IsVisible="{Binding IsCustom}">
+                                                    <avalonia:MaterialIcon Kind="Delete" Width="16" Height="16" />
+                                                </Button>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

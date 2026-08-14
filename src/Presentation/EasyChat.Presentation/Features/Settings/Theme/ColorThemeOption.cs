@@ -3,6 +3,7 @@ using Avalonia.Media;
 namespace EasyChat.Presentation.Features.Settings.Theme;
 
 public sealed record ColorThemeOption(
+    string Id,
     string DisplayName,
     Color PrimaryColor,
     Color AccentColor,

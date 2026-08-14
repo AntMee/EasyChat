@@ -205,6 +205,82 @@ public sealed class SettingsPersistenceContractTests
     }
 
     [TestMethod]
+    public async Task CustomColorThemes_RoundTripAndMigrateTheLegacyActiveTheme()
+    {
+        var directory = CreateTemporaryDirectory();
+        try
+        {
+            var gateway = new JsonSettingsPersistenceGateway(directory);
+            var initial = await gateway.ReadAllAsync();
+            Assert.IsTrue(initial.IsSuccess, initial.Error.Message);
+
+            var changed = initial.Value with
+            {
+                General = initial.Value.General with
+                {
+                    ColorTheme = "custom:ocean",
+                    CustomColorThemes =
+                    [
+                        new CustomColorThemeSettings(
+                            "custom:ocean",
+                            "Ocean",
+                            "#FF0EA5E9",
+                            "#FF38BDF8"),
+                        new CustomColorThemeSettings(
+                            "custom:forest",
+                            "Forest",
+                            "#FF15803D",
+                            "#FF4ADE80")
+                    ]
+                }
+            };
+
+            var write = await gateway.WriteAsync(SettingsSection.General, changed);
+            var reread = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(write.IsSuccess, write.Error.Message);
+            Assert.IsTrue(reread.IsSuccess, reread.Error.Message);
+            Assert.AreEqual("custom:ocean", reread.Value.General.ColorTheme);
+            Assert.HasCount(2, reread.Value.General.CustomColorThemes);
+            CollectionAssert.AreEqual(
+                new[] { "custom:ocean", "custom:forest" },
+                reread.Value.General.CustomColorThemes.Select(theme => theme.Id).ToArray());
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
+                "\"CustomColorThemes\"");
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "General.json"),
+                """
+                {
+                  "ColorTheme": "Legacy Pink",
+                  "CustomThemePrimaryColor": "#FFFF1493",
+                  "CustomThemeAccentColor": "#FFFFC0CB"
+                }
+                """);
+
+            var legacy = await gateway.ReadAllAsync();
+
+            Assert.IsTrue(legacy.IsSuccess, legacy.Error.Message);
+            Assert.HasCount(1, legacy.Value.General.CustomColorThemes);
+            Assert.AreEqual("Legacy Pink", legacy.Value.General.CustomColorThemes[0].DisplayName);
+            Assert.AreEqual("#FFFF1493", legacy.Value.General.CustomColorThemes[0].PrimaryColor);
+            StringAssert.StartsWith(legacy.Value.General.ColorTheme, "legacy-custom:");
+
+            var migrate = await gateway.WriteAsync(SettingsSection.General, legacy.Value);
+
+            Assert.IsTrue(migrate.IsSuccess, migrate.Error.Message);
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(directory, "General.json")),
+                "\"CustomColorThemes\"");
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(directory);
+        }
+    }
+
+    [TestMethod]
     public void GeneralDefaults_FollowSystemUiLanguageWithoutPersistingAnImplicitChoice()
     {
         var originalCulture = CultureInfo.CurrentUICulture;
