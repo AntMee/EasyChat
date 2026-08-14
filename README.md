@@ -1,125 +1,67 @@
 <div align="center">
 
+<img src="./docs/easychat-logo.png" alt="EasyChat logo" width="96" />
+
 # EasyChat
 
 [English](README_en.md) | [简体中文](README.md)
 
-[![Downloads](https://img.shields.io/github/downloads/SwaggyMacro/EasyChat/total?style=flat-square&color=blue)](https://github.com/SwaggyMacro/EasyChat/releases)
-[![Stars](https://img.shields.io/github/stars/SwaggyMacro/EasyChat?style=flat-square&color=yellow)](https://github.com/SwaggyMacro/EasyChat/stargazers)
-[![License](https://img.shields.io/github/license/SwaggyMacro/EasyChat?style=flat-square&color=orange)](https://github.com/SwaggyMacro/EasyChat/blob/master/LICENSE)
+<p>
+  <a href="https://github.com/SwaggyMacro/EasyChat/releases"><img src="https://img.shields.io/github/downloads/SwaggyMacro/EasyChat/total?style=flat-square&color=blue" alt="Downloads" /></a>
+  <a href="https://github.com/SwaggyMacro/EasyChat/stargazers"><img src="https://img.shields.io/github/stars/SwaggyMacro/EasyChat?style=flat-square&color=yellow" alt="Stars" /></a>
+  <a href="https://github.com/SwaggyMacro/EasyChat/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SwaggyMacro/EasyChat?style=flat-square&color=orange" alt="License" /></a>
+</p>
 
 </div>
 
+EasyChat 是一款面向桌面的即时翻译与语言辅助工具，当前版本支持 Windows。它可以处理图片、文本和声音，也提供润色、总结、语法纠错及实时翻译字幕。
 
-EasyChat 是一款基于 Avalonia 开发的跨平台即时翻译工具，是继 2018 年高中时期使用易语言开发的“交流神器”（原官网 [https://f.julym.com](https://f.julym.com)）后的第三次重构版本。
-本项目旨在提供更流畅、更现代化的跨语言交流体验。
+## 安装
 
-## ✨ 核心功能
+1. 前往 [GitHub Releases](https://github.com/SwaggyMacro/EasyChat/releases) 下载最新版本。
+2. 推荐使用 `EasyChat-Win-<version>-Setup.msi` 安装包，安装后会创建快捷方式。
+3. 也可以下载 `EasyChat-Win-<version>-Portable.zip`，解压后直接运行 `EasyChat.exe`，无需安装。
 
-本软件核心功能专注于解决高频跨语言交流场景：
+首次使用时，需要在设置中接入一个翻译服务。截图 OCR 和实时语音识别还需要下载对应的本地模型，具体步骤请参阅[快速开始文档](https://easychat.ncii.cn/zh/docs/quickstart)。
 
-1.  **截图 OCR 翻译**
-    *   按下快捷键框选屏幕区域，自动识别图片中的文本并快速翻译成目标语言，结果直接悬浮显示。
-2.  **输入自动翻译**
-    *   在任意聊天软件对话框中按下快捷键，唤出输入窗口。
-    *   输入你的母语（如中文），软件自动翻译成目标语言（如英语、日语等）。
-    *   翻译完成后，自动将译文投递并发送到原对话框中，实现无缝沟通。
+## 功能
 
-## 🤖 翻译引擎支持
+- **截图翻译**：框选网页、视频、图片或软件界面，识别并显示译文，OCR 支持 80+ 种语言。
+- **截图取词**：提取图片中的文字，复制或继续进行翻译、解释等操作。
+- **划词工具栏**：选中文本后直接翻译、润色或纠错。
+- **输入翻译**：在当前输入框中完成翻译并写回文本。
+- **快捷翻译**：输入或读取选中文本，按需快速翻译。
+- **润色、总结与语法纠错**：改善表达、提炼内容，并查看语法问题说明。
+- **实时语音识别**：识别系统声音并在悬浮窗中显示双语字幕，支持视频、直播、会议和课程。
+- **同声传译**：翻译麦克风输入并输出语音。
 
-由于软件为开源项目，用户需要自行配置翻译服务的 API Key。目前支持主流 AI 大模型与传统机器翻译：
+## 演示
 
-### AI 大模型 (推荐)
-支持自定义提示词（Prompt），可完美解决特定领域术语翻译不准确的问题（如游戏术语 CS2、编程术语等）。
+### 截图翻译
 
-*   **硅基流动**: [申请地址](https://cloud.siliconflow.cn/i/x8pm79KY)
-    *   *优势*: 提供多种免費的小参数量模型，且翻译质量和速度完全满足日常使用。
-*   **心流 iFlow**: [申请地址](https://www.iflow.cn/)
-    *   *优势*: 提供多种大参数量模型，如 Qwen3-Max，适合对翻译质量有更高要求的用户，API 限制 1 QPS，但可以多注册几个账号轮询。
-*   **魔塔 ModelScope**: [申请地址](https://www.modelscope.cn/)
-    *   *优势*: 提供多种大模型，日免费 2000 次调用。
-*   **DeepSeek**: [申请地址](https://deepseek.com/)
-    *   *优势*: 价格便宜，反应快，使用 Flash 模型足够满足翻译要求。
+![截图翻译演示](./docs/screenshot/README/screenshot-translation.gif)
 
-### 机器翻译
-*   **百度翻译**: [申请地址](https://fanyi-api.baidu.com/product/11)
-    *   个人认证用户：100万免费字符/月
-    *   企业认证用户：200万免费字符/月
-*   **腾讯翻译君**: [申请地址](https://cloud.tencent.com/document/product/551)
-    *   免费额度：500万字符/月
+### 划词工具栏
 
-## 🛠️ 技术栈
+![划词工具栏演示](./docs/screenshot/README/selection-toolbar.webp)
 
-本项目使用现代 .NET 技术栈构建，致力于未来的跨平台支持：
-*   **核心框架**: [Avalonia UI](https://avaloniaui.net/) (为后续跨平台支持做准备)
-*   **UI 组件库**: [SukiUI](https://github.com/kikipoulet/SukiUI)
-*   **OCR 引擎**: [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)
+### 快捷翻译
 
-## 📖 使用教程
+![快捷翻译演示](./docs/screenshot/README/quick-translate.gif)
 
-1.  **下载运行**:
-    *   在 [Releases](../../releases) 页面下载最新版本的压缩包。
-    *   解压后找到 `EasyChat.exe` 双击运行。
-2.  **配置翻译源**:
-    *   打开软件设置。
-    *   配置任意一个 AI 大模型或机器翻译平台的 API Key。
-        ![AddAiModel](./docs/screenshot/HowToUse/AddAiModel.png)
-        ![AddAiModel](./docs/screenshot/HowToUse/AddAiModel2.png)
-3.  **设置快捷键**:
-    *   **基础热键**: 在设置中添加“截图翻译”和“输入翻译”的全局热键。
-        ![SetHotkey](./docs/screenshot/HowToUse/SetHotKey.png)
-    *   **语种切换热键**:
-        *   添加一个新的切换配置。
-        *   选择已配置好的翻译引擎。
-        *   设定源语言和目标语言（例如：源语言 English -> 目标语言 Chinese）。
-        *   *逻辑说明*:在此配置下，截图翻译会将 English 翻译为 Chinese；输入翻译时，你输入 Chinese，软件将其翻译为 English。
-            ![SetHotkey](./docs/screenshot/HowToUse/SetHotKey2.png)
-4.  **开始使用**:
-    *   **截图翻译**: 按下设定的截图翻译热键，框选屏幕区域，等待翻译结果悬浮显示。
-    *   **输入翻译**: 在聊天窗口按下输入翻译热键，输入母语文本，等待译文自动发送。
-    *   **切换语种**: 在需要切换翻译语种时，按下设定的语种切换热键。
+### 实时语音识别
 
-### 实时语音识别使用
-首先需要自行下载识别模型包
-- GitHub 模型发布页: [models-v1](https://github.com/SwaggyMacro/MicroASR/releases/tag/models-v1)
-- Google Drive: [MicroASR Models](https://drive.google.com/drive/folders/19pmknOmBA07HiVrUQljz1Jh3t3Jy8aDF?usp=sharing)
+https://github.com/user-attachments/assets/d17d6287-7cc4-40e4-a322-3c4fed615bda
 
-下载所需模型后，在软件设置的 `ASR 模型` 中直接导入模型文件夹或压缩包。模型会安装到软件运行目录的 `Models` 文件夹，无需手动复制到旧的 `Lib` 目录。
+更多演示和交互式功能介绍请访问[项目首页](https://easychat.ncii.cn/zh)。
 
-点击软件主界面左侧的 `语言识别`，选择使用的模型并配置好翻译点击启动开始即可，字幕悬浮窗在 `语音识别`->`字母悬浮窗设置` 中开启。
+## 文档
 
-### 📹 使用视频  
+- [中文文档首页](https://easychat.ncii.cn/zh)
+- [快速开始](https://easychat.ncii.cn/zh/docs/quickstart)
+- [下载安装](https://easychat.ncii.cn/zh/docs/installation)
+- [翻译服务配置](https://easychat.ncii.cn/zh/docs/engine)
+- [功能说明](https://easychat.ncii.cn/zh/docs/feature)
+- [设置说明](https://easychat.ncii.cn/zh/docs/settings)
 
-#### 实时语音识别  
-
-https://github.com/user-attachments/assets/c7842cb9-7454-439f-8932-c15373ce8759
-
-https://github.com/user-attachments/assets/6ab9b6a3-446d-403a-b37a-d49b39c0f9d3
-
-### 💡 进阶功能：自定义 Prompt
-目前软件支持大模型提示词（Prompt）配置。你可以针对特定场景优化翻译结果。
-*   *案例*: 添加 CS2 游戏提示词，让 AI 将游戏术语 "dinked" 翻译为 "打头一枪"，输出准确的游戏术语。
-
-## 🚀 开发计划 (Roadmap)
-
-项目目前已完善基础功能，后续将持续迭代开发，计划加入以下功能：
-
-- [ ] **固定区域翻译**: 设定特定屏幕区域，快捷键一键翻译（适用于 Galgame 等场景）。
-- [ ] **同色系遮罩**: 截图翻译后，使用背景同色遮罩覆盖原文并显示译文，提供更沉浸的阅读体验。
-
-## 🗪 沟通交流
-<img width="234" height="303" alt="image" src="https://github.com/user-attachments/assets/cb1503b9-96a9-496c-93f3-c30d3df2957f" />
-
-
-
-## 🤝 参与贡献
-
-如果你对本项目感兴趣，欢迎提交 PR (Pull Request) 改进代码或增加新功能。
-
-## ⭐ 支持项目
-
-如果 `EasyChat` 觉得对你有帮助，欢迎点击项目右上角的 **Star** ⭐ 支持作者！您的支持是我持续开发和维护的最大动力。
-
-
-## 🔗 相关链接
-- [Linux.do](https://linux.do)
+EasyChat 是开源项目，欢迎通过 [GitHub](https://github.com/SwaggyMacro/EasyChat) 提交 Issue 或 Pull Request。
