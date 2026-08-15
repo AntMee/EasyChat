@@ -40,6 +40,13 @@ internal sealed class SubtitleSessionCoordinator
         + "Use context only to resolve meaning and translate only current. "
         + "Preserve an incomplete ending instead of inventing missing speech. "
         + "Follow the runtime JSONL output contract exactly.";
+    private const string RealtimeInterpretationPrompt =
+        "Translate one final realtime interpretation utterance from [SourceLang] to [TargetLang]. "
+        + "The source is an automatic speech recognition (ASR) transcript. ASR punctuation and "
+        + "sentence boundaries may be inaccurate: silently repair them from semantic context, "
+        + "merge fragments that were split inside one sentence, and split only at natural complete "
+        + "sentence boundaries. Do not invent, omit, reorder, or paraphrase meaning. "
+        + "Return only the translation, with natural target-language punctuation and no explanation.";
     private const string StructuredSubtitleContract = """
         The user content is a JSON object with `context` and `current` fields.
         Translate only `current`. Split it into consecutive semantic subtitle sentences.
@@ -64,6 +71,17 @@ internal sealed class SubtitleSessionCoordinator
     private readonly SubtitleTranslationLane _machineTranslationLane;
     private readonly SubtitleFloatingLifecycleRegistry _floatingLifecycle;
     private readonly SubtitleTimestampClock _timestampClock;
+    private readonly ITtsUseCases? _tts;
+    private readonly SpeechSubtitleOrigin _subtitleOrigin;
+    private readonly bool _singleUtterance;
+    private readonly Channel<TranslatedSpeechItem> _translatedSpeech = Channel.CreateBounded<TranslatedSpeechItem>(
+        new BoundedChannelOptions(32)
+        {
+            SingleReader = true,
+            SingleWriter = true,
+            FullMode = BoundedChannelFullMode.Wait,
+            AllowSynchronousContinuations = false
+        });
     private readonly Func<long> _nextSubtitleId;
     private readonly Action<SpeechSessionEvent> _publish;
     private readonly IncrementalSubtitleSegmenter _segmenter = new();
@@ -89,6 +107,8 @@ internal sealed class SubtitleSessionCoordinator
     private TranslationJob? _pendingPreview;
     private TranslationJob? _activeTranslation;
     private string _utteranceHypothesis = string.Empty;
+    private string _singleUtteranceFinalText = string.Empty;
+    private string _singleUtterancePartialText = string.Empty;
     private string _lastFinalText = string.Empty;
     private TimeSpan? _lastFinalAt;
     private int _sentencesInCurrent;
@@ -97,6 +117,8 @@ internal sealed class SubtitleSessionCoordinator
     private bool _stoppedPublished;
     private bool _hasPartialSinceFinal;
     private bool _started;
+    private Task? _translatedSpeechPump;
+    private readonly CancellationTokenSource _translatedSpeechCancellation = new();
 
     public SubtitleSessionCoordinator(
         Func<SpeechRecognitionSettings> getSettings,
@@ -109,7 +131,10 @@ internal sealed class SubtitleSessionCoordinator
         SubtitleTranslationLane? aiTranslationLane = null,
         SubtitleTranslationLane? machineTranslationLane = null,
         SubtitleFloatingLifecycleRegistry? floatingLifecycle = null,
-        SubtitleTimestampClock? timestampClock = null)
+        SubtitleTimestampClock? timestampClock = null,
+        ITtsUseCases? tts = null,
+        SpeechSubtitleOrigin subtitleOrigin = SpeechSubtitleOrigin.AudioTranslation,
+        bool singleUtterance = false)
     {
         _getSettings = getSettings ?? throw new ArgumentNullException(nameof(getSettings));
         _translation = translation ?? throw new ArgumentNullException(nameof(translation));
@@ -120,6 +145,9 @@ internal sealed class SubtitleSessionCoordinator
         _machineTranslationLane = machineTranslationLane ?? new SubtitleTranslationLane();
         _floatingLifecycle = floatingLifecycle ?? new SubtitleFloatingLifecycleRegistry(_timeProvider);
         _timestampClock = timestampClock ?? new SubtitleTimestampClock(_timeProvider);
+        _tts = tts;
+        _subtitleOrigin = subtitleOrigin;
+        _singleUtterance = singleUtterance;
         _nextSubtitleId = nextSubtitleId ?? throw new ArgumentNullException(nameof(nextSubtitleId));
         _publish = publish ?? throw new ArgumentNullException(nameof(publish));
     }
@@ -130,6 +158,9 @@ internal sealed class SubtitleSessionCoordinator
     {
         ArgumentNullException.ThrowIfNull(recognition);
         ReplayFloatingRemovalTombstones();
+        _translatedSpeechPump = _tts is null
+            ? Task.CompletedTask
+            : PumpTranslatedSpeechAsync(_translatedSpeechCancellation.Token);
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var recognitionPump = PumpRecognitionAsync(recognition, lifetime.Token);
         var tickPump = PumpTicksAsync(lifetime.Token);
@@ -160,6 +191,61 @@ internal sealed class SubtitleSessionCoordinator
             CancelPendingJobs();
             await IgnoreCancellationAsync(recognitionPump, lifetime.Token).ConfigureAwait(false);
             await IgnoreCancellationAsync(tickPump, lifetime.Token).ConfigureAwait(false);
+            if (cancellationToken.IsCancellationRequested)
+                _translatedSpeechCancellation.Cancel();
+            _translatedSpeech.Writer.TryComplete();
+            try
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    await IgnoreCancellationAsync(_translatedSpeechPump, cancellationToken).ConfigureAwait(false);
+                else if (_translatedSpeechPump is not null)
+                    await _translatedSpeechPump.ConfigureAwait(false);
+            }
+            finally
+            {
+                _translatedSpeechCancellation.Dispose();
+            }
+        }
+    }
+
+    private async Task PumpTranslatedSpeechAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var item in _translatedSpeech.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (_tts is null)
+                    continue;
+
+                var voice = await _tts.ResolvePreferredVoiceAsync(item.TargetLanguage)
+                    .ConfigureAwait(false);
+                if (voice.IsFailure)
+                {
+                    _publish(new SpeechSessionErrorEvent(voice.Error.Message));
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(voice.Value))
+                {
+                    _publish(new SpeechSessionErrorEvent(
+                        $"No TTS voice is configured for target language '{item.TargetLanguage}'."));
+                    continue;
+                }
+
+                var queued = await _tts.EnqueueAsync(
+                    new TtsSynthesisRequest(item.Text, voice.Value),
+                    interruptCurrent: false,
+                    target: AudioPlaybackTarget.VirtualCable).ConfigureAwait(false);
+                if (queued.IsFailure)
+                    _publish(new SpeechSessionErrorEvent(queued.Error.Message));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Translated speech output failed.");
+            _publish(new SpeechSessionErrorEvent(exception.Message));
         }
     }
 
@@ -263,6 +349,12 @@ internal sealed class SubtitleSessionCoordinator
 
     private void HandleRecognition(SpeechRecognitionEvent item, TimeSpan now)
     {
+        if (_singleUtterance)
+        {
+            HandleSingleUtteranceRecognition(item, now);
+            return;
+        }
+
         switch (item.Kind)
         {
             case SpeechRecognitionEventKind.Started:
@@ -295,9 +387,75 @@ internal sealed class SubtitleSessionCoordinator
         }
     }
 
+    private void HandleSingleUtteranceRecognition(
+        SpeechRecognitionEvent item,
+        TimeSpan now)
+    {
+        switch (item.Kind)
+        {
+            case SpeechRecognitionEventKind.Started:
+                if (!_started)
+                {
+                    _started = true;
+                    _publish(new SpeechSessionStartedEvent());
+                }
+                break;
+            case SpeechRecognitionEventKind.Partial:
+                _singleUtterancePartialText = IncrementalSubtitleSegmenter.Normalize(item.Text ?? string.Empty);
+                UpdateSingleUtteranceLine(now);
+                break;
+            case SpeechRecognitionEventKind.Final:
+                _singleUtteranceFinalText = MergeRecognitionText(
+                    _singleUtteranceFinalText,
+                    item.Text ?? string.Empty);
+                _singleUtterancePartialText = string.Empty;
+                UpdateSingleUtteranceLine(now);
+                break;
+            case SpeechRecognitionEventKind.Error:
+                _publish(new SpeechSessionErrorEvent(item.Text ?? string.Empty));
+                break;
+            case SpeechRecognitionEventKind.Stopped:
+                if (_recognitionStopped)
+                    return;
+                CompleteSingleUtterance(now);
+                _recognitionStopped = true;
+                CancelPendingPreview();
+                break;
+        }
+    }
+
+    private void UpdateSingleUtteranceLine(TimeSpan now)
+    {
+        var text = MergeRecognitionText(_singleUtteranceFinalText, _singleUtterancePartialText);
+        if (text.Length == 0)
+            return;
+
+        _utteranceHypothesis = text;
+        var line = EnsureCurrentLine(now, 0);
+        var range = _currentRange!;
+        range.Start = 0;
+        range.End = text.Length;
+        UpdateSource(line, text, now);
+        PublishLine(line);
+    }
+
+    private void CompleteSingleUtterance(TimeSpan now)
+    {
+        UpdateSingleUtteranceLine(now);
+        if (_currentLine is not null)
+        {
+            _currentLine.IsSourceFinalized = true;
+            SealCurrentLine(now);
+        }
+
+        _singleUtteranceFinalText = string.Empty;
+        _singleUtterancePartialText = string.Empty;
+        CompleteUtterance();
+    }
+
     private void HandleTick(TimeSpan now)
     {
-        if (!_recognitionStopped)
+        if (!_recognitionStopped && !_singleUtterance)
         {
             var quietPeriod = UsesBufferedAiTranslation(_getSettings())
                 ? AiQuietPeriod
@@ -434,7 +592,7 @@ internal sealed class SubtitleSessionCoordinator
         if (_currentLine is not null)
             return _currentLine;
         var timestamp = _timestampClock.GetTimestamp();
-        _currentLine = new ManagedSubtitleLine(_nextSubtitleId(), timestamp, now);
+        _currentLine = new ManagedSubtitleLine(_nextSubtitleId(), timestamp, now, _subtitleOrigin);
         ReserveStructuredChildIds(_currentLine);
         _currentRange = new UtteranceLineRange(
             _currentLine,
@@ -764,7 +922,8 @@ internal sealed class SubtitleSessionCoordinator
         var line = new ManagedSubtitleLine(
             _nextSubtitleId(),
             _timestampClock.GetTimestamp(),
-            now);
+            now,
+            _subtitleOrigin);
         ReserveStructuredChildIds(line);
         _linesById.Add(line.Id, line);
         _floating.Add(line);
@@ -774,7 +933,9 @@ internal sealed class SubtitleSessionCoordinator
 
     private void ReserveStructuredChildIds(ManagedSubtitleLine line)
     {
-        if (!UsesBufferedAiTranslation(_getSettings()) || line.ReservedChildIds.Count > 0)
+        if (_singleUtterance
+            || !UsesBufferedAiTranslation(_getSettings())
+            || line.ReservedChildIds.Count > 0)
             return;
         for (var index = 1; index < MaximumStructuredSegments; index++)
             line.ReservedChildIds.Add(_nextSubtitleId());
@@ -862,6 +1023,8 @@ internal sealed class SubtitleSessionCoordinator
 
     private void SchedulePreview(TimeSpan now)
     {
+        if (_singleUtterance)
+            return;
         var line = _currentLine;
         var settings = _getSettings();
         if (line is null
@@ -928,11 +1091,12 @@ internal sealed class SubtitleSessionCoordinator
             return;
         }
 
-        if (settings.EngineType != 0)
+        if (settings.EngineType != 0 && !_singleUtterance)
             ReserveStructuredChildIds(line);
 
         var expectedDefinition = CreateTranslationDefinition(line, settings);
-        if (line.IsSourceFinalized
+        if (!_singleUtterance
+            && line.IsSourceFinalized
             && TryMaterializeStructuredPlan(line, expectedDefinition, now))
         {
             return;
@@ -1102,7 +1266,9 @@ internal sealed class SubtitleSessionCoordinator
             ? new TranslationProviderSelection(
                 TranslationEngineNames.AiModel,
                 AiModelId: settings.EngineId,
-                PromptOverride: SubtitlePrompt,
+                PromptOverride: _subtitleOrigin == SpeechSubtitleOrigin.RealtimeInterpretation
+                    ? RealtimeInterpretationPrompt
+                    : SubtitlePrompt,
                 PromptId: settings.PromptId)
             : new TranslationProviderSelection(
                 TranslationEngineNames.MachineTrans,
@@ -1265,7 +1431,9 @@ internal sealed class SubtitleSessionCoordinator
         {
             var session = _translation.Prepare(job.Selection);
             using var disposable = session as IDisposable;
-            var structured = session as IStructuredJsonLinesTranslationSession;
+            var structured = _singleUtterance
+                ? null
+                : session as IStructuredJsonLinesTranslationSession;
             if (structured is not null
                 && !string.Equals(
                     job.Selection.Engine,
@@ -1905,7 +2073,8 @@ internal sealed class SubtitleSessionCoordinator
                 : new ManagedSubtitleLine(
                     anchor.ReservedChildIds[index - 1],
                     anchor.Timestamp,
-                    now);
+                    now,
+                    anchor.Origin);
             if (index > 0)
                 _linesById.Add(line.Id, line);
 
@@ -1930,6 +2099,7 @@ internal sealed class SubtitleSessionCoordinator
             line.IsSourceFinalized = true;
             line.PreviewEligibleAt = null;
             line.ExpiresAt = expiresAt;
+            QueueTranslatedSpeech(line, settings.TargetLanguage);
             line.SourceStart = sourceCursor;
             sourceCursor += segment.Source.Length;
             line.SourceEnd = sourceCursor;
@@ -1987,7 +2157,36 @@ internal sealed class SubtitleSessionCoordinator
         line.IsTranslationTerminal = true;
         var seconds = _getSettings().AutoClearInterval;
         line.ExpiresAt = seconds > 0 ? now + TimeSpan.FromSeconds(seconds) : null;
+        QueueTranslatedSpeech(line, _getSettings().TargetLanguage);
         PublishLine(line);
+        if (line.Origin == SpeechSubtitleOrigin.RealtimeInterpretation
+            && !string.IsNullOrWhiteSpace(line.DisplayTranslatedText))
+        {
+            _publish(new SpeechTranslationCompletedEvent(line.Id, line.Origin));
+        }
+    }
+
+    private void QueueTranslatedSpeech(ManagedSubtitleLine line, string targetLanguage)
+    {
+        var settings = _getSettings();
+        if (_tts is null
+            || !settings.IsTranslatedSpeechEnabled
+            || line.IsSpeechQueued
+            || string.IsNullOrWhiteSpace(line.DisplayTranslatedText)
+            || string.IsNullOrWhiteSpace(targetLanguage))
+        {
+            return;
+        }
+
+        if (!_translatedSpeech.Writer.TryWrite(new TranslatedSpeechItem(
+                line.DisplayTranslatedText,
+                targetLanguage)))
+        {
+            _logger.LogWarning("Dropping translated speech because the output queue is full.");
+            return;
+        }
+
+        line.IsSpeechQueued = true;
     }
 
     private void ExpireFloatingLines(TimeSpan now)
@@ -2207,8 +2406,8 @@ internal sealed class SubtitleSessionCoordinator
             ? _machineTranslationLane
             : _aiTranslationLane;
 
-    private static bool UsesBufferedAiTranslation(SpeechRecognitionSettings settings) =>
-        settings.IsTranslationEnabled && settings.EngineType != 0;
+    private bool UsesBufferedAiTranslation(SpeechRecognitionSettings settings) =>
+        !_singleUtterance && settings.IsTranslationEnabled && settings.EngineType != 0;
 
     private static bool IsBufferedAiTranslationFull(ManagedSubtitleLine line) =>
         IncrementalSubtitleSegmenter.CountWords(line.OriginalText)
@@ -2227,6 +2426,23 @@ internal sealed class SubtitleSessionCoordinator
         if (IsPunctuation(right[0]) || IsCjk(left[^1]) || IsCjk(right[0]))
             return left + right;
         return left + " " + right;
+    }
+
+    private static string MergeRecognitionText(string accumulated, string next)
+    {
+        accumulated = IncrementalSubtitleSegmenter.Normalize(accumulated);
+        next = IncrementalSubtitleSegmenter.Normalize(next);
+        if (accumulated.Length == 0 || next.Length == 0)
+            return accumulated.Length == 0 ? next : accumulated;
+        if (next.StartsWith(accumulated, StringComparison.OrdinalIgnoreCase))
+            return next;
+        if (accumulated.EndsWith(next, StringComparison.OrdinalIgnoreCase))
+            return accumulated;
+
+        var overlap = FindSuffixOverlap(accumulated, next);
+        return overlap > 0
+            ? accumulated + next[overlap..]
+            : JoinText(accumulated, next);
     }
 
     private static bool IsPunctuation(char character) =>
@@ -2354,10 +2570,15 @@ internal sealed class SubtitleSessionCoordinator
         public TimeSpan NextDisplayAt { get; set; }
     }
 
-    private sealed class ManagedSubtitleLine(long id, TimeSpan timestamp, TimeSpan createdAt)
+    private sealed class ManagedSubtitleLine(
+        long id,
+        TimeSpan timestamp,
+        TimeSpan createdAt,
+        SpeechSubtitleOrigin origin)
     {
         public long Id { get; } = id;
         public TimeSpan Timestamp { get; } = timestamp;
+        public SpeechSubtitleOrigin Origin { get; } = origin;
         public long Revision { get; set; }
         public string OriginalText { get; set; } = string.Empty;
         public string TranslatedText { get; set; } = string.Empty;
@@ -2374,6 +2595,7 @@ internal sealed class SubtitleSessionCoordinator
         public string LastPreviewRequestedSource { get; set; } = string.Empty;
         public bool IsTranslating { get; set; }
         public bool IsTranslationTerminal { get; set; }
+        public bool IsSpeechQueued { get; set; }
         public bool IsTemporary { get; set; } = true;
         public bool IsSealed { get; set; }
         public bool IsFloatingVisible { get; set; } = true;
@@ -2392,8 +2614,11 @@ internal sealed class SubtitleSessionCoordinator
             TranslatedText,
             DisplayTranslatedText,
             IsTranslating,
-            IsTemporary);
+            IsTemporary,
+            Origin);
     }
+
+    private sealed record TranslatedSpeechItem(string Text, string TargetLanguage);
 
     private sealed class UtteranceLineRange(
         ManagedSubtitleLine line,

@@ -297,6 +297,16 @@
     <data name="Action_InputTranslate" xml:space="preserve">
     <value>输入翻译</value>
   </data>
+    <data name="Action_RealtimeInterpretation" xml:space="preserve">
+    <value>实时口译（按住说话）</value>
+  </data>
+    <data name="Speech_VirtualCableRequiredTitle" xml:space="preserve"><value>需要虚拟音频驱动</value></data>
+    <data name="Speech_VirtualCableRequiredMessage" xml:space="preserve"><value>实时口译会将译文发送到虚拟麦克风。请安装 VB-CABLE 后重新检测。</value></data>
+    <data name="Speech_InstallDriverTutorial" xml:space="preserve"><value>安装教程</value></data>
+    <data name="Speech_UsageTutorial" xml:space="preserve"><value>使用教程</value></data>
+    <data name="Speech_RecheckVirtualCable" xml:space="preserve"><value>重新检测</value></data>
+    <data name="Speech_SubtitleOriginAudio" xml:space="preserve"><value>音频</value></data>
+    <data name="Speech_SubtitleOriginInterpretation" xml:space="preserve"><value>口译</value></data>
     <data name="AfterTextInput" xml:space="preserve">
     <value>输入文本后</value>
   </data>
@@ -591,11 +601,20 @@
     <data name="Speech_SelectedAppsCount" xml:space="preserve">
         <value>已选择 {0} 个应用</value>
     </data>
+    <data name="Speech_SelectedSourcesCount" xml:space="preserve">
+        <value>&#x5DF2;&#x9009;&#x62E9; {0} &#x4E2A;&#x97F3;&#x9891;&#x6E90;</value>
+    </data>
     <data name="Speech_NotSupported" xml:space="preserve">
         <value>此功能仅支持 Windows 系统。</value>
     </data>
     <data name="Speech_EnableTranslation" xml:space="preserve">
         <value>启用翻译</value>
+    </data>
+    <data name="Speech_TranslatedSpeech" xml:space="preserve">
+        <value>翻译后推送虚拟麦克风</value>
+    </data>
+    <data name="Speech_TranslatedSpeechTip" xml:space="preserve">
+        <value>需要 VB-Audio Cable。TTS 会发送到 CABLE Input，并从 CABLE Output 提供给外部应用。</value>
     </data>
     <data name="Speech_RealTimePreview" xml:space="preserve">
         <value>实时预览</value>
@@ -606,11 +625,23 @@
     <data name="Speech_AudioSource" xml:space="preserve">
         <value>音频源</value>
     </data>
+    <data name="Speech_RecognitionLanguage" xml:space="preserve">
+        <value>识别语言</value>
+    </data>
+    <data name="Speech_AudioSourceHint" xml:space="preserve">
+        <value>&#x53EF;&#x591A;&#x9009;&#x97F3;&#x9891;&#x6E90;&#x3002;&#x7CFB;&#x7EDF;&#x97F3;&#x9891;&#x548C;&#x9EA6;&#x514B;&#x98CE;&#x4F1A;&#x5728;&#x8BC6;&#x522B;&#x524D;&#x6DF7;&#x5408;&#x3002;</value>
+    </data>
+    <data name="Speech_PhysicalMicrophone" xml:space="preserve">
+        <value>物理麦克风</value>
+    </data>
+    <data name="Speech_VirtualMicrophone" xml:space="preserve">
+        <value>虚拟麦克风</value>
+    </data>
     <data name="Speech_SelectSourceTitle" xml:space="preserve">
         <value>选择音频源</value>
     </data>
     <data name="Speech_Start" xml:space="preserve">
-        <value>开始识别</value>
+        <value>开始</value>
     </data>
     <data name="Speech_Stop" xml:space="preserve">
         <value>停止识别</value>
@@ -623,6 +654,18 @@
     </data>
     <data name="Page_SpeechRecognition" xml:space="preserve">
         <value>语音识别</value>
+    </data>
+    <data name="Page_LiveTranslate" xml:space="preserve">
+        <value>&#x540C;&#x58F0;&#x4F20;&#x8BD1;</value>
+    </data>
+    <data name="Speech_Mode_Recognition" xml:space="preserve">
+        <value>&#x97F3;&#x9891;&#x7FFB;&#x8BD1;</value>
+    </data>
+    <data name="Speech_Mode_Interpretation" xml:space="preserve">
+        <value>&#x5B9E;&#x65F6;&#x53E3;&#x8BD1;</value>
+    </data>
+    <data name="Speech_InterpretationDirection" xml:space="preserve">
+        <value>&#x8BC6;&#x522B;&#x8BED;&#x8A00; &#x2192; &#x76EE;&#x6807;&#x8BED;&#x8A00;</value>
     </data>
     <data name="Tab_Recognition" xml:space="preserve">
         <value>识别</value>
@@ -1160,7 +1203,7 @@
     <value>快捷入口</value>
   </data>
   <data name="HomeQuickSpeechHint" xml:space="preserve">
-    <value>实时识别与浮窗字幕</value>
+    <value>&#x5B9E;&#x65F6;&#x7FFB;&#x8BD1;&#xFF0C;&#x53EF;&#x8F93;&#x51FA;&#x5B57;&#x5E55;&#x6216;&#x8BD1;&#x97F3;</value>
   </data>
   <data name="HomeQuickTextAssistHint" xml:space="preserve">
     <value>翻译选中的文本</value>

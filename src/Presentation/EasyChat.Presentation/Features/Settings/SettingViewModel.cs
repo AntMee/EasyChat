@@ -10,6 +10,7 @@ using EasyChat.Contracts.Shell;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
+using EasyChat.Presentation.Features.Speech;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
@@ -123,6 +124,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         EditDeepLKeysCommand = ReactiveCommand.Create(_dialogs.EditDeepLKeys);
         ManageFixedAreasCommand = ReactiveCommand.Create(_dialogs.ManageFixedAreas);
         ConfigureTtsCommand = ReactiveCommand.Create(_dialogs.ConfigureTts);
+        ApplySubtitleAppearancePresetCommand = ReactiveCommand.Create<SubtitleAppearancePreset>(ApplySubtitleAppearancePreset);
         OpenAsrModelDownloadsCommand = ReactiveCommand.Create(OpenAsrModelDownloads);
         DownloadAsrModelCommand = ReactiveCommand.Create<SpeechRecognitionModelDownloadItemViewModel>(StartDownloadAsrModel);
         CancelAsrModelCommand = ReactiveCommand.Create<SpeechRecognitionModelDownloadItemViewModel>(CancelAsrModel);
@@ -299,6 +301,26 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public LiveSelectionTranslationSettings SelectionTranslationConf => _settings.SelectionTranslation;
     public ObservableCollection<PromptEntryState> PromptEntries => _settings.Prompts.Entries;
     public LiveTtsSettings TtsConf => _settings.Tts;
+    public LiveSpeechRecognitionSettings SpeechRecognitionConf => _settings.SpeechRecognition;
+    public IReadOnlyList<SubtitleAppearancePreset> SubtitleAppearancePresets { get; } =
+        EasyChat.Presentation.Features.Speech.SubtitleAppearancePresets.All;
+    public IReadOnlyList<KeyValuePair<FloatingDisplayMode, string>> SubtitleDisplayModeOptions { get; } =
+    [
+        new(FloatingDisplayMode.Segmented, Resources.Speech_DisplayMode_Segmented),
+        new(FloatingDisplayMode.AutoScroll, Resources.Speech_DisplayMode_AutoScroll)
+    ];
+    public IReadOnlyList<KeyValuePair<SubtitleSource, string>> MainSubtitleSourceOptions { get; } =
+    [
+        new(SubtitleSource.Original, Resources.Subtitle_Source_Original),
+        new(SubtitleSource.Translated, Resources.Subtitle_Source_Translated)
+    ];
+    public IReadOnlyList<KeyValuePair<SubtitleSource, string>> SecondarySubtitleSourceOptions { get; } =
+    [
+        new(SubtitleSource.None, Resources.Subtitle_Source_None),
+        new(SubtitleSource.Original, Resources.Subtitle_Source_Original),
+        new(SubtitleSource.Translated, Resources.Subtitle_Source_Translated)
+    ];
+    public IReadOnlyList<string> SubtitleWindowOrientationOptions { get; } = ["Horizontal", "Vertical"];
     public ObservableCollection<OcrModelDownloadItemViewModel> OcrModelItems { get; }
     public ObservableCollection<SpeechRecognitionModelDownloadItemViewModel> AsrModelItems { get; }
     public ObservableCollection<ModelCardItem> ModelCardsWithAddButton
@@ -622,6 +644,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
 
     public ReactiveCommand<Unit, Unit> ManageFixedAreasCommand { get; }
     public ReactiveCommand<Unit, Unit> ConfigureTtsCommand { get; }
+    public ReactiveCommand<SubtitleAppearancePreset, Unit> ApplySubtitleAppearancePresetCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenAsrModelDownloadsCommand { get; }
     public ReactiveCommand<SpeechRecognitionModelDownloadItemViewModel, Unit> DownloadAsrModelCommand { get; }
     public ReactiveCommand<SpeechRecognitionModelDownloadItemViewModel, Unit> CancelAsrModelCommand { get; }
@@ -663,6 +686,18 @@ public sealed class SettingViewModel : NavigationPageViewModel
         var cards = ConfiguredModels.Select(model => new ModelCardItem(model)).ToList();
         cards.Add(new ModelCardItem(null));
         ModelCardsWithAddButton = new ObservableCollection<ModelCardItem>(cards);
+    }
+
+    private void ApplySubtitleAppearancePreset(SubtitleAppearancePreset preset)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        SpeechRecognitionConf.PrimaryFontSize = preset.PrimaryFontSize;
+        SpeechRecognitionConf.PrimaryFontColor = preset.PrimaryFontColor;
+        SpeechRecognitionConf.SecondaryFontSize = preset.SecondaryFontSize;
+        SpeechRecognitionConf.SecondaryFontColor = preset.SecondaryFontColor;
+        SpeechRecognitionConf.BackgroundColor = preset.BackgroundColor;
+        SpeechRecognitionConf.SubtitleBackgroundColor = preset.SubtitleBackgroundColor;
+        SpeechRecognitionConf.WindowOpacity = preset.WindowOpacity;
     }
 
     private void LoadAvailableFonts()

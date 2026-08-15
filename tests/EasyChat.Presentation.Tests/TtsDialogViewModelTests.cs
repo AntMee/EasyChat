@@ -147,5 +147,16 @@ public sealed class TtsDialogViewModelTests
             InterruptCurrent = interruptCurrent;
             return ValueTask.FromResult(Result.Success());
         }
+
+        public ValueTask<Result> EnqueueAsync(
+            TtsSynthesisRequest request,
+            bool interruptCurrent,
+            AudioPlaybackTarget target,
+            CancellationToken cancellationToken = default)
+        {
+            EnqueuedRequest = request;
+            InterruptCurrent = interruptCurrent;
+            return ValueTask.FromResult(Result.Success());
+        }
     }
 }

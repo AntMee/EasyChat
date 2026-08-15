@@ -1,6 +1,7 @@
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
 using EasyChat.Contracts.Platform;
 using EasyChat.Shared.Results;
 using GlobalHotKeys;
@@ -9,7 +10,7 @@ using GlobalHotKeys.Native.Types;
 namespace EasyChat.Infrastructure.Windows.Hotkeys;
 
 [SupportedOSPlatform("windows")]
-public sealed class WindowsGlobalHotkeys : IGlobalHotkeys, IDisposable
+public sealed class WindowsGlobalHotkeys : IHoldGlobalHotkeys, IDisposable
 {
     private readonly IWindowsHotkeyBackend _backend;
     private int _disposed;
@@ -49,6 +50,63 @@ public sealed class WindowsGlobalHotkeys : IGlobalHotkeys, IDisposable
                 binding,
                 () => callback(callbackToken).GetAwaiter().GetResult());
 
+            if (!nativeRegistration.IsSuccessful)
+            {
+                nativeRegistration.Lifetime.Dispose();
+                lifetime.Dispose();
+                return ValueTask.FromResult(Result<IHotkeyRegistration>.Failure(new Error(
+                    "hotkey.registration-conflict",
+                    "Windows rejected the hotkey registration.")));
+            }
+
+            return ValueTask.FromResult(Result<IHotkeyRegistration>.Success(
+                new WindowsHotkeyRegistration(nativeRegistration.Lifetime, lifetime)));
+        }
+        catch (Exception exception)
+        {
+            lifetime.Dispose();
+            return ValueTask.FromResult(Result<IHotkeyRegistration>.Failure(
+                new Error("hotkey.registration-failed", exception.Message)));
+        }
+    }
+
+    public ValueTask<Result<IHotkeyRegistration>> RegisterHoldAsync(
+        ShortcutGesture gesture,
+        Func<CancellationToken, ValueTask> pressed,
+        Func<CancellationToken, ValueTask> released,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(gesture);
+        ArgumentNullException.ThrowIfNull(pressed);
+        ArgumentNullException.ThrowIfNull(released);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!WindowsHotkeyMapper.TryMap(gesture, out var binding))
+        {
+            return ValueTask.FromResult(Result<IHotkeyRegistration>.Failure(new Error(
+                "hotkey.gesture-invalid",
+                $"The hotkey key '{gesture.Key}' is not supported on Windows.")));
+        }
+
+        var lifetime = new CancellationTokenSource();
+        var callbackToken = lifetime.Token;
+        var holdActive = 0;
+        try
+        {
+            var nativeRegistration = _backend.Register(
+                binding,
+                () =>
+                {
+                    if (Interlocked.CompareExchange(ref holdActive, 1, 0) == 0)
+                    {
+                        _ = HandleHoldAsync(
+                            binding,
+                            pressed,
+                            released,
+                            callbackToken,
+                            () => Volatile.Write(ref holdActive, 0));
+                    }
+                });
             if (!nativeRegistration.IsSuccessful)
             {
                 nativeRegistration.Lifetime.Dispose();
@@ -137,6 +195,49 @@ public sealed class WindowsGlobalHotkeys : IGlobalHotkeys, IDisposable
             Interlocked.Exchange(ref _nativeRegistration, null)?.Dispose();
         }
     }
+
+    private static async Task HandleHoldAsync(
+        WindowsHotkeyBinding binding,
+        Func<CancellationToken, ValueTask> pressed,
+        Func<CancellationToken, ValueTask> released,
+        CancellationToken cancellationToken,
+        Action clearActive)
+    {
+        try
+        {
+            await pressed(cancellationToken).ConfigureAwait(false);
+            while (!cancellationToken.IsCancellationRequested
+                   && IsKeyDown(binding.Key)
+                   && ModifiersAreDown(binding.Modifiers))
+            {
+                await Task.Delay(20, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (!cancellationToken.IsCancellationRequested)
+                await released(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            clearActive();
+        }
+    }
+
+    private static bool IsKeyDown(VirtualKeyCode key) =>
+        (GetAsyncKeyState((int)key) & 0x8000) != 0;
+
+    private static bool ModifiersAreDown(Modifiers modifiers) =>
+        (!modifiers.HasFlag(Modifiers.Alt) || IsKeyDown(VirtualKeyCode.VK_MENU))
+        && (!modifiers.HasFlag(Modifiers.Control) || IsKeyDown(VirtualKeyCode.VK_CONTROL))
+        && (!modifiers.HasFlag(Modifiers.Shift) || IsKeyDown(VirtualKeyCode.VK_SHIFT))
+        && (!modifiers.HasFlag(Modifiers.Win)
+            || IsKeyDown(VirtualKeyCode.VK_LWIN)
+            || IsKeyDown(VirtualKeyCode.VK_RWIN));
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int virtualKey);
 }
 
 internal readonly record struct WindowsHotkeyBinding(VirtualKeyCode Key, Modifiers Modifiers);

@@ -74,6 +74,49 @@ public sealed class TtsUseCasesTests
         Assert.AreEqual("ja-JP-NanamiNeural", voice.Value);
     }
 
+    [TestMethod]
+    public async Task VirtualCableTargetIsValidatedAndForwardedToPlaybackQueue()
+    {
+        var settings = new MutableSettingsUseCases(SettingsTestData.CreateBundle());
+        var playback = new FakePlaybackQueue();
+        var useCases = new TtsUseCases(
+            [new FakeProvider(TtsProviderIds.EdgeTts)],
+            settings,
+            new FakeOutputWriter(),
+            playback,
+            new FakePlaybackDeviceCatalog(hasVirtualCable: true));
+
+        var result = await useCases.EnqueueAsync(
+            new TtsSynthesisRequest("hello", "en-US-DefaultNeural"),
+            interruptCurrent: false,
+            target: AudioPlaybackTarget.VirtualCable);
+
+        Assert.IsTrue(result.IsSuccess);
+        CollectionAssert.Contains(playback.Targets, AudioPlaybackTarget.VirtualCable);
+    }
+
+    [TestMethod]
+    public async Task VirtualCableTargetFailsWithoutCableAndDoesNotEnqueue()
+    {
+        var settings = new MutableSettingsUseCases(SettingsTestData.CreateBundle());
+        var playback = new FakePlaybackQueue();
+        var useCases = new TtsUseCases(
+            [new FakeProvider(TtsProviderIds.EdgeTts)],
+            settings,
+            new FakeOutputWriter(),
+            playback,
+            new FakePlaybackDeviceCatalog(hasVirtualCable: false));
+
+        var result = await useCases.EnqueueAsync(
+            new TtsSynthesisRequest("hello", "en-US-DefaultNeural"),
+            interruptCurrent: false,
+            target: AudioPlaybackTarget.VirtualCable);
+
+        Assert.IsTrue(result.IsFailure);
+        Assert.AreEqual("audio.virtual_cable_unavailable", result.Error.Code);
+        Assert.IsEmpty(playback.Targets);
+    }
+
     private sealed class FakeProvider(string providerId) : ITtsSynthesisProvider
     {
         public string ProviderId { get; } = providerId;
@@ -102,10 +145,21 @@ public sealed class TtsUseCasesTests
     private sealed class FakePlaybackQueue : IAudioPlaybackQueue
     {
         public List<string> Operations { get; } = [];
+        public List<AudioPlaybackTarget> Targets { get; } = [];
 
         public ValueTask EnqueueAsync(AudioTrack track, CancellationToken cancellationToken = default)
         {
             Operations.Add("enqueue");
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask EnqueueAsync(
+            AudioTrack track,
+            AudioPlaybackTarget target,
+            CancellationToken cancellationToken = default)
+        {
+            Operations.Add($"enqueue:{target}");
+            Targets.Add(target);
             return ValueTask.CompletedTask;
         }
 
@@ -114,6 +168,21 @@ public sealed class TtsUseCasesTests
             Operations.Add("stop");
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class FakePlaybackDeviceCatalog(bool hasVirtualCable) : IAudioPlaybackDeviceCatalog
+    {
+        public ValueTask<IReadOnlyList<AudioPlaybackDeviceDescriptor>> GetDevicesAsync(
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult<IReadOnlyList<AudioPlaybackDeviceDescriptor>>(
+                hasVirtualCable
+                    ? [new(
+                        new AudioPlaybackDeviceToken("test:cable"),
+                        "CABLE Input",
+                        "CABLE Input",
+                        null,
+                        true)]
+                    : []);
     }
 
     private sealed class FakeOutputWriter : ITtsOutputWriter

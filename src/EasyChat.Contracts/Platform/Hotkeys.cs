@@ -27,3 +27,17 @@ public interface IGlobalHotkeys
         ShortcutGesture gesture,
         CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Optional extension for actions that need the lifetime of a key press.
+/// Implementations must invoke <paramref name="pressed"/> once on key down and
+/// <paramref name="released"/> once after the key is released.
+/// </summary>
+public interface IHoldGlobalHotkeys : IGlobalHotkeys
+{
+    ValueTask<Result<IHotkeyRegistration>> RegisterHoldAsync(
+        ShortcutGesture gesture,
+        Func<CancellationToken, ValueTask> pressed,
+        Func<CancellationToken, ValueTask> released,
+        CancellationToken cancellationToken = default);
+}

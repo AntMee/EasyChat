@@ -311,7 +311,8 @@ public sealed record SpeechRecognitionSettings(
     double WindowY,
     double WindowWidth,
     double WindowHeight,
-    string? PromptId = null);
+    string? PromptId = null,
+    bool IsTranslatedSpeechEnabled = false);
 
 /// <summary>A persisted application list entry for the selection blacklist/whitelist.</summary>
 public sealed record SelectionAppEntrySettings(

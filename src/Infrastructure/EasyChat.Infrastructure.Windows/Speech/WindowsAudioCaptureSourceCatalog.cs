@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using EasyChat.Contracts.Platform;
+using NAudio.CoreAudioApi;
 
 namespace EasyChat.Infrastructure.Windows.Speech;
 
@@ -12,6 +13,7 @@ namespace EasyChat.Infrastructure.Windows.Speech;
 public sealed class WindowsAudioCaptureSourceCatalog : IAudioCaptureSourceCatalog
 {
     private const string ProcessTokenPrefix = "windows:process:";
+    private const string CaptureDeviceTokenPrefix = "windows:capture:";
     internal static AudioCaptureSourceToken SystemOutputToken { get; } = new("windows:system-output");
 
     public async ValueTask<IReadOnlyList<AudioCaptureSourceDescriptor>> GetSourcesAsync(
@@ -42,6 +44,7 @@ public sealed class WindowsAudioCaptureSourceCatalog : IAudioCaptureSourceCatalo
                 "System Audio",
                 ReadOnlyMemory<byte>.Empty)
         };
+        ReadCaptureDevices(result, cancellationToken);
         foreach (var process in Process.GetProcesses())
         {
             using (process)
@@ -66,6 +69,77 @@ public sealed class WindowsAudioCaptureSourceCatalog : IAudioCaptureSourceCatalo
         }
 
         return result;
+    }
+
+    internal static AudioCaptureSourceToken FromCaptureDeviceId(string deviceId) =>
+        new($"{CaptureDeviceTokenPrefix}{Convert.ToBase64String(Encoding.UTF8.GetBytes(deviceId))}");
+
+    internal static bool TryGetCaptureDeviceId(
+        AudioCaptureSourceToken token,
+        out string deviceId)
+    {
+        deviceId = string.Empty;
+        if (!token.Value.StartsWith(CaptureDeviceTokenPrefix, StringComparison.Ordinal))
+            return false;
+        try
+        {
+            deviceId = Encoding.UTF8.GetString(Convert.FromBase64String(
+                token.Value[CaptureDeviceTokenPrefix.Length..]));
+            return !string.IsNullOrWhiteSpace(deviceId);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
+    internal static bool IsVirtualCableOutputName(string? name) =>
+        !string.IsNullOrWhiteSpace(name)
+        && name.Contains("CABLE Output", StringComparison.OrdinalIgnoreCase);
+
+    private static void ReadCaptureDevices(
+        ICollection<AudioCaptureSourceDescriptor> result,
+        CancellationToken cancellationToken)
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        string? defaultDeviceId = null;
+        try
+        {
+            defaultDeviceId = enumerator
+                .GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications)
+                .ID;
+        }
+        catch
+        {
+        }
+
+        var devices = enumerator
+            .EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+            .OrderByDescending(device => string.Equals(
+                device.ID,
+                defaultDeviceId,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        foreach (var device in devices)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using (device)
+            {
+                var isCable = IsVirtualCableOutputName(device.FriendlyName);
+                result.Add(new AudioCaptureSourceDescriptor(
+                    FromCaptureDeviceId(device.ID),
+                    AudioCaptureSourceKind.Microphone,
+                    device.FriendlyName,
+                    device.FriendlyName,
+                    isCable ? "VB-Audio Virtual Cable microphone" : "Microphone",
+                    ReadOnlyMemory<byte>.Empty,
+                    IsVirtualCable: isCable,
+                    IsDefault: string.Equals(
+                        device.ID,
+                        defaultDeviceId,
+                        StringComparison.OrdinalIgnoreCase)));
+            }
+        }
     }
 
     private static ReadOnlyMemory<byte> ReadIcon(string? executablePath)

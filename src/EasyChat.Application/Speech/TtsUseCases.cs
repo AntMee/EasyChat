@@ -11,12 +11,14 @@ public sealed class TtsUseCases : ITtsUseCases
     private readonly ISettingsUseCases _settings;
     private readonly ITtsOutputWriter _outputWriter;
     private readonly IAudioPlaybackQueue _playbackQueue;
+    private readonly IAudioPlaybackDeviceCatalog? _playbackDevices;
 
     public TtsUseCases(
         IEnumerable<ITtsSynthesisProvider> providers,
         ISettingsUseCases settings,
         ITtsOutputWriter outputWriter,
-        IAudioPlaybackQueue playbackQueue)
+        IAudioPlaybackQueue playbackQueue,
+        IAudioPlaybackDeviceCatalog? playbackDevices = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         _providers = providers.ToArray();
@@ -31,6 +33,7 @@ public sealed class TtsUseCases : ITtsUseCases
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _outputWriter = outputWriter ?? throw new ArgumentNullException(nameof(outputWriter));
         _playbackQueue = playbackQueue ?? throw new ArgumentNullException(nameof(playbackQueue));
+        _playbackDevices = playbackDevices;
     }
 
     public IReadOnlyList<TtsProviderDescriptor> GetProviders() =>
@@ -120,19 +123,81 @@ public sealed class TtsUseCases : ITtsUseCases
                 .ConfigureAwait(false);
     }
 
-    public async ValueTask<Result> EnqueueAsync(
+    public ValueTask<Result> EnqueueAsync(
         TtsSynthesisRequest request,
         bool interruptCurrent = false,
+        CancellationToken cancellationToken = default) =>
+        EnqueueAsync(request, interruptCurrent, AudioPlaybackTarget.Default, cancellationToken);
+
+    public async ValueTask<Result> EnqueueAsync(
+        TtsSynthesisRequest request,
+        bool interruptCurrent,
+        AudioPlaybackTarget target,
         CancellationToken cancellationToken = default)
     {
         var synthesized = await SynthesizeAsync(request, cancellationToken).ConfigureAwait(false);
         if (synthesized.IsFailure)
             return Result.Failure(synthesized.Error);
 
-        if (interruptCurrent)
-            await _playbackQueue.StopAsync(cancellationToken).ConfigureAwait(false);
-        await _playbackQueue.EnqueueAsync(synthesized.Value, cancellationToken).ConfigureAwait(false);
-        return Result.Success();
+        if (target == AudioPlaybackTarget.VirtualCable)
+        {
+            if (_playbackDevices is null)
+            {
+                return Result.Failure(new Error(
+                    "audio.virtual_cable_unavailable",
+                    "VB-Audio Cable playback device 'CABLE Input' is not available."));
+            }
+
+            IReadOnlyList<AudioPlaybackDeviceDescriptor> devices;
+            try
+            {
+                devices = await _playbackDevices.GetDevicesAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                return Result.Failure(new Error(
+                    "audio.virtual_cable_unavailable",
+                    exception.Message));
+            }
+            if (!devices.Any(device => device.IsVirtualCable))
+            {
+                return Result.Failure(new Error(
+                    "audio.virtual_cable_unavailable",
+                    "VB-Audio Cable playback device 'CABLE Input' is not available."));
+            }
+        }
+        try
+        {
+            if (interruptCurrent)
+                await _playbackQueue.StopAsync(cancellationToken).ConfigureAwait(false);
+            if (target == AudioPlaybackTarget.Default)
+            {
+                await _playbackQueue.EnqueueAsync(
+                    synthesized.Value,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await _playbackQueue.EnqueueAsync(
+                    synthesized.Value,
+                    target,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            return Result.Success();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return Result.Failure(new Error("audio.playback_unavailable", exception.Message));
+        }
     }
 
     private ITtsSynthesisProvider ResolveProvider(string? requestedId)

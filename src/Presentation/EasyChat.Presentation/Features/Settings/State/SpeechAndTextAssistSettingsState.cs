@@ -1,4 +1,5 @@
 using EasyChat.Contracts.Settings;
+using ReactiveUI;
 
 namespace EasyChat.Presentation.Features.Settings.State;
 
@@ -6,6 +7,7 @@ public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
 {
     private string _recognitionLanguage;
     private bool _isTranslationEnabled;
+    private bool _isTranslatedSpeechEnabled;
     private bool _isRealTimePreviewEnabled;
     private string _targetLanguage;
     private string _engineId;
@@ -40,6 +42,7 @@ public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
     {
         _recognitionLanguage = value.RecognitionLanguage;
         _isTranslationEnabled = value.IsTranslationEnabled;
+        _isTranslatedSpeechEnabled = value.IsTranslatedSpeechEnabled;
         _isRealTimePreviewEnabled = value.IsRealTimePreviewEnabled;
         _targetLanguage = value.TargetLanguage;
         _engineId = value.EngineId;
@@ -70,6 +73,7 @@ public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
 
     public string RecognitionLanguage { get => _recognitionLanguage; set => Set(ref _recognitionLanguage, value); }
     public bool IsTranslationEnabled { get => _isTranslationEnabled; set => Set(ref _isTranslationEnabled, value); }
+    public bool IsTranslatedSpeechEnabled { get => _isTranslatedSpeechEnabled; set => Set(ref _isTranslatedSpeechEnabled, value); }
     public bool IsRealTimePreviewEnabled { get => _isRealTimePreviewEnabled; set => Set(ref _isRealTimePreviewEnabled, value); }
     public string TargetLanguage { get => _targetLanguage; set => Set(ref _targetLanguage, value); }
     public string EngineId { get => _engineId; set => Set(ref _engineId, value); }
@@ -104,7 +108,55 @@ public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
         PrimaryFontColor, SecondarySubtitleSource, SecondaryFontSize, SecondaryFontFamily,
         SecondaryFontColor, BackgroundColor, SubtitleBackgroundColor, WindowOpacity,
         IsFloatingWindowLocked, FloatingWindowOrientation, WindowX, WindowY, WindowWidth,
-        WindowHeight, PromptId);
+        WindowHeight, PromptId, IsTranslatedSpeechEnabled);
+
+    public void Apply(SpeechRecognitionSettings value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        var changed = false;
+
+        void SetValue<T>(ref T field, T next, string propertyName)
+        {
+            if (EqualityComparer<T>.Default.Equals(field, next))
+                return;
+            field = next;
+            changed = true;
+            this.RaisePropertyChanged(propertyName);
+        }
+
+        SetValue(ref _recognitionLanguage, value.RecognitionLanguage, nameof(RecognitionLanguage));
+        SetValue(ref _isTranslationEnabled, value.IsTranslationEnabled, nameof(IsTranslationEnabled));
+        SetValue(ref _isTranslatedSpeechEnabled, value.IsTranslatedSpeechEnabled, nameof(IsTranslatedSpeechEnabled));
+        SetValue(ref _isRealTimePreviewEnabled, value.IsRealTimePreviewEnabled, nameof(IsRealTimePreviewEnabled));
+        SetValue(ref _targetLanguage, value.TargetLanguage, nameof(TargetLanguage));
+        SetValue(ref _engineId, value.EngineId, nameof(EngineId));
+        SetValue(ref _engineType, value.EngineType, nameof(EngineType));
+        SetValue(ref _promptId, value.PromptId, nameof(PromptId));
+        SetValue(ref _maxSentencesPerLine, value.MaxSentencesPerLine, nameof(MaxSentencesPerLine));
+        SetValue(ref _floatingDisplayMode, value.FloatingDisplayMode, nameof(FloatingDisplayMode));
+        SetValue(ref _maxFloatingHistory, value.MaxFloatingHistory, nameof(MaxFloatingHistory));
+        SetValue(ref _autoClearInterval, value.AutoClearInterval, nameof(AutoClearInterval));
+        SetValue(ref _mainSubtitleSource, value.MainSubtitleSource, nameof(MainSubtitleSource));
+        SetValue(ref _primaryFontSize, value.PrimaryFontSize, nameof(PrimaryFontSize));
+        SetValue(ref _primaryFontFamily, value.PrimaryFontFamily, nameof(PrimaryFontFamily));
+        SetValue(ref _primaryFontColor, value.PrimaryFontColor, nameof(PrimaryFontColor));
+        SetValue(ref _secondarySubtitleSource, value.SecondarySubtitleSource, nameof(SecondarySubtitleSource));
+        SetValue(ref _secondaryFontSize, value.SecondaryFontSize, nameof(SecondaryFontSize));
+        SetValue(ref _secondaryFontFamily, value.SecondaryFontFamily, nameof(SecondaryFontFamily));
+        SetValue(ref _secondaryFontColor, value.SecondaryFontColor, nameof(SecondaryFontColor));
+        SetValue(ref _backgroundColor, value.BackgroundColor, nameof(BackgroundColor));
+        SetValue(ref _subtitleBackgroundColor, value.SubtitleBackgroundColor, nameof(SubtitleBackgroundColor));
+        SetValue(ref _windowOpacity, value.WindowOpacity, nameof(WindowOpacity));
+        SetValue(ref _isFloatingWindowLocked, value.IsFloatingWindowLocked, nameof(IsFloatingWindowLocked));
+        SetValue(ref _floatingWindowOrientation, value.FloatingWindowOrientation, nameof(FloatingWindowOrientation));
+        SetValue(ref _windowX, value.WindowX, nameof(WindowX));
+        SetValue(ref _windowY, value.WindowY, nameof(WindowY));
+        SetValue(ref _windowWidth, value.WindowWidth, nameof(WindowWidth));
+        SetValue(ref _windowHeight, value.WindowHeight, nameof(WindowHeight));
+
+        if (changed)
+            Commit();
+    }
 }
 
 public sealed class LiveTextAssistSettings : LiveSettingsSection

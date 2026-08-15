@@ -94,6 +94,84 @@ public sealed class SpeechRecognitionUseCasesTests
     }
 
     [TestMethod]
+    public async Task SingleUtteranceModeMergesRecognitionFragmentsIntoOneSubtitle()
+    {
+        var initial = SettingsTestData.CreateBundle();
+        var settings = new MutableSettingsUseCases(initial with
+        {
+            SpeechRecognition = initial.SpeechRecognition with
+            {
+                RecognitionLanguage = "en",
+                IsTranslationEnabled = false,
+                AutoClearInterval = 0
+            }
+        });
+        var useCases = new SpeechRecognitionUseCases(
+            new MultiFragmentEngine(),
+            new AvailablePlatformAccess(),
+            settings,
+            new UnusedTranslationUseCases(),
+            new BuiltInTranslationLanguageCatalog(),
+            NullLogger<SpeechRecognitionUseCases>.Instance);
+
+        var events = await useCases.RecognizeAsync(new SpeechRecognitionCommand(
+            "en",
+            "en",
+            [new AudioCaptureSourceReference(
+                new AudioCaptureSourceToken("test:microphone"),
+                AudioCaptureSourceKind.Microphone)],
+            SegmentationMode: SpeechRecognitionSegmentationMode.SingleUtterance)).ToListAsync();
+
+        var subtitles = events.OfType<SpeechSubtitleChangedEvent>()
+            .GroupBy(item => item.Subtitle.Id)
+            .Select(group => group.Last().Subtitle)
+            .Where(subtitle => !string.IsNullOrWhiteSpace(subtitle.OriginalText))
+            .ToArray();
+        Assert.HasCount(1, subtitles);
+        Assert.AreEqual("First sentence. Second sentence.", subtitles[0].OriginalText);
+    }
+
+    [TestMethod]
+    public async Task PreparationChecksMicrophonePermissionAndForwardsTheSessionSources()
+    {
+        var initial = SettingsTestData.CreateBundle();
+        var settings = new MutableSettingsUseCases(initial);
+        var engine = new PreparationRecordingEngine();
+        var access = new RecordingPlatformAccess();
+        var useCases = new SpeechRecognitionUseCases(
+            engine,
+            access,
+            settings,
+            new UnusedTranslationUseCases(),
+            new BuiltInTranslationLanguageCatalog(),
+            NullLogger<SpeechRecognitionUseCases>.Instance);
+        var microphone = new AudioCaptureSourceReference(
+            new AudioCaptureSourceToken("test:microphone"),
+            AudioCaptureSourceKind.Microphone);
+        var command = new SpeechRecognitionCommand("en", "en", [microphone]);
+
+        var prepared = await useCases.PrepareAsync(command);
+        var released = await useCases.ReleasePreparationAsync(command);
+
+        Assert.IsTrue(prepared.IsSuccess);
+        Assert.IsTrue(released.IsSuccess);
+        CollectionAssert.AreEqual(
+            new[] { PlatformCapability.SpeechRecognition },
+            access.Capabilities);
+        CollectionAssert.AreEqual(
+            new[] { PlatformPermission.Microphone },
+            access.Permissions);
+        Assert.IsNotNull(engine.Prepared);
+        Assert.IsNotNull(engine.Released);
+        CollectionAssert.AreEqual(
+            new[] { microphone.Token },
+            engine.Prepared.Sources.ToArray());
+        CollectionAssert.AreEqual(
+            new[] { microphone.Token },
+            engine.Released.Sources.ToArray());
+    }
+
+    [TestMethod]
     public async Task SubtitleTimestampsRemainOrderedAcrossMidnight()
     {
         var initial = SettingsTestData.CreateBundle();
@@ -159,6 +237,76 @@ public sealed class SpeechRecognitionUseCasesTests
                 $"Session {session}.");
             yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Stopped);
             await Task.CompletedTask;
+        }
+    }
+
+    private sealed class MultiFragmentEngine : ISpeechRecognitionEngine
+    {
+        public async IAsyncEnumerable<SpeechRecognitionEvent> RecognizeAsync(
+            SpeechRecognitionOptions options,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Started);
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Partial, "First sentence");
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Final, "First sentence.");
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Partial, "Second sentence");
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Final, "Second sentence.");
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Stopped);
+            await Task.CompletedTask;
+        }
+    }
+
+    private sealed class PreparationRecordingEngine : ISpeechRecognitionEngine
+    {
+        public SpeechRecognitionOptions? Prepared { get; private set; }
+        public SpeechRecognitionOptions? Released { get; private set; }
+
+        public ValueTask PrepareAsync(
+            SpeechRecognitionOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            Prepared = options;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ReleasePreparationAsync(
+            SpeechRecognitionOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            Released = options;
+            return ValueTask.CompletedTask;
+        }
+
+        public async IAsyncEnumerable<SpeechRecognitionEvent> RecognizeAsync(
+            SpeechRecognitionOptions options,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return new SpeechRecognitionEvent(SpeechRecognitionEventKind.Stopped);
+            await Task.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingPlatformAccess : IPlatformAccessUseCases
+    {
+        public List<PlatformCapability> Capabilities { get; } = [];
+        public List<PlatformPermission> Permissions { get; } = [];
+
+        public ValueTask<Result<CapabilityStatus>> EnsureAvailableAsync(
+            PlatformCapability capability,
+            CancellationToken cancellationToken = default)
+        {
+            Capabilities.Add(capability);
+            return ValueTask.FromResult(Result<CapabilityStatus>.Success(
+                new CapabilityStatus(capability, CapabilityState.Available)));
+        }
+
+        public ValueTask<Result<PermissionStatus>> EnsurePermissionAsync(
+            PlatformPermission permission,
+            CancellationToken cancellationToken = default)
+        {
+            Permissions.Add(permission);
+            return ValueTask.FromResult(Result<PermissionStatus>.Success(
+                new PermissionStatus(permission, PermissionState.Granted)));
         }
     }
 

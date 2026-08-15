@@ -512,7 +512,8 @@ internal static class SettingsPersistenceMapper
         source.WindowY,
         source.WindowWidth,
         source.WindowHeight,
-        source.PromptId);
+        source.PromptId,
+        source.IsTranslatedSpeechEnabled);
 
     private static SpeechRecognitionSettingsDto ToDto(SpeechRecognitionSettings source) => new()
     {
@@ -543,7 +544,8 @@ internal static class SettingsPersistenceMapper
         WindowX = source.WindowX,
         WindowY = source.WindowY,
         WindowWidth = source.WindowWidth,
-        WindowHeight = source.WindowHeight
+        WindowHeight = source.WindowHeight,
+        IsTranslatedSpeechEnabled = source.IsTranslatedSpeechEnabled
     };
 
     private static SelectionTranslationSettings ToContract(

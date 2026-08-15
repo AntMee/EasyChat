@@ -184,6 +184,36 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("Action_QuickTranslate", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Realtime Interpretation (Hold).
+        /// </summary>
+        public static string Action_RealtimeInterpretation {
+            get {
+                return ResourceManager.GetString("Action_RealtimeInterpretation", resourceCulture);
+            }
+        }
+
+        public static string Speech_VirtualCableRequiredTitle =>
+            ResourceManager.GetString("Speech_VirtualCableRequiredTitle", resourceCulture);
+
+        public static string Speech_VirtualCableRequiredMessage =>
+            ResourceManager.GetString("Speech_VirtualCableRequiredMessage", resourceCulture);
+
+        public static string Speech_InstallDriverTutorial =>
+            ResourceManager.GetString("Speech_InstallDriverTutorial", resourceCulture);
+
+        public static string Speech_UsageTutorial =>
+            ResourceManager.GetString("Speech_UsageTutorial", resourceCulture);
+
+        public static string Speech_RecheckVirtualCable =>
+            ResourceManager.GetString("Speech_RecheckVirtualCable", resourceCulture);
+
+        public static string Speech_SubtitleOriginAudio =>
+            ResourceManager.GetString("Speech_SubtitleOriginAudio", resourceCulture);
+
+        public static string Speech_SubtitleOriginInterpretation =>
+            ResourceManager.GetString("Speech_SubtitleOriginInterpretation", resourceCulture);
         
         /// <summary>
         ///   Looks up a localized string similar to Screenshot Translate.
@@ -1588,6 +1618,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("Page_SpeechRecognition", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Live Translate.
+        /// </summary>
+        public static string Page_LiveTranslate {
+            get {
+                return ResourceManager.GetString("Page_LiveTranslate", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Parameter.
@@ -2398,6 +2437,33 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("Speech_AudioSource", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up the localized explanation for selecting and mixing audio sources.
+        /// </summary>
+        public static string Speech_AudioSourceHint {
+            get {
+                return ResourceManager.GetString("Speech_AudioSourceHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Microphone.
+        /// </summary>
+        public static string Speech_PhysicalMicrophone {
+            get {
+                return ResourceManager.GetString("Speech_PhysicalMicrophone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Virtual microphone.
+        /// </summary>
+        public static string Speech_VirtualMicrophone {
+            get {
+                return ResourceManager.GetString("Speech_VirtualMicrophone", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Auto Clear (Seconds).
@@ -2450,6 +2516,60 @@ namespace EasyChat.Presentation.Lang {
         public static string Speech_EnableTranslation {
             get {
                 return ResourceManager.GetString("Speech_EnableTranslation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up the localized label for the interpretation language direction.
+        /// </summary>
+        public static string Speech_InterpretationDirection {
+            get {
+                return ResourceManager.GetString("Speech_InterpretationDirection", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized label for the recognition language.
+        /// </summary>
+        public static string Speech_RecognitionLanguage {
+            get {
+                return ResourceManager.GetString("Speech_RecognitionLanguage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up the localized name for the live interpretation mode.
+        /// </summary>
+        public static string Speech_Mode_Interpretation {
+            get {
+                return ResourceManager.GetString("Speech_Mode_Interpretation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up the localized name for the speech recognition mode.
+        /// </summary>
+        public static string Speech_Mode_Recognition {
+            get {
+                return ResourceManager.GetString("Speech_Mode_Recognition", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up the localized string for sending translated speech to a virtual microphone.
+        /// </summary>
+        public static string Speech_TranslatedSpeech {
+            get {
+                return ResourceManager.GetString("Speech_TranslatedSpeech", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up the localized tooltip for translated speech output.
+        /// </summary>
+        public static string Speech_TranslatedSpeechTip {
+            get {
+                return ResourceManager.GetString("Speech_TranslatedSpeechTip", resourceCulture);
             }
         }
         
@@ -2522,6 +2642,15 @@ namespace EasyChat.Presentation.Lang {
         public static string Speech_SelectedAppsCount {
             get {
                 return ResourceManager.GetString("Speech_SelectedAppsCount", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Selected {0} sources.
+        /// </summary>
+        public static string Speech_SelectedSourcesCount {
+            get {
+                return ResourceManager.GetString("Speech_SelectedSourcesCount", resourceCulture);
             }
         }
         

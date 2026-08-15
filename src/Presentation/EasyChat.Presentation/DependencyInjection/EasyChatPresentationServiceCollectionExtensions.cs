@@ -62,6 +62,7 @@ public static class EasyChatPresentationServiceCollectionExtensions
         services.AddSingleton<ScreenshotResultCoordinator>();
         services.AddSingleton<ScreenshotOcrWindowCoordinator>();
         services.AddSingleton<SubtitleWindowCoordinator>();
+        services.AddSingleton<SpeechInterpretationHotkeyController>();
         services.AddSingleton<ITypingWindowFactory, TypingWindowFactory>();
         services.AddSingleton<ITranslationWindowCoordinator, TranslationWindowCoordinator>();
         services.AddSingleton<ITextAssistWindowCoordinator, TextAssistWindowCoordinator>();
@@ -86,6 +87,7 @@ public static class EasyChatPresentationServiceCollectionExtensions
             provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<QuickTextAssistShortcutAction>>()));
         services.AddSingleton<IShortcutAction, SelectionTranslateShortcutAction>();
         services.AddSingleton<IShortcutAction, SwitchTranslationProfileShortcutAction>();
+        services.AddSingleton<IShortcutAction, SpeechInterpretationShortcutAction>();
 
         services.AddTransient<NavigationPageViewModel, HomeViewModel>();
         services.AddTransient<NavigationPageViewModel, SettingViewModel>();

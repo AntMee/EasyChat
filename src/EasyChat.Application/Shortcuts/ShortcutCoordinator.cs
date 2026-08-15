@@ -92,10 +92,33 @@ public sealed class ShortcutCoordinator : IShortcutUseCases
                 }
 
                 var parameter = entry.Parameter;
-                var registration = await _hotkeys.RegisterAsync(
-                    gesture.Value,
-                    token => action.ExecuteAsync(parameter, token),
-                    cancellationToken).ConfigureAwait(false);
+                Result<IHotkeyRegistration> registration;
+                if (action.Action is IHoldShortcutAction holdAction)
+                {
+                    if (_hotkeys is not IHoldGlobalHotkeys holdHotkeys)
+                    {
+                        issues.Add(new ShortcutRegistrationIssue(
+                            entry.ActionType,
+                            entry.KeyCombination,
+                            new Error(
+                                "hotkey.hold-unavailable",
+                                "This platform does not support press-and-release hotkeys.")));
+                        continue;
+                    }
+
+                    registration = await holdHotkeys.RegisterHoldAsync(
+                        gesture.Value,
+                        token => holdAction.ExecutePressedAsync(parameter, token),
+                        token => holdAction.ExecuteReleasedAsync(parameter, token),
+                        cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    registration = await _hotkeys.RegisterAsync(
+                        gesture.Value,
+                        token => action.Action.ExecuteAsync(parameter, token),
+                        cancellationToken).ConfigureAwait(false);
+                }
                 if (registration.IsFailure)
                 {
                     issues.Add(new ShortcutRegistrationIssue(
@@ -183,15 +206,21 @@ public sealed class ShortcutCoordinator : IShortcutUseCases
     private void ThrowIfDisposed() =>
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
-    private sealed class ActionState(IShortcutAction action)
+    private sealed class ActionState
     {
+        private readonly IShortcutAction _action;
         private int _executing;
+
+        public ActionState(IShortcutAction action) =>
+            _action = action ?? throw new ArgumentNullException(nameof(action));
+
+        public IShortcutAction Action => _action;
 
         public async ValueTask ExecuteAsync(
             ShortcutParameterSettings? parameter,
             CancellationToken cancellationToken)
         {
-            if (action.PreventConcurrentExecution &&
+            if (_action.PreventConcurrentExecution &&
                 Interlocked.CompareExchange(ref _executing, 1, 0) != 0)
             {
                 return;
@@ -199,11 +228,11 @@ public sealed class ShortcutCoordinator : IShortcutUseCases
 
             try
             {
-                await action.ExecuteAsync(parameter, cancellationToken).ConfigureAwait(false);
+                await _action.ExecuteAsync(parameter, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
-                if (action.PreventConcurrentExecution)
+                if (_action.PreventConcurrentExecution)
                     Volatile.Write(ref _executing, 0);
             }
         }

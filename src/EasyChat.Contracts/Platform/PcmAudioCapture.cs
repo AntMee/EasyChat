@@ -19,3 +19,20 @@ public interface IPcmAudioCapture
         PcmAudioFormat format,
         CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Optional capture capability for keeping an input device open before recognition starts.
+/// Prepared captures must discard audio until a consumer calls <see cref="IPcmAudioCapture.CaptureAsync"/>.
+/// </summary>
+public interface IPreparablePcmAudioCapture
+{
+    ValueTask PrepareCaptureAsync(
+        IReadOnlyList<AudioCaptureSourceToken> sources,
+        PcmAudioFormat format,
+        CancellationToken cancellationToken = default);
+
+    ValueTask ReleasePreparedCaptureAsync(
+        IReadOnlyList<AudioCaptureSourceToken> sources,
+        PcmAudioFormat format,
+        CancellationToken cancellationToken = default);
+}

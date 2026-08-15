@@ -18,6 +18,14 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
         </Style>
+        <Style Selector="TextBlock.SpeechConfigLabel">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Control.SpeechConfigInput">
+            <Setter Property="Width" Value="240" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
 
     </UserControl.Styles>
 
@@ -43,24 +51,43 @@
                   ColumnSpacing="16"
                   IsVisible="{Binding IsSupported}">
                 <TextBlock Grid.Row="0" Grid.Column="0"
-                           Text="{x:Static lang:Resources.Page_SpeechRecognition}"
+                           Text="{x:Static lang:Resources.Page_LiveTranslate}"
                            Classes="h2"
                            VerticalAlignment="Center"
                            TextWrapping="NoWrap"
                            TextTrimming="CharacterEllipsis"
-                           AutomationProperties.Name="{x:Static lang:Resources.Page_SpeechRecognition}" />
+                           AutomationProperties.Name="{x:Static lang:Resources.Page_LiveTranslate}" />
 
-                <ContentControl Grid.Row="0" Grid.Column="1"
-                                VerticalAlignment="Center"
-                                HorizontalAlignment="Right">
-                    <Button Command="{Binding ToggleRecordingCommand}"
-                            Classes="Primary">
+                <StackPanel Grid.Row="0" Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Right">
+                    <Button Command="{Binding OpenAudioTranslationTutorialCommand}"
+                            Classes="Outline"
+                            IsVisible="{Binding IsLiveCaptionsMode}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <avalonia:MaterialIcon Kind="{Binding RecordingIcon}" Width="18" Height="18"/>
-                            <TextBlock Text="{Binding RecordingText}" VerticalAlignment="Center" />
+                            <avalonia:MaterialIcon Kind="HelpCircleOutline" Width="18" Height="18"/>
+                            <TextBlock Text="{x:Static lang:Resources.Speech_UsageTutorial}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                </ContentControl>
+                    <Button Command="{Binding OpenInterpretationTutorialCommand}"
+                            Classes="Outline"
+                            IsVisible="{Binding IsVoiceTranslationMode}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <avalonia:MaterialIcon Kind="HelpCircleOutline" Width="18" Height="18"/>
+                            <TextBlock Text="{x:Static lang:Resources.Speech_UsageTutorial}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ToggleFloatingWindowCommand}"
+                            Classes="Outline">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <avalonia:MaterialIcon Kind="PictureInPictureBottomRight" Width="18" Height="18" />
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding IsFloatingWindowOpen, Converter={x:Static converts:BoolToTextConverter.Instance}, ConverterParameter='FloatingWindow_Open|FloatingWindow_Close'}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                            Text="{x:Static lang:Resources.HomeQuickSpeechHint}"
@@ -73,83 +100,69 @@
                            HorizontalAlignment="Left" />
             </Grid>
 
-            <!-- Workspace mode: Live / Overlay -->
+            <!-- Translation output mode -->
             <TabControl Grid.Row="1"
                         HorizontalAlignment="Left"
                         Margin="0,0,0,8"
                         IsVisible="{Binding IsSupported}"
-                        SelectedIndex="{Binding WorkspaceTabIndex}">
+                        SelectedIndex="{Binding SpeechModeTabIndex}">
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <avalonia:MaterialIcon Kind="Robot" Width="16" Height="16"
+                            <avalonia:MaterialIcon Kind="ClosedCaption" Width="16" Height="16"
                                                    Foreground="{DynamicResource PrimaryColor}" />
-                            <TextBlock Text="{x:Static lang:Resources.Tab_Recognition}" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Static lang:Resources.Speech_Mode_Recognition}" FontWeight="SemiBold" />
                         </StackPanel>
                     </TabItem.Header>
                 </TabItem>
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <avalonia:MaterialIcon Kind="PictureInPictureBottomRight" Width="16" Height="16"
+                            <avalonia:MaterialIcon Kind="Translate" Width="16" Height="16"
                                                    Foreground="{DynamicResource PrimaryColor}" />
-                            <TextBlock Text="{x:Static lang:Resources.FloatingWindow}" FontWeight="SemiBold" />
+                            <TextBlock Text="{x:Static lang:Resources.Speech_Mode_Interpretation}" FontWeight="SemiBold" />
                         </StackPanel>
                     </TabItem.Header>
                 </TabItem>
             </TabControl>
 
             <Grid Grid.Row="2" IsVisible="{Binding IsSupported}">
-            <!-- Live recognition workspace -->
-            <Grid IsVisible="{Binding IsLiveWorkspace}" RowDefinitions="Auto,*">
+            <Grid RowDefinitions="Auto,*">
                         <!-- Live session toolbar -->
                         <shad:Card Grid.Row="0" Margin="0,0,0,10" HasShadow="True">
-                            <WrapPanel Orientation="Horizontal">
-                                <StackPanel Orientation="Horizontal" Margin="0,4,18,4" VerticalAlignment="Center" Spacing="8">
-                                    <TextBlock Text="{x:Static lang:Resources.Language}" Classes="Small"
-                                               Margin="0"
-                                               VerticalAlignment="Center"/>
-                                    <ec:LanguageSelector Languages="{Binding RecognitionLanguages}"
-                                                         SelectedLanguage="{Binding SelectedRecognitionModel, Mode=TwoWay}"
-                                                         MinWidth="210" />
-                                </StackPanel>
+                            <Grid ColumnDefinitions="Auto,240,*,Auto,240"
+                                  RowDefinitions="Auto,Auto,Auto"
+                                  ColumnSpacing="8"
+                                  RowSpacing="10">
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="{x:Static lang:Resources.Speech_RecognitionLanguage}"
+                                           Classes="Small SpeechConfigLabel"
+                                           Margin="0" />
+                                <ec:LanguageSelector Grid.Row="0" Grid.Column="1"
+                                                     Languages="{Binding RecognitionLanguages}"
+                                                     SelectedLanguage="{Binding SelectedRecognitionModel, Mode=TwoWay}"
+                                                     Classes="SpeechConfigInput" />
 
-                                <StackPanel Orientation="Horizontal" Margin="0,4,18,4" VerticalAlignment="Center" Spacing="12">
-                                    <CheckBox Content="{x:Static lang:Resources.Speech_EnableTranslation}"
-                                              IsChecked="{Binding IsTranslationEnabled}" />
-                                    <CheckBox Content="{x:Static lang:Resources.Speech_RealTimePreview}"
-                                              IsChecked="{Binding IsRealTimePreviewEnabled}"
-                                              IsVisible="{Binding IsRealTimePreviewVisible}"
-                                              ToolTip.Tip="{x:Static lang:Resources.Speech_RealTimePreviewTip}"/>
-                                </StackPanel>
+                                <TextBlock Grid.Row="0" Grid.Column="3"
+                                           Text="{x:Static lang:Resources.TargetLang}"
+                                           Classes="Small SpeechConfigLabel"
+                                           IsVisible="{Binding IsTranslationEnabled}" />
+                                <ec:LanguageSelector Grid.Row="0" Grid.Column="4"
+                                                     Languages="{Binding TargetLanguages}"
+                                                     SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}"
+                                                     Classes="SpeechConfigInput"
+                                                     IsVisible="{Binding IsTranslationEnabled}" />
 
-                                <StackPanel Orientation="Horizontal"
-                                            Margin="0,4,18,4"
-                                            VerticalAlignment="Center"
-                                            Spacing="8"
-                                            IsVisible="{Binding IsPromptSelectionVisible}">
-                                    <TextBlock Text="{x:Static lang:Resources.Prompts}"
-                                               Classes="Small"
-                                               Margin="0"
-                                               VerticalAlignment="Center" />
-                                    <ComboBox ItemsSource="{Binding PromptEntries}"
-                                              SelectedValue="{Binding SelectedPromptId}"
-                                              SelectedValueBinding="{Binding Id}"
-                                              DisplayMemberBinding="{Binding Name}"
-                                              MinWidth="160" />
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal"
-                                            Margin="0,4,18,4"
-                                            VerticalAlignment="Center"
-                                            Spacing="8"
-                                            IsVisible="{Binding IsTranslationEnabled}">
-                                    <TextBlock Text="{x:Static lang:Resources.TransEngine}" Classes="Small"
-                                               Margin="0"
-                                               VerticalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding EngineOptions}"
-                                              SelectedItem="{Binding SelectedEngineOption}"
-                                              MinWidth="160">
+                                <TextBlock Grid.Row="1" Grid.Column="3"
+                                           Text="{x:Static lang:Resources.TransEngine}"
+                                           Classes="Small SpeechConfigLabel"
+                                           Margin="0"
+                                           IsVisible="{Binding IsTranslationEnabled}" />
+                                <ComboBox Grid.Row="1" Grid.Column="4"
+                                          ItemsSource="{Binding EngineOptions}"
+                                          SelectedItem="{Binding SelectedEngineOption}"
+                                          Classes="SpeechConfigInput"
+                                          IsVisible="{Binding IsTranslationEnabled}">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -169,31 +182,17 @@
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </StackPanel>
+                                </ComboBox>
 
-                                <StackPanel Orientation="Horizontal"
-                                            Margin="0,4,18,4"
-                                            VerticalAlignment="Center"
-                                            Spacing="8"
-                                            IsVisible="{Binding IsTranslationEnabled}">
-                                    <TextBlock Text="{x:Static lang:Resources.TargetLang}" Classes="Small"
-                                               Margin="0"
-                                               VerticalAlignment="Center"/>
-                                    <ec:LanguageSelector Languages="{Binding TargetLanguages}"
-                                                         SelectedLanguage="{Binding SelectedTargetLanguage, Mode=TwoWay}"
-                                                         MinWidth="160" />
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,4,0,4" VerticalAlignment="Center" Spacing="8">
-                                    <TextBlock Text="{x:Static lang:Resources.Speech_AudioSource}" Classes="Small"
-                                               Margin="0"
-                                               VerticalAlignment="Center"/>
-                                    <Button Classes="Outline"
-                                            Width="200"
-                                            Padding="8,4"
-                                            HorizontalContentAlignment="Stretch"
-                                            VerticalContentAlignment="Center">
+                                <TextBlock Grid.Row="1" Grid.Column="0"
+                                           Text="{x:Static lang:Resources.Speech_AudioSource}"
+                                           Classes="Small SpeechConfigLabel"
+                                           Margin="0" />
+                                <Button Grid.Row="1" Grid.Column="1"
+                                        Classes="Outline SpeechConfigInput"
+                                        Padding="8,4"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Center">
                                         <Button.Flyout>
                                             <Flyout Placement="Bottom"
                                                     ShowMode="Standard"
@@ -226,10 +225,16 @@
                                                                                        Width="20" Height="20"
                                                                                        RenderOptions.BitmapInterpolationMode="HighQuality"
                                                                                        VerticalAlignment="Center" />
-                                                                                <TextBlock Text="{Binding DisplayName}"
-                                                                                           TextTrimming="CharacterEllipsis"
-                                                                                           VerticalAlignment="Center"
-                                                                                           Foreground="{DynamicResource ForegroundColor}"/>
+                                                                                <StackPanel Spacing="1">
+                                                                                    <TextBlock Text="{Binding DisplayName}"
+                                                                                               TextTrimming="CharacterEllipsis"
+                                                                                               VerticalAlignment="Center"
+                                                                                               Foreground="{DynamicResource ForegroundColor}"/>
+                                                                                    <TextBlock Text="{Binding Category}"
+                                                                                               IsVisible="{Binding HasCategory}"
+                                                                                               Classes="Small"
+                                                                                               Foreground="{DynamicResource MutedColor}" />
+                                                                                </StackPanel>
                                                                             </StackPanel>
                                                                         </CheckBox>
                                                                     </DataTemplate>
@@ -251,10 +256,105 @@
                                                                    Margin="8,0,0,0"
                                                                    Foreground="{DynamicResource MutedColor}"/>
                                         </Grid>
+                                </Button>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                           Text="{x:Static lang:Resources.Prompts}"
+                                           Classes="Small SpeechConfigLabel"
+                                           IsVisible="{Binding IsPromptSelectionVisible}" />
+                                <ComboBox Grid.Row="2" Grid.Column="1"
+                                          ItemsSource="{Binding PromptEntries}"
+                                          SelectedValue="{Binding SelectedPromptId}"
+                                          SelectedValueBinding="{Binding Id}"
+                                          DisplayMemberBinding="{Binding Name}"
+                                          Classes="SpeechConfigInput"
+                                          IsVisible="{Binding IsPromptSelectionVisible}" />
+
+                                <WrapPanel Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"
+                                           Orientation="Horizontal"
+                                           VerticalAlignment="Center">
+                                    <CheckBox Content="{x:Static lang:Resources.Speech_EnableTranslation}"
+                                              IsChecked="{Binding IsTranslationEnabled}"
+                                              IsVisible="{Binding IsLiveCaptionsMode}"
+                                              Margin="0,0,16,0" />
+                                    <CheckBox Content="{x:Static lang:Resources.Speech_TranslatedSpeech}"
+                                              IsChecked="{Binding IsTranslatedSpeechEnabled}"
+                                              IsVisible="{Binding IsVoiceTranslationMode}"
+                                              ToolTip.Tip="{x:Static lang:Resources.Speech_TranslatedSpeechTip}"
+                                              Margin="0,0,16,0" />
+                                    <CheckBox Content="{x:Static lang:Resources.Speech_RealTimePreview}"
+                                              IsChecked="{Binding IsRealTimePreviewEnabled}"
+                                              IsVisible="{Binding IsRealTimePreviewVisible}"
+                                              ToolTip.Tip="{x:Static lang:Resources.Speech_RealTimePreviewTip}" />
+                                </WrapPanel>
+
+                                <Grid Grid.Row="2" Grid.Column="4">
+                                    <Button Command="{Binding ToggleAudioTranslationCommand}"
+                                            Classes="Primary"
+                                            HorizontalAlignment="Stretch"
+                                            IsVisible="{Binding IsLiveCaptionsMode}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <avalonia:MaterialIcon Kind="{Binding AudioTranslationIcon}" Width="18" Height="18"/>
+                                            <TextBlock Text="{Binding AudioTranslationText}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding ToggleRealtimeInterpretationCommand}"
+                                            Classes="Primary"
+                                            HorizontalAlignment="Stretch"
+                                            IsEnabled="{Binding CanToggleRealtimeInterpretation}"
+                                            IsVisible="{Binding IsVoiceTranslationMode}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <avalonia:MaterialIcon Kind="Microphone" Width="18" Height="18"/>
+                                            <TextBlock Text="{Binding RealtimeInterpretationText}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </shad:Card>
+
+                        <Border Grid.Row="0"
+                                IsVisible="{Binding IsRealtimeInterpretationDriverMissing}"
+                                Background="{DynamicResource DialogBackgroundColor}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource LgCornerRadius}"
+                                Padding="24"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch">
+                            <StackPanel Spacing="10"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        MaxWidth="460">
+                                <avalonia:MaterialIcon Kind="VolumeOff" Width="32" Height="32"
+                                                       HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedColor}" />
+                                <TextBlock Text="{x:Static lang:Resources.Speech_VirtualCableRequiredTitle}"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Center" />
+                                <TextBlock Text="{x:Static lang:Resources.Speech_VirtualCableRequiredMessage}"
+                                           Classes="Small"
+                                           Foreground="{DynamicResource MutedColor}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Center"
+                                            Spacing="8"
+                                            Margin="0,4,0,0">
+                                    <Button Command="{Binding OpenVirtualCableInstallationTutorialCommand}" Classes="Primary">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <avalonia:MaterialIcon Kind="HelpCircleOutline" Width="16" Height="16" />
+                                            <TextBlock Text="{x:Static lang:Resources.Speech_InstallDriverTutorial}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding RefreshVirtualCableCommand}" Classes="Outline">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <avalonia:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                                            <TextBlock Text="{x:Static lang:Resources.Speech_RecheckVirtualCable}" />
+                                        </StackPanel>
                                     </Button>
                                 </StackPanel>
-                            </WrapPanel>
-                        </shad:Card>
+                            </StackPanel>
+                        </Border>
 
                         <!-- Subtitles Display -->
                         <Grid Grid.Row="1">
@@ -287,9 +387,15 @@
                                                             Padding="10,12"
                                                             Margin="0,0,0,8">
                                                         <StackPanel Spacing="4">
-                                                            <TextBlock Text="{Binding Timestamp, StringFormat=\{0:hh\\:mm\\:ss\}}"
-                                                                       Classes="Caption"
-                                                                       Foreground="{DynamicResource MutedColor}"/>
+                                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                                <TextBlock Text="{Binding Timestamp, StringFormat=\{0:hh\\:mm\\:ss\}}"
+                                                                           Classes="Caption"
+                                                                           Foreground="{DynamicResource MutedColor}"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding OriginLabel}"
+                                                                           Classes="Caption"
+                                                                           Foreground="{DynamicResource PrimaryColor}"/>
+                                                            </Grid>
                                                             <TextBlock Text="{Binding OriginalText}"
                                                                        TextWrapping="Wrap"
                                                                        LineHeight="22"
@@ -317,12 +423,17 @@
                                                             Padding="10,12"
                                                             Margin="0,0,0,8">
                                                         <StackPanel Spacing="4">
-                                                            <Grid>
+                                                            <Grid ColumnDefinitions="*,Auto">
                                                                 <TextBlock Text="{Binding Timestamp, StringFormat=\{0:hh\\:mm\\:ss\}}"
                                                                            Classes="Caption"
                                                                            Foreground="{DynamicResource MutedColor}"
                                                                            HorizontalAlignment="Left"/>
-                                                                <shad:Loading IsVisible="{Binding IsTranslating}" HorizontalAlignment="Right" Width="16" Height="16"/>
+                                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                                                    <TextBlock Text="{Binding OriginLabel}"
+                                                                               Classes="Caption"
+                                                                               Foreground="{DynamicResource PrimaryColor}"/>
+                                                                    <shad:Loading IsVisible="{Binding IsTranslating}" Width="16" Height="16"/>
+                                                                </StackPanel>
                                                             </Grid>
                                                             <TextBlock Text="{Binding TranslatedText}"
                                                                        TextWrapping="Wrap"
@@ -338,245 +449,6 @@
                         </Grid>
             </Grid>
 
-            <!-- Overlay configuration workspace -->
-            <ScrollViewer IsVisible="{Binding IsOverlayWorkspace}"
-                          Margin="0,0,-15,0"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="14" Margin="0,0,15,8">
-
-                    <!-- Actions -->
-                    <shad:Card HasShadow="True">
-                        <shad:Card.Header>
-                            <StackPanel Spacing="4">
-                                <shad:CardTitle Content="{x:Static lang:Resources.FloatingWindow_Config}" />
-                                <shad:CardDescription>
-                                    <TextBlock Text="{x:Static lang:Resources.HomeQuickSpeechHint}"
-                                               TextWrapping="Wrap" LineHeight="18" Opacity="0.95"/>
-                                </shad:CardDescription>
-                            </StackPanel>
-                        </shad:Card.Header>
-                        <shad:Card.Footer>
-                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                                <Button Command="{Binding ToggleFloatingWindowCommand}"
-                                        Classes="Primary">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <avalonia:MaterialIcon Kind="PictureInPictureBottomRight" Width="18" Height="18"/>
-                                        <TextBlock VerticalAlignment="Center"
-                                                   Text="{Binding IsFloatingWindowOpen, Converter={x:Static converts:BoolToTextConverter.Instance}, ConverterParameter='FloatingWindow_Open|FloatingWindow_Close'}"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button Command="{Binding ToggleLockCommand}"
-                                        Classes="Ghost"
-                                        IsVisible="{Binding IsFloatingWindowOpen}">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <avalonia:MaterialIcon Width="18" Height="18"
-                                                               Kind="{Binding IsFloatingWindowLocked, Converter={x:Static converts:BoolToIconConverter.Instance}, ConverterParameter='Lock;LockOpen'}"/>
-                                        <TextBlock VerticalAlignment="Center"
-                                                   Text="{Binding IsFloatingWindowLocked, Converter={x:Static converts:BoolToTextConverter.Instance}, ConverterParameter='FloatingWindow_Lock|FloatingWindow_Unlock'}"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </shad:Card.Footer>
-                    </shad:Card>
-
-                    <!-- Presets -->
-                    <shad:Card HasShadow="True">
-                        <shad:Card.Header>
-                            <StackPanel Spacing="4">
-                                <shad:CardTitle Content="{x:Static lang:Resources.SubtitlePreset_Title}" />
-                                <shad:CardDescription>
-                                    <TextBlock Text="{x:Static lang:Resources.SubtitlePreset_Hint}"
-                                               TextWrapping="Wrap" LineHeight="18" Opacity="0.95"/>
-                                </shad:CardDescription>
-                            </StackPanel>
-                        </shad:Card.Header>
-                        <ItemsControl ItemsSource="{Binding AppearancePresets}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:SubtitleAppearancePreset">
-                                        <Button Classes="Ghost"
-                                                Margin="0,0,8,8"
-                                                Command="{Binding $parent[UserControl].((vm:SpeechRecognitionViewModel)DataContext).ApplyAppearancePresetCommand}"
-                                                CommandParameter="{Binding}"
-                                                ToolTip.Tip="{Binding Description}">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <Border Width="14" Height="14" CornerRadius="4"
-                                                        BorderThickness="1"
-                                                        BorderBrush="{DynamicResource BorderColor}"
-                                                        Background="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" />
-                                                <Border Width="14" Height="14" CornerRadius="4"
-                                                        BorderThickness="1"
-                                                        BorderBrush="{DynamicResource BorderColor}"
-                                                        Margin="-10,0,0,0"
-                                                        Background="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" />
-                                                <TextBlock Text="{Binding DisplayName}"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource ForegroundColor}" />
-                                            </StackPanel>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                    </shad:Card>
-
-                    <!-- Primary / Secondary: label column Auto so CJK is never clipped -->
-                    <Grid ColumnDefinitions="*,14,*">
-                        <shad:Card HasShadow="True">
-                            <shad:Card.Header>
-                                <shad:CardTitle Content="{x:Static lang:Resources.Subtitle_Primary}"
-                                                Foreground="{DynamicResource PrimaryColor}" />
-                            </shad:Card.Header>
-                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto"
-                                  RowSpacing="14" ColumnSpacing="16">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" Text="{x:Static lang:Resources.PromptContent}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <ComboBox Grid.Column="1"
-                                              ItemsSource="{Binding MainSourceOptions}"
-                                              SelectedValue="{Binding MainSubtitleSource}"
-                                              SelectedValueBinding="{Binding Key}"
-                                              DisplayMemberBinding="{Binding Value}"  HorizontalAlignment="Stretch"/>
-                                    <TextBlock Grid.Row="1" Classes="Small" Text="{x:Static lang:Resources.FontFamily}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <ComboBox Grid.Row="1" Grid.Column="1"
-                                              ItemsSource="{Binding AvailableFonts}"
-                                              SelectedItem="{Binding PrimaryFontFamily}"  HorizontalAlignment="Stretch">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding .}"
-                                                           FontFamily="{Binding ., Converter={x:Static converts:StringToFontFamilyConverter.Instance}}"
-                                                           VerticalAlignment="Center" />
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                    <TextBlock Grid.Row="2" Classes="Small" Text="{x:Static lang:Resources.FontSize}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <NumericUpDown Grid.Row="2" Grid.Column="1"
-                                                   Value="{Binding PrimaryFontSize}" FormatString="F0"
-                                                   Minimum="10" Maximum="100" 
-                                                   HorizontalAlignment="Stretch"/>
-                                    <TextBlock Grid.Row="3" Classes="Small" Text="{x:Static lang:Resources.FontColor}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <ColorPicker Grid.Row="3"
-                                                 Grid.Column="1"
-                                                 Color="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
-                                                 IsAlphaEnabled="True"
-                                                 HorizontalAlignment="Stretch" />
-                                </Grid>
-                        </shad:Card>
-
-                        <shad:Card Grid.Column="2" HasShadow="True">
-                            <shad:Card.Header>
-                                <shad:CardTitle Content="{x:Static lang:Resources.Subtitle_Secondary}" />
-                            </shad:Card.Header>
-                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto"
-                                  RowSpacing="14" ColumnSpacing="16">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" Text="{x:Static lang:Resources.PromptContent}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <ComboBox Grid.Column="1"
-                                              ItemsSource="{Binding SecondarySourceOptions}"
-                                              SelectedValue="{Binding SecondarySubtitleSource}"
-                                              SelectedValueBinding="{Binding Key}"
-                                              DisplayMemberBinding="{Binding Value}"  HorizontalAlignment="Stretch"/>
-                                    <TextBlock Grid.Row="1" Classes="Small" Text="{x:Static lang:Resources.FontFamily}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <ComboBox Grid.Row="1" Grid.Column="1"
-                                              ItemsSource="{Binding AvailableFonts}"
-                                              SelectedItem="{Binding SecondaryFontFamily}"  HorizontalAlignment="Stretch">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding .}"
-                                                           FontFamily="{Binding ., Converter={x:Static converts:StringToFontFamilyConverter.Instance}}"
-                                                           VerticalAlignment="Center" />
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                    <TextBlock Grid.Row="2" Classes="Small" Text="{x:Static lang:Resources.FontSize}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <NumericUpDown Grid.Row="2" Grid.Column="1"
-                                                   Value="{Binding SecondaryFontSize}" FormatString="F0"
-                                                   Minimum="10" Maximum="100" 
-                                                   HorizontalAlignment="Stretch"/>
-                                    <TextBlock Grid.Row="3" Classes="Small" Text="{x:Static lang:Resources.FontColor}"
-                                               VerticalAlignment="Center" MinWidth="72"/>
-                                    <ColorPicker Grid.Row="3"
-                                                 Grid.Column="1"
-                                                 Color="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
-                                                 IsAlphaEnabled="True"
-                                                 HorizontalAlignment="Stretch" />
-                                </Grid>
-                        </shad:Card>
-                    </Grid>
-
-                    <!-- Window appearance: one field per cell, no jammed labels -->
-                    <shad:Card HasShadow="True">
-                        <shad:Card.Header>
-                            <shad:CardTitle Content="{x:Static lang:Resources.Window_Appearance}" />
-                        </shad:Card.Header>
-                        <UniformGrid Columns="2" Rows="4">
-                                <StackPanel Margin="0,0,20,14" Spacing="6">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Window_Background}"/>
-                                    <ColorPicker Color="{Binding BackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
-                                                 IsAlphaEnabled="True"
-                                                 HorizontalAlignment="Stretch" />
-                                </StackPanel>
-                                <StackPanel Margin="0,0,0,14" Spacing="6">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Subtitle_Background}"/>
-                                    <ColorPicker Color="{Binding SubtitleBackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
-                                                 IsAlphaEnabled="True"
-                                                 HorizontalAlignment="Stretch" />
-                                </StackPanel>
-
-                                <StackPanel Margin="0,0,20,14" Spacing="6">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Window_Opacity}"/>
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                        <Slider Value="{Binding WindowOpacity}" Minimum="0.1" Maximum="1.0"
-                                                TickFrequency="0.01" IsSnapToTickEnabled="True"
-                                                SmallChange="0.01" LargeChange="0.05"
-                                                VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding WindowOpacity, StringFormat=P0}"
-                                                   MinWidth="44" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource MutedColor}"/>
-                                    </Grid>
-                                </StackPanel>
-                                <StackPanel Margin="0,0,0,14" Spacing="6">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Speech_DisplayMode}"/>
-                                    <ComboBox ItemsSource="{Binding DisplayModeOptions}"
-                                              SelectedValue="{Binding FloatingDisplayMode}"
-                                              SelectedValueBinding="{Binding Key}"
-                                              DisplayMemberBinding="{Binding Value}"  HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-
-                                <StackPanel Margin="0,0,20,14" Spacing="6">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Window_Orientation}"/>
-                                    <ComboBox ItemsSource="{Binding OrientationOptions}"
-                                              SelectedItem="{Binding FloatingWindowOrientation}"  HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-                                <StackPanel Margin="0,0,0,14" Spacing="6">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Speech_AutoClear}"/>
-                                    <NumericUpDown Value="{Binding AutoClearInterval}" FormatString="F0"
-                                                   Minimum="0" Maximum="3600" Increment="5"  HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-
-                                <StackPanel Margin="0,0,20,0" Spacing="6"
-                                            IsVisible="{Binding IsMaxSentencesPerLineVisible}">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Speech_MaxSentencesPerLine}"/>
-                                    <NumericUpDown Value="{Binding MaxSentencesPerLine}" FormatString="F0"
-                                                   Minimum="1" Maximum="100"  HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-                                <StackPanel Spacing="6" IsVisible="{Binding IsSegmentedMode}">
-                                    <TextBlock Classes="Small" Foreground="{DynamicResource ForegroundColor}" VerticalAlignment="Center" Text="{x:Static lang:Resources.Speech_MaxHistory}"/>
-                                    <NumericUpDown Value="{Binding MaxFloatingHistory}" FormatString="F0"
-                                                   Minimum="1" Maximum="20"  HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-                            </UniformGrid>
-                    </shad:Card>
-                </StackPanel>
-            </ScrollViewer>
             </Grid>
             
             <StackPanel Grid.Row="0"

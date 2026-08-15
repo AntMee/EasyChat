@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Reactive;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -34,6 +35,11 @@ public sealed class SpeechAudioSourceItem : ReactiveObject, IDisposable
             ? Resources.Speech_AllSystemAudio
             : source.DisplayName;
         Title = source.Description ?? string.Empty;
+        Category = source.Kind == AudioCaptureSourceKind.Microphone
+            ? source.IsVirtualCable
+                ? Resources.Speech_VirtualMicrophone
+                : Resources.Speech_PhysicalMicrophone
+            : string.Empty;
         _isSelected = isSelected;
         if (!source.IconPng.IsEmpty)
         {
@@ -47,6 +53,8 @@ public sealed class SpeechAudioSourceItem : ReactiveObject, IDisposable
     public string Name { get; }
     public string Title { get; }
     public string DisplayName { get; }
+    public string Category { get; }
+    public bool HasCategory => !string.IsNullOrWhiteSpace(Category);
     public Bitmap? AppIcon { get; }
     public bool IsSelected
     {
@@ -69,11 +77,16 @@ public sealed class SpeechSubtitleItemViewModel : ReactiveObject
     {
         Id = subtitle.Id;
         Timestamp = subtitle.Timestamp;
+        Origin = subtitle.Origin;
         Update(subtitle);
     }
 
     public long Id { get; }
     public TimeSpan Timestamp { get; }
+    public SpeechSubtitleOrigin Origin { get; }
+    public string OriginLabel => Origin == SpeechSubtitleOrigin.RealtimeInterpretation
+        ? Resources.Speech_SubtitleOriginInterpretation
+        : Resources.Speech_SubtitleOriginAudio;
     public double Opacity { get => _opacity; private set => this.RaiseAndSetIfChanged(ref _opacity, value); }
     public string OriginalText { get => _originalText; private set => this.RaiseAndSetIfChanged(ref _originalText, value); }
     public string TranslatedText { get => _translatedText; private set => this.RaiseAndSetIfChanged(ref _translatedText, value); }
@@ -108,6 +121,18 @@ public sealed class SpeechSubtitleItemViewModel : ReactiveObject
     internal void BeginFadeOut() => Opacity = 0;
 
     internal void StopLoading() => IsTranslating = false;
+}
+
+public enum SpeechSessionMode
+{
+    AudioTranslation = 0,
+    RealtimeInterpretation = 1
+}
+
+internal sealed class SpeechModeSnapshot
+{
+    public required SpeechRecognitionSettings Settings { get; set; }
+    public HashSet<AudioCaptureSourceReference> Sources { get; } = [];
 }
 
 internal sealed class SpeechSubtitleProjection
@@ -210,23 +235,41 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     private readonly ISpeechRecognitionUseCases _speech;
     private readonly ISpeechRecognitionModelCatalog _models;
     private readonly IAudioCaptureSourceCatalog _audioSources;
+    private readonly IAudioPlaybackDeviceCatalog _playbackDevices;
     private readonly IPlatformCapabilities _capabilities;
     private readonly IPlatformAccessUseCases _platformAccess;
     private readonly TranslationLanguageOptions _languages;
     private readonly SubtitleWindowCoordinator _subtitleWindow;
     private readonly ILogger<SpeechRecognitionViewModel> _logger;
+    private readonly SpeechInterpretationHotkeyController _hotkeyController;
+    private readonly IExternalUriLauncher _uriLauncher;
     private readonly SpeechSubtitleProjection _subtitleProjection = new();
     private readonly CancellationTokenSource _lifetimeCancellation = new();
-    private CancellationTokenSource? _recognitionCancellation;
-    private Task? _recognitionTask;
+    private readonly SpeechModeSnapshot[] _modeSnapshots = new SpeechModeSnapshot[2];
+    private readonly CancellationTokenSource?[] _recognitionCancellations = new CancellationTokenSource?[2];
+    private readonly Task?[] _recognitionTasks = new Task?[2];
+    private IReadOnlyList<AudioCaptureSourceDescriptor> _availableAudioSources = [];
+    private SpeechRecognitionCommand? _preparedAudioTranslationCommand;
+    private SpeechRecognitionCommand? _preparedRealtimeInterpretationCommand;
     private SpeechEngineOption? _selectedEngineOption;
     private LanguageSettings? _selectedTargetLanguage;
     private SpeechRecognitionModel? _selectedRecognitionModel;
     private string _selectedSourcesSummary = Resources.Speech_AllSystemAudio;
+    private int _speechModeTabIndex;
     private bool _isSupported;
     private bool _isBusy;
     private bool _isRecording;
+    private bool _isAudioTranslationRecording;
+    private bool _isAudioTranslationArmed;
+    private bool _isRealtimeInterpretationRecording;
+    private bool _isRealtimeInterpretationArmed;
+    private bool _isVirtualCableAvailable;
+    private bool _isCheckingVirtualCable;
     private bool _isFloatingWindowOpen;
+#if DEBUG
+    // Keep the first debug launch in the missing-driver state so the recovery path can be exercised.
+    private bool _debugVirtualCableNeedsManualCheck = true;
+#endif
     private int _initialized;
     private long _nextErrorId;
 
@@ -235,22 +278,42 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         ISpeechRecognitionUseCases speech,
         ISpeechRecognitionModelCatalog models,
         IAudioCaptureSourceCatalog audioSources,
+        IAudioPlaybackDeviceCatalog playbackDevices,
         IPlatformCapabilities capabilities,
         IPlatformAccessUseCases platformAccess,
         TranslationLanguageOptions languages,
         SubtitleWindowCoordinator subtitleWindow,
-        ILogger<SpeechRecognitionViewModel> logger)
-        : base(Resources.Page_SpeechRecognition, MaterialIconKind.Microphone, 4)
+        ILogger<SpeechRecognitionViewModel> logger,
+        SpeechInterpretationHotkeyController hotkeyController,
+        IExternalUriLauncher uriLauncher)
+        : base(Resources.Page_LiveTranslate, MaterialIconKind.Microphone, 4)
     {
         _settings = settings;
         _speech = speech;
         _models = models;
         _audioSources = audioSources;
+        _playbackDevices = playbackDevices;
         _capabilities = capabilities;
         _platformAccess = platformAccess;
         _languages = languages;
         _subtitleWindow = subtitleWindow;
         _logger = logger;
+        _hotkeyController = hotkeyController;
+        _uriLauncher = uriLauncher;
+        _hotkeyController.Attach(this);
+        _speechModeTabIndex = 0;
+        _modeSnapshots[0] = new SpeechModeSnapshot
+        {
+            Settings = settings.SpeechRecognition.ToContract() with { IsTranslatedSpeechEnabled = false }
+        };
+        _modeSnapshots[1] = new SpeechModeSnapshot
+        {
+            Settings = settings.SpeechRecognition.ToContract() with
+            {
+                IsTranslationEnabled = true,
+                IsTranslatedSpeechEnabled = true
+            }
+        };
 
         RecognitionLanguages = [];
         EngineOptions = [];
@@ -271,7 +334,15 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         LoadEngineOptions();
 
         ToggleRecordingCommand = ReactiveCommand.CreateFromTask(ToggleRecordingAsync);
+        ToggleAudioTranslationCommand = ReactiveCommand.CreateFromTask(
+            () => ToggleModeRecordingAsync(SpeechSessionMode.AudioTranslation));
+        ToggleRealtimeInterpretationCommand = ReactiveCommand.CreateFromTask(
+            () => ToggleInterpretationArmedAsync());
         RefreshSourcesCommand = ReactiveCommand.CreateFromTask(RefreshSourcesAsync);
+        RefreshVirtualCableCommand = ReactiveCommand.CreateFromTask(RefreshVirtualCableAsync);
+        OpenAudioTranslationTutorialCommand = ReactiveCommand.Create(OpenAudioTranslationTutorial);
+        OpenInterpretationTutorialCommand = ReactiveCommand.Create(OpenInterpretationTutorial);
+        OpenVirtualCableInstallationTutorialCommand = ReactiveCommand.Create(OpenVirtualCableInstallationTutorial);
         ClearHistoryCommand = ReactiveCommand.Create(ClearHistory);
         ToggleFloatingWindowCommand = ReactiveCommand.Create(ToggleFloatingWindow);
         ToggleLockCommand = ReactiveCommand.Create(() =>
@@ -292,9 +363,6 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             PrimaryFontSize = Math.Max(10, PrimaryFontSize - 2);
             SecondaryFontSize = Math.Max(10, SecondaryFontSize - 2);
         });
-        ApplyAppearancePresetCommand = ReactiveCommand.Create<SubtitleAppearancePreset>(ApplyAppearancePreset);
-        ShowLiveWorkspaceCommand = ReactiveCommand.Create(() => { IsLiveWorkspace = true; });
-        ShowOverlayWorkspaceCommand = ReactiveCommand.Create(() => { IsLiveWorkspace = false; });
 
         _subtitleWindow.VisibilityChanged += OnSubtitleWindowVisibilityChanged;
         _models.ModelsChanged += OnModelsChanged;
@@ -310,72 +378,20 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     public ObservableCollection<SpeechSubtitleItemViewModel> SubtitleItems { get; }
     public ObservableCollection<SpeechSubtitleItemViewModel> FloatingSubtitles { get; }
 
-    public IReadOnlyList<string> OrientationOptions { get; } = ["Horizontal", "Vertical"];
-    public IReadOnlyList<SubtitleAppearancePreset> AppearancePresets { get; } = SubtitleAppearancePresets.All;
-    public IReadOnlyList<KeyValuePair<FloatingDisplayMode, string>> DisplayModeOptions { get; } =
-    [
-        new(FloatingDisplayMode.Segmented, Resources.Speech_DisplayMode_Segmented),
-        new(FloatingDisplayMode.AutoScroll, Resources.Speech_DisplayMode_AutoScroll)
-    ];
-    public IReadOnlyList<KeyValuePair<SubtitleSource, string>> MainSourceOptions { get; } =
-    [
-        new(SubtitleSource.Original, Resources.Subtitle_Source_Original),
-        new(SubtitleSource.Translated, Resources.Subtitle_Source_Translated)
-    ];
-    public IReadOnlyList<KeyValuePair<SubtitleSource, string>> SecondarySourceOptions { get; } =
-    [
-        new(SubtitleSource.None, Resources.Subtitle_Source_None),
-        new(SubtitleSource.Original, Resources.Subtitle_Source_Original),
-        new(SubtitleSource.Translated, Resources.Subtitle_Source_Translated)
-    ];
-
     public ReactiveCommand<Unit, Unit> ToggleRecordingCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleAudioTranslationCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleRealtimeInterpretationCommand { get; }
     public ReactiveCommand<Unit, Unit> RefreshSourcesCommand { get; }
+    public ReactiveCommand<Unit, Unit> RefreshVirtualCableCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenAudioTranslationTutorialCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenInterpretationTutorialCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenVirtualCableInstallationTutorialCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearHistoryCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleFloatingWindowCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleLockCommand { get; }
     public ReactiveCommand<Unit, Unit> UnlockFloatingWindowCommand { get; }
     public ReactiveCommand<Unit, Unit> IncreaseFontSizeCommand { get; }
     public ReactiveCommand<Unit, Unit> DecreaseFontSizeCommand { get; }
-    public ReactiveCommand<SubtitleAppearancePreset, Unit> ApplyAppearancePresetCommand { get; }
-    public ReactiveCommand<Unit, Unit> ShowLiveWorkspaceCommand { get; }
-    public ReactiveCommand<Unit, Unit> ShowOverlayWorkspaceCommand { get; }
-
-    private bool _isLiveWorkspace = true;
-    public bool IsLiveWorkspace
-    {
-        get => _isLiveWorkspace;
-        set
-        {
-            if (_isLiveWorkspace == value)
-                return;
-            this.RaiseAndSetIfChanged(ref _isLiveWorkspace, value);
-            this.RaisePropertyChanged(nameof(IsOverlayWorkspace));
-        }
-    }
-    public bool IsOverlayWorkspace
-    {
-        get => !_isLiveWorkspace;
-        set
-        {
-            if (value)
-                IsLiveWorkspace = false;
-        }
-    }
-
-    /// <summary>0 = live workspace, 1 = overlay workspace. Backs the TabControl switch.</summary>
-    public int WorkspaceTabIndex
-    {
-        get => _isLiveWorkspace ? 0 : 1;
-        set
-        {
-            if (value == 0)
-                IsLiveWorkspace = true;
-            else
-                IsLiveWorkspace = false;
-        }
-    }
-
     public bool IsSupported { get => _isSupported; private set { this.RaiseAndSetIfChanged(ref _isSupported, value); this.RaisePropertyChanged(nameof(IsNotSupported)); } }
     public bool IsNotSupported => !IsSupported;
     public bool IsBusy { get => _isBusy; private set => this.RaiseAndSetIfChanged(ref _isBusy, value); }
@@ -416,7 +432,6 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
                 _settings.SpeechRecognition.EngineId = value.Id;
                 _settings.SpeechRecognition.EngineType = value.IsMachine ? 0 : 1;
             }
-            this.RaisePropertyChanged(nameof(IsMaxSentencesPerLineVisible));
             this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible));
             this.RaisePropertyChanged(nameof(IsPromptSelectionVisible));
             UpdateTargetLanguages(commitSelection: true);
@@ -454,7 +469,112 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         }
     }
 
-    public bool IsTranslationEnabled { get => _settings.SpeechRecognition.IsTranslationEnabled; set { Set(value, _settings.SpeechRecognition.IsTranslationEnabled, next => _settings.SpeechRecognition.IsTranslationEnabled = next); this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible)); this.RaisePropertyChanged(nameof(IsPromptSelectionVisible)); } }
+    public bool IsTranslationEnabled { get => _settings.SpeechRecognition.IsTranslationEnabled; set { Set(value, _settings.SpeechRecognition.IsTranslationEnabled, next => _settings.SpeechRecognition.IsTranslationEnabled = next); this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible)); this.RaisePropertyChanged(nameof(IsPromptSelectionVisible)); this.RaisePropertyChanged(nameof(IsAudioTranslationTargetLanguageVisible)); } }
+    public bool IsTranslatedSpeechEnabled
+    {
+        get => _settings.SpeechRecognition.IsTranslatedSpeechEnabled;
+        set => Set(value, _settings.SpeechRecognition.IsTranslatedSpeechEnabled,
+            next => _settings.SpeechRecognition.IsTranslatedSpeechEnabled = next);
+    }
+    public bool IsAudioTranslationRecording
+    {
+        get => _isAudioTranslationRecording;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isAudioTranslationRecording, value);
+            this.RaisePropertyChanged(nameof(AudioTranslationText));
+            this.RaisePropertyChanged(nameof(AudioTranslationIcon));
+        }
+    }
+    public bool IsAudioTranslationArmed
+    {
+        get => _isAudioTranslationArmed;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isAudioTranslationArmed, value);
+            this.RaisePropertyChanged(nameof(AudioTranslationText));
+            this.RaisePropertyChanged(nameof(AudioTranslationIcon));
+        }
+    }
+    public bool IsRealtimeInterpretationRecording
+    {
+        get => _isRealtimeInterpretationRecording;
+        private set => this.RaiseAndSetIfChanged(ref _isRealtimeInterpretationRecording, value);
+    }
+    public bool IsRealtimeInterpretationArmed
+    {
+        get => _isRealtimeInterpretationArmed;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isRealtimeInterpretationArmed, value);
+            this.RaisePropertyChanged(nameof(RealtimeInterpretationText));
+            this.RaisePropertyChanged(nameof(CanToggleRealtimeInterpretation));
+        }
+    }
+    public bool IsVirtualCableAvailable
+    {
+        get => _isVirtualCableAvailable;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isVirtualCableAvailable, value);
+            this.RaisePropertyChanged(nameof(IsVirtualCableMissing));
+            this.RaisePropertyChanged(nameof(IsRealtimeInterpretationAvailable));
+            this.RaisePropertyChanged(nameof(IsRealtimeInterpretationDriverMissing));
+            this.RaisePropertyChanged(nameof(CanToggleRealtimeInterpretation));
+        }
+    }
+    public bool IsVirtualCableMissing => !IsVirtualCableAvailable;
+    public bool IsRealtimeInterpretationDriverMissing =>
+        IsVoiceTranslationMode && IsVirtualCableMissing;
+    public bool IsRealtimeInterpretationAvailable =>
+        IsVirtualCableAvailable && !IsCheckingVirtualCable;
+    public bool CanToggleRealtimeInterpretation =>
+        IsRealtimeInterpretationAvailable || IsRealtimeInterpretationArmed;
+    public bool IsCheckingVirtualCable
+    {
+        get => _isCheckingVirtualCable;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isCheckingVirtualCable, value);
+            this.RaisePropertyChanged(nameof(IsRealtimeInterpretationAvailable));
+            this.RaisePropertyChanged(nameof(CanToggleRealtimeInterpretation));
+        }
+    }
+    public string AudioTranslationText => IsAudioTranslationArmed
+        ? Resources.Speech_Stop
+        : Resources.Speech_Start;
+    public MaterialIconKind AudioTranslationIcon => IsAudioTranslationArmed
+        ? MaterialIconKind.MicrophoneOff
+        : MaterialIconKind.Microphone;
+    public string RealtimeInterpretationText => IsRealtimeInterpretationArmed
+        ? Resources.Speech_Stop
+        : Resources.Speech_Start;
+
+    /// <summary>0 = live captions, 1 = voice translation.</summary>
+    public int SpeechModeTabIndex
+    {
+        get => _speechModeTabIndex;
+        set
+        {
+            var normalized = value == 1 ? 1 : 0;
+            if (_speechModeTabIndex == normalized)
+                return;
+
+            CaptureCurrentModeSnapshot();
+            this.RaiseAndSetIfChanged(ref _speechModeTabIndex, normalized);
+            RestoreModeSnapshot();
+
+            this.RaisePropertyChanged(nameof(IsVoiceTranslationMode));
+            this.RaisePropertyChanged(nameof(IsLiveCaptionsMode));
+            this.RaisePropertyChanged(nameof(IsAudioTranslationTargetLanguageVisible));
+            this.RaisePropertyChanged(nameof(IsRealtimeInterpretationDriverMissing));
+        }
+    }
+
+    public bool IsVoiceTranslationMode => _speechModeTabIndex == 1;
+    public bool IsLiveCaptionsMode => !IsVoiceTranslationMode;
+    public bool IsAudioTranslationTargetLanguageVisible =>
+        IsLiveCaptionsMode && IsTranslationEnabled;
     public bool IsRealTimePreviewEnabled { get => _settings.SpeechRecognition.IsRealTimePreviewEnabled; set => Set(value, _settings.SpeechRecognition.IsRealTimePreviewEnabled, next => _settings.SpeechRecognition.IsRealTimePreviewEnabled = next); }
     public bool IsRealTimePreviewVisible =>
         ShouldShowRealTimePreview(IsTranslationEnabled, SelectedEngineOption?.IsMachine == true);
@@ -462,10 +582,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         IsTranslationEnabled && SelectedEngineOption?.IsMachine == false;
     public int AutoClearInterval { get => _settings.SpeechRecognition.AutoClearInterval; set => Set(value, _settings.SpeechRecognition.AutoClearInterval, next => _settings.SpeechRecognition.AutoClearInterval = next); }
     public int MaxSentencesPerLine { get => _settings.SpeechRecognition.MaxSentencesPerLine; set => Set(value, _settings.SpeechRecognition.MaxSentencesPerLine, next => _settings.SpeechRecognition.MaxSentencesPerLine = next); }
-    public FloatingDisplayMode FloatingDisplayMode { get => _settings.SpeechRecognition.FloatingDisplayMode; set { Set(value, _settings.SpeechRecognition.FloatingDisplayMode, next => _settings.SpeechRecognition.FloatingDisplayMode = next); this.RaisePropertyChanged(nameof(IsSegmentedMode)); this.RaisePropertyChanged(nameof(IsMaxSentencesPerLineVisible)); } }
-    public bool IsSegmentedMode => FloatingDisplayMode == FloatingDisplayMode.Segmented;
-    public bool IsMaxSentencesPerLineVisible =>
-        ShouldShowMaxSentencesPerLine(FloatingDisplayMode, SelectedEngineOption?.IsMachine == true);
+    public FloatingDisplayMode FloatingDisplayMode { get => _settings.SpeechRecognition.FloatingDisplayMode; set => Set(value, _settings.SpeechRecognition.FloatingDisplayMode, next => _settings.SpeechRecognition.FloatingDisplayMode = next); }
     public int MaxFloatingHistory { get => _settings.SpeechRecognition.MaxFloatingHistory; set => Set(value, _settings.SpeechRecognition.MaxFloatingHistory, next => _settings.SpeechRecognition.MaxFloatingHistory = next); }
     public SubtitleSource MainSubtitleSource { get => _settings.SpeechRecognition.MainSubtitleSource; set => Set(value, _settings.SpeechRecognition.MainSubtitleSource, next => _settings.SpeechRecognition.MainSubtitleSource = next); }
     public double PrimaryFontSize { get => _settings.SpeechRecognition.PrimaryFontSize; set => Set(value, _settings.SpeechRecognition.PrimaryFontSize, next => _settings.SpeechRecognition.PrimaryFontSize = next); }
@@ -494,6 +611,12 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
         await RefreshRecognitionLanguagesAsync(cancellationToken);
         await RefreshSourcesAsync(cancellationToken);
+#if DEBUG
+        if (!_debugVirtualCableNeedsManualCheck)
+            await RefreshVirtualCableAsync(cancellationToken);
+#else
+        await RefreshVirtualCableAsync(cancellationToken);
+#endif
     }
 
     public void StoreFloatingWindowBounds(int x, int y, double width, double height)
@@ -506,13 +629,18 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
     public void Dispose()
     {
-        _recognitionCancellation?.Cancel();
-        _recognitionCancellation?.Dispose();
+        ReleasePreparedRecognitionOnDispose();
+        foreach (var cancellation in _recognitionCancellations)
+        {
+            cancellation?.Cancel();
+            cancellation?.Dispose();
+        }
         _lifetimeCancellation.Cancel();
         _lifetimeCancellation.Dispose();
         _subtitleWindow.VisibilityChanged -= OnSubtitleWindowVisibilityChanged;
         _models.ModelsChanged -= OnModelsChanged;
         _subtitleWindow.Close();
+        _hotkeyController.Detach(this);
         foreach (var source in AudioSources)
             source.Dispose();
     }
@@ -554,45 +682,255 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
     private async Task ToggleRecordingAsync()
     {
-        if (IsBusy || !IsSupported)
-            return;
-        if (IsRecording)
-        {
-            IsBusy = true;
-            _recognitionCancellation?.Cancel();
-            if (_recognitionTask is not null)
-            {
-                try { await _recognitionTask; }
-                catch (OperationCanceledException) { }
-            }
-            IsBusy = false;
-            return;
-        }
-        if (SelectedRecognitionModel is null)
+        await ToggleModeRecordingAsync(
+            _speechModeTabIndex == 1
+                ? SpeechSessionMode.RealtimeInterpretation
+                : SpeechSessionMode.AudioTranslation);
+    }
+
+    private async Task ToggleModeRecordingAsync(SpeechSessionMode mode)
+    {
+        if (!IsSupported)
             return;
 
-        if (_recognitionCancellation is not null)
+        var index = (int)mode;
+        if (GetPreparedCommand(mode) is not null
+            || _recognitionCancellations[index] is not null)
         {
-            _recognitionCancellation.Cancel();
-            if (_recognitionTask is not null)
-            {
-                try { await _recognitionTask; }
-                catch (OperationCanceledException) { }
-            }
-            _recognitionCancellation.Dispose();
+            SetModeArmed(mode, false);
+            await StopModeAsync(mode);
+            await ReleasePreparedModeAsync(mode);
+            return;
         }
-        _recognitionCancellation = new CancellationTokenSource();
-        var command = new SpeechRecognitionCommand(
-            SelectedRecognitionModel.Id,
-            SelectedRecognitionModel.Id,
-            AudioSources.Where(source => source.IsSelected)
+
+        CaptureCurrentModeSnapshot();
+        if (!TryCreateRecognitionCommand(mode, out var command))
+            return;
+
+        IsBusy = true;
+        try
+        {
+            var result = await _speech.PrepareAsync(command, _lifetimeCancellation.Token);
+            if (result.IsFailure)
+            {
+                AddError(result.Error.Message);
+                return;
+            }
+
+            SetPreparedCommand(mode, command);
+            SetModeArmed(mode, true);
+            if (mode == SpeechSessionMode.AudioTranslation
+                && !StartModeRecording(mode, command))
+            {
+                SetModeArmed(mode, false);
+                await ReleasePreparedModeAsync(mode);
+            }
+        }
+        catch (OperationCanceledException) when (_lifetimeCancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to prepare speech recognition.");
+            AddError(exception.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private bool TryCreateRecognitionCommand(
+        SpeechSessionMode mode,
+        out SpeechRecognitionCommand command)
+    {
+        var snapshot = _modeSnapshots[(int)mode];
+        var modelId = snapshot.Settings.RecognitionLanguage;
+        if (string.IsNullOrWhiteSpace(modelId))
+            modelId = SelectedRecognitionModel?.Id;
+        if (string.IsNullOrWhiteSpace(modelId))
+        {
+            command = null!;
+            return false;
+        }
+
+        var sources = snapshot.Sources.Count > 0
+            ? snapshot.Sources.ToArray()
+            : AudioSources.Where(source => source.IsSelected)
                 .Select(source => new AudioCaptureSourceReference(source.Token, source.Kind))
-                .ToArray());
+                .ToArray();
+        if (sources.Length == 0)
+        {
+            command = null!;
+            return false;
+        }
+
+        command = new SpeechRecognitionCommand(
+            modelId,
+            modelId,
+            sources,
+            snapshot.Settings with { RecognitionLanguage = modelId },
+            CompleteOnCancellation: mode == SpeechSessionMode.RealtimeInterpretation,
+            SubtitleOrigin: mode == SpeechSessionMode.RealtimeInterpretation
+                ? SpeechSubtitleOrigin.RealtimeInterpretation
+                : SpeechSubtitleOrigin.AudioTranslation,
+            SegmentationMode: mode == SpeechSessionMode.RealtimeInterpretation
+                ? SpeechRecognitionSegmentationMode.SingleUtterance
+                : SpeechRecognitionSegmentationMode.Standard);
+        return true;
+    }
+
+    private bool StartModeRecording(
+        SpeechSessionMode mode,
+        SpeechRecognitionCommand command)
+    {
+        var index = (int)mode;
+        if (_recognitionTasks[index]?.IsCompleted == true)
+        {
+            _recognitionCancellations[index]?.Dispose();
+            _recognitionCancellations[index] = null;
+            _recognitionTasks[index] = null;
+        }
+        if (_recognitionCancellations[index] is not null)
+            return false;
+
+        var cancellation = new CancellationTokenSource();
+        _recognitionCancellations[index] = cancellation;
+        if (mode == SpeechSessionMode.AudioTranslation)
+            IsAudioTranslationRecording = true;
+        else
+            IsRealtimeInterpretationRecording = true;
         IsRecording = true;
-        _recognitionTask = ConsumeRecognitionAsync(command, _recognitionCancellation.Token);
+        _recognitionTasks[index] = ConsumeRecognitionAsync(mode, command, cancellation.Token);
+        return true;
+    }
+
+    private async Task ToggleInterpretationArmedAsync()
+    {
+        if (!IsRealtimeInterpretationAvailable && !IsRealtimeInterpretationArmed)
+            return;
+        await ToggleModeRecordingAsync(SpeechSessionMode.RealtimeInterpretation);
+    }
+
+    public ValueTask<bool> BeginRealtimeInterpretationHoldAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled<bool>(cancellationToken);
+        if (!IsRealtimeInterpretationAvailable
+            || !IsRealtimeInterpretationArmed
+            || IsRealtimeInterpretationRecording
+            || _preparedRealtimeInterpretationCommand is null)
+            return ValueTask.FromResult(false);
+
+        return ValueTask.FromResult(StartModeRecording(
+            SpeechSessionMode.RealtimeInterpretation,
+            _preparedRealtimeInterpretationCommand));
+    }
+
+    public async ValueTask EndRealtimeInterpretationHoldAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsRealtimeInterpretationRecording)
+            return;
+        await Task.Delay(TimeSpan.FromMilliseconds(300), cancellationToken);
+        await StopModeAsync(SpeechSessionMode.RealtimeInterpretation);
+    }
+
+    private async Task StopModeAsync(SpeechSessionMode mode)
+    {
+        var index = (int)mode;
+        var cancellation = _recognitionCancellations[index];
+        if (cancellation is null)
+            return;
+        cancellation.Cancel();
+        var task = _recognitionTasks[index];
+        if (task is not null)
+        {
+            try { await task; }
+            catch (OperationCanceledException) { }
+        }
+        cancellation.Dispose();
+        _recognitionCancellations[index] = null;
+        _recognitionTasks[index] = null;
+    }
+
+    private SpeechRecognitionCommand? GetPreparedCommand(SpeechSessionMode mode) =>
+        mode == SpeechSessionMode.AudioTranslation
+            ? _preparedAudioTranslationCommand
+            : _preparedRealtimeInterpretationCommand;
+
+    private void SetPreparedCommand(
+        SpeechSessionMode mode,
+        SpeechRecognitionCommand? command)
+    {
+        if (mode == SpeechSessionMode.AudioTranslation)
+            _preparedAudioTranslationCommand = command;
+        else
+            _preparedRealtimeInterpretationCommand = command;
+    }
+
+    private void SetModeArmed(SpeechSessionMode mode, bool armed)
+    {
+        if (mode == SpeechSessionMode.AudioTranslation)
+            IsAudioTranslationArmed = armed;
+        else
+            IsRealtimeInterpretationArmed = armed;
+    }
+
+    private async Task ReleasePreparedModeAsync(SpeechSessionMode mode)
+    {
+        var command = GetPreparedCommand(mode);
+        SetPreparedCommand(mode, null);
+        if (command is null)
+            return;
+
+        var result = await _speech.ReleasePreparationAsync(command, CancellationToken.None);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning(
+                "Unable to release the prepared speech recognition resources: {Message}",
+                result.Error.Message);
+            AddError(result.Error.Message);
+        }
+    }
+
+    private void ReleasePreparedRecognitionOnDispose()
+    {
+        var commands = new[]
+        {
+            _preparedAudioTranslationCommand,
+            _preparedRealtimeInterpretationCommand
+        };
+        _preparedAudioTranslationCommand = null;
+        _preparedRealtimeInterpretationCommand = null;
+        foreach (var command in commands.Where(command => command is not null))
+            _ = ReleasePreparedRecognitionOnDisposeAsync(command!);
+    }
+
+    private async Task ReleasePreparedRecognitionOnDisposeAsync(
+        SpeechRecognitionCommand command)
+    {
+        try
+        {
+            var result = await _speech.ReleasePreparationAsync(command, CancellationToken.None);
+            if (result.IsFailure)
+            {
+                _logger.LogWarning(
+                    "Unable to release prepared speech recognition resources during disposal: {Message}",
+                    result.Error.Message);
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Unable to release prepared speech recognition resources during disposal.");
+        }
     }
 
     private async Task ConsumeRecognitionAsync(
+        SpeechSessionMode mode,
         SpeechRecognitionCommand command,
         CancellationToken cancellationToken)
     {
@@ -601,7 +939,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             await foreach (var item in _speech.RecognizeAsync(command, cancellationToken)
                                .ConfigureAwait(false))
             {
-                await Dispatcher.UIThread.InvokeAsync(() => Apply(item));
+                await Dispatcher.UIThread.InvokeAsync(() => Apply(mode, item));
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -617,13 +955,17 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 _subtitleProjection.StopLoading();
-                IsRecording = false;
+                if (mode == SpeechSessionMode.AudioTranslation)
+                    IsAudioTranslationRecording = false;
+                else
+                    IsRealtimeInterpretationRecording = false;
+                IsRecording = IsAudioTranslationRecording || IsRealtimeInterpretationRecording;
                 IsBusy = false;
             });
         }
     }
 
-    private void Apply(SpeechSessionEvent item)
+    private void Apply(SpeechSessionMode mode, SpeechSessionEvent item)
     {
         switch (item)
         {
@@ -634,6 +976,11 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             case SpeechSubtitleChangedEvent changed:
                 UpdateSubtitle(changed.Subtitle);
                 break;
+            case SpeechTranslationCompletedEvent completed
+                when mode == SpeechSessionMode.RealtimeInterpretation
+                     && completed.Origin == SpeechSubtitleOrigin.RealtimeInterpretation:
+                _ = _hotkeyController.PlayTranslationCompletedFeedbackAsync().AsTask();
+                break;
             case SpeechFloatingSubtitleRemovedEvent removed:
                 BeginFloatingSubtitleRemoval(removed.SubtitleId);
                 break;
@@ -641,7 +988,11 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
                 AddError(error.Message);
                 break;
             case SpeechSessionStoppedEvent:
-                IsRecording = false;
+                if (mode == SpeechSessionMode.AudioTranslation)
+                    IsAudioTranslationRecording = false;
+                else
+                    IsRealtimeInterpretationRecording = false;
+                IsRecording = IsAudioTranslationRecording || IsRealtimeInterpretationRecording;
                 IsBusy = false;
                 break;
         }
@@ -665,6 +1016,63 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _subtitleProjection.Update(line);
     }
 
+    private async Task RefreshVirtualCableAsync(CancellationToken cancellationToken = default)
+    {
+#if DEBUG
+        _debugVirtualCableNeedsManualCheck = false;
+#endif
+        IsCheckingVirtualCable = true;
+        try
+        {
+            var devices = await _playbackDevices.GetDevicesAsync(cancellationToken);
+            IsVirtualCableAvailable = devices.Any(device => device.IsVirtualCable);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Unable to enumerate virtual cable playback devices.");
+            IsVirtualCableAvailable = false;
+        }
+        finally
+        {
+            IsCheckingVirtualCable = false;
+        }
+    }
+
+    private void OpenAudioTranslationTutorial()
+    {
+        OpenLocalizedTutorial(
+            "https://easychat.ncii.cn/zh/docs/feature/simultaneous-interpretation/asr",
+            "https://easychat.ncii.cn/en/docs/feature/simultaneous-interpretation/asr");
+    }
+
+    private void OpenInterpretationTutorial()
+    {
+        OpenLocalizedTutorial(
+            "https://easychat.ncii.cn/zh/docs/feature/simultaneous-interpretation/speak",
+            "https://easychat.ncii.cn/en/docs/feature/simultaneous-interpretation/speak");
+    }
+
+    private void OpenVirtualCableInstallationTutorial()
+    {
+        OpenLocalizedTutorial(
+            "https://easychat.ncii.cn/zh/docs/feature/simultaneous-interpretation/speak#%E5%AE%89%E8%A3%85-asr-%E6%A8%A1%E5%9E%8B",
+            "https://easychat.ncii.cn/en/docs/feature/simultaneous-interpretation/speak#install-a-virtual-audio-driver");
+    }
+
+    private void OpenLocalizedTutorial(string chineseUri, string englishUri)
+    {
+        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        var uri = new Uri(language.Equals("zh", StringComparison.OrdinalIgnoreCase)
+            ? chineseUri
+            : englishUri);
+        var result = _uriLauncher.Open(uri);
+        if (result.IsFailure)
+            AddError(result.Error.Message);
+    }
+
     private async Task RefreshSourcesAsync(CancellationToken cancellationToken = default)
     {
         var access = await _platformAccess.EnsureAvailableAsync(
@@ -678,9 +1086,14 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             return;
         }
 
-        var selected = AudioSources.Where(source => source.IsSelected)
-            .Select(source => source.Token)
-            .ToHashSet();
+        CaptureCurrentModeSources();
+        _availableAudioSources = await _audioSources.GetSourcesAsync(cancellationToken);
+        ApplyAudioSourcesForCurrentMode();
+    }
+
+    private void ApplyAudioSourcesForCurrentMode()
+    {
+        var modeSnapshot = _modeSnapshots[_speechModeTabIndex];
         foreach (var source in AudioSources)
         {
             source.PropertyChanged -= OnSourcePropertyChanged;
@@ -688,24 +1101,99 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         }
         AudioSources.Clear();
 
-        var available = await _audioSources.GetSourcesAsync(cancellationToken);
+        IReadOnlyList<AudioCaptureSourceDescriptor> available = _availableAudioSources;
+        if (_speechModeTabIndex == (int)SpeechSessionMode.AudioTranslation)
+        {
+            available = available
+                .Where(source => source.Kind != AudioCaptureSourceKind.Microphone)
+                .ToArray();
+        }
+        var restored = modeSnapshot.Sources.Count > 0 && available.Any(source => modeSnapshot.Sources.Contains(
+            new AudioCaptureSourceReference(source.Token, source.Kind)));
+        var defaultMicrophone = available.FirstOrDefault(source =>
+                source.Kind == AudioCaptureSourceKind.Microphone
+                && !source.IsVirtualCable
+                && source.IsDefault)
+            ?? available.FirstOrDefault(source =>
+                source.Kind == AudioCaptureSourceKind.Microphone
+                && !source.IsVirtualCable);
         foreach (var descriptor in available)
         {
             var item = new SpeechAudioSourceItem(
                 descriptor,
-                selected.Count == 0
-                    ? descriptor.Kind == AudioCaptureSourceKind.SystemOutput
-                    : selected.Contains(descriptor.Token));
+                !restored
+                    ? (_speechModeTabIndex == (int)SpeechSessionMode.RealtimeInterpretation
+                        ? (defaultMicrophone is not null
+                            ? descriptor.Token == defaultMicrophone.Token
+                            : descriptor.Kind == AudioCaptureSourceKind.Microphone)
+                        : descriptor.Kind == AudioCaptureSourceKind.SystemOutput)
+                    : modeSnapshot.Sources.Contains(new AudioCaptureSourceReference(
+                        descriptor.Token,
+                        descriptor.Kind)));
             item.PropertyChanged += OnSourcePropertyChanged;
             AudioSources.Add(item);
         }
+        CaptureCurrentModeSources();
         UpdateSourceSummary();
     }
 
     private void OnSourcePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
         if (eventArgs.PropertyName == nameof(SpeechAudioSourceItem.IsSelected))
+        {
+            CaptureCurrentModeSources();
             UpdateSourceSummary();
+        }
+    }
+
+    private void CaptureCurrentModeSources()
+    {
+        if (_modeSnapshots[_speechModeTabIndex] is null)
+            return;
+        var target = _modeSnapshots[_speechModeTabIndex].Sources;
+        target.Clear();
+        foreach (var source in AudioSources.Where(source => source.IsSelected))
+            target.Add(new AudioCaptureSourceReference(source.Token, source.Kind));
+    }
+
+    private void CaptureCurrentModeSnapshot()
+    {
+        var snapshot = _modeSnapshots[_speechModeTabIndex];
+        if (snapshot is null)
+            return;
+        snapshot.Settings = _settings.SpeechRecognition.ToContract();
+        CaptureCurrentModeSources();
+    }
+
+    private void RestoreModeSnapshot()
+    {
+        var snapshot = _modeSnapshots[_speechModeTabIndex];
+        _settings.SpeechRecognition.Apply(snapshot.Settings);
+        _selectedRecognitionModel = RecognitionLanguages.FirstOrDefault(model =>
+            model.Id == snapshot.Settings.RecognitionLanguage);
+        _selectedTargetLanguage = TargetLanguages.FirstOrDefault(language =>
+            language.Id == snapshot.Settings.TargetLanguage);
+        _selectedEngineOption = EngineOptions.FirstOrDefault(option =>
+            option.Id == snapshot.Settings.EngineId
+            && option.IsMachine == (snapshot.Settings.EngineType == 0));
+        this.RaisePropertyChanged(nameof(SelectedRecognitionModel));
+        this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
+        this.RaisePropertyChanged(nameof(SelectedEngineOption));
+        ApplyAudioSourcesForCurrentMode();
+        RaiseModePropertiesChanged();
+    }
+
+    private void RaiseModePropertiesChanged()
+    {
+        foreach (var property in new[]
+                 {
+                     nameof(IsTranslationEnabled), nameof(IsTranslatedSpeechEnabled),
+                     nameof(IsRealTimePreviewEnabled), nameof(IsRealTimePreviewVisible),
+                     nameof(IsAudioTranslationTargetLanguageVisible),
+                     nameof(IsPromptSelectionVisible), nameof(SelectedPromptId),
+                     nameof(AudioTranslationText), nameof(RealtimeInterpretationText)
+                 })
+            this.RaisePropertyChanged(property);
     }
 
     private void UpdateSourceSummary()
@@ -715,7 +1203,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         {
             0 => Resources.Speech_AllSystemAudio,
             1 => selected[0].Name,
-            _ => string.Format(Resources.Speech_SelectedAppsCount, selected.Length)
+            _ => string.Format(Resources.Speech_SelectedSourcesCount, selected.Length)
         };
     }
 
@@ -739,7 +1227,6 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             selectedId,
             selectedMachine);
         this.RaisePropertyChanged(nameof(SelectedEngineOption));
-        this.RaisePropertyChanged(nameof(IsMaxSentencesPerLineVisible));
         this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible));
         this.RaisePropertyChanged(nameof(IsPromptSelectionVisible));
         UpdateTargetLanguages(commitSelection: engineFellBack);
@@ -875,18 +1362,6 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
-    }
-
-    private void ApplyAppearancePreset(SubtitleAppearancePreset preset)
-    {
-        ArgumentNullException.ThrowIfNull(preset);
-        PrimaryFontSize = preset.PrimaryFontSize;
-        PrimaryFontColor = preset.PrimaryFontColor;
-        SecondaryFontSize = preset.SecondaryFontSize;
-        SecondaryFontColor = preset.SecondaryFontColor;
-        BackgroundColor = preset.BackgroundColor;
-        SubtitleBackgroundColor = preset.SubtitleBackgroundColor;
-        WindowOpacity = preset.WindowOpacity;
     }
 
     private void Set<T>(T value, T current, Action<T> apply, [System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)

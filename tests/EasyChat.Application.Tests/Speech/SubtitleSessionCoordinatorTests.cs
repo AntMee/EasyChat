@@ -18,6 +18,93 @@ namespace EasyChat.Application.Tests.Speech;
 public sealed class SubtitleSessionCoordinatorTests
 {
     [TestMethod]
+    public async Task FinalTranslationQueuesTranslatedSpeechToVirtualCable()
+    {
+        var tts = new RecordingTtsUseCases();
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsTranslatedSpeechEnabled = true
+        };
+        await using var harness = new CoordinatorHarness(settings, tts: tts);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Started);
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "hello.");
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.AreEqual("即时翻译", tts.LastText);
+        Assert.AreEqual(AudioPlaybackTarget.VirtualCable, tts.LastTarget);
+    }
+
+    [TestMethod]
+    public async Task FinalTranslationsEnterTheVirtualCableQueueInRecognitionOrder()
+    {
+        var tts = new RecordingTtsUseCases();
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsTranslatedSpeechEnabled = true
+        };
+        await using var harness = new CoordinatorHarness(
+            settings,
+            translation: new EchoTranslationUseCases(),
+            tts: tts);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Started);
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "first.");
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "second.");
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        CollectionAssert.AreEqual(
+            new[] { "translated:first.", "translated:second." },
+            tts.Texts);
+        CollectionAssert.AreEqual(
+            new[] { AudioPlaybackTarget.VirtualCable, AudioPlaybackTarget.VirtualCable },
+            tts.Targets);
+    }
+
+    [TestMethod]
+    public async Task SingleUtteranceDefersTranslationAndTtsUntilRecognitionStops()
+    {
+        var tts = new RecordingTtsUseCases();
+        var settings = CreateSettings(translationEnabled: true) with
+        {
+            IsTranslatedSpeechEnabled = true
+        };
+        await using var harness = new CoordinatorHarness(
+            settings,
+            translation: new EchoTranslationUseCases(),
+            tts: tts,
+            subtitleOrigin: SpeechSubtitleOrigin.RealtimeInterpretation,
+            singleUtterance: true);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Started);
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, "First sentence");
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "First sentence.");
+        await harness.SendAsync(SpeechRecognitionEventKind.Partial, "Second sentence");
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "Second sentence.");
+        await harness.DrainAsync();
+
+        Assert.IsEmpty(tts.Texts);
+        Assert.AreEqual(
+            "First sentence. Second sentence.",
+            AssertExactlyOneLatestLine(harness.Events).OriginalText);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var line = AssertExactlyOneLatestLine(harness.Events);
+        Assert.IsFalse(line.IsTemporary);
+        Assert.AreEqual("First sentence. Second sentence.", line.OriginalText);
+        CollectionAssert.AreEqual(
+            new[] { "translated:First sentence. Second sentence." },
+            tts.Texts);
+        Assert.AreEqual(
+            1,
+            harness.Events.OfType<SpeechTranslationCompletedEvent>().Count());
+    }
+
+    [TestMethod]
     public async Task FinalRevisionRebuildsPublishedRangesWithoutDuplicateOrMissingText()
     {
         var settings = CreateSettings(translationEnabled: false);
@@ -1427,6 +1514,26 @@ public sealed class SubtitleSessionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task RealtimeInterpretationPromptRequestsSemanticRepairOfAsrBoundaries()
+    {
+        var translations = new RecordingTranslationUseCases("translated");
+        await using var harness = new CoordinatorHarness(
+            CreateSettings(translationEnabled: true),
+            translations,
+            subtitleOrigin: SpeechSubtitleOrigin.RealtimeInterpretation,
+            singleUtterance: true);
+
+        await harness.SendAsync(SpeechRecognitionEventKind.Final, "ASR fragment one fragment two");
+        await harness.SendAsync(SpeechRecognitionEventKind.Stopped);
+        await harness.WaitForAsync(_ => translations.RequestCount == 1);
+
+        var prompt = translations.Invocations.Single().Selection!.PromptOverride!;
+        StringAssert.Contains(prompt, "automatic speech recognition (ASR)");
+        StringAssert.Contains(prompt, "sentence boundaries may be inaccurate");
+        StringAssert.Contains(prompt, "merge fragments");
+    }
+
+    [TestMethod]
     public async Task PreservedStaleTranslationIsNotUsedAsAiContext()
     {
         var replacement = new ControlledTranslationStream();
@@ -2530,7 +2637,10 @@ public sealed class SubtitleSessionCoordinatorTests
             SubtitleTranslationLane? machineTranslationLane = null,
             ManualTimeProvider? timeProvider = null,
             SubtitleFloatingLifecycleRegistry? floatingLifecycle = null,
-            Func<long>? nextSubtitleId = null)
+            Func<long>? nextSubtitleId = null,
+            ITtsUseCases? tts = null,
+            SpeechSubtitleOrigin subtitleOrigin = SpeechSubtitleOrigin.AudioTranslation,
+            bool singleUtterance = false)
         {
             Time = timeProvider
                    ?? new ManualTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
@@ -2546,7 +2656,10 @@ public sealed class SubtitleSessionCoordinatorTests
                 item => _events.Enqueue(item),
                 aiTranslationLane,
                 machineTranslationLane,
-                floatingLifecycle);
+                floatingLifecycle,
+                tts: tts,
+                subtitleOrigin: subtitleOrigin,
+                singleUtterance: singleUtterance);
             Completion = coordinator.RunAsync(
                 _recognition.Reader.ReadAllAsync(_lifetime.Token),
                 _lifetime.Token);
@@ -2604,6 +2717,124 @@ public sealed class SubtitleSessionCoordinatorTests
             TranslationRequest request,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
+    }
+
+    private sealed class RecordingTtsUseCases : ITtsUseCases
+    {
+        public string? LastText { get; private set; }
+        public AudioPlaybackTarget LastTarget { get; private set; }
+        public List<string> Texts { get; } = [];
+        public List<AudioPlaybackTarget> Targets { get; } = [];
+
+        public IReadOnlyList<TtsProviderDescriptor> GetProviders() =>
+            [new(TtsProviderIds.EdgeTts)];
+
+        public ValueTask<Result<IReadOnlyList<TtsVoice>>> GetVoicesAsync(
+            string? providerId = null,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Result<IReadOnlyList<TtsVoice>>.Success([]));
+
+        public ValueTask<Result<IReadOnlyList<TtsLanguage>>> GetLanguagesAsync(
+            string? providerId = null,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Result<IReadOnlyList<TtsLanguage>>.Success([]));
+
+        public ValueTask<Result<string?>> ResolvePreferredVoiceAsync(
+            string languageId,
+            string? providerId = null,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Result<string?>.Success("en-US-DefaultNeural"));
+
+        public ValueTask<Result<AudioTrack>> SynthesizeAsync(
+            TtsSynthesisRequest request,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Result<AudioTrack>.Success(new AudioTrack(Array.Empty<byte>(), "audio/mpeg")));
+
+        public ValueTask<Result> SynthesizeToFileAsync(
+            TtsSynthesisRequest request,
+            string outputPath,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Result.Success());
+
+        public ValueTask<Result> EnqueueAsync(
+            TtsSynthesisRequest request,
+            bool interruptCurrent = false,
+            CancellationToken cancellationToken = default)
+        {
+            LastText = request.Text;
+            LastTarget = AudioPlaybackTarget.Default;
+            Texts.Add(request.Text);
+            Targets.Add(AudioPlaybackTarget.Default);
+            return ValueTask.FromResult(Result.Success());
+        }
+
+        public ValueTask<Result> EnqueueAsync(
+            TtsSynthesisRequest request,
+            bool interruptCurrent,
+            AudioPlaybackTarget target,
+            CancellationToken cancellationToken = default)
+        {
+            LastText = request.Text;
+            LastTarget = target;
+            Texts.Add(request.Text);
+            Targets.Add(target);
+            return ValueTask.FromResult(Result.Success());
+        }
+    }
+
+    private sealed class EchoTranslationUseCases : ITranslationUseCases
+    {
+        public ITranslationSession Prepare(TranslationProviderSelection? provider = null) =>
+            new EchoTranslationSession();
+
+        public Task<Result<TranslationResponse>> TranslateAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public IAsyncEnumerable<TranslationEvent> StreamAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class EchoTranslationSession : ITranslationSession
+    {
+        public bool SupportsIdentifiedStreaming => false;
+
+        public Task<TranslationResponse> TranslateAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new TranslationResponse(Translate(request.Text)));
+
+        public async IAsyncEnumerable<TranslationEvent> StreamAsync(
+            TranslationRequest request,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return new TranslationDeltaEvent(Translate(request.Text));
+            await Task.CompletedTask;
+        }
+
+        public IAsyncEnumerable<IdentifiedTranslationDelta> StreamIdentifiedAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        private static string Translate(string requestText)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(requestText);
+                if (document.RootElement.TryGetProperty("current", out var current))
+                    return $"translated:{current.GetString()}";
+            }
+            catch (JsonException)
+            {
+            }
+
+            return $"translated:{requestText}";
+        }
     }
 
     private sealed class ImmediateTranslationSession : ITranslationSession

@@ -206,7 +206,7 @@ internal sealed class InputSettingsDto
     public int KeySendDelay { get; set; } = 10;
 
     [JsonProperty]
-    public InputDeliveryModeDto DeliveryMode { get; set; } = InputDeliveryModeDto.Message;
+    public InputDeliveryModeDto DeliveryMode { get; set; } = InputDeliveryModeDto.Paste;
 
     [JsonProperty]
     public bool ReverseTranslateLanguage { get; set; } = true;
@@ -279,6 +279,9 @@ internal sealed class SpeechRecognitionSettingsDto
 
     [JsonProperty]
     public bool IsTranslationEnabled { get; set; }
+
+    [JsonProperty]
+    public bool IsTranslatedSpeechEnabled { get; set; }
 
     [JsonProperty]
     public bool IsRealTimePreviewEnabled { get; set; } = true;

@@ -22,6 +22,9 @@ internal interface IMicroAsrRecognizer : IAsyncDisposable
         ReadOnlyMemory<byte> pcm16,
         CancellationToken cancellationToken = default);
 
+    Task CompleteUtteranceAsync(CancellationToken cancellationToken = default) =>
+        CompleteAsync(cancellationToken);
+
     Task CompleteAsync(CancellationToken cancellationToken = default);
 }
 
@@ -42,7 +45,13 @@ internal sealed class MicroAsrRecognizerAdapter : IMicroAsrRecognizer
 
     public MicroAsrRecognizerAdapter(string modelDirectory)
     {
-        _recognizer = new StreamingRecognizer(modelDirectory, RnntRecognitionMode.Balanced);
+        // Chinese speech often contains short pauses inside a semantic sentence. Keep the
+        // endpoint window slightly longer so those pauses do not create premature finals.
+        _recognizer = new StreamingRecognizer(modelDirectory, new StreamingRecognizerOptions
+        {
+            Decoder = RnntDecoderOptions.ForMode(RnntRecognitionMode.Balanced),
+            EndSilenceFrames = 75
+        });
         _recognizer.ResultAvailable += OnResultAvailable;
     }
 
@@ -55,6 +64,9 @@ internal sealed class MicroAsrRecognizerAdapter : IMicroAsrRecognizer
 
     public Task CompleteAsync(CancellationToken cancellationToken = default) =>
         _recognizer.CompleteAsync(cancellationToken);
+
+    public Task CompleteUtteranceAsync(CancellationToken cancellationToken = default) =>
+        _recognizer.CompleteUtteranceAsync(cancellationToken);
 
     public async ValueTask DisposeAsync()
     {

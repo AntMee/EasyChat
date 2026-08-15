@@ -16,13 +16,14 @@ namespace EasyChat.Infrastructure.Windows.Audio;
 public sealed class WindowsSoundFlowAudioPlaybackQueue : IAudioPlaybackQueue, IDisposable
 {
     private readonly object _sync = new();
-    private readonly ConcurrentQueue<AudioTrack> _queue = new();
+    private readonly ConcurrentQueue<QueuedPlayback> _queue = new();
     private readonly ILogger<WindowsSoundFlowAudioPlaybackQueue> _logger;
     private AudioEngine? _engine;
     private AudioPlaybackDevice? _device;
     private CancellationTokenSource? _currentPlayback;
     private Task? _runner;
     private bool _disposed;
+    private AudioPlaybackTarget _deviceTarget;
 
     public WindowsSoundFlowAudioPlaybackQueue(
         ILogger<WindowsSoundFlowAudioPlaybackQueue> logger)
@@ -33,13 +34,19 @@ public sealed class WindowsSoundFlowAudioPlaybackQueue : IAudioPlaybackQueue, ID
     public ValueTask EnqueueAsync(
         AudioTrack track,
         CancellationToken cancellationToken = default)
+        => EnqueueAsync(track, AudioPlaybackTarget.Default, cancellationToken);
+
+    public ValueTask EnqueueAsync(
+        AudioTrack track,
+        AudioPlaybackTarget target,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(track);
         cancellationToken.ThrowIfCancellationRequested();
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            _queue.Enqueue(track);
+            _queue.Enqueue(new QueuedPlayback(track, target));
             if (_runner is null || _runner.IsCompleted)
                 _runner = Task.Run(RunAsync);
         }
@@ -90,11 +97,11 @@ public sealed class WindowsSoundFlowAudioPlaybackQueue : IAudioPlaybackQueue, ID
     {
         while (true)
         {
-            AudioTrack track;
+            QueuedPlayback queued;
             CancellationToken token;
             lock (_sync)
             {
-                if (_disposed || !_queue.TryDequeue(out track!))
+                if (_disposed || !_queue.TryDequeue(out queued))
                 {
                     _runner = null;
                     return;
@@ -106,7 +113,7 @@ public sealed class WindowsSoundFlowAudioPlaybackQueue : IAudioPlaybackQueue, ID
 
             try
             {
-                await PlayAsync(track, token).ConfigureAwait(false);
+                await PlayAsync(queued.Track, queued.Target, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
@@ -118,9 +125,12 @@ public sealed class WindowsSoundFlowAudioPlaybackQueue : IAudioPlaybackQueue, ID
         }
     }
 
-    private async Task PlayAsync(AudioTrack track, CancellationToken cancellationToken)
+    private async Task PlayAsync(
+        AudioTrack track,
+        AudioPlaybackTarget target,
+        CancellationToken cancellationToken)
     {
-        EnsureInitialized();
+        EnsureInitialized(target);
         if (_engine is null || _device is null)
             return;
         using var stream = new MemoryStream(track.Content.ToArray(), writable: false);
@@ -140,25 +150,44 @@ public sealed class WindowsSoundFlowAudioPlaybackQueue : IAudioPlaybackQueue, ID
         }
     }
 
-    private void EnsureInitialized()
+    private void EnsureInitialized(AudioPlaybackTarget target)
     {
-        if (_engine is not null && _device is not null)
+        if (_engine is not null && _device is not null && _deviceTarget == target)
             return;
+
+        _engine ??= new MiniAudioEngine();
+        _engine.UpdateAudioDevicesInfo();
+        var devices = _engine.PlaybackDevices;
+        var selected = target == AudioPlaybackTarget.VirtualCable
+            ? devices.FirstOrDefault(device =>
+                WindowsAudioPlaybackDeviceCatalog.IsVirtualCableName(device.Name))
+            : devices.FirstOrDefault(device => device.IsDefault);
+        var hasSelected = target == AudioPlaybackTarget.VirtualCable
+            ? devices.Any(device => WindowsAudioPlaybackDeviceCatalog.IsVirtualCableName(device.Name))
+            : devices.Any(device => device.IsDefault);
+        if (!hasSelected)
+        {
+            throw new InvalidOperationException(target == AudioPlaybackTarget.VirtualCable
+                ? "VB-Audio Cable playback device 'CABLE Input' is not available."
+                : "No default audio playback device is available.");
+        }
+
+        _device?.Stop();
+        _device?.Dispose();
+        _device = null;
         try
         {
-            _engine = new MiniAudioEngine();
-            _engine.UpdateAudioDevicesInfo();
-            var defaultDevice = _engine.PlaybackDevices.FirstOrDefault(device => device.IsDefault);
-            _device = _engine.InitializePlaybackDevice(defaultDevice, AudioFormat.DvdHq);
+            _device = _engine.InitializePlaybackDevice(selected, AudioFormat.DvdHq);
             _device.Start();
+            _deviceTarget = target;
         }
-        catch (Exception exception)
+        catch
         {
-            _logger.LogError(exception, "Exception during SoundFlow initialization.");
             _device?.Dispose();
-            _engine?.Dispose();
             _device = null;
-            _engine = null;
+            throw;
         }
     }
+
+    private readonly record struct QueuedPlayback(AudioTrack Track, AudioPlaybackTarget Target);
 }

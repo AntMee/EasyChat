@@ -18,6 +18,7 @@ internal interface IWindowsPcmCaptureSessionFactory
 {
     IWindowsPcmCaptureSession CreateSystemOutput(PcmAudioFormat format);
     IWindowsPcmCaptureSession CreateProcess(int processId, PcmAudioFormat format);
+    IWindowsPcmCaptureSession CreateMicrophone(string deviceId, PcmAudioFormat format);
 }
 
 internal sealed class WindowsPcmCaptureSessionFactory : IWindowsPcmCaptureSessionFactory
@@ -27,14 +28,19 @@ internal sealed class WindowsPcmCaptureSessionFactory : IWindowsPcmCaptureSessio
 
     public IWindowsPcmCaptureSession CreateProcess(int processId, PcmAudioFormat format) =>
         new WindowsProcessAudioCaptureSession(processId, format);
+
+    public IWindowsPcmCaptureSession CreateMicrophone(string deviceId, PcmAudioFormat format) =>
+        new WindowsMicrophoneAudioCaptureSession(deviceId, format);
 }
 
 [SupportedOSPlatform("windows")]
-public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
+public sealed class WindowsPcmAudioCapture : IPcmAudioCapture, IPreparablePcmAudioCapture, IAsyncDisposable
 {
     private static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(20);
     private const int BufferedFrameCapacity = 50;
     private readonly IWindowsPcmCaptureSessionFactory _sessions;
+    private readonly object _preparedSync = new();
+    private readonly Dictionary<PreparedCaptureKey, PreparedCapture> _preparedCaptures = [];
 
     public WindowsPcmAudioCapture()
         : this(new WindowsPcmCaptureSessionFactory())
@@ -47,6 +53,108 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
     }
 
     public async IAsyncEnumerable<ReadOnlyMemory<byte>> CaptureAsync(
+        IReadOnlyList<AudioCaptureSourceToken> sources,
+        PcmAudioFormat format,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        ValidateFormat(format);
+
+        var key = PreparedCaptureKey.Create(sources, format);
+        PreparedCapture? prepared;
+        lock (_preparedSync)
+            _preparedCaptures.TryGetValue(key, out prepared);
+        if (prepared is not null)
+        {
+            await foreach (var frame in prepared.ReadAsync(cancellationToken).ConfigureAwait(false))
+                yield return frame;
+            yield break;
+        }
+
+        await foreach (var frame in CaptureCoreAsync(sources, format, cancellationToken)
+                           .ConfigureAwait(false))
+        {
+            yield return frame;
+        }
+    }
+
+    public async ValueTask PrepareCaptureAsync(
+        IReadOnlyList<AudioCaptureSourceToken> sources,
+        PcmAudioFormat format,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        ValidateFormat(format);
+
+        var key = PreparedCaptureKey.Create(sources, format);
+        PreparedCapture prepared;
+        lock (_preparedSync)
+        {
+            if (!_preparedCaptures.TryGetValue(key, out prepared!))
+            {
+                prepared = new PreparedCapture(this, key, sources.ToArray(), format);
+                _preparedCaptures.Add(key, prepared);
+            }
+        }
+
+        try
+        {
+            await prepared.StartAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            RemovePreparedCapture(key, prepared);
+            await prepared.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    public async ValueTask ReleasePreparedCaptureAsync(
+        IReadOnlyList<AudioCaptureSourceToken> sources,
+        PcmAudioFormat format,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        cancellationToken.ThrowIfCancellationRequested();
+        var key = PreparedCaptureKey.Create(sources, format);
+        PreparedCapture? prepared;
+        lock (_preparedSync)
+        {
+            if (!_preparedCaptures.Remove(key, out prepared))
+                return;
+        }
+
+        await prepared.DisposeAsync().ConfigureAwait(false);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        PreparedCapture[] prepared;
+        lock (_preparedSync)
+        {
+            prepared = _preparedCaptures.Values.ToArray();
+            _preparedCaptures.Clear();
+        }
+
+        foreach (var capture in prepared)
+            await capture.DisposeAsync().ConfigureAwait(false);
+    }
+
+    private void RemovePreparedCapture(
+        PreparedCaptureKey key,
+        PreparedCapture capture)
+    {
+        lock (_preparedSync)
+        {
+            if (_preparedCaptures.TryGetValue(key, out var current)
+                && ReferenceEquals(current, capture))
+            {
+                _preparedCaptures.Remove(key);
+            }
+        }
+    }
+
+    private async IAsyncEnumerable<ReadOnlyMemory<byte>> CaptureCoreAsync(
         IReadOnlyList<AudioCaptureSourceToken> sources,
         PcmAudioFormat format,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -197,19 +305,33 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
         IReadOnlyList<AudioCaptureSourceToken> sources,
         PcmAudioFormat format)
     {
-        if (sources.Count == 0 || sources.Contains(WindowsAudioCaptureSourceCatalog.SystemOutputToken))
+        // An empty selection preserves the legacy system-audio default. Once the user
+        // explicitly selects multiple sources, every selected source participates in the mix.
+        if (sources.Count == 0)
             return [_sessions.CreateSystemOutput(format)];
 
         var result = new List<IWindowsPcmCaptureSession>(sources.Count);
         foreach (var source in sources.Distinct())
         {
-            if (!WindowsAudioCaptureSourceCatalog.TryGetProcessId(source, out var processId))
+            if (source == WindowsAudioCaptureSourceCatalog.SystemOutputToken)
             {
-                throw new ArgumentException(
-                    $"Audio source '{source.Value}' is not supported by the Windows adapter.",
-                    nameof(sources));
+                result.Add(_sessions.CreateSystemOutput(format));
+                continue;
             }
-            result.Add(_sessions.CreateProcess(processId, format));
+            if (WindowsAudioCaptureSourceCatalog.TryGetProcessId(source, out var processId))
+            {
+                result.Add(_sessions.CreateProcess(processId, format));
+                continue;
+            }
+            if (WindowsAudioCaptureSourceCatalog.TryGetCaptureDeviceId(source, out var deviceId))
+            {
+                result.Add(_sessions.CreateMicrophone(deviceId, format));
+                continue;
+            }
+
+            throw new ArgumentException(
+                $"Audio source '{source.Value}' is not supported by the Windows adapter.",
+                nameof(sources));
         }
         return result;
     }
@@ -249,6 +371,165 @@ public sealed class WindowsPcmAudioCapture : IPcmAudioCapture
         {
             throw new NotSupportedException(
                 "Windows speech capture currently supports 16 kHz mono PCM16 only.");
+        }
+    }
+
+    private readonly record struct PreparedCaptureKey(
+        string SourcesKey,
+        PcmAudioFormat Format)
+    {
+        public static PreparedCaptureKey Create(
+            IReadOnlyList<AudioCaptureSourceToken> sources,
+            PcmAudioFormat format) =>
+            new(
+                string.Join(
+                    "\u001f",
+                    sources.Select(source => source.Value)
+                        .OrderBy(value => value, StringComparer.Ordinal)),
+                format);
+    }
+
+    private sealed class PreparedCapture(
+        WindowsPcmAudioCapture owner,
+        PreparedCaptureKey key,
+        IReadOnlyList<AudioCaptureSourceToken> sources,
+        PcmAudioFormat format) : IAsyncDisposable
+    {
+        private const int Capacity = 8;
+        private readonly CancellationTokenSource _lifetime = new();
+        private readonly Channel<ReadOnlyMemory<byte>> _frames = Channel.CreateBounded<ReadOnlyMemory<byte>>(
+            new BoundedChannelOptions(Capacity)
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                FullMode = BoundedChannelFullMode.DropOldest,
+                AllowSynchronousContinuations = false
+            });
+        private readonly TaskCompletionSource _ready = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly object _startSync = new();
+        private Task? _runner;
+        private int _readerActive;
+        private int _disposed;
+
+        public async ValueTask StartAsync(CancellationToken cancellationToken)
+        {
+            Task runner;
+            lock (_startSync)
+            {
+                ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+                _runner ??= Task.Run(RunAsync, CancellationToken.None);
+                runner = _runner;
+            }
+
+            try
+            {
+                await _ready.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                if (runner.IsFaulted)
+                    await runner.ConfigureAwait(false);
+                throw;
+            }
+        }
+
+        public async IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            if (Interlocked.CompareExchange(ref _readerActive, 1, 0) != 0)
+            {
+                throw new InvalidOperationException(
+                    "A prepared audio capture can only be consumed by one recognizer at a time.");
+            }
+
+            DrainFrames();
+            try
+            {
+                await foreach (var frame in _frames.Reader.ReadAllAsync(cancellationToken)
+                                   .ConfigureAwait(false))
+                {
+                    yield return frame;
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _readerActive, 0);
+                DrainFrames();
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                return;
+
+            _lifetime.Cancel();
+            _ready.TrySetCanceled(_lifetime.Token);
+            Task? runner;
+            lock (_startSync)
+                runner = _runner;
+            if (runner is not null)
+            {
+                try
+                {
+                    await runner.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+                {
+                }
+            }
+            _lifetime.Dispose();
+        }
+
+        private async Task RunAsync()
+        {
+            Exception? failure = null;
+            try
+            {
+                await foreach (var frame in owner.CaptureCoreAsync(sources, format, _lifetime.Token)
+                                   .ConfigureAwait(false))
+                {
+                    // A timed PCM frame proves all native sessions have started successfully.
+                    _ready.TrySetResult();
+                    if (Volatile.Read(ref _readerActive) != 0)
+                        _frames.Writer.TryWrite(frame);
+                }
+
+                if (!_lifetime.IsCancellationRequested)
+                {
+                    failure = new InvalidOperationException(
+                        "The prepared Windows audio capture stopped unexpectedly.");
+                }
+            }
+            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+            {
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+            finally
+            {
+                if (failure is not null)
+                    _ready.TrySetException(failure);
+                else if (_lifetime.IsCancellationRequested)
+                    _ready.TrySetCanceled(_lifetime.Token);
+                else
+                    _ready.TrySetException(new InvalidOperationException(
+                        "The prepared Windows audio capture stopped before it became ready."));
+
+                _frames.Writer.TryComplete(failure);
+                if (failure is not null)
+                    owner.RemovePreparedCapture(key, this);
+            }
+        }
+
+        private void DrainFrames()
+        {
+            while (_frames.Reader.TryRead(out _))
+            {
+            }
         }
     }
 

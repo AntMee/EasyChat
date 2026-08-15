@@ -82,6 +82,10 @@
                                 </Transitions>
                             </Border.Transitions>
                             <StackPanel>
+                                <TextBlock Text="{Binding OriginLabel}"
+                                           Classes="Caption"
+                                           Foreground="{DynamicResource MutedColor}"
+                                           Margin="0,0,0,2" />
                                 <!-- Primary Subtitle -->
                                 <Grid ColumnDefinitions="*, Auto">
                                     <TextBlock Grid.Column="0" 

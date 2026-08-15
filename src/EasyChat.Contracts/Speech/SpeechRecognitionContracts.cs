@@ -2,13 +2,30 @@ using System.Globalization;
 using System.Text.Json.Serialization;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
+using EasyChat.Shared.Results;
 
 namespace EasyChat.Contracts.Speech;
 
 public sealed record SpeechRecognitionCommand(
     string ModelPath,
     string Language,
-    IReadOnlyList<AudioCaptureSourceReference> Sources);
+    IReadOnlyList<AudioCaptureSourceReference> Sources,
+    SpeechRecognitionSettings? SettingsOverride = null,
+    bool CompleteOnCancellation = false,
+    SpeechSubtitleOrigin SubtitleOrigin = SpeechSubtitleOrigin.AudioTranslation,
+    SpeechRecognitionSegmentationMode SegmentationMode = SpeechRecognitionSegmentationMode.Standard);
+
+public enum SpeechRecognitionSegmentationMode
+{
+    Standard = 0,
+    SingleUtterance = 1
+}
+
+public enum SpeechSubtitleOrigin
+{
+    AudioTranslation = 0,
+    RealtimeInterpretation = 1
+}
 
 public sealed record SpeechRecognitionModel
 {
@@ -129,11 +146,13 @@ public sealed record SpeechSubtitleLine(
     string TranslatedText,
     string DisplayTranslatedText,
     bool IsTranslating,
-    bool IsTemporary);
+    bool IsTemporary,
+    SpeechSubtitleOrigin Origin = SpeechSubtitleOrigin.AudioTranslation);
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "event")]
 [JsonDerivedType(typeof(SpeechSessionStartedEvent), "started")]
 [JsonDerivedType(typeof(SpeechSubtitleChangedEvent), "subtitle_changed")]
+[JsonDerivedType(typeof(SpeechTranslationCompletedEvent), "translation_completed")]
 [JsonDerivedType(typeof(SpeechFloatingSubtitleRemovedEvent), "floating_subtitle_removed")]
 [JsonDerivedType(typeof(SpeechSessionErrorEvent), "error")]
 [JsonDerivedType(typeof(SpeechSessionStoppedEvent), "stopped")]
@@ -141,12 +160,23 @@ public abstract record SpeechSessionEvent;
 
 public sealed record SpeechSessionStartedEvent : SpeechSessionEvent;
 public sealed record SpeechSubtitleChangedEvent(SpeechSubtitleLine Subtitle) : SpeechSessionEvent;
+public sealed record SpeechTranslationCompletedEvent(
+    long SubtitleId,
+    SpeechSubtitleOrigin Origin) : SpeechSessionEvent;
 public sealed record SpeechFloatingSubtitleRemovedEvent(long SubtitleId) : SpeechSessionEvent;
 public sealed record SpeechSessionErrorEvent(string Message) : SpeechSessionEvent;
 public sealed record SpeechSessionStoppedEvent : SpeechSessionEvent;
 
 public interface ISpeechRecognitionUseCases
 {
+    ValueTask<Result> PrepareAsync(
+        SpeechRecognitionCommand command,
+        CancellationToken cancellationToken = default);
+
+    ValueTask<Result> ReleasePreparationAsync(
+        SpeechRecognitionCommand command,
+        CancellationToken cancellationToken = default);
+
     IAsyncEnumerable<SpeechSessionEvent> RecognizeAsync(
         SpeechRecognitionCommand command,
         CancellationToken cancellationToken = default);

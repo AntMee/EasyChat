@@ -55,7 +55,7 @@ public sealed class StreamingRecognizer : IAsyncDisposable
     private readonly StreamingRecognizerOptions _options;
     private readonly float _voiceThreshold;
     private readonly StreamingFbankExtractor _features = new();
-    private readonly Channel<byte[]> _audio;
+    private readonly Channel<RecognizerInput> _audio;
     private readonly Task _worker;
     private int _stopping;
     private bool _disposed;
@@ -89,7 +89,7 @@ public sealed class StreamingRecognizer : IAsyncDisposable
         _vad = new NeuralVoiceActivityDetector(package);
         _postProcessor = new TextPostProcessor(package);
         _voiceThreshold = package.VadThreshold;
-        _audio = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(options.AudioQueueCapacity)
+        _audio = Channel.CreateBounded<RecognizerInput>(new BoundedChannelOptions(options.AudioQueueCapacity)
         {
             SingleReader = true,
             SingleWriter = false,
@@ -111,14 +111,40 @@ public sealed class StreamingRecognizer : IAsyncDisposable
         ValidatePcm(pcm16.Length);
         if (pcm16.IsEmpty)
             return;
-        await _audio.Writer.WriteAsync(pcm16.ToArray(), cancellationToken).ConfigureAwait(false);
+        await _audio.Writer.WriteAsync(
+            new RecognizerInput(pcm16.ToArray()),
+            cancellationToken).ConfigureAwait(false);
     }
 
     public bool TryWrite(ReadOnlySpan<byte> pcm16)
     {
         ThrowIfNotRunning();
         ValidatePcm(pcm16.Length);
-        return pcm16.IsEmpty || _audio.Writer.TryWrite(pcm16.ToArray());
+        return pcm16.IsEmpty || _audio.Writer.TryWrite(new RecognizerInput(pcm16.ToArray()));
+    }
+
+    /// <summary>
+    /// Completes the current spoken utterance while retaining all model sessions for the next one.
+    /// </summary>
+    public async Task CompleteUtteranceAsync(CancellationToken cancellationToken = default)
+    {
+        ThrowIfNotRunning();
+        var processed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var endpointSilence = new byte[
+            StreamingFbankExtractor.SampleRate * DigitalSilenceEndpointMilliseconds / 1000 * sizeof(short)];
+        await _audio.Writer.WriteAsync(
+            new RecognizerInput(endpointSilence, processed),
+            cancellationToken).ConfigureAwait(false);
+
+        var completed = await Task.WhenAny(processed.Task, _worker)
+            .WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (!ReferenceEquals(completed, processed.Task) && !processed.Task.IsCompleted)
+        {
+            throw new InvalidOperationException(
+                "The streaming recognizer stopped before the utterance could be completed.");
+        }
+
+        await processed.Task.ConfigureAwait(false);
     }
 
     public async Task CompleteAsync(CancellationToken cancellationToken = default)
@@ -197,31 +223,41 @@ public sealed class StreamingRecognizer : IAsyncDisposable
 
         try
         {
-            await foreach (byte[] pcm in _audio.Reader.ReadAllAsync().ConfigureAwait(false))
+            await foreach (var input in _audio.Reader.ReadAllAsync().ConfigureAwait(false))
             {
-                int consumedBytes = 0;
-                while (consumedBytes < pcm.Length)
+                try
                 {
-                    bool reachedDigitalSilenceEndpoint = digitalSilence.TryFindEndpoint(
-                        pcm.AsSpan(consumedBytes),
-                        out int currentByteCount);
-                    _features.AcceptPcm(
-                        pcm.AsSpan(consumedBytes, currentByteCount),
-                        ProcessFeature);
-                    consumedBytes += currentByteCount;
-
-                    if (!reachedDigitalSilenceEndpoint)
-                        break;
-
-                    if (speaking)
+                    int consumedBytes = 0;
+                    while (consumedBytes < input.Pcm.Length)
                     {
-                        silentFrames = Math.Max(silentFrames, _options.EndSilenceFrames);
-                        FinishUtterance(resetStuckVad: true);
+                        bool reachedDigitalSilenceEndpoint = digitalSilence.TryFindEndpoint(
+                            input.Pcm.AsSpan(consumedBytes),
+                            out int currentByteCount);
+                        _features.AcceptPcm(
+                            input.Pcm.AsSpan(consumedBytes, currentByteCount),
+                            ProcessFeature);
+                        consumedBytes += currentByteCount;
+
+                        if (!reachedDigitalSilenceEndpoint)
+                            break;
+
+                        if (speaking)
+                        {
+                            silentFrames = Math.Max(silentFrames, _options.EndSilenceFrames);
+                            FinishUtterance(resetStuckVad: true);
+                        }
+                        else
+                        {
+                            digitalSilence.Reset();
+                        }
                     }
-                    else
-                    {
-                        digitalSilence.Reset();
-                    }
+
+                    input.Processed?.TrySetResult();
+                }
+                catch (Exception exception)
+                {
+                    input.Processed?.TrySetException(exception);
+                    throw;
                 }
             }
 
@@ -387,6 +423,10 @@ public sealed class StreamingRecognizer : IAsyncDisposable
             RevisionConfirmations = 0;
         }
     }
+
+    private sealed record RecognizerInput(
+        byte[] Pcm,
+        TaskCompletionSource? Processed = null);
 
     private sealed class FeatureRingBuffer
     {

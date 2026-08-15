@@ -14,6 +14,17 @@ public interface IShortcutAction
         CancellationToken cancellationToken = default);
 }
 
+public interface IHoldShortcutAction : IShortcutAction
+{
+    ValueTask ExecutePressedAsync(
+        ShortcutParameterSettings? parameter,
+        CancellationToken cancellationToken = default);
+
+    ValueTask ExecuteReleasedAsync(
+        ShortcutParameterSettings? parameter,
+        CancellationToken cancellationToken = default);
+}
+
 public sealed record ShortcutRegistrationIssue(
     string ActionType,
     string KeyCombination,

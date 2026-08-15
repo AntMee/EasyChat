@@ -44,6 +44,37 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
     }
 
     [TestMethod]
+    public async Task PreparationLoadsTheRecognizerAndReleaseUnloadsItAfterUtterances()
+    {
+        var capture = new PreparablePcmCapture();
+        var recognizer = new ReusableRecognizer();
+        var factory = new FakeRecognizerFactory(recognizer);
+        await using var engine = new MicroAsrSpeechRecognitionEngine(
+            capture,
+            factory,
+            Path.Combine(Path.GetTempPath(), "easychat-microasr-tests", "models"));
+        var options = CreateOptions();
+
+        await engine.PrepareAsync(options);
+
+        Assert.AreEqual(1, factory.CreateCount);
+        Assert.IsTrue(capture.Prepared);
+        Assert.IsFalse(recognizer.Disposed);
+
+        var events = await CollectAsync(engine.RecognizeAsync(options));
+
+        Assert.IsTrue(recognizer.UtteranceCompleted);
+        Assert.IsFalse(recognizer.Completed);
+        Assert.IsFalse(recognizer.Disposed);
+        Assert.IsTrue(events.Any(item => item.Kind == SpeechRecognitionEventKind.Final));
+
+        await engine.ReleasePreparationAsync(options);
+
+        Assert.IsTrue(capture.Released);
+        Assert.IsTrue(recognizer.Disposed);
+    }
+
+    [TestMethod]
     public async Task BackloggedPartialsAreCoalescedWithoutCrossingFinals()
     {
         var recognizer = new BurstRecognizer(
@@ -398,6 +429,40 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
         }
     }
 
+    private sealed class PreparablePcmCapture : IPcmAudioCapture, IPreparablePcmAudioCapture
+    {
+        public bool Prepared { get; private set; }
+        public bool Released { get; private set; }
+
+        public async IAsyncEnumerable<ReadOnlyMemory<byte>> CaptureAsync(
+            IReadOnlyList<AudioCaptureSourceToken> sources,
+            PcmAudioFormat format,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return new byte[] { 1, 0, 2, 0 };
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        public ValueTask PrepareCaptureAsync(
+            IReadOnlyList<AudioCaptureSourceToken> sources,
+            PcmAudioFormat format,
+            CancellationToken cancellationToken = default)
+        {
+            Prepared = true;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ReleasePreparedCaptureAsync(
+            IReadOnlyList<AudioCaptureSourceToken> sources,
+            PcmAudioFormat format,
+            CancellationToken cancellationToken = default)
+        {
+            Released = true;
+            return ValueTask.CompletedTask;
+        }
+    }
+
     private sealed class BlockingPcmCapture : IPcmAudioCapture
     {
         public async IAsyncEnumerable<ReadOnlyMemory<byte>> CaptureAsync(
@@ -439,9 +504,11 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
         }
 
         public string ModelDirectory { get; private set; } = string.Empty;
+        public int CreateCount { get; private set; }
 
         public IMicroAsrRecognizer Create(string modelDirectory)
         {
+            CreateCount++;
             ModelDirectory = modelDirectory;
             if (_failure is not null)
                 throw _failure;
@@ -464,6 +531,41 @@ public sealed class MicroAsrSpeechRecognitionEngineTests
             ResultAvailable?.Invoke(new MicroAsrResult(MicroAsrResultKind.Partial, "partial"));
             ResultAvailable?.Invoke(new MicroAsrResult(MicroAsrResultKind.Final, "final"));
             return ValueTask.CompletedTask;
+        }
+
+        public Task CompleteAsync(CancellationToken cancellationToken = default)
+        {
+            Completed = true;
+            return Task.CompletedTask;
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            Disposed = true;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class ReusableRecognizer : IMicroAsrRecognizer
+    {
+        public event Action<MicroAsrResult>? ResultAvailable;
+        public bool UtteranceCompleted { get; private set; }
+        public bool Completed { get; private set; }
+        public bool Disposed { get; private set; }
+
+        public ValueTask WriteAsync(
+            ReadOnlyMemory<byte> pcm16,
+            CancellationToken cancellationToken = default)
+        {
+            ResultAvailable?.Invoke(new MicroAsrResult(MicroAsrResultKind.Partial, "partial"));
+            return ValueTask.CompletedTask;
+        }
+
+        public Task CompleteUtteranceAsync(CancellationToken cancellationToken = default)
+        {
+            UtteranceCompleted = true;
+            ResultAvailable?.Invoke(new MicroAsrResult(MicroAsrResultKind.Final, "final"));
+            return Task.CompletedTask;
         }
 
         public Task CompleteAsync(CancellationToken cancellationToken = default)

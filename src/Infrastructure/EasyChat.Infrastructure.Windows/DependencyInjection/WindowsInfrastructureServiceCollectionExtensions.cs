@@ -44,8 +44,12 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<ITextDelivery, WindowsTextDelivery>();
         services.AddSingleton<ISelectedTextCapture, WindowsSelectedTextCapture>();
         services.AddSingleton<IAudioCaptureSourceCatalog, WindowsAudioCaptureSourceCatalog>();
-        services.AddSingleton<IPcmAudioCapture, WindowsPcmAudioCapture>();
+        services.AddSingleton<WindowsPcmAudioCapture>();
+        services.AddSingleton<IPcmAudioCapture>(provider =>
+            provider.GetRequiredService<WindowsPcmAudioCapture>());
+        services.AddSingleton<IAudioPlaybackDeviceCatalog, WindowsAudioPlaybackDeviceCatalog>();
         services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();
+        services.AddSingleton<IAudioFeedbackCuePlayer, WindowsAudioFeedbackCuePlayer>();
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
         services.AddSingleton<WindowsOpenVinoOcr>();
         services.AddSingleton<IOcrRecognizer>(provider =>

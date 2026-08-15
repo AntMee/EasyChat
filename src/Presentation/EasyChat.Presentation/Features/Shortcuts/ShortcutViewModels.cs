@@ -19,6 +19,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
             new("Screenshot", "Action_ScreenshotTranslate"),
             new("ScreenshotOcr", "Action_ScreenshotOcr"),
             new("InputTranslate", "Action_InputTranslate"),
+            new("RealtimeInterpretation", "Action_RealtimeInterpretation"),
             new("QuickTranslate", "Action_QuickTranslate"),
             new("QuickCorrect", "Action_QuickCorrect"),
             new("SelectionTranslate", "Action_SelectionTranslate"),
@@ -43,7 +44,7 @@ namespace EasyChat.Presentation.Features.Shortcuts
     public sealed class ShortcutViewModel : NavigationPageViewModel
     {
         private static readonly string[] BasicTypes =
-            ["Screenshot", "ScreenshotOcr", "InputTranslate", "SelectionTranslate", "QuickTranslate", "QuickCorrect"];
+            ["Screenshot", "ScreenshotOcr", "InputTranslate", "RealtimeInterpretation", "SelectionTranslate", "QuickTranslate", "QuickCorrect"];
         private static readonly string[] TextAssistTypes = ["QuickTranslate", "QuickCorrect"];
         private static readonly string[] LanguageTypes = ["SwitchEngineSourceTarget"];
         private readonly SettingsSession _settings;

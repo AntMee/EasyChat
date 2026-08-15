@@ -6,7 +6,8 @@
              xmlns:viewModels="clr-namespace:EasyChat.Presentation.Features.Settings"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
-             xmlns:speech="clr-namespace:EasyChat.Contracts.Speech;assembly=EasyChat.Contracts"
+              xmlns:speech="clr-namespace:EasyChat.Contracts.Speech;assembly=EasyChat.Contracts"
+              xmlns:speechUi="clr-namespace:EasyChat.Presentation.Features.Speech;assembly=EasyChat.Presentation"
              xmlns:converts="clr-namespace:EasyChat.Presentation.Foundation.Formatting;assembly=EasyChat.Presentation"
              xmlns:lang="clr-namespace:EasyChat.Presentation.Lang;assembly=EasyChat.Presentation"
              x:DataType="viewModels:SettingViewModel"
@@ -252,5 +253,168 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
         </Border>
+
+        <Separator Margin="8,18,8,12" />
+        <StackPanel Spacing="12" Margin="8,0">
+            <StackPanel Spacing="2">
+                <TextBlock Classes="Caption" FontWeight="Bold"
+                           Text="{x:Static lang:Resources.FloatingWindow_Config}" />
+                <TextBlock Classes="Muted" TextWrapping="Wrap"
+                           Text="{x:Static lang:Resources.SubtitlePreset_Hint}" />
+            </StackPanel>
+
+            <WrapPanel Orientation="Horizontal">
+                <ItemsControl ItemsSource="{Binding SubtitleAppearancePresets}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="speechUi:SubtitleAppearancePreset">
+                            <Button Classes="Ghost"
+                                    Margin="0,0,8,8"
+                                    Command="{Binding $parent[UserControl].((viewModels:SettingViewModel)DataContext).ApplySubtitleAppearancePresetCommand}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip.Tip="{Binding Description}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="14" Height="14" CornerRadius="4"
+                                            BorderThickness="1"
+                                            BorderBrush="{DynamicResource BorderColor}"
+                                            Background="{Binding PrimaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" />
+                                    <Border Width="14" Height="14" CornerRadius="4"
+                                            BorderThickness="1"
+                                            BorderBrush="{DynamicResource BorderColor}"
+                                            Margin="-10,0,0,0"
+                                            Background="{Binding SecondaryFontColor, Converter={x:Static converts:ColorToBrushConverter.Instance}}" />
+                                    <TextBlock Text="{Binding DisplayName}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </WrapPanel>
+
+            <Grid ColumnDefinitions="*,24,*" ColumnSpacing="0">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{x:Static lang:Resources.Subtitle_Primary}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryColor}" />
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                          RowSpacing="10" ColumnSpacing="16">
+                        <TextBlock Classes="Small" Text="{x:Static lang:Resources.PromptContent}"
+                                   VerticalAlignment="Center" MinWidth="72" />
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding MainSubtitleSourceOptions}"
+                                  SelectedValue="{Binding SpeechRecognitionConf.MainSubtitleSource}"
+                                  SelectedValueBinding="{Binding Key}"
+                                  DisplayMemberBinding="{Binding Value}" />
+                        <TextBlock Grid.Row="1" Classes="Small" Text="{x:Static lang:Resources.FontFamily}"
+                                   VerticalAlignment="Center" />
+                        <ComboBox Grid.Row="1" Grid.Column="1"
+                                  ItemsSource="{Binding AvailableFonts}"
+                                  SelectedItem="{Binding SpeechRecognitionConf.PrimaryFontFamily}" />
+                        <TextBlock Grid.Row="2" Classes="Small" Text="{x:Static lang:Resources.FontSize}"
+                                   VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                       Value="{Binding SpeechRecognitionConf.PrimaryFontSize}"
+                                       FormatString="F0" Minimum="10" Maximum="100" />
+                        <TextBlock Grid.Row="3" Classes="Small" Text="{x:Static lang:Resources.FontColor}"
+                                   VerticalAlignment="Center" />
+                        <ColorPicker Grid.Row="3" Grid.Column="1"
+                                     Color="{Binding SpeechRecognitionConf.PrimaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                     IsAlphaEnabled="True" />
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Spacing="10">
+                    <TextBlock Text="{x:Static lang:Resources.Subtitle_Secondary}"
+                               FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto"
+                          RowSpacing="10" ColumnSpacing="16">
+                        <TextBlock Classes="Small" Text="{x:Static lang:Resources.PromptContent}"
+                                   VerticalAlignment="Center" MinWidth="72" />
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding SecondarySubtitleSourceOptions}"
+                                  SelectedValue="{Binding SpeechRecognitionConf.SecondarySubtitleSource}"
+                                  SelectedValueBinding="{Binding Key}"
+                                  DisplayMemberBinding="{Binding Value}" />
+                        <TextBlock Grid.Row="1" Classes="Small" Text="{x:Static lang:Resources.FontFamily}"
+                                   VerticalAlignment="Center" />
+                        <ComboBox Grid.Row="1" Grid.Column="1"
+                                  ItemsSource="{Binding AvailableFonts}"
+                                  SelectedItem="{Binding SpeechRecognitionConf.SecondaryFontFamily}" />
+                        <TextBlock Grid.Row="2" Classes="Small" Text="{x:Static lang:Resources.FontSize}"
+                                   VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                       Value="{Binding SpeechRecognitionConf.SecondaryFontSize}"
+                                       FormatString="F0" Minimum="10" Maximum="100" />
+                        <TextBlock Grid.Row="3" Classes="Small" Text="{x:Static lang:Resources.FontColor}"
+                                   VerticalAlignment="Center" />
+                        <ColorPicker Grid.Row="3" Grid.Column="1"
+                                     Color="{Binding SpeechRecognitionConf.SecondaryFontColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                     IsAlphaEnabled="True" />
+                    </Grid>
+                </StackPanel>
+            </Grid>
+
+            <Separator Margin="0,4" />
+            <TextBlock Text="{x:Static lang:Resources.Window_Appearance}"
+                       FontWeight="SemiBold" />
+            <UniformGrid Columns="2">
+                <StackPanel Margin="0,0,20,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Window_Background}" />
+                    <ColorPicker Color="{Binding SpeechRecognitionConf.BackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                 IsAlphaEnabled="True" />
+                </StackPanel>
+                <StackPanel Margin="0,0,0,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Subtitle_Background}" />
+                    <ColorPicker Color="{Binding SpeechRecognitionConf.SubtitleBackgroundColor, Converter={x:Static converts:ColorToHexConverter.Instance}, Mode=TwoWay}"
+                                 IsAlphaEnabled="True" />
+                </StackPanel>
+                <StackPanel Margin="0,0,20,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Window_Opacity}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Slider Value="{Binding SpeechRecognitionConf.WindowOpacity}" Minimum="0.1" Maximum="1.0"
+                                TickFrequency="0.01" IsSnapToTickEnabled="True" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding SpeechRecognitionConf.WindowOpacity, StringFormat=P0}"
+                                   MinWidth="44" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource MutedColor}" />
+                    </Grid>
+                </StackPanel>
+                <StackPanel Margin="0,0,0,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Speech_DisplayMode}" />
+                    <ComboBox ItemsSource="{Binding SubtitleDisplayModeOptions}"
+                              SelectedValue="{Binding SpeechRecognitionConf.FloatingDisplayMode}"
+                              SelectedValueBinding="{Binding Key}"
+                              DisplayMemberBinding="{Binding Value}" />
+                </StackPanel>
+                <StackPanel Margin="0,0,20,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Window_Orientation}" />
+                    <ComboBox ItemsSource="{Binding SubtitleWindowOrientationOptions}"
+                              SelectedItem="{Binding SpeechRecognitionConf.FloatingWindowOrientation}" />
+                </StackPanel>
+                <StackPanel Margin="0,0,0,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Speech_AutoClear}" />
+                    <NumericUpDown Value="{Binding SpeechRecognitionConf.AutoClearInterval}"
+                                   FormatString="F0" Minimum="0" Maximum="3600" Increment="5" />
+                </StackPanel>
+                <StackPanel Margin="0,0,20,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Speech_MaxSentencesPerLine}" />
+                    <NumericUpDown Value="{Binding SpeechRecognitionConf.MaxSentencesPerLine}"
+                                   FormatString="F0" Minimum="1" Maximum="100" />
+                </StackPanel>
+                <StackPanel Margin="0,0,0,14" Spacing="6">
+                    <TextBlock Classes="Small" Text="{x:Static lang:Resources.Speech_MaxHistory}" />
+                    <NumericUpDown Value="{Binding SpeechRecognitionConf.MaxFloatingHistory}"
+                                   FormatString="F0" Minimum="1" Maximum="20" />
+                </StackPanel>
+                <CheckBox Content="{x:Static lang:Resources.FloatingWindow_Lock}"
+                          IsChecked="{Binding SpeechRecognitionConf.IsFloatingWindowLocked}"
+                          VerticalAlignment="Center" />
+            </UniformGrid>
+        </StackPanel>
 </StackPanel>
 </UserControl>

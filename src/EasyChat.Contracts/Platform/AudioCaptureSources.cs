@@ -23,7 +23,9 @@ public sealed record AudioCaptureSourceDescriptor(
     string Name,
     string DisplayName,
     string? Description,
-    ReadOnlyMemory<byte> IconPng);
+    ReadOnlyMemory<byte> IconPng,
+    bool IsVirtualCable = false,
+    bool IsDefault = false);
 
 /// <summary>
 /// Minimal source reference accepted by Application. Kind is portable business metadata used for

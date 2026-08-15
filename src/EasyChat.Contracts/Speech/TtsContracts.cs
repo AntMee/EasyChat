@@ -87,4 +87,10 @@ public interface ITtsUseCases
         TtsSynthesisRequest request,
         bool interruptCurrent = false,
         CancellationToken cancellationToken = default);
+
+    ValueTask<Result> EnqueueAsync(
+        TtsSynthesisRequest request,
+        bool interruptCurrent,
+        AudioPlaybackTarget target,
+        CancellationToken cancellationToken = default);
 }

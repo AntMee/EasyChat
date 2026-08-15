@@ -47,6 +47,76 @@ public sealed class WindowsPcmAudioCaptureTests
     }
 
     [TestMethod]
+    public async Task MicrophoneTokenCreatesMicrophoneSession()
+    {
+        var factory = new FakeSessionFactory();
+        var capture = new WindowsPcmAudioCapture(factory);
+        var token = WindowsAudioCaptureSourceCatalog.FromCaptureDeviceId("device-id");
+
+        await foreach (var frame in capture.CaptureAsync(
+                           [token],
+                           PcmAudioFormat.SpeechRecognition))
+        {
+            Assert.AreEqual(640, frame.Length);
+            break;
+        }
+
+        CollectionAssert.AreEqual(new[] { "device-id" }, factory.MicrophoneIds.ToArray());
+        Assert.IsTrue(factory.Sessions.All(session => session.Stopped && session.Disposed));
+    }
+
+    [TestMethod]
+    public async Task PreparedMicrophoneCaptureIsReusedAndReleasedAfterRecognition()
+    {
+        var factory = new FakeSessionFactory();
+        await using var capture = new WindowsPcmAudioCapture(factory);
+        var token = WindowsAudioCaptureSourceCatalog.FromCaptureDeviceId("device-id");
+
+        await capture.PrepareCaptureAsync([token], PcmAudioFormat.SpeechRecognition);
+
+        Assert.HasCount(1, factory.MicrophoneIds);
+        await using (var frames = capture.CaptureAsync(
+                         [token],
+                         PcmAudioFormat.SpeechRecognition)
+                     .GetAsyncEnumerator())
+        {
+            Assert.IsTrue(await frames.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1)));
+            Assert.AreEqual(640, frames.Current.Length);
+            Assert.AreEqual(0, BitConverter.ToInt16(frames.Current.Span[..2]));
+        }
+
+        Assert.HasCount(1, factory.MicrophoneIds);
+        Assert.IsFalse(factory.Sessions.Single().Stopped);
+
+        await capture.ReleasePreparedCaptureAsync([token], PcmAudioFormat.SpeechRecognition);
+
+        Assert.IsTrue(factory.Sessions.Single().Stopped);
+        Assert.IsTrue(factory.Sessions.Single().Disposed);
+    }
+
+    [TestMethod]
+    public async Task ExplicitSystemAudioAndMicrophoneAreMixedTogether()
+    {
+        var factory = new FakeSessionFactory();
+        var capture = new WindowsPcmAudioCapture(factory);
+        var microphone = WindowsAudioCaptureSourceCatalog.FromCaptureDeviceId("device-id");
+
+        ReadOnlyMemory<byte> mixed = default;
+        await foreach (var frame in capture.CaptureAsync(
+                           [WindowsAudioCaptureSourceCatalog.SystemOutputToken, microphone],
+                           PcmAudioFormat.SpeechRecognition))
+        {
+            mixed = frame;
+            break;
+        }
+
+        Assert.AreEqual(1, factory.SystemOutputCount);
+        CollectionAssert.AreEqual(new[] { "device-id" }, factory.MicrophoneIds.ToArray());
+        Assert.AreEqual(4000, BitConverter.ToInt16(mixed.Span[..2]));
+        Assert.IsTrue(factory.Sessions.All(session => session.Stopped && session.Disposed));
+    }
+
+    [TestMethod]
     public async Task SilentSessionProducesFixedFramesAndLaterAudioIsPreserved()
     {
         var factory = new FakeSessionFactory(emitSystemAudioOnStart: false);
@@ -141,6 +211,7 @@ public sealed class WindowsPcmAudioCaptureTests
         }
 
         public List<int> ProcessIds { get; } = [];
+        public List<string> MicrophoneIds { get; } = [];
         public List<FakeSession> Sessions { get; } = [];
         public int SystemOutputCount { get; private set; }
 
@@ -154,6 +225,15 @@ public sealed class WindowsPcmAudioCaptureTests
         {
             ProcessIds.Add(processId);
             return Add(new FakeSession((short)(processId == 42 ? 1000 : 2000)));
+        }
+
+        public IWindowsPcmCaptureSession CreateMicrophone(string deviceId, PcmAudioFormat format) =>
+            AddMicrophone(deviceId);
+
+        private IWindowsPcmCaptureSession AddMicrophone(string deviceId)
+        {
+            MicrophoneIds.Add(deviceId);
+            return Add(new FakeSession(3000));
         }
 
         private FakeSession Add(FakeSession session)

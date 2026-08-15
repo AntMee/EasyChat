@@ -561,7 +561,7 @@ namespace EasyChat.Presentation.Features.Shell
             QuickActions =
             [
                 new HomeQuickAction(
-                    Resources.Page_SpeechRecognition,
+                    Resources.Page_LiveTranslate,
                     Resources.HomeQuickSpeechHint,
                     MaterialIconKind.Microphone,
                     NavigateToSpeechCommand),

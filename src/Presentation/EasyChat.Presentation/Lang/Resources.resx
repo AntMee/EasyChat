@@ -310,6 +310,30 @@
     <data name="Action_InputTranslate" xml:space="preserve">
     <value>Typing Translate</value>
   </data>
+    <data name="Action_RealtimeInterpretation" xml:space="preserve">
+    <value>Realtime Interpretation (Hold)</value>
+  </data>
+    <data name="Speech_VirtualCableRequiredTitle" xml:space="preserve">
+    <value>Virtual audio driver required</value>
+  </data>
+    <data name="Speech_VirtualCableRequiredMessage" xml:space="preserve">
+    <value>Realtime interpretation sends translated speech to a virtual microphone. Install VB-CABLE, then check again.</value>
+  </data>
+    <data name="Speech_InstallDriverTutorial" xml:space="preserve">
+    <value>Installation tutorial</value>
+  </data>
+    <data name="Speech_UsageTutorial" xml:space="preserve">
+    <value>User Guide</value>
+  </data>
+    <data name="Speech_RecheckVirtualCable" xml:space="preserve">
+    <value>Check again</value>
+  </data>
+    <data name="Speech_SubtitleOriginAudio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+    <data name="Speech_SubtitleOriginInterpretation" xml:space="preserve">
+    <value>Interpretation</value>
+    </data>
     <data name="AfterTextInput" xml:space="preserve">
     <value>After text input</value>
   </data>
@@ -598,6 +622,12 @@
     <data name="Speech_EnableTranslation" xml:space="preserve">
         <value>Enable Translation</value>
     </data>
+    <data name="Speech_TranslatedSpeech" xml:space="preserve">
+        <value>Send translated speech to virtual microphone</value>
+    </data>
+    <data name="Speech_TranslatedSpeechTip" xml:space="preserve">
+        <value>Requires VB-Audio Cable. TTS is sent to CABLE Input and appears as CABLE Output.</value>
+    </data>
     <data name="Speech_RealTimePreview" xml:space="preserve">
         <value>Real-time Preview</value>
     </data>
@@ -607,11 +637,23 @@
     <data name="Speech_AudioSource" xml:space="preserve">
         <value>Audio Source</value>
     </data>
+    <data name="Speech_RecognitionLanguage" xml:space="preserve">
+        <value>Recognition Language</value>
+    </data>
+    <data name="Speech_AudioSourceHint" xml:space="preserve">
+        <value>Select one or more sources. System Audio and Microphone are mixed before recognition.</value>
+    </data>
+    <data name="Speech_PhysicalMicrophone" xml:space="preserve">
+        <value>Microphone</value>
+    </data>
+    <data name="Speech_VirtualMicrophone" xml:space="preserve">
+        <value>Virtual microphone</value>
+    </data>
     <data name="Speech_SelectSourceTitle" xml:space="preserve">
         <value>Select Audio Source</value>
     </data>
     <data name="Speech_Start" xml:space="preserve">
-        <value>Start Recognition</value>
+        <value>Start</value>
     </data>
     <data name="Speech_Stop" xml:space="preserve">
         <value>Stop Recognition</value>
@@ -631,11 +673,26 @@
     <data name="Speech_SelectedAppsCount" xml:space="preserve">
         <value>Selected {0} apps</value>
     </data>
+    <data name="Speech_SelectedSourcesCount" xml:space="preserve">
+        <value>Selected {0} sources</value>
+    </data>
     <data name="Speech_NotSupported" xml:space="preserve">
         <value>This feature is only supported on Windows.</value>
     </data>
     <data name="Page_SpeechRecognition" xml:space="preserve">
         <value>Speech Recognition</value>
+    </data>
+    <data name="Page_LiveTranslate" xml:space="preserve">
+        <value>Live Translation</value>
+    </data>
+    <data name="Speech_Mode_Recognition" xml:space="preserve">
+        <value>Audio Translation</value>
+    </data>
+    <data name="Speech_Mode_Interpretation" xml:space="preserve">
+        <value>Realtime Interpretation</value>
+    </data>
+    <data name="Speech_InterpretationDirection" xml:space="preserve">
+        <value>Recognition language → Target language</value>
     </data>
     <data name="Tab_Recognition" xml:space="preserve">
         <value>Recognition</value>
@@ -1170,7 +1227,7 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
     <value>Quick actions</value>
   </data>
   <data name="HomeQuickSpeechHint" xml:space="preserve">
-    <value>Live recognition and floating subtitles</value>
+    <value>Live translation with captions or translated voice</value>
   </data>
   <data name="HomeQuickTextAssistHint" xml:space="preserve">
     <value>Translate selected text</value>

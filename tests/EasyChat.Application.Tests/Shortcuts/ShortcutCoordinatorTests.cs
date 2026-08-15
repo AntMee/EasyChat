@@ -46,6 +46,36 @@ public sealed class ShortcutCoordinatorTests
         Assert.AreEqual(1, hotkeys.Registration.DisposeCount);
     }
 
+    [TestMethod]
+    public async Task StartAsync_RegistersHoldActionsWithPressAndReleaseCallbacks()
+    {
+        var bundle = SettingsTestData.CreateBundle() with
+        {
+            Shortcut = new ShortcutSettings(
+            [
+                new ShortcutEntrySettings("RealtimeInterpretation", null, "Ctrl + Space", true)
+            ])
+        };
+        var hotkeys = new FakeHoldGlobalHotkeys();
+        var action = new FakeHoldShortcutAction();
+        await using var coordinator = new ShortcutCoordinator(
+            new FakeSettingsUseCases(bundle),
+            new AvailablePlatformAccess(),
+            hotkeys,
+            [action]);
+
+        var report = await coordinator.StartAsync();
+
+        Assert.AreEqual(1, report.RegisteredCount);
+        Assert.IsNotNull(hotkeys.Pressed);
+        Assert.IsNotNull(hotkeys.Released);
+        await hotkeys.Pressed(CancellationToken.None);
+        await hotkeys.Released(CancellationToken.None);
+        Assert.AreEqual(1, action.PressedCount);
+        Assert.AreEqual(1, action.ReleasedCount);
+        Assert.AreEqual(0, action.ExecutionCount);
+    }
+
     private sealed class FakeShortcutAction : IShortcutAction
     {
         public string ActionType => "Screenshot";
@@ -57,6 +87,39 @@ public sealed class ShortcutCoordinatorTests
             CancellationToken cancellationToken = default)
         {
             ExecutionCount++;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class FakeHoldShortcutAction : IHoldShortcutAction
+    {
+        public string ActionType => "RealtimeInterpretation";
+        public bool PreventConcurrentExecution => false;
+        public int ExecutionCount { get; private set; }
+        public int PressedCount { get; private set; }
+        public int ReleasedCount { get; private set; }
+
+        public ValueTask ExecuteAsync(
+            ShortcutParameterSettings? parameter,
+            CancellationToken cancellationToken = default)
+        {
+            ExecutionCount++;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ExecutePressedAsync(
+            ShortcutParameterSettings? parameter,
+            CancellationToken cancellationToken = default)
+        {
+            PressedCount++;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ExecuteReleasedAsync(
+            ShortcutParameterSettings? parameter,
+            CancellationToken cancellationToken = default)
+        {
+            ReleasedCount++;
             return ValueTask.CompletedTask;
         }
     }
@@ -74,6 +137,35 @@ public sealed class ShortcutCoordinatorTests
         {
             Gesture = gesture;
             Callback = callback;
+            return ValueTask.FromResult(Result<IHotkeyRegistration>.Success(Registration));
+        }
+
+        public ValueTask<Result> ProbeAsync(
+            ShortcutGesture gesture,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Result.Success());
+    }
+
+    private sealed class FakeHoldGlobalHotkeys : IHoldGlobalHotkeys
+    {
+        public Func<CancellationToken, ValueTask>? Pressed { get; private set; }
+        public Func<CancellationToken, ValueTask>? Released { get; private set; }
+        public FakeRegistration Registration { get; } = new();
+
+        public ValueTask<Result<IHotkeyRegistration>> RegisterAsync(
+            ShortcutGesture gesture,
+            Func<CancellationToken, ValueTask> callback,
+            CancellationToken cancellationToken = default) =>
+            throw new AssertFailedException("Hold action must not use the one-shot registration path.");
+
+        public ValueTask<Result<IHotkeyRegistration>> RegisterHoldAsync(
+            ShortcutGesture gesture,
+            Func<CancellationToken, ValueTask> pressed,
+            Func<CancellationToken, ValueTask> released,
+            CancellationToken cancellationToken = default)
+        {
+            Pressed = pressed;
+            Released = released;
             return ValueTask.FromResult(Result<IHotkeyRegistration>.Success(Registration));
         }
 
