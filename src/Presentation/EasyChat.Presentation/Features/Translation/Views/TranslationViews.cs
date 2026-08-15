@@ -122,26 +122,27 @@ namespace EasyChat.Presentation.Features.Translation.Views
         private static string FormatCopyText(TranslationDictionaryWindowViewModel viewModel)
         {
             if (!viewModel.IsWordMode || viewModel.DictionaryResult is null)
-                return viewModel.TranslationResult;
+                return MarkdownPlainTextFormatter.ToPlainText(viewModel.TranslationResult);
 
             var dictionary = viewModel.DictionaryResult;
-            var text = new StringBuilder(dictionary.Word);
+            var text = new StringBuilder(MarkdownPlainTextFormatter.ToPlainText(dictionary.Word));
             if (!string.IsNullOrWhiteSpace(dictionary.Phonetic))
                 text.Append(' ').Append(dictionary.Phonetic);
             text.AppendLine();
 
             foreach (var part in dictionary.Parts)
-                text.AppendLine($"{part.PartOfSpeech} {string.Join("; ", part.Definitions)}");
+                text.AppendLine($"{part.PartOfSpeech} {string.Join("; ", part.Definitions.Select(MarkdownPlainTextFormatter.ToPlainText))}");
 
             if (dictionary.Examples.Count > 0)
             {
                 text.AppendLine();
                 text.AppendLine("Examples:");
                 foreach (var example in dictionary.Examples)
-                    text.AppendLine($"{example.Origin} -> {example.Translation}");
+                    text.AppendLine($"{MarkdownPlainTextFormatter.ToPlainText(example.Origin)} -> {MarkdownPlainTextFormatter.ToPlainText(example.Translation)}");
             }
 
-            return text.ToString().Trim();
+            return MarkdownPlainTextFormatter.NormalizeLineEndings(text.ToString()).Trim();
         }
     }
+
 }

@@ -9,6 +9,7 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.Translation.Models;
 using LiveMarkdown.Avalonia;
+using Markdig;
 using ReactiveUI;
 
 namespace EasyChat.Presentation.Features.Translation;
@@ -345,6 +346,22 @@ internal static class TranslationMarkdownFormatter
             .Replace('\r', '\n');
         return normalized.Replace("\n", "  \n", StringComparison.Ordinal);
     }
+}
+
+internal static class MarkdownPlainTextFormatter
+{
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    public static string ToPlainText(string? markdown) =>
+        string.IsNullOrWhiteSpace(markdown)
+            ? string.Empty
+            : NormalizeLineEndings(Markdown.ToPlainText(markdown, Pipeline)).Trim();
+
+    public static string NormalizeLineEndings(string text) =>
+        text.Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
 }
 
 public sealed class DictionaryResultViewModel : ReactiveObject
