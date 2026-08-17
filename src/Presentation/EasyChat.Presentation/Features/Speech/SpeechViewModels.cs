@@ -540,6 +540,13 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             this.RaisePropertyChanged(nameof(CanToggleRealtimeInterpretation));
         }
     }
+
+    internal static bool HasVirtualCableEndpoints(
+        IEnumerable<AudioPlaybackDeviceDescriptor> playbackDevices,
+        IEnumerable<AudioCaptureSourceDescriptor> captureSources) =>
+        playbackDevices.Any(device => device.IsVirtualCable)
+        && captureSources.Any(source => source.IsVirtualCable);
+
     public string AudioTranslationText => IsAudioTranslationArmed
         ? Resources.Speech_Stop
         : Resources.Speech_Start;
@@ -1024,8 +1031,23 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         IsCheckingVirtualCable = true;
         try
         {
-            var devices = await _playbackDevices.GetDevicesAsync(cancellationToken);
-            IsVirtualCableAvailable = devices.Any(device => device.IsVirtualCable);
+            // VB-CABLE is an audio pair: CABLE Input is the playback endpoint and
+            // CABLE Output is the capture endpoint. Check both endpoint catalogs so
+            // a stale or incomplete device list cannot be mistaken for an install.
+            var playbackDevicesTask = _playbackDevices.GetDevicesAsync(cancellationToken).AsTask();
+            var captureSourcesTask = _audioSources.GetSourcesAsync(cancellationToken).AsTask();
+            await Task.WhenAll(playbackDevicesTask, captureSourcesTask);
+
+            var playbackDevices = playbackDevicesTask.Result;
+            var captureSources = captureSourcesTask.Result;
+            IsVirtualCableAvailable = HasVirtualCableEndpoints(playbackDevices, captureSources);
+            _logger.LogInformation(
+                "VB-CABLE endpoint check: Available={Available}; Playback={PlaybackDevices}; Capture={CaptureDevices}",
+                IsVirtualCableAvailable,
+                string.Join(", ", playbackDevices.Select(device => device.Name)),
+                string.Join(", ", captureSources
+                    .Where(source => source.Kind == AudioCaptureSourceKind.Microphone)
+                    .Select(source => source.Name)));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

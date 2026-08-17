@@ -15,6 +15,8 @@ public sealed class WindowsAudioCableRoutingTests
             "CABLE Output (VB-Audio Virtual Cable)"));
         Assert.IsTrue(WindowsAudioPlaybackDeviceCatalog.IsVirtualCableName(
             "VB-Audio Cable Input"));
+        Assert.IsTrue(WindowsAudioPlaybackDeviceCatalog.IsVirtualCableName(
+            "CABLE In 16 Ch (VB-Audio Virtual Cable)"));
         Assert.IsFalse(WindowsAudioPlaybackDeviceCatalog.IsVirtualCableName("Speakers"));
     }
 

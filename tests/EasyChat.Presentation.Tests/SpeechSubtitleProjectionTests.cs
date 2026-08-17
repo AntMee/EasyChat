@@ -1,3 +1,4 @@
+using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
 using EasyChat.Contracts.Translation;
@@ -77,6 +78,29 @@ public sealed class SpeechSubtitleProjectionTests
             SpeechRecognitionViewModel.ShouldShowRealTimePreview(
                 isTranslationEnabled,
                 isMachineTranslation));
+    }
+
+    [TestMethod]
+    public void VirtualCableAvailability_RequiresPlaybackAndCaptureEndpoints()
+    {
+        var playback = new AudioPlaybackDeviceDescriptor(
+            new AudioPlaybackDeviceToken("playback"),
+            "CABLE Input (VB-Audio Virtual Cable)",
+            "CABLE Input (VB-Audio Virtual Cable)",
+            null,
+            IsVirtualCable: true);
+        var capture = new AudioCaptureSourceDescriptor(
+            new AudioCaptureSourceToken("capture"),
+            AudioCaptureSourceKind.Microphone,
+            "CABLE Output (VB-Audio Virtual Cable)",
+            "CABLE Output (VB-Audio Virtual Cable)",
+            null,
+            ReadOnlyMemory<byte>.Empty,
+            IsVirtualCable: true);
+
+        Assert.IsFalse(SpeechRecognitionViewModel.HasVirtualCableEndpoints([playback], []));
+        Assert.IsFalse(SpeechRecognitionViewModel.HasVirtualCableEndpoints([], [capture]));
+        Assert.IsTrue(SpeechRecognitionViewModel.HasVirtualCableEndpoints([playback], [capture]));
     }
 
     [TestMethod]

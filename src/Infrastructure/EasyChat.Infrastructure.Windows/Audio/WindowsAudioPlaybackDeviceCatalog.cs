@@ -32,5 +32,7 @@ public sealed class WindowsAudioPlaybackDeviceCatalog : IAudioPlaybackDeviceCata
 
     internal static bool IsVirtualCableName(string? name) =>
         !string.IsNullOrWhiteSpace(name)
-        && name.Contains("CABLE Input", StringComparison.OrdinalIgnoreCase);
+        && name.Contains("VB-Audio", StringComparison.OrdinalIgnoreCase)
+        && (name.Contains("CABLE Input", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("CABLE In", StringComparison.OrdinalIgnoreCase));
 }
