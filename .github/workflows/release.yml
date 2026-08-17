@@ -31,6 +31,8 @@ jobs:
         run: dotnet restore ./src/Host/EasyChat.Desktop.Windows/EasyChat.Desktop.Windows.csproj -r win-x64 -p:SelfContained=true
 
       - name: Publish EasyChat
+        # Keep ReadyToRun disabled. It adds about 19.6 MiB to the trimmed MSI
+        # and should only be enabled after a cold-start benchmark proves its value.
         run: dotnet publish ./src/Host/EasyChat.Desktop.Windows/EasyChat.Desktop.Windows.csproj -c Release -r win-x64 --self-contained true --no-restore -o ./publish
 
       - name: Get Version
