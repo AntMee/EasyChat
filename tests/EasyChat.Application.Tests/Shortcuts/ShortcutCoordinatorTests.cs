@@ -76,6 +76,36 @@ public sealed class ShortcutCoordinatorTests
         Assert.AreEqual(0, action.ExecutionCount);
     }
 
+    [TestMethod]
+    public async Task RegisteredCallback_SkipsConcurrentExecutionWhenActionRequiresIt()
+    {
+        var bundle = SettingsTestData.CreateBundle() with
+        {
+            Shortcut = new ShortcutSettings(
+            [
+                new ShortcutEntrySettings("Screenshot", null, "Ctrl + Oem3", true)
+            ])
+        };
+        var hotkeys = new FakeGlobalHotkeys();
+        var action = new BlockingShortcutAction();
+        await using var coordinator = new ShortcutCoordinator(
+            new FakeSettingsUseCases(bundle),
+            new AvailablePlatformAccess(),
+            hotkeys,
+            [action]);
+
+        await coordinator.StartAsync();
+
+        var firstExecution = hotkeys.Callback!(CancellationToken.None).AsTask();
+        await action.Started.Task;
+        var secondExecution = hotkeys.Callback(CancellationToken.None).AsTask();
+
+        action.Complete();
+        await Task.WhenAll(firstExecution, secondExecution);
+
+        Assert.AreEqual(1, action.ExecutionCount);
+    }
+
     private sealed class FakeShortcutAction : IShortcutAction
     {
         public string ActionType => "Screenshot";
@@ -122,6 +152,29 @@ public sealed class ShortcutCoordinatorTests
             ReleasedCount++;
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class BlockingShortcutAction : IShortcutAction
+    {
+        private readonly TaskCompletionSource _completion = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public string ActionType => "Screenshot";
+        public bool PreventConcurrentExecution => true;
+        public int ExecutionCount { get; private set; }
+        public TaskCompletionSource Started { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask ExecuteAsync(
+            ShortcutParameterSettings? parameter,
+            CancellationToken cancellationToken = default)
+        {
+            ExecutionCount++;
+            Started.TrySetResult();
+            await _completion.Task.WaitAsync(cancellationToken);
+        }
+
+        public void Complete() => _completion.TrySetResult();
     }
 
     private sealed class FakeGlobalHotkeys : IGlobalHotkeys

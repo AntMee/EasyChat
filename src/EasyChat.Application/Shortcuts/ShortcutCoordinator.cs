@@ -116,7 +116,7 @@ public sealed class ShortcutCoordinator : IShortcutUseCases
                 {
                     registration = await _hotkeys.RegisterAsync(
                         gesture.Value,
-                        token => action.Action.ExecuteAsync(parameter, token),
+                        token => action.ExecuteAsync(parameter, token),
                         cancellationToken).ConfigureAwait(false);
                 }
                 if (registration.IsFailure)
