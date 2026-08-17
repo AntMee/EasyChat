@@ -234,6 +234,7 @@ internal sealed class CaptureOverlaySession : IDisposable
         foreach (var surface in _surfaces)
         {
             surface.View.SetHintHost(ReferenceEquals(surface.View, active));
+            surface.View.ShowActivated = ReferenceEquals(surface.View, active);
             surface.View.Show();
         }
 
