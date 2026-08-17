@@ -3966,6 +3966,10 @@ namespace EasyChat.Presentation.Lang {
             get { return ResourceManager.GetString("ScreenshotOcr_Replace", resourceCulture); }
         }
 
+        public static string ScreenshotOcr_TranslateImageTooltip {
+            get { return ResourceManager.GetString("ScreenshotOcr_TranslateImageTooltip", resourceCulture); }
+        }
+
         public static string ScreenshotOcr_ZoomOutTooltip {
             get { return ResourceManager.GetString("ScreenshotOcr_ZoomOutTooltip", resourceCulture); }
         }

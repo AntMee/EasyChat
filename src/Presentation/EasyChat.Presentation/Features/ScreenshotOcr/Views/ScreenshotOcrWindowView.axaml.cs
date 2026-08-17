@@ -234,6 +234,7 @@ public sealed partial class ScreenshotOcrWindowView : ShadUI.Window
     private async void Undo_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.UndoAsync();
     private async void Redo_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.RedoAsync();
     private async void Restore_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.RestoreOriginalAsync();
+    private async void TranslateImage_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.TranslateImageAsync();
     private async void Retry_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.RetryAsync();
     private async void CopyText_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.CopyCurrentTextAsync();
     private async void TranslateText_OnClick(object? sender, RoutedEventArgs e) => await _viewModel!.TranslateTextAsync();

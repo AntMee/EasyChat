@@ -1302,7 +1302,8 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="ScreenshotOcr_TranslateSelectionTooltip" xml:space="preserve"><value>Translate selection</value></data>
   <data name="ScreenshotOcr_ExplainSelectionTooltip" xml:space="preserve"><value>Explain with AI</value></data>
   <data name="ScreenshotOcr_ReplaceSelectionTooltip" xml:space="preserve"><value>Replace with translation</value></data>
-  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>Replace</value></data>
+  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>Replace translation</value></data>
+  <data name="ScreenshotOcr_TranslateImageTooltip" xml:space="preserve"><value>Translate image</value></data>
   <data name="ScreenshotOcr_ZoomOutTooltip" xml:space="preserve"><value>Zoom out</value></data>
   <data name="ScreenshotOcr_ZoomInTooltip" xml:space="preserve"><value>Zoom in</value></data>
   <data name="ScreenshotOcr_OpenImageTooltip" xml:space="preserve"><value>Open image</value></data>

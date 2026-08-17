@@ -1278,7 +1278,8 @@
   <data name="ScreenshotOcr_TranslateSelectionTooltip" xml:space="preserve"><value>翻译选中文本</value></data>
   <data name="ScreenshotOcr_ExplainSelectionTooltip" xml:space="preserve"><value>使用 AI 解释</value></data>
   <data name="ScreenshotOcr_ReplaceSelectionTooltip" xml:space="preserve"><value>替换为翻译</value></data>
-  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>替换</value></data>
+  <data name="ScreenshotOcr_Replace" xml:space="preserve"><value>替换翻译</value></data>
+  <data name="ScreenshotOcr_TranslateImageTooltip" xml:space="preserve"><value>图片翻译</value></data>
   <data name="ScreenshotOcr_ZoomOutTooltip" xml:space="preserve"><value>缩小</value></data>
   <data name="ScreenshotOcr_ZoomInTooltip" xml:space="preserve"><value>放大</value></data>
   <data name="ScreenshotOcr_OpenImageTooltip" xml:space="preserve"><value>打开图片</value></data>

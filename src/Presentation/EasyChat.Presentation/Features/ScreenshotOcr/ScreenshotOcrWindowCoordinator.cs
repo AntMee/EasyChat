@@ -474,9 +474,16 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
             await _textAssist.ShowResultAsync(text, TextAssistOperation.Explanation, anchor, _lifetime.Token);
     }
 
-    public async Task ReplaceSelectedWithTranslationAsync()
+    public Task ReplaceSelectedWithTranslationAsync() =>
+        ReplaceRegionsWithTranslationAsync(_selectedRegionIndexes);
+
+    public Task TranslateImageAsync() =>
+        ReplaceRegionsWithTranslationAsync(
+            Enumerable.Range(0, _recognition.Regions.Count).ToArray());
+
+    private async Task ReplaceRegionsWithTranslationAsync(IReadOnlyList<int> regionIndexes)
     {
-        if (IsRecognizing || _selectedRegionIndexes.Count == 0)
+        if (IsRecognizing || IsEditingImage || regionIndexes.Count == 0)
             return;
         var generation = Interlocked.Increment(ref _editGeneration);
         var session = _editSession;
@@ -488,7 +495,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         {
             var result = await session.TranslateAsync(
                 _recognition,
-                _selectedRegionIndexes,
+                regionIndexes,
                 _activeLanguage,
                 request.Token);
             if (generation == _editGeneration

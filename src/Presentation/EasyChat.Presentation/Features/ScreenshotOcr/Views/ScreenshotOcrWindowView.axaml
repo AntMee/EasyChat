@@ -140,6 +140,16 @@
                                 <Button Classes="ToolButton" Click="Restore_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_RestoreTooltip}">
                                     <icons:MaterialIcon Kind="BackupRestore" Width="18" Height="18" />
                                 </Button>
+                                <Button Classes="ToolButton" Click="TranslateImage_OnClick"
+                                        ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_TranslateImageTooltip}"
+                                        IsEnabled="{Binding !IsBusy}">
+                                    <Grid Width="18" Height="18">
+                                        <icons:MaterialIcon Kind="Translate" Width="18" Height="18"
+                                                            IsVisible="{Binding !IsEditingImage}" />
+                                        <shad:Loading Width="18" Height="18"
+                                                      IsVisible="{Binding IsEditingImage}" />
+                                    </Grid>
+                                </Button>
                             </StackPanel>
                         </Border>
 
