@@ -1320,4 +1320,26 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="ScreenshotOcr_ShowOriginalTooltip" xml:space="preserve"><value>Show original text</value></data>
   <data name="ScreenshotOcr_OpenImageDialogTitle" xml:space="preserve"><value>Open image for OCR</value></data>
   <data name="ScreenshotOcr_ImageFileType" xml:space="preserve"><value>Images</value></data>
+  <data name="ImageTranslationSettings" xml:space="preserve"><value>Image translation</value></data>
+  <data name="ImageTextEraseMode" xml:space="preserve"><value>Background erase mode</value></data>
+  <data name="ImageTextEraseMode_Fast" xml:space="preserve"><value>Normal</value></data>
+  <data name="ImageTextEraseMode_Precise" xml:space="preserve"><value>Precise (AOT-GAN)</value></data>
+  <data name="ImageTextEraseModeDescription_Fast" xml:space="preserve"><value>Uses adaptive background removal for simple and textured backgrounds. No model download is required.</value></data>
+  <data name="ImageTextEraseModeDescription_Precise" xml:space="preserve"><value>Uses AOT-GAN for background removal during image translation text replacement. Download the model before using precise mode.</value></data>
+  <data name="ImageTranslationModels" xml:space="preserve"><value>Image translation models</value></data>
+  <data name="ImageTranslationModelsDescription" xml:space="preserve"><value>AOT-GAN is used only to erase the background when replacing text during image translation.</value></data>
+  <data name="ImageTranslationModelRequired" xml:space="preserve"><value>Precise background removal for image translation text replacement requires the AOT-GAN model. Download it below or switch to normal mode.</value></data>
+  <data name="ImageTranslationModelAotGanName" xml:space="preserve"><value>AOT-GAN</value></data>
+  <data name="ImageTranslationModelAotGanDescription" xml:space="preserve"><value>Background removal model for text replacement during image translation (61 MB).</value></data>
+  <data name="ImageTranslationModelDownload" xml:space="preserve"><value>Download</value></data>
+  <data name="ImageTranslationModelRetry" xml:space="preserve"><value>Retry</value></data>
+  <data name="ImageTranslationModelDownloaded" xml:space="preserve"><value>Downloaded</value></data>
+  <data name="ImageTranslationModelDownloading" xml:space="preserve"><value>Downloading</value></data>
+  <data name="ImageTranslationModelNotDownloaded" xml:space="preserve"><value>Not downloaded</value></data>
+  <data name="ImageTranslationModelDownloadFailed" xml:space="preserve"><value>Image translation model download failed</value></data>
+  <data name="ImageTranslationModelDownloadError" xml:space="preserve"><value>Image translation model download failed: {0}</value></data>
+  <data name="ImageTranslationModelNetworkError" xml:space="preserve"><value>The image translation model could not be downloaded. Check your network and proxy settings.</value></data>
+  <data name="ImageTranslationModelStorageError" xml:space="preserve"><value>The image translation model could not be installed. Close any program using the model file and retry.</value></data>
+  <data name="ImageTranslationModelIntegrityError" xml:space="preserve"><value>The downloaded image translation model failed integrity verification. Please retry.</value></data>
+  <data name="ImageTranslationModelUnknownError" xml:space="preserve"><value>The image translation model download failed. Please retry.</value></data>
 </root>

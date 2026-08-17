@@ -316,6 +316,7 @@ public static class WindowsOcrWorker
             Current = new ApplicationDataLocation(rootDirectory, IsDefault: false);
             ConfigurationDirectory = Path.Combine(rootDirectory, "Configuration");
             SpeechModelsDirectory = Path.Combine(rootDirectory, "Models", "ASR");
+            ImageTranslationModelsDirectory = Path.Combine(rootDirectory, "Models", "ImageTranslation");
         }
 
         public event EventHandler<ApplicationDataLocationChangedEventArgs>? LocationChanged
@@ -328,6 +329,7 @@ public static class WindowsOcrWorker
         public string ConfigurationDirectory { get; }
         public string SpeechModelsDirectory { get; }
         public string OcrModelsDirectory { get; }
+        public string ImageTranslationModelsDirectory { get; }
     }
 }
 

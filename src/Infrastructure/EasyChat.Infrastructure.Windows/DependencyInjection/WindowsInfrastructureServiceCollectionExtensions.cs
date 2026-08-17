@@ -50,6 +50,9 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IAudioPlaybackDeviceCatalog, WindowsAudioPlaybackDeviceCatalog>();
         services.AddSingleton<IAudioPlaybackQueue, WindowsSoundFlowAudioPlaybackQueue>();
         services.AddSingleton<IAudioFeedbackCuePlayer, WindowsAudioFeedbackCuePlayer>();
+        services.AddSingleton<WindowsImageTranslationModelStore>();
+        services.AddSingleton<IImageTranslationModelStore>(provider =>
+            provider.GetRequiredService<WindowsImageTranslationModelStore>());
         services.AddSingleton<IImageBackgroundCleaner, WindowsImageBackgroundCleaner>();
         services.AddSingleton<WindowsOpenVinoOcr>();
         services.AddSingleton<IOcrRecognizer>(provider =>

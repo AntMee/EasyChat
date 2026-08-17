@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Reactive;
 using Avalonia.Threading;
 using EasyChat.Contracts.ApplicationData;
+using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Shell;
@@ -31,6 +32,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly SettingsSession _settings;
     private readonly IApplicationDataUseCases _applicationData;
     private readonly IOcrModelUseCases _ocr;
+    private readonly IImageTranslationModelUseCases _imageTranslationModels;
     private readonly ITranslationUseCases _translation;
     private readonly ITranslationLanguageCatalog _languages;
     private readonly ISpeechRecognitionModelCatalog _speechModels;
@@ -43,6 +45,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     private readonly IApplicationRestartService? _restartService;
     private readonly IApplicationAutoStartService _autoStartService;
     private readonly Dictionary<OcrModelDownloadItemViewModel, CancellationTokenSource> _downloads = [];
+    private readonly Dictionary<ImageTranslationModelDownloadItemViewModel, CancellationTokenSource> _imageTranslationDownloads = [];
     private readonly Dictionary<SpeechRecognitionModelDownloadItemViewModel, CancellationTokenSource> _asrDownloads = [];
     private bool _isOcrModelListExpanded;
     private bool _isAsrModelListExpanded;
@@ -65,6 +68,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         SettingsSession settings,
         IApplicationDataUseCases applicationData,
         IOcrModelUseCases ocr,
+        IImageTranslationModelUseCases imageTranslationModels,
         ITtsUseCases tts,
         ITranslationUseCases translation,
         ITranslationLanguageCatalog languages,
@@ -82,6 +86,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         _settings = settings;
         _applicationData = applicationData;
         _ocr = ocr;
+        _imageTranslationModels = imageTranslationModels ?? throw new ArgumentNullException(nameof(imageTranslationModels));
         _translation = translation;
         _languages = languages;
         _speechModels = speechModels;
@@ -106,6 +111,15 @@ public sealed class SettingViewModel : NavigationPageViewModel
                     Resources.OcrSupportedLanguages,
                     string.Join(", ", package.SupportedLanguages.Select(GetOcrLanguageDisplayName))),
                  _ocr.IsModelDownloaded(package))));
+        ImageTranslationModelItems = new ObservableCollection<ImageTranslationModelDownloadItemViewModel>(
+            _imageTranslationModels.ModelPackages.Select(package =>
+                new ImageTranslationModelDownloadItemViewModel(
+                    package,
+                    GetImageTranslationModelDisplayName(package),
+                    GetImageTranslationModelDescription(package),
+                    _imageTranslationModels.IsModelDownloaded(package))));
+        foreach (var item in ImageTranslationModelItems)
+            item.PropertyChanged += (_, _) => RaiseImageTranslationModelStateChanged();
         AsrModelItems = new ObservableCollection<SpeechRecognitionModelDownloadItemViewModel>(
             _speechModelDownloads.ModelPackages.Select(package =>
                 new SpeechRecognitionModelDownloadItemViewModel(package, isDownloaded: false)));
@@ -145,6 +159,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
         DownloadOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(StartDownloadOcrModel);
         CancelOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(CancelOcrModel);
         DeleteOcrModelCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(DeleteOcrModel);
+        DownloadImageTranslationModelCommand = ReactiveCommand.Create<ImageTranslationModelDownloadItemViewModel>(
+            StartDownloadImageTranslationModel);
+        CancelImageTranslationModelCommand = ReactiveCommand.Create<ImageTranslationModelDownloadItemViewModel>(
+            CancelImageTranslationModel);
+        DeleteImageTranslationModelCommand = ReactiveCommand.Create<ImageTranslationModelDownloadItemViewModel>(
+            DeleteImageTranslationModel);
         ShowOcrModelLanguagesCommand = ReactiveCommand.Create<OcrModelDownloadItemViewModel>(item =>
             _dialogs.ShowInformation(item.DisplayName, item.SupportedLanguages));
         ToggleOcrModelListCommand = ReactiveCommand.Create(() =>
@@ -265,6 +285,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         new(NetworkProxyMode.Custom, Resources.CustomProxy)
     ];
     public List<string> ScreenshotModes { get; } = ["Precise", "Quick"];
+    public List<ImageTextEraseMode> ImageTextEraseModes { get; } = Enum.GetValues<ImageTextEraseMode>().ToList();
     public List<OcrRecognitionMode> OcrRecognitionModes { get; } = Enum.GetValues<OcrRecognitionMode>().ToList();
     public List<string> MachineTransProviders { get; } = ["Baidu", "Tencent", "Google", "DeepL"];
     public List<string> TranslationEngineTypes { get; } = [Resources.AIEngine, Resources.MachineTranslation];
@@ -322,6 +343,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
     ];
     public IReadOnlyList<string> SubtitleWindowOrientationOptions { get; } = ["Horizontal", "Vertical"];
     public ObservableCollection<OcrModelDownloadItemViewModel> OcrModelItems { get; }
+    public ObservableCollection<ImageTranslationModelDownloadItemViewModel> ImageTranslationModelItems { get; }
     public ObservableCollection<SpeechRecognitionModelDownloadItemViewModel> AsrModelItems { get; }
     public ObservableCollection<ModelCardItem> ModelCardsWithAddButton
     {
@@ -396,7 +418,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
     }
     public bool CanChangeDataLocation =>
-        !IsChangingDataLocation && !IsImportingAsrModel && !IsDownloadingAsrModel && _downloads.Count == 0;
+        !IsChangingDataLocation && !IsImportingAsrModel && !IsDownloadingAsrModel
+        && _downloads.Count == 0 && _imageTranslationDownloads.Count == 0;
     public List<string> AiProviders => ConfiguredModels.Select(model => model.Name).ToList();
 
     public string SearchText
@@ -543,6 +566,42 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
     }
 
+    public ImageTextEraseMode SelectedImageTextEraseMode
+    {
+        get => ScreenshotConf.ImageTextEraseMode;
+        set
+        {
+            if (ScreenshotConf.ImageTextEraseMode == value)
+                return;
+            ScreenshotConf.ImageTextEraseMode = value;
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(IsPreciseImageTextEraseMode));
+            this.RaisePropertyChanged(nameof(IsPreciseImageEraseModelRequired));
+        }
+    }
+
+    public bool IsPreciseImageTextEraseMode => SelectedImageTextEraseMode == ImageTextEraseMode.Precise;
+
+    public bool IsPreciseImageEraseModelRequired =>
+        IsPreciseImageTextEraseMode && ImageTranslationModelItems.Any(item => !item.IsDownloaded);
+
+    public string ImageTextEraseModeLabel =>
+        Resources.ResourceManager.GetString("ImageTextEraseMode", Resources.Culture) ?? "Background erase mode";
+
+    public string ImageTranslationSettingsLabel =>
+        Resources.ResourceManager.GetString("ImageTranslationSettings", Resources.Culture) ?? "Image translation";
+
+    public string ImageTranslationModelsLabel =>
+        Resources.ResourceManager.GetString("ImageTranslationModels", Resources.Culture) ?? "Image translation models";
+
+    public string ImageTranslationModelsDescription =>
+        Resources.ResourceManager.GetString("ImageTranslationModelsDescription", Resources.Culture)
+        ?? "AOT-GAN is used only to erase the background when replacing text during image translation.";
+
+    public string ImageTranslationModelRequiredMessage =>
+        Resources.ResourceManager.GetString("ImageTranslationModelRequired", Resources.Culture)
+        ?? "Precise background removal for image translation text replacement requires the AOT-GAN model. Download it below or switch to normal mode.";
+
     public OcrRecognitionMode SelectedOcrRecognitionMode
     {
         get => ScreenshotConf.OcrMode;
@@ -654,6 +713,9 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> CancelOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> DeleteOcrModelCommand { get; }
     public ReactiveCommand<OcrModelDownloadItemViewModel, Unit> ShowOcrModelLanguagesCommand { get; }
+    public ReactiveCommand<ImageTranslationModelDownloadItemViewModel, Unit> DownloadImageTranslationModelCommand { get; }
+    public ReactiveCommand<ImageTranslationModelDownloadItemViewModel, Unit> CancelImageTranslationModelCommand { get; }
+    public ReactiveCommand<ImageTranslationModelDownloadItemViewModel, Unit> DeleteImageTranslationModelCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleOcrModelListCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleAsrModelListCommand { get; }
     public ReactiveCommand<Unit, Unit> AddModelCommand { get; }
@@ -871,7 +933,7 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
         catch (Exception exception)
         {
-            item.FailDownload(exception.Message);
+            item.FailDownload(GetImageTranslationModelDownloadError(exception));
         }
         finally
         {
@@ -945,6 +1007,107 @@ public sealed class SettingViewModel : NavigationPageViewModel
             item.FailDownload(exception.Message);
         }
     }
+
+    private void StartDownloadImageTranslationModel(ImageTranslationModelDownloadItemViewModel item) =>
+        _ = DownloadImageTranslationModelAsync(item);
+
+    private async Task DownloadImageTranslationModelAsync(ImageTranslationModelDownloadItemViewModel item)
+    {
+        if (item.IsDownloading || item.IsDownloaded || _imageTranslationDownloads.ContainsKey(item))
+            return;
+
+        var cancellation = new CancellationTokenSource();
+        _imageTranslationDownloads.Add(item, cancellation);
+        RaiseImageTranslationModelStateChanged();
+        item.StartDownload();
+        try
+        {
+            await _imageTranslationModels.DownloadModelAsync(
+                item.Package,
+                new Progress<double>(item.SetProgress),
+                cancellation.Token);
+            if (!_imageTranslationModels.IsModelDownloaded(item.Package))
+                throw new InvalidDataException("The image translation model failed integrity validation after download.");
+            item.CompleteDownload();
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            item.CancelDownload();
+        }
+        catch (Exception exception)
+        {
+            item.FailDownload(string.Format(
+                GetImageTranslationModelResource(
+                    "ImageTranslationModelDownloadError",
+                    "Image translation model download failed: {0}"),
+                exception.Message));
+        }
+        finally
+        {
+            _imageTranslationDownloads.Remove(item);
+            RaiseImageTranslationModelStateChanged();
+            cancellation.Dispose();
+        }
+    }
+
+    private void CancelImageTranslationModel(ImageTranslationModelDownloadItemViewModel item)
+    {
+        if (_imageTranslationDownloads.TryGetValue(item, out var cancellation))
+            cancellation.Cancel();
+    }
+
+    private void DeleteImageTranslationModel(ImageTranslationModelDownloadItemViewModel item)
+    {
+        try
+        {
+            _imageTranslationModels.DeleteModel(item.Package);
+            item.MarkDeleted();
+        }
+        catch (Exception exception)
+        {
+            item.FailDownload(exception.Message);
+        }
+    }
+
+    private void RaiseImageTranslationModelStateChanged()
+    {
+        this.RaisePropertyChanged(nameof(IsPreciseImageEraseModelRequired));
+        this.RaisePropertyChanged(nameof(CanChangeDataLocation));
+    }
+
+    private static string GetImageTranslationModelDisplayName(ImageTranslationModelPackage package) =>
+        string.Equals(package.Id, "aotgan-onnx", StringComparison.Ordinal)
+            ? GetImageTranslationModelResource("ImageTranslationModelAotGanName", "AOT-GAN")
+            : package.DisplayName;
+
+    private static string GetImageTranslationModelDescription(ImageTranslationModelPackage package) =>
+        string.Equals(package.Id, "aotgan-onnx", StringComparison.Ordinal)
+            ? GetImageTranslationModelResource(
+                "ImageTranslationModelAotGanDescription",
+                "Background removal model for text replacement during image translation (61 MB).")
+            : package.Description;
+
+    private static string GetImageTranslationModelResource(string key, string fallback) =>
+        Resources.ResourceManager.GetString(key, Resources.Culture) ?? fallback;
+
+    private static string GetImageTranslationModelDownloadError(Exception exception) => exception switch
+    {
+        HttpRequestException => GetImageTranslationModelResource(
+            "ImageTranslationModelNetworkError",
+            "The image translation model could not be downloaded. Check your network and proxy settings."),
+        TimeoutException => GetImageTranslationModelResource(
+            "ImageTranslationModelNetworkError",
+            "The image translation model could not be downloaded. Check your network and proxy settings."),
+        IOException => GetImageTranslationModelResource(
+            "ImageTranslationModelStorageError",
+            "The image translation model could not be installed. Close any program using the model file and retry."),
+        InvalidDataException => GetImageTranslationModelResource(
+            "ImageTranslationModelIntegrityError",
+            "The downloaded image translation model failed integrity verification. Please retry."),
+        _ => GetImageTranslationModelResource(
+            "ImageTranslationModelUnknownError",
+            "The image translation model download failed. Please retry.")
+    };
 
     private string GetOcrLanguageDisplayName(OcrLanguage language)
     {

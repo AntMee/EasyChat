@@ -242,6 +242,7 @@ public sealed class OpenVinoOcrModelStoreTests
         public string ConfigurationDirectory => Path.Combine(Current.RootDirectory, "Configuration");
         public string SpeechModelsDirectory => Path.Combine(Current.RootDirectory, "Models", "ASR");
         public string OcrModelsDirectory => _ocrModelsDirectory;
+        public string ImageTranslationModelsDirectory => Path.Combine(Current.RootDirectory, "Models", "ImageTranslation");
 
         public void ChangeOcrDirectory(string directory)
         {

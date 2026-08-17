@@ -1,5 +1,6 @@
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
+using EasyChat.Contracts.ImageTranslation;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
 
@@ -450,7 +451,10 @@ internal static class SettingsPersistenceMapper
             source.OcrIdleTimeoutSeconds,
             ScreenshotSettings.MinOcrIdleTimeoutSeconds,
             ScreenshotSettings.MaxOcrIdleTimeoutSeconds),
-        source.ClosePreviousOcrWindow);
+        source.ClosePreviousOcrWindow,
+        Enum.IsDefined(source.ImageTextEraseMode)
+            ? (ImageTextEraseMode)(int)source.ImageTextEraseMode
+            : ImageTextEraseMode.Fast);
 
     private static ScreenshotSettingsDto ToDto(ScreenshotSettings source) => new()
     {
@@ -461,7 +465,8 @@ internal static class SettingsPersistenceMapper
             source.OcrIdleTimeoutSeconds,
             ScreenshotSettings.MinOcrIdleTimeoutSeconds,
             ScreenshotSettings.MaxOcrIdleTimeoutSeconds),
-        ClosePreviousOcrWindow = source.ClosePreviousOcrWindow
+        ClosePreviousOcrWindow = source.ClosePreviousOcrWindow,
+        ImageTextEraseMode = (ImageTextEraseModeDto)(int)source.ImageTextEraseMode
     };
 
     private static FixedAreaSettings ToContract(FixedAreaSettingsDto source) => new(

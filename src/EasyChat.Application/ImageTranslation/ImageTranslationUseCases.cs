@@ -52,7 +52,11 @@ public sealed class ImageTranslationUseCases : IImageTranslationUseCases
         if (overlays.Length == 0)
             return new ImageTranslationResult(request.Image, warnings, blocks.Count, 0);
 
-        var rendered = await _renderer.RenderAsync(request.Image, overlays, cancellationToken);
+        var rendered = await _renderer.RenderAsync(
+            request.Image,
+            overlays,
+            new ImageTranslationRenderOptions(_settings.Current.Screenshot.ImageTextEraseMode),
+            cancellationToken);
         warnings.AddRange(rendered.Warnings);
         return new ImageTranslationResult(
             rendered.Image,

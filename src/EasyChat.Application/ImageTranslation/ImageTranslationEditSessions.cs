@@ -377,7 +377,11 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
             .OrderBy(item => item.Key)
             .Select(item => new ImageTranslationOverlay(regions[item.Key], item.Value))
             .ToArray();
-        var rendered = await _renderer.RenderAsync(OriginalImage, overlays, cancellationToken)
+        var rendered = await _renderer.RenderAsync(
+                OriginalImage,
+                overlays,
+                new ImageTranslationRenderOptions(_settings.Current.Screenshot.ImageTextEraseMode),
+                cancellationToken)
             .ConfigureAwait(false);
         return Result<ImageTranslationEditResult>.Success(new ImageTranslationEditResult(
             rendered.Image,

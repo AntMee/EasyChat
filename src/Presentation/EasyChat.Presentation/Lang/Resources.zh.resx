@@ -1296,4 +1296,26 @@
   <data name="ScreenshotOcr_ShowOriginalTooltip" xml:space="preserve"><value>显示原文</value></data>
   <data name="ScreenshotOcr_OpenImageDialogTitle" xml:space="preserve"><value>打开用于 OCR 的图片</value></data>
   <data name="ScreenshotOcr_ImageFileType" xml:space="preserve"><value>图片</value></data>
+  <data name="ImageTranslationSettings" xml:space="preserve"><value>图片翻译</value></data>
+  <data name="ImageTextEraseMode" xml:space="preserve"><value>背景擦除模式</value></data>
+  <data name="ImageTextEraseMode_Fast" xml:space="preserve"><value>普通</value></data>
+  <data name="ImageTextEraseMode_Precise" xml:space="preserve"><value>精确 (AOT-GAN)</value></data>
+  <data name="ImageTextEraseModeDescription_Fast" xml:space="preserve"><value>使用自适应背景擦除，兼顾简单和纹理背景，不需要下载模型。</value></data>
+  <data name="ImageTextEraseModeDescription_Precise" xml:space="preserve"><value>使用 AOT-GAN 擦除图片翻译中文字替换所需的背景，使用精确模式前需要下载模型。</value></data>
+  <data name="ImageTranslationModels" xml:space="preserve"><value>图片翻译模型</value></data>
+  <data name="ImageTranslationModelsDescription" xml:space="preserve"><value>AOT-GAN 仅用于图片翻译时文字替换的背景擦除。</value></data>
+  <data name="ImageTranslationModelRequired" xml:space="preserve"><value>图片翻译时文字替换的精确背景擦除需要 AOT-GAN 模型。请在下方下载，或切换到普通模式。</value></data>
+  <data name="ImageTranslationModelAotGanName" xml:space="preserve"><value>AOT-GAN</value></data>
+  <data name="ImageTranslationModelAotGanDescription" xml:space="preserve"><value>用于图片翻译时文字替换的背景擦除模型（61 MB）。</value></data>
+  <data name="ImageTranslationModelDownload" xml:space="preserve"><value>下载</value></data>
+  <data name="ImageTranslationModelRetry" xml:space="preserve"><value>重试</value></data>
+  <data name="ImageTranslationModelDownloaded" xml:space="preserve"><value>已下载</value></data>
+  <data name="ImageTranslationModelDownloading" xml:space="preserve"><value>正在下载</value></data>
+  <data name="ImageTranslationModelNotDownloaded" xml:space="preserve"><value>未下载</value></data>
+  <data name="ImageTranslationModelDownloadFailed" xml:space="preserve"><value>图片翻译模型下载失败</value></data>
+  <data name="ImageTranslationModelDownloadError" xml:space="preserve"><value>图片翻译模型下载失败：{0}</value></data>
+  <data name="ImageTranslationModelNetworkError" xml:space="preserve"><value>无法下载图片翻译模型。请检查网络和代理设置。</value></data>
+  <data name="ImageTranslationModelStorageError" xml:space="preserve"><value>无法安装图片翻译模型。请关闭占用模型文件的程序后重试。</value></data>
+  <data name="ImageTranslationModelIntegrityError" xml:space="preserve"><value>下载的图片翻译模型未通过完整性校验，请重试。</value></data>
+  <data name="ImageTranslationModelUnknownError" xml:space="preserve"><value>图片翻译模型下载失败，请重试。</value></data>
 </root>

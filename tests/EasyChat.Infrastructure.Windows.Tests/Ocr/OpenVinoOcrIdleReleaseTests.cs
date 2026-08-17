@@ -136,5 +136,6 @@ public sealed class OpenVinoOcrIdleReleaseTests
         public string ConfigurationDirectory => Path.Combine(root, "config");
         public string SpeechModelsDirectory => Path.Combine(root, "speech");
         public string OcrModelsDirectory => Path.Combine(root, "ocr");
+        public string ImageTranslationModelsDirectory => Path.Combine(root, "image-translation");
     }
 }

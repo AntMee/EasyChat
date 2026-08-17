@@ -96,6 +96,7 @@ public sealed class ImageTranslationUseCasesTests
         public Task<ImageTranslationRenderResult> RenderAsync(
             ImageFrame background,
             IReadOnlyList<ImageTranslationOverlay> overlays,
+            ImageTranslationRenderOptions options,
             CancellationToken cancellationToken = default)
         {
             Source = background;

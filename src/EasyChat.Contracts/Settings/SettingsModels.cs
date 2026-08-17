@@ -1,4 +1,5 @@
 using EasyChat.Contracts.Ocr;
+using EasyChat.Contracts.ImageTranslation;
 
 namespace EasyChat.Contracts.Settings;
 
@@ -267,7 +268,8 @@ public sealed record ScreenshotSettings(
     IReadOnlyList<FixedAreaSettings> FixedAreas,
     OcrRecognitionMode OcrMode = OcrRecognitionMode.Normal,
     int OcrIdleTimeoutSeconds = 300,
-    bool ClosePreviousOcrWindow = false)
+    bool ClosePreviousOcrWindow = false,
+    ImageTextEraseMode ImageTextEraseMode = ImageTextEraseMode.Fast)
 {
     public const int DefaultOcrIdleTimeoutSeconds = 300;
     public const int MinOcrIdleTimeoutSeconds = 10;

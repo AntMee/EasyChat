@@ -195,6 +195,7 @@ public sealed class ImageTranslationEditSessionTests
         public Task<ImageTranslationRenderResult> RenderAsync(
             ImageFrame background,
             IReadOnlyList<ImageTranslationOverlay> overlays,
+            ImageTranslationRenderOptions options,
             CancellationToken cancellationToken = default)
         {
             Backgrounds.Add(background);

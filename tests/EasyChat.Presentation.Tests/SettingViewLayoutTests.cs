@@ -202,6 +202,45 @@ public sealed class SettingViewLayoutTests
     }
 
     [TestMethod]
+    public void ScreenshotSettings_GroupsImageTranslationBelowFixedAreas()
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views",
+            "ScreenshotSettingsView.axaml");
+        var document = XDocument.Load(path);
+        var content = document.Root!.Elements()
+            .Single(element => element.Name.LocalName == "StackPanel");
+        var children = content.Elements().ToList();
+        var fixedAreas = children.Single(element => element.Name.LocalName == "Border"
+                                                  && element.Descendants().Any(child =>
+                                                      child.Name.LocalName == "Button"
+                                                      && child.Attribute("Command")?.Value
+                                                      == "{Binding ManageFixedAreasCommand}"));
+        var imageTranslation = children.Single(element => element.Name.LocalName == "StackPanel"
+                                                        && element.Descendants().Any(child =>
+                                                            child.Name.LocalName == "TextBlock"
+                                                            && child.Attribute("Text")?.Value
+                                                            == "{Binding ImageTranslationSettingsLabel}"));
+        var imageModels = children.Single(element => element.Name.LocalName == "ItemsControl"
+                                                   && element.Attribute("ItemsSource")?.Value
+                                                   == "{Binding ImageTranslationModelItems}");
+        var ocrModels = children.Single(element => element.Name.LocalName == "ItemsControl"
+                                                 && element.Attribute("ItemsSource")?.Value
+                                                 == "{Binding VisibleOcrModelItems}");
+
+        Assert.IsGreaterThan(children.IndexOf(fixedAreas), children.IndexOf(imageTranslation));
+        Assert.IsGreaterThan(children.IndexOf(imageTranslation), children.IndexOf(imageModels));
+        Assert.IsGreaterThan(children.IndexOf(imageModels), children.IndexOf(ocrModels));
+    }
+
+    [TestMethod]
     public void SettingsForms_FitWithinTheMinimumDetailPaneWidth()
     {
         var root = FindRepositoryRoot();

@@ -9,6 +9,7 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
     private const string ConfigurationDirectoryName = "Configuration";
     private const string SpeechModelsRelativePath = "Models/ASR";
     private const string OcrModelsRelativePath = "Models/OCR";
+    private const string ImageTranslationModelsRelativePath = "Models/ImageTranslation";
     private const string LocationFileName = ".data-location.json";
     private const string ApplicationName = "EasyChat";
 
@@ -85,6 +86,9 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
 
     public string OcrModelsDirectory =>
         Path.Combine(RootDirectory, OcrModelsRelativePath);
+
+    public string ImageTranslationModelsDirectory =>
+        Path.Combine(RootDirectory, ImageTranslationModelsRelativePath);
 
     private string RootDirectory
     {
@@ -170,11 +174,13 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
                 var sourceConfigurationDirectory = ConfigurationDirectory;
                 var sourceSpeechModelsDirectory = SpeechModelsDirectory;
                 var sourceOcrModelsDirectory = OcrModelsDirectory;
+                var sourceImageTranslationModelsDirectory = ImageTranslationModelsDirectory;
                 await Task.Run(
                     () => CopyToNewRoot(
                         sourceConfigurationDirectory,
                         sourceSpeechModelsDirectory,
                         sourceOcrModelsDirectory,
+                        sourceImageTranslationModelsDirectory,
                         targetRoot,
                         cancellationToken),
                     cancellationToken).ConfigureAwait(false);
@@ -305,6 +311,7 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
         string sourceConfigurationDirectory,
         string sourceSpeechModelsDirectory,
         string sourceOcrModelsDirectory,
+        string sourceImageTranslationModelsDirectory,
         string targetRoot,
         CancellationToken cancellationToken)
     {
@@ -330,6 +337,10 @@ internal sealed class ApplicationDataStore : IApplicationDataStore
             CopyDirectory(
                 sourceOcrModelsDirectory,
                 Path.Combine(stagingRoot, OcrModelsRelativePath),
+                cancellationToken);
+            CopyDirectory(
+                sourceImageTranslationModelsDirectory,
+                Path.Combine(stagingRoot, ImageTranslationModelsRelativePath),
                 cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia.Data.Converters;
+using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Lang;
@@ -111,4 +112,40 @@ public sealed class OcrRecognitionModeDescriptionConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
+}
+
+public sealed class ImageTextEraseModeConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        ImageTextEraseMode.Fast => Get("ImageTextEraseMode_Fast", "Normal"),
+        ImageTextEraseMode.Precise => Get("ImageTextEraseMode_Precise", "Precise (AOT-GAN)"),
+        _ => value?.ToString()
+    };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+
+    private static string Get(string key, string fallback) =>
+        Resources.ResourceManager.GetString(key, Resources.Culture) ?? fallback;
+}
+
+public sealed class ImageTextEraseModeDescriptionConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        ImageTextEraseMode.Fast => Get(
+            "ImageTextEraseModeDescription_Fast",
+            "Uses adaptive background removal. No model download is required."),
+        ImageTextEraseMode.Precise => Get(
+            "ImageTextEraseModeDescription_Precise",
+            "Uses AOT-GAN for background removal during image translation text replacement. Download the model before using precise mode."),
+        _ => null
+    };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+
+    private static string Get(string key, string fallback) =>
+        Resources.ResourceManager.GetString(key, Resources.Culture) ?? fallback;
 }

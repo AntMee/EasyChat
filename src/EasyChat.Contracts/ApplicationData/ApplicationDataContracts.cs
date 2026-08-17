@@ -20,6 +20,7 @@ public interface IApplicationDataPaths
     string ConfigurationDirectory { get; }
     string SpeechModelsDirectory { get; }
     string OcrModelsDirectory { get; }
+    string ImageTranslationModelsDirectory { get; }
 }
 
 public interface IApplicationDataStore : IApplicationDataPaths

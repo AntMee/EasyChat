@@ -34,6 +34,8 @@
         <converts:ScreenshotModeConverter x:Key="ScreenshotModeConverter" />
         <converts:OcrRecognitionModeConverter x:Key="OcrRecognitionModeConverter" />
         <converts:OcrRecognitionModeDescriptionConverter x:Key="OcrRecognitionModeDescriptionConverter" />
+        <converts:ImageTextEraseModeConverter x:Key="ImageTextEraseModeConverter" />
+        <converts:ImageTextEraseModeDescriptionConverter x:Key="ImageTextEraseModeDescriptionConverter" />
     </UserControl.Resources>
 
     <StackPanel
@@ -166,6 +168,137 @@
                     Margin="8,8,8,0"
                     />
             </Border>
+
+        <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
+        <StackPanel Margin="12,6,12,8" Spacing="2"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='image translation background erase normal precise aot gan aotgan 图片翻译 背景擦除 普通 精确 模型'}">
+            <TextBlock Classes="Caption" FontWeight="Bold"
+                       Text="{Binding ImageTranslationSettingsLabel}" />
+        </StackPanel>
+
+        <Border Classes="SettingsSearchRow"
+                Classes.SearchResult="{Binding IsSearchMode}"
+                IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='image translation background erase normal precise aot gan aotgan 图片翻译 背景擦除 普通 精确 模型'}">
+        <Grid ColumnDefinitions="*,420"
+              MinHeight="40"
+              Margin="8,0"
+              ColumnSpacing="16">
+            <TextBlock Text="{Binding ImageTextEraseModeLabel}"
+                       Classes="Small"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+            <ContentControl Classes="SettingsField" Grid.Column="1"
+                            MinWidth="180"
+                            VerticalAlignment="Center"
+                            HorizontalContentAlignment="Stretch">
+                <ComboBox ItemsSource="{Binding ImageTextEraseModes}"
+                          SelectedItem="{Binding SelectedImageTextEraseMode}"
+                          HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource ImageTextEraseModeConverter}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </ContentControl>
+        </Grid>
+        </Border>
+
+        <TextBlock Margin="8,2"
+                   Classes="Muted"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='image translation background erase normal precise aot gan aotgan 图片翻译 背景擦除 普通 精确 模型'}"
+                   Text="{Binding SelectedImageTextEraseMode, Converter={StaticResource ImageTextEraseModeDescriptionConverter}}" />
+
+        <Border Margin="8,6,8,0"
+                Padding="8"
+                Background="{DynamicResource WarningColor10}"
+                IsVisible="{Binding IsPreciseImageEraseModelRequired}">
+            <TextBlock Classes="Small"
+                       TextWrapping="Wrap"
+                       Text="{Binding ImageTranslationModelRequiredMessage}" />
+        </Border>
+
+        <StackPanel Margin="12,10,12,8" Spacing="2"
+                    IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='image translation background erase normal precise aot gan aotgan model download delete 图片翻译 背景擦除 普通 精确 模型 下载 删除'}">
+            <TextBlock Classes="Caption" FontWeight="Bold"
+                       Text="{Binding ImageTranslationModelsLabel}" />
+            <TextBlock Classes="Muted"
+                       TextWrapping="Wrap"
+                       Text="{Binding ImageTranslationModelsDescription}" />
+        </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding ImageTranslationModelItems}"
+                      Margin="4,4,8,0"
+                      HorizontalAlignment="Stretch"
+                      IsVisible="{Binding SearchText, Converter={x:Static viewModels:SettingsFieldVisibleConverter.Instance}, ConverterParameter='image translation background erase normal precise aot gan aotgan model download delete 图片翻译 背景擦除 普通 精确 模型 下载 删除'}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="viewModels:ImageTranslationModelDownloadItemViewModel">
+                    <shad:Card HasShadow="False"
+                               Padding="10,8"
+                               Margin="0,0,0,6"
+                               MinWidth="0"
+                               HorizontalAlignment="Stretch">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6" MinWidth="0">
+                            <StackPanel Spacing="4" MinWidth="0">
+                                <TextBlock FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ForegroundColor}"
+                                           Text="{Binding DisplayName}" />
+                                <TextBlock Classes="Muted"
+                                           Text="{Binding Description}"
+                                           TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Classes="Muted"
+                                               Foreground="{DynamicResource MutedColor}"
+                                               Text="{Binding StatusText}" />
+                                    <TextBlock Classes="Muted" Text="{Binding ProgressText}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="4"
+                                        VerticalAlignment="Center">
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DownloadImageTranslationModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{Binding ActionText}"
+                                        IsVisible="{Binding IsActionVisible}">
+                                    <avalonia:MaterialIcon Kind="Download" Width="16" Height="16" />
+                                </Button>
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).CancelImageTranslationModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static lang:Resources.Cancel}"
+                                        IsVisible="{Binding IsCancelVisible}">
+                                    <avalonia:MaterialIcon Kind="Cancel" Width="16" Height="16" />
+                                </Button>
+                                <Button Classes="Icon"
+                                        Command="{Binding $parent[ItemsControl].((viewModels:SettingViewModel)DataContext).DeleteImageTranslationModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="{x:Static lang:Resources.Delete}"
+                                        IsVisible="{Binding IsDeleteVisible}">
+                                    <avalonia:MaterialIcon Kind="Delete" Width="16" Height="16"
+                                                           Foreground="{DynamicResource DestructiveColor}" />
+                                </Button>
+                            </StackPanel>
+                            <ProgressBar Grid.Row="1" Grid.ColumnSpan="2"
+                                         Classes="ModelProgress"
+                                         Minimum="0" Maximum="1"
+                                         Value="{Binding Progress}"
+                                         Height="6"
+                                         Margin="0,0,2,0"
+                                         IsVisible="{Binding IsProgressVisible}"
+                                         IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                            <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
+                                       Classes="Muted"
+                                       Text="{Binding ErrorMessage}"
+                                       IsVisible="{Binding IsFailed}"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </shad:Card>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <Separator Margin="8,10" IsVisible="{Binding IsBrowseMode}" />
         <StackPanel Margin="12,6,12,10" Spacing="2"

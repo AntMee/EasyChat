@@ -122,5 +122,6 @@ public sealed class OpenVinoOcrUnicodeIntegrationTests
         public string ConfigurationDirectory { get; } = Path.Combine(root, "Configuration");
         public string SpeechModelsDirectory { get; } = Path.Combine(root, "Models", "ASR");
         public string OcrModelsDirectory { get; } = Path.Combine(root, "Models", "OCR");
+        public string ImageTranslationModelsDirectory { get; } = Path.Combine(root, "Models", "ImageTranslation");
     }
 }

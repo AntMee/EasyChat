@@ -1,6 +1,7 @@
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Translation;
+using EasyChat.Contracts.Settings;
 using EasyChat.Shared.Results;
 
 namespace EasyChat.Contracts.ImageTranslation;
@@ -18,6 +19,20 @@ public sealed record ImageTranslationResult(
     int TranslatedBlockCount);
 
 public sealed record ImageTranslationOverlay(OcrTextRegion Region, string Translation);
+
+public enum ImageTextEraseMode
+{
+    Fast = 0,
+    Precise = 1
+}
+
+public sealed record ImageTranslationRenderOptions(
+    ImageTextEraseMode EraseMode = ImageTextEraseMode.Fast);
+
+public sealed record ImageTranslationModelPackage(
+    string Id,
+    string DisplayName,
+    string Description);
 
 public sealed record ImageTranslationRenderResult(
     ImageFrame Image,
@@ -48,17 +63,60 @@ public sealed record ImageTranslationEditResult(
 
 public interface IImageBackgroundCleaner
 {
-    ImageFrame RemoveText(
+    Task<ImageFrame> RemoveTextAsync(
         ImageFrame source,
         IReadOnlyList<OcrTextRegion> regions,
+        ImageTextEraseMode mode,
         CancellationToken cancellationToken = default);
+}
+
+public interface IImageTranslationModelStore
+{
+    IReadOnlyList<ImageTranslationModelPackage> ModelPackages { get; }
+
+    bool IsModelDownloaded(ImageTranslationModelPackage package);
+
+    Task DownloadModelAsync(
+        ImageTranslationModelPackage package,
+        NetworkProxyMode proxyMode,
+        string? proxyUrl,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default);
+
+    void DeleteModel(ImageTranslationModelPackage package);
+}
+
+public interface IImageTranslationModelUseCases
+{
+    IReadOnlyList<ImageTranslationModelPackage> ModelPackages { get; }
+
+    bool IsModelDownloaded(ImageTranslationModelPackage package);
+
+    Task DownloadModelAsync(
+        ImageTranslationModelPackage package,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default);
+
+    void DeleteModel(ImageTranslationModelPackage package);
+}
+
+public sealed class ImageTranslationModelNotDownloadedException : Exception
+{
+    public ImageTranslationModelNotDownloadedException(ImageTranslationModelPackage package)
+        : base($"Image translation model '{package.DisplayName}' is not downloaded.")
+    {
+        Package = package;
+    }
+
+    public ImageTranslationModelPackage Package { get; }
 }
 
 public interface IImageTranslationRenderer
 {
     Task<ImageTranslationRenderResult> RenderAsync(
-        ImageFrame background,
+        ImageFrame source,
         IReadOnlyList<ImageTranslationOverlay> overlays,
+        ImageTranslationRenderOptions options,
         CancellationToken cancellationToken = default);
 }
 

@@ -1,4 +1,5 @@
 using EasyChat.Contracts.Settings;
+using EasyChat.Contracts.ImageTranslation;
 using Newtonsoft.Json;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
@@ -35,6 +36,12 @@ internal enum OcrRecognitionModeDto
     Fast = 0,
     Normal = 1,
     IdleRelease = 2
+}
+
+internal enum ImageTextEraseModeDto
+{
+    Fast = 0,
+    Precise = 1
 }
 
 internal enum FloatingDisplayModeDto
@@ -244,6 +251,9 @@ internal sealed class ScreenshotSettingsDto
 
     [JsonProperty]
     public bool ClosePreviousOcrWindow { get; set; }
+
+    [JsonProperty]
+    public ImageTextEraseModeDto ImageTextEraseMode { get; set; } = ImageTextEraseModeDto.Fast;
 }
 
 [JsonObject(MemberSerialization.OptIn)]
