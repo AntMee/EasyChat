@@ -7,6 +7,11 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\EasyChat.Desktop\Assets\easychat-logo.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(SelfContained)' == 'true'">
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="EasyChat.AcceptanceTests" />
   </ItemGroup>
