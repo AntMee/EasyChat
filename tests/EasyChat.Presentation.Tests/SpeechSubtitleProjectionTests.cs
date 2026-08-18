@@ -13,6 +13,26 @@ namespace EasyChat.Presentation.Tests;
 public sealed class SpeechSubtitleProjectionTests
 {
     [TestMethod]
+    public void LiveSpeechSettings_KeepAudioAndRealtimeTranslationChoicesIndependent()
+    {
+        var settings = CreateLiveSpeechSettings("audio-model", 1);
+        settings.PromptId = "audio-prompt";
+
+        settings.SetActiveMode(SpeechTranslationMode.RealtimeInterpretation);
+        settings.EngineId = "realtime-model";
+        settings.EngineType = 1;
+        settings.PromptId = "realtime-prompt";
+
+        settings.SetActiveMode(SpeechTranslationMode.AudioTranslation);
+        Assert.AreEqual("audio-model", settings.EngineId);
+        Assert.AreEqual("audio-prompt", settings.PromptId);
+
+        settings.SetActiveMode(SpeechTranslationMode.RealtimeInterpretation);
+        Assert.AreEqual("realtime-model", settings.EngineId);
+        Assert.AreEqual("realtime-prompt", settings.PromptId);
+    }
+
+    [TestMethod]
     public void TemporaryAndFinalUpdatesWithSameId_ReuseOneItemInBothCollections()
     {
         var projection = new SpeechSubtitleProjection();

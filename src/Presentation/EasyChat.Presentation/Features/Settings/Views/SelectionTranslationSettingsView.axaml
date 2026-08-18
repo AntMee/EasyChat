@@ -347,15 +347,15 @@
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
-                    <ComboBox SelectedItem="{Binding SelectedSelectionTranslationEngine}"
-                              ItemsSource="{Binding TranslationEngineTypes}"
+                    <ComboBox SelectedItem="{Binding SelectedSelectionTranslationEngineOption}"
+                              ItemsSource="{Binding SelectionTranslationEngineOptions}"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <avalonia:MaterialIcon Kind="{Binding Converter={x:Static converts:TranslationEngineStringToIconKindConverter.Instance}}"
-                                                           Width="16" Height="16" />
-                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                    <avalonia:MaterialIcon Kind="{Binding Icon}"
+                                                           Width="20" Height="20" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                Foreground="{DynamicResource ForegroundColor}" />
                                 </StackPanel>
                             </DataTemplate>
@@ -381,17 +381,25 @@
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
-                    <ComboBox ItemsSource="{Binding ConfiguredModels}"
-                              SelectedValue="{Binding SelectionTranslationConf.AiModelId}"
-                              SelectedValueBinding="{Binding Id}"
+                    <ComboBox ItemsSource="{Binding SelectionTranslationAiModelOptions}"
+                               SelectedItem="{Binding SelectedSelectionTranslationAiModelOption}"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Border Width="20" Height="20" CornerRadius="4" ClipToBounds="True">
-                                        <Image Source="{Binding ModelType, Converter={x:Static converts:AiModelTypeConverters.ToIcon}}"
-                                               Stretch="UniformToFill" />
-                                    </Border>
+                                    <Panel Width="20" Height="20">
+                                        <avalonia:MaterialIcon Kind="LinkVariant"
+                                                               Width="20" Height="20"
+                                                               IsVisible="{Binding IsGlobal}" />
+                                        <Panel IsVisible="{Binding !IsGlobal}">
+                                            <Image Width="20" Height="20"
+                                                   IsVisible="{Binding ImageValue, Converter={x:Static converts:AiModelTypeConverters.HasIcon}}"
+                                                   Source="{Binding ImageValue, Converter={x:Static converts:AiModelTypeConverters.ToIcon}}" />
+                                            <avalonia:MaterialIcon Kind="Robot" Width="20" Height="20"
+                                                                   Foreground="{DynamicResource MutedColor}"
+                                                                   IsVisible="{Binding ImageValue, Converter={x:Static converts:AiModelTypeConverters.HasNoIcon}}" />
+                                        </Panel>
+                                    </Panel>
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                Foreground="{DynamicResource ForegroundColor}" />
                                 </StackPanel>
@@ -418,22 +426,30 @@
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
-                    <ComboBox SelectedItem="{Binding SelectedMachineTranslationProvider}"
-                              ItemsSource="{Binding MachineTransProviders}"
+                    <ComboBox SelectedItem="{Binding SelectedMachineTranslationOption}"
+                              ItemsSource="{Binding SelectionTranslationMachineProviderOptions}"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Panel Width="20" Height="20">
-                                        <Border ClipToBounds="True" CornerRadius="4"
-                                                IsVisible="{Binding Converter={x:Static converts:EngineConverters.HasIcon}}">
-                                            <Image Source="{Binding Converter={x:Static converts:EngineConverters.ToIcon}}"
-                                                   Stretch="UniformToFill" />
-                                        </Border>
-                                        <avalonia:MaterialIcon Kind="Translate" Width="20" Height="20"
-                                                               IsVisible="{Binding Converter={x:Static converts:EngineConverters.HasNoIcon}}" />
+                                        <avalonia:MaterialIcon Kind="LinkVariant"
+                                                               Width="20" Height="20"
+                                                               IsVisible="{Binding IsGlobal}" />
+                                        <Panel IsVisible="{Binding !IsGlobal}">
+                                            <Border ClipToBounds="True" CornerRadius="4"
+                                                    IsVisible="{Binding ImageValue, Converter={x:Static converts:EngineConverters.HasIcon}}"
+                                                    Background="Transparent">
+                                                <Image Width="20" Height="20"
+                                                       Source="{Binding ImageValue, Converter={x:Static converts:EngineConverters.ToIcon}}"
+                                                       Stretch="UniformToFill" />
+                                            </Border>
+                                            <avalonia:MaterialIcon Kind="Translate"
+                                                                   Width="20" Height="20"
+                                                                   IsVisible="{Binding ImageValue, Converter={x:Static converts:EngineConverters.HasNoIcon}}" />
+                                        </Panel>
                                     </Panel>
-                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
                                                Foreground="{DynamicResource ForegroundColor}" />
                                 </StackPanel>
                             </DataTemplate>
@@ -459,13 +475,15 @@
                                 MinWidth="180"
                                 VerticalAlignment="Center"
                                 HorizontalContentAlignment="Stretch">
-                    <ComboBox ItemsSource="{Binding PromptEntries}"
-                              SelectedValue="{Binding SelectionTranslationConf.PromptId}"
-                              SelectedValueBinding="{Binding Id}"
+                    <ComboBox ItemsSource="{Binding SelectionTranslationPromptOptions}"
+                              SelectedItem="{Binding SelectedSelectionTranslationPromptOption}"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ForegroundColor}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <avalonia:MaterialIcon Kind="{Binding Icon}" Width="20" Height="20" />
+                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ForegroundColor}" />
+                                </StackPanel>
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>

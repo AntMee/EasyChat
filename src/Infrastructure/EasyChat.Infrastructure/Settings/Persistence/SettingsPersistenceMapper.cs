@@ -1,6 +1,7 @@
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.ImageTranslation;
+using EasyChat.Contracts.Translation;
 
 namespace EasyChat.Infrastructure.Settings.Persistence;
 
@@ -489,39 +490,94 @@ internal static class SettingsPersistenceMapper
         IsEnabled = source.IsEnabled
     };
 
-    private static SpeechRecognitionSettings ToContract(SpeechRecognitionSettingsDto source) => new(
-        source.RecognitionLanguage,
-        source.IsTranslationEnabled,
-        source.IsRealTimePreviewEnabled,
-        source.TargetLanguage,
-        source.EngineId,
-        source.EngineType,
-        source.MaxSentencesPerLine,
-        (FloatingDisplayMode)(int)source.FloatingDisplayMode,
-        source.MaxFloatingHistory,
-        source.AutoClearInterval,
-        (SubtitleSource)(int)source.MainSubtitleSource,
-        source.FontSize,
-        source.FontFamily,
-        source.FontColor,
-        (SubtitleSource)(int)source.SecondarySubtitleSource,
-        source.SecondaryFontSize,
-        source.SecondaryFontFamily,
-        source.SecondaryFontColor,
-        source.BackgroundColor,
-        source.SubtitleBackgroundColor,
-        source.WindowOpacity,
-        source.IsFloatingWindowLocked,
-        source.FloatingWindowOrientation,
-        source.WindowX,
-        source.WindowY,
-        source.WindowWidth,
-        source.WindowHeight,
-        source.PromptId,
-        source.IsTranslatedSpeechEnabled);
-
-    private static SpeechRecognitionSettingsDto ToDto(SpeechRecognitionSettings source) => new()
+    private static SpeechRecognitionSettings ToContract(SpeechRecognitionSettingsDto source)
     {
+        var legacy = new SpeechRecognitionSettings(
+            source.RecognitionLanguage,
+            source.IsTranslationEnabled,
+            source.IsRealTimePreviewEnabled,
+            source.TargetLanguage,
+            source.EngineId,
+            source.EngineType,
+            source.MaxSentencesPerLine,
+            (FloatingDisplayMode)(int)source.FloatingDisplayMode,
+            source.MaxFloatingHistory,
+            source.AutoClearInterval,
+            (SubtitleSource)(int)source.MainSubtitleSource,
+            source.FontSize,
+            source.FontFamily,
+            source.FontColor,
+            (SubtitleSource)(int)source.SecondarySubtitleSource,
+            source.SecondaryFontSize,
+            source.SecondaryFontFamily,
+            source.SecondaryFontColor,
+            source.BackgroundColor,
+            source.SubtitleBackgroundColor,
+            source.WindowOpacity,
+            source.IsFloatingWindowLocked,
+            source.FloatingWindowOrientation,
+            source.WindowX,
+            source.WindowY,
+            source.WindowWidth,
+            source.WindowHeight,
+            source.PromptId,
+            source.IsTranslatedSpeechEnabled);
+
+        var audio = source.AudioTranslationConfiguration is not null
+            ? ToContract(source.AudioTranslationConfiguration)
+            : ToSpeechConfiguration(legacy);
+        var realtime = source.RealtimeInterpretationConfiguration is not null
+            ? ToContract(source.RealtimeInterpretationConfiguration)
+            : audio with
+            {
+                IsTranslationEnabled = true,
+                IsTranslatedSpeechEnabled = true
+            };
+        if (source.FollowGlobalTranslationConfiguration == true)
+        {
+            audio = FollowGlobalSpeechConfiguration(audio);
+            realtime = FollowGlobalSpeechConfiguration(realtime);
+        }
+
+        return legacy with
+        {
+            EngineId = audio.EngineId,
+            EngineType = audio.EngineType,
+            PromptId = audio.PromptId,
+            IsTranslationEnabled = audio.IsTranslationEnabled,
+            IsRealTimePreviewEnabled = audio.IsRealTimePreviewEnabled,
+            TargetLanguage = audio.TargetLanguage,
+            IsTranslatedSpeechEnabled = audio.IsTranslatedSpeechEnabled,
+            AudioTranslationConfiguration = audio,
+            RealtimeInterpretationConfiguration = realtime
+        };
+    }
+
+    private static SpeechRecognitionSettingsDto ToDto(SpeechRecognitionSettings source)
+    {
+        // The legacy top-level fields represent the active audio-translation tab.
+        // Keep the new per-tab record synchronized so callers that update the
+        // compatibility fields cannot be overwritten by a stale nested snapshot.
+        var audio = (source.AudioTranslationConfiguration ?? ToSpeechConfiguration(source)) with
+        {
+            RecognitionLanguage = source.RecognitionLanguage,
+            IsTranslationEnabled = source.IsTranslationEnabled,
+            IsTranslatedSpeechEnabled = source.IsTranslatedSpeechEnabled,
+            IsRealTimePreviewEnabled = source.IsRealTimePreviewEnabled,
+            TargetLanguage = source.TargetLanguage,
+            EngineId = source.EngineId,
+            EngineType = source.EngineType,
+            PromptId = source.PromptId
+        };
+        var realtime = source.RealtimeInterpretationConfiguration
+            ?? ToSpeechConfiguration(source) with
+            {
+                IsTranslationEnabled = true,
+                IsTranslatedSpeechEnabled = true
+            };
+
+        return new SpeechRecognitionSettingsDto
+        {
         RecognitionLanguage = source.RecognitionLanguage,
         IsTranslationEnabled = source.IsTranslationEnabled,
         IsRealTimePreviewEnabled = source.IsRealTimePreviewEnabled,
@@ -529,6 +585,8 @@ internal static class SettingsPersistenceMapper
         EngineId = source.EngineId,
         EngineType = source.EngineType,
         PromptId = source.PromptId,
+        AudioTranslationConfiguration = ToDto(audio),
+        RealtimeInterpretationConfiguration = ToDto(realtime),
         MaxSentencesPerLine = source.MaxSentencesPerLine,
         FloatingDisplayMode = (FloatingDisplayModeDto)(int)source.FloatingDisplayMode,
         MaxFloatingHistory = source.MaxFloatingHistory,
@@ -551,7 +609,56 @@ internal static class SettingsPersistenceMapper
         WindowWidth = source.WindowWidth,
         WindowHeight = source.WindowHeight,
         IsTranslatedSpeechEnabled = source.IsTranslatedSpeechEnabled
+        };
+    }
+
+    private static SpeechTranslationConfiguration ToContract(SpeechTranslationConfigurationDto source) => new(
+        source.RecognitionLanguage,
+        source.IsTranslationEnabled,
+        source.IsTranslatedSpeechEnabled,
+        source.IsRealTimePreviewEnabled,
+        source.TargetLanguage,
+        source.EngineId,
+        source.EngineType,
+        source.PromptId);
+
+    private static SpeechTranslationConfigurationDto ToDto(SpeechTranslationConfiguration source) => new()
+    {
+        RecognitionLanguage = source.RecognitionLanguage,
+        IsTranslationEnabled = source.IsTranslationEnabled,
+        IsTranslatedSpeechEnabled = source.IsTranslatedSpeechEnabled,
+        IsRealTimePreviewEnabled = source.IsRealTimePreviewEnabled,
+        TargetLanguage = source.TargetLanguage,
+        EngineId = source.EngineId,
+        EngineType = source.EngineType,
+        PromptId = source.PromptId
     };
+
+    private static SpeechTranslationConfiguration ToSpeechConfiguration(SpeechRecognitionSettings source) => new(
+        source.RecognitionLanguage,
+        source.IsTranslationEnabled,
+        source.IsTranslatedSpeechEnabled,
+        source.IsRealTimePreviewEnabled,
+        source.TargetLanguage,
+        source.EngineId,
+        source.EngineType,
+        source.PromptId);
+
+    private static SpeechTranslationConfiguration FollowGlobalSpeechConfiguration(
+        SpeechTranslationConfiguration source) => source with
+        {
+            EngineId = TranslationConfigurationOptionIds.FollowGlobal,
+            PromptId = TranslationConfigurationOptionIds.FollowGlobal
+        };
+
+    private static string NormalizeTranslationEngine(string? value) =>
+        value switch
+        {
+            "AI" => TranslationEngineNames.AiModel,
+            "Machine" => TranslationEngineNames.MachineTrans,
+            null or "" => TranslationConfigurationOptionIds.FollowGlobal,
+            _ => value
+        };
 
     private static SelectionTranslationSettings ToContract(
         SelectionTranslationSettingsDto source)
@@ -563,12 +670,24 @@ internal static class SettingsPersistenceMapper
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Select(identifier => new SelectionAppEntrySettings(identifier))
                 .ToArray();
+        var provider = source.FollowGlobalTranslationConfiguration == true
+            ? TranslationConfigurationOptionIds.FollowGlobal
+            : NormalizeTranslationEngine(source.Provider);
+        var machineProvider = source.FollowGlobalTranslationConfiguration == true
+            ? TranslationConfigurationOptionIds.FollowGlobal
+            : source.MachineProvider;
+        var aiModelId = source.FollowGlobalTranslationConfiguration == true
+            ? TranslationConfigurationOptionIds.FollowGlobal
+            : source.AiModelId;
+        var promptId = source.FollowGlobalTranslationConfiguration == true
+            ? TranslationConfigurationOptionIds.FollowGlobal
+            : source.PromptId;
         return new SelectionTranslationSettings(
             source.Enabled,
-            source.Provider,
-            source.MachineProvider,
-            source.AiModelId,
-            source.PromptId,
+            provider,
+            machineProvider,
+            aiModelId,
+            promptId,
             (SelectionTriggerMode)(int)source.TriggerMode,
             source.TranslationEnabled,
             source.CorrectionEnabled,
@@ -633,24 +752,39 @@ internal static class SettingsPersistenceMapper
             StringComparer.Ordinal)
     };
 
-    private static TextAssistSettings ToContract(TextAssistSettingsDto source) => new(
-        source.FollowGlobal,
+    private static TextAssistSettings ToContract(TextAssistSettingsDto source)
+    {
+        var provider = NormalizeTranslationEngine(source.Provider);
+        var aiModelId = source.AiModelId;
+        var translationPromptId = source.TranslationPromptId;
+        var correctionPromptId = source.CorrectionPromptId;
+        var polishPromptId = source.PolishPromptId;
+        var summaryPromptId = source.SummaryPromptId;
+        var machineProvider = source.MachineProvider;
+        if (source.FollowGlobal == true)
+        {
+            provider = aiModelId = translationPromptId = correctionPromptId =
+                polishPromptId = summaryPromptId = machineProvider =
+                TranslationConfigurationOptionIds.FollowGlobal;
+        }
+
+        return new TextAssistSettings(
         source.SourceLanguageId,
         source.TargetLanguageId,
-        source.Provider,
-        source.AiModelId,
-        source.TranslationPromptId,
-        source.CorrectionPromptId,
-        source.PolishPromptId,
-        source.SummaryPromptId,
+        provider,
+        aiModelId,
+        translationPromptId,
+        correctionPromptId,
+        polishPromptId,
+        summaryPromptId,
         source.DetailedExplanation,
         source.TranslationConfigurationExpanded,
         source.CorrectionConfigurationExpanded,
-        source.MachineProvider);
+        machineProvider);
+    }
 
     private static TextAssistSettingsDto ToDto(TextAssistSettings source) => new()
     {
-        FollowGlobal = source.FollowGlobal,
         SourceLanguageId = source.SourceLanguageId,
         TargetLanguageId = source.TargetLanguageId,
         Provider = source.Provider,

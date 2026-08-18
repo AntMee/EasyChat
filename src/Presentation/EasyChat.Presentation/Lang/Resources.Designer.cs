@@ -1285,6 +1285,15 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("MachineTranslation", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Machine.
+        /// </summary>
+        public static string HomeMachineTab {
+            get {
+                return ResourceManager.GetString("HomeMachineTab", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Manifest.

@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using EasyChat.Application.Translation;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Speech;
@@ -191,7 +192,34 @@ public sealed class SpeechRecognitionUseCases : ISpeechRecognitionUseCases
         CancellationToken engineCancellationToken,
         CancellationToken workflowCancellationToken)
     {
-        SpeechRecognitionSettings GetSettings() => command.SettingsOverride ?? _settings.Current.SpeechRecognition;
+        SpeechRecognitionSettings GetSettings()
+        {
+            var speech = command.SettingsOverride ?? _settings.Current.SpeechRecognition;
+            var general = _settings.Current.General;
+            var effectiveEngine = TranslationConfigurationResolver.ResolveProvider(
+                speech.EngineId,
+                general,
+                TranslationEngineNames.AiModel);
+            var useMachine = string.Equals(
+                effectiveEngine,
+                TranslationEngineNames.MachineTrans,
+                StringComparison.OrdinalIgnoreCase);
+            return speech with
+            {
+                EngineId = useMachine
+                    ? TranslationConfigurationResolver.ResolveMachineProvider(
+                        speech.EngineId,
+                        general,
+                        string.Empty)
+                    : TranslationConfigurationResolver.ResolveAiModelId(speech.EngineId, general) ?? string.Empty,
+                EngineType = TranslationConfigurationResolver.IsGlobal(speech.EngineId)
+                    ? useMachine ? 0 : 1
+                    : speech.EngineType,
+                PromptId = TranslationConfigurationResolver.ResolvePromptId(
+                    speech.PromptId,
+                    _settings.Current.Prompts)
+            };
+        }
         void Publish(SpeechSessionEvent item) => writer.TryWrite(item);
         try
         {

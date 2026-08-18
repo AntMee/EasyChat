@@ -254,7 +254,7 @@ public sealed class TextAssistCommandTests
                 "EdgeTTS",
                 new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)),
             new TextAssistSettings(
-                false, "auto", "zh-Hans", TranslationEngineNames.AiModel, null,
+                "auto", "zh-Hans", TranslationEngineNames.AiModel, null,
                 null, null, null, null, false, true, true, "Baidu"),
             new OcrSettings(false));
     }

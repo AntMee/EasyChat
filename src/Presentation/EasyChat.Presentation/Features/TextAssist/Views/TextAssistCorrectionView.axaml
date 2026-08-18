@@ -266,19 +266,26 @@
                     <StackPanel Spacing="4">
                         <TextBlock Text="{x:Static lang:Resources.SourceLang}"
                                    Classes="Muted" />
-                        <sharedControls:LanguageSelector Languages="{Binding Languages}"
-                                                         SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}" />
+                         <sharedControls:LanguageSelector Languages="{Binding Languages}"
+                                                           SelectedLanguage="{Binding SelectedSourceLanguage, Mode=TwoWay}"
+                                                           />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Spacing="4">
                         <TextBlock Text="{x:Static lang:Resources.UsingAiModel}" Classes="Muted" Opacity="0.7" />
-                        <ComboBox ItemsSource="{Binding AvailableAiModels}" SelectedItem="{Binding SelectedAiModel}">
+                        <ComboBox ItemsSource="{Binding AiModelOptions}" SelectedItem="{Binding SelectedAiModelOption}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <Panel Width="18" Height="18">
-                                            <avalonia:MaterialIcon Kind="Translate" Opacity="0.65" />
-                                            <Image Width="18" Height="18"
-                                                   Source="{Binding ModelType, Converter={x:Static converters:AiModelTypeConverters.ToIcon}}" />
+                                        <Panel Width="20" Height="20">
+                                            <avalonia:MaterialIcon Kind="LinkVariant" Width="20" Height="20" IsVisible="{Binding IsGlobal}" />
+                                            <Panel IsVisible="{Binding !IsGlobal}">
+                                                <Image Width="20" Height="20"
+                                                       IsVisible="{Binding ImageValue, Converter={x:Static converters:AiModelTypeConverters.HasIcon}}"
+                                                       Source="{Binding ImageValue, Converter={x:Static converters:AiModelTypeConverters.ToIcon}}" />
+                                                <avalonia:MaterialIcon Kind="Robot" Width="20" Height="20"
+                                                                       Foreground="{DynamicResource MutedColor}"
+                                                                       IsVisible="{Binding ImageValue, Converter={x:Static converters:AiModelTypeConverters.HasNoIcon}}" />
+                                            </Panel>
                                         </Panel>
                                         <TextBlock Text="{Binding Name}" />
                                     </StackPanel>
@@ -288,12 +295,14 @@
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="4">
                         <TextBlock Text="{x:Static lang:Resources.Prompts}" Classes="Muted" Opacity="0.7" />
-                        <ComboBox ItemsSource="{Binding PromptEntries}"
-                                  SelectedValue="{Binding SelectedPromptId}"
-                                  SelectedValueBinding="{Binding Id}">
+                        <ComboBox ItemsSource="{Binding PromptOptions}"
+                                   SelectedItem="{Binding SelectedPromptOption}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <avalonia:MaterialIcon Kind="{Binding Icon}" Width="20" Height="20" />
+                                        <TextBlock Text="{Binding Name}" />
+                                    </StackPanel>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>

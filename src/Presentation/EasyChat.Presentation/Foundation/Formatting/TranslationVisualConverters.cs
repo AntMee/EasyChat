@@ -14,9 +14,31 @@ namespace EasyChat.Presentation.Foundation.Formatting;
 public static class AiModelTypeConverters
 {
     public static readonly IValueConverter ToIcon = new AiModelTypeToIconConverter();
+    public static readonly IValueConverter HasIcon = new AiModelTypeHasIconConverter();
+    public static readonly IValueConverter HasNoIcon = new AiModelTypeHasNoIconConverter();
     public static readonly IValueConverter IsOpenAi = new AiModelTypeMatchConverter(AiModelType.OpenAi);
     public static readonly IValueConverter IsGemini = new AiModelTypeMatchConverter(AiModelType.Gemini);
     public static readonly IValueConverter IsClaude = new AiModelTypeMatchConverter(AiModelType.Claude);
+}
+
+public sealed class AiModelTypeHasIconConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is AiModelType modelType
+        && AiModelTypeConverters.ToIcon.Convert(modelType, targetType, parameter, culture) is not null;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class AiModelTypeHasNoIconConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is AiModelType
+        && !((bool)new AiModelTypeHasIconConverter().Convert(value, targetType, parameter, culture));
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
 }
 
 public sealed class AiModelTypeToIconConverter : IValueConverter

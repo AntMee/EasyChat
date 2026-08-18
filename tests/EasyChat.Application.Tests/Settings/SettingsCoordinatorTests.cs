@@ -12,8 +12,7 @@ public sealed class SettingsCoordinatorTests
     public async Task InitializeAsync_MigratesOnceAndSharesConcurrentInitialization()
     {
         var original = SettingsTestData.CreateBundle(
-            nativeLanguageMissing: true,
-            textAssistFollowsGlobal: true);
+            nativeLanguageMissing: true);
         var readStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var gateway = new FakeSettingsPersistenceGateway
@@ -38,7 +37,6 @@ public sealed class SettingsCoordinatorTests
         Assert.IsTrue(results.All(result => result.IsSuccess));
         Assert.AreSame(results[0].Value, results[1].Value);
         Assert.AreSame(original.General.TargetLanguage, results[0].Value.General.NativeLanguage);
-        Assert.IsFalse(results[0].Value.TextAssist.FollowGlobal);
         CollectionAssert.AreEqual(
             new[] { SettingsSection.MachineTranslation, SettingsSection.General },
             gateway.Writes.Select(write => write.Section).ToArray());
@@ -196,8 +194,7 @@ public sealed class SettingsCoordinatorTests
 internal static class SettingsTestData
 {
     public static SettingsBundle CreateBundle(
-        bool nativeLanguageMissing = false,
-        bool textAssistFollowsGlobal = false)
+        bool nativeLanguageMissing = false)
     {
         var source = CreateLanguage("auto");
         var target = CreateLanguage("zh-Hans");
@@ -295,7 +292,6 @@ internal static class SettingsTestData
                 new Dictionary<string, IReadOnlyDictionary<string, string>>(
                     StringComparer.Ordinal)),
             new TextAssistSettings(
-                textAssistFollowsGlobal,
                 "auto",
                 "zh-Hans",
                 "AiModel",

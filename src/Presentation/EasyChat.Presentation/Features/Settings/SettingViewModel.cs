@@ -16,6 +16,7 @@ using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
+using EasyChat.Presentation.Foundation.Translation;
 using Material.Icons;
 using ReactiveUI;
 using ShadUI;
@@ -289,6 +290,12 @@ public sealed class SettingViewModel : NavigationPageViewModel
     public List<OcrRecognitionMode> OcrRecognitionModes { get; } = Enum.GetValues<OcrRecognitionMode>().ToList();
     public List<string> MachineTransProviders { get; } = ["Baidu", "Tencent", "Google", "DeepL"];
     public List<string> TranslationEngineTypes { get; } = [Resources.AIEngine, Resources.MachineTranslation];
+    public IEnumerable<TranslationConfigurationOption> SelectionTranslationEngineOptions { get; } =
+    [
+        TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal),
+        new(TranslationEngineNames.AiModel, Resources.AIEngine, false, MaterialIconKind.Robot),
+        new(TranslationEngineNames.MachineTrans, Resources.MachineTranslation, false, MaterialIconKind.Translate)
+    ];
     public List<SelectionTriggerModeOption> SelectionTriggerModes { get; } =
     [
         new(SelectionTriggerMode.DoubleClick, Resources.SelectionTriggerModeDoubleClick),
@@ -638,11 +645,13 @@ public sealed class SettingViewModel : NavigationPageViewModel
 
     public string SelectedSelectionTranslationEngine
     {
-        get => SelectionTranslationConf.Provider == TranslationEngineNames.AiModel
+        get => EffectiveSelectionTranslationEngine == TranslationEngineNames.AiModel
             ? Resources.AIEngine
             : Resources.MachineTranslation;
         set
         {
+            if (SelectionTranslationConf.Provider == TranslationConfigurationOption.FollowGlobalId)
+                return;
             SelectionTranslationConf.Provider = value == Resources.AIEngine
                 ? TranslationEngineNames.AiModel
                 : TranslationEngineNames.MachineTrans;
@@ -652,18 +661,153 @@ public sealed class SettingViewModel : NavigationPageViewModel
         }
     }
 
-    public bool IsAiTranslationSelected => SelectionTranslationConf.Provider == TranslationEngineNames.AiModel;
+    public TranslationConfigurationOption SelectedSelectionTranslationEngineOption
+    {
+        get => SelectionTranslationConf.Provider == TranslationConfigurationOption.FollowGlobalId
+            ? SelectionTranslationEngineOptions.First(option => option.IsGlobal)
+            : SelectionTranslationEngineOptions.First(option => option.Id == SelectionTranslationConf.Provider);
+        set
+        {
+            if (value.IsGlobal)
+            {
+                SelectionTranslationConf.Provider = TranslationConfigurationOption.FollowGlobalId;
+                this.RaisePropertyChanged(nameof(SelectedSelectionTranslationEngine));
+                this.RaisePropertyChanged(nameof(SelectedSelectionTranslationEngineOption));
+                this.RaisePropertyChanged(nameof(IsAiTranslationSelected));
+                this.RaisePropertyChanged(nameof(IsMachineTranslationSelected));
+                return;
+            }
+
+            SelectionTranslationConf.Provider = value.Id;
+            this.RaisePropertyChanged(nameof(SelectedSelectionTranslationEngine));
+            this.RaisePropertyChanged(nameof(IsAiTranslationSelected));
+            this.RaisePropertyChanged(nameof(IsMachineTranslationSelected));
+        }
+    }
+
+    public bool IsAiTranslationSelected =>
+        string.Equals(EffectiveSelectionTranslationEngine, TranslationEngineNames.AiModel, StringComparison.OrdinalIgnoreCase);
     public bool IsMachineTranslationSelected => !IsAiTranslationSelected;
+
+    public string? SelectedSelectionTranslationAiModelId
+    {
+        get => SelectionTranslationConf.AiModelId == TranslationConfigurationOption.FollowGlobalId
+            ? GeneralConf.UsingAiModelId
+            : SelectionTranslationConf.AiModelId;
+        set
+        {
+            SelectionTranslationConf.AiModelId = value;
+        }
+    }
+
+    public IEnumerable<TranslationConfigurationOption> SelectionTranslationAiModelOptions =>
+        new[] { TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal) }
+            .Concat(ConfiguredModels.Select(model =>
+                new TranslationConfigurationOption(model.Id, model.Name, false, MaterialIconKind.Robot)
+                {
+                    ImageValue = model.ModelType
+                }));
+
+    public TranslationConfigurationOption SelectedSelectionTranslationAiModelOption
+    {
+        get => SelectionTranslationConf.AiModelId == TranslationConfigurationOption.FollowGlobalId
+            ? SelectionTranslationAiModelOptions.First(option => option.IsGlobal)
+            : SelectionTranslationAiModelOptions.FirstOrDefault(option => option.Id == SelectionTranslationConf.AiModelId)
+              ?? SelectionTranslationAiModelOptions.First(option => option.IsGlobal);
+        set
+        {
+            if (value.IsGlobal)
+            {
+                SelectionTranslationConf.AiModelId = TranslationConfigurationOption.FollowGlobalId;
+                this.RaisePropertyChanged(nameof(SelectedSelectionTranslationAiModelId));
+                return;
+            }
+
+            SelectionTranslationConf.AiModelId = value.Id;
+            this.RaisePropertyChanged(nameof(SelectedSelectionTranslationAiModelId));
+        }
+    }
+
+    public string? SelectedSelectionTranslationPromptId
+    {
+        get => SelectionTranslationConf.PromptId == TranslationConfigurationOption.FollowGlobalId
+            ? _settings.Prompts.SelectedPromptId
+            : SelectionTranslationConf.PromptId;
+        set
+        {
+            SelectionTranslationConf.PromptId = value;
+        }
+    }
+
+    public IEnumerable<TranslationConfigurationOption> SelectionTranslationPromptOptions =>
+        new[] { TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal) }
+            .Concat(PromptEntries.Select(prompt =>
+                new TranslationConfigurationOption(prompt.Id, prompt.Name, false, MaterialIconKind.TextBox)));
+
+    public TranslationConfigurationOption SelectedSelectionTranslationPromptOption
+    {
+        get => SelectionTranslationConf.PromptId == TranslationConfigurationOption.FollowGlobalId
+            ? SelectionTranslationPromptOptions.First(option => option.IsGlobal)
+            : SelectionTranslationPromptOptions.FirstOrDefault(option => option.Id == SelectionTranslationConf.PromptId)
+              ?? SelectionTranslationPromptOptions.First(option => option.IsGlobal);
+        set
+        {
+            if (value.IsGlobal)
+            {
+                SelectionTranslationConf.PromptId = TranslationConfigurationOption.FollowGlobalId;
+                this.RaisePropertyChanged(nameof(SelectedSelectionTranslationPromptId));
+                return;
+            }
+
+            SelectionTranslationConf.PromptId = value.Id;
+            this.RaisePropertyChanged(nameof(SelectedSelectionTranslationPromptId));
+        }
+    }
 
     public string SelectedMachineTranslationProvider
     {
-        get => SelectionTranslationConf.MachineProvider ?? "Baidu";
+        get => SelectionTranslationConf.MachineProvider == TranslationConfigurationOption.FollowGlobalId
+            ? GeneralConf.UsingMachineTransId ?? GeneralConf.UsingMachineTrans ?? "Baidu"
+            : SelectionTranslationConf.MachineProvider ?? "Baidu";
         set
         {
             SelectionTranslationConf.MachineProvider = value;
             this.RaisePropertyChanged();
         }
     }
+
+    public IEnumerable<TranslationConfigurationOption> SelectionTranslationMachineProviderOptions =>
+        new[] { TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal) }
+            .Concat(MachineTransProviders.Select(provider =>
+                new TranslationConfigurationOption(provider, provider, false, MaterialIconKind.Translate)
+                {
+                    ImageValue = provider
+                }));
+
+    public TranslationConfigurationOption SelectedMachineTranslationOption
+    {
+        get => SelectionTranslationConf.MachineProvider == TranslationConfigurationOption.FollowGlobalId
+            ? SelectionTranslationMachineProviderOptions.First(option => option.IsGlobal)
+            : SelectionTranslationMachineProviderOptions.FirstOrDefault(option => option.Id == SelectionTranslationConf.MachineProvider)
+              ?? SelectionTranslationMachineProviderOptions.First(option => option.IsGlobal);
+        set
+        {
+            if (value.IsGlobal)
+            {
+                SelectionTranslationConf.MachineProvider = TranslationConfigurationOption.FollowGlobalId;
+                this.RaisePropertyChanged(nameof(SelectedMachineTranslationProvider));
+                return;
+            }
+
+            SelectionTranslationConf.MachineProvider = value.Id;
+            this.RaisePropertyChanged(nameof(SelectedMachineTranslationProvider));
+        }
+    }
+
+    private string EffectiveSelectionTranslationEngine =>
+        SelectionTranslationConf.Provider == TranslationConfigurationOption.FollowGlobalId
+            ? GeneralConf.TransEngine ?? TranslationEngineNames.AiModel
+            : SelectionTranslationConf.Provider;
 
     public string SelectedTtsProvider
     {
@@ -741,6 +885,8 @@ public sealed class SettingViewModel : NavigationPageViewModel
     {
         RefreshModelCards();
         this.RaisePropertyChanged(nameof(AiProviders));
+        this.RaisePropertyChanged(nameof(SelectionTranslationAiModelOptions));
+        this.RaisePropertyChanged(nameof(SelectedSelectionTranslationAiModelOption));
     }
 
     private void RefreshModelCards()

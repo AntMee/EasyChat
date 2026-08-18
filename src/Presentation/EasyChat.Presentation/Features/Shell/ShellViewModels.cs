@@ -534,6 +534,7 @@ namespace EasyChat.Presentation.Features.Shell
             _settings = settings;
             GeneralConfig = settings.General;
             ConfiguredModels = settings.AiModel.ConfiguredModels;
+            PromptEntries = settings.Prompts.Entries;
             AvailableLanguages = languages.All;
             GeneralConfig.PropertyChanged += OnGeneralPropertyChanged;
             ConfiguredModels.CollectionChanged += (_, _) => RaiseDashboardProperties();
@@ -587,6 +588,8 @@ namespace EasyChat.Presentation.Features.Shell
 
         public LiveGeneralSettings GeneralConfig { get; }
         public ObservableCollection<CustomAiModelState> ConfiguredModels { get; }
+        public ObservableCollection<PromptEntryState> PromptEntries { get; }
+        public LivePromptSettings Prompts => _settings.Prompts;
         public IReadOnlyList<string> MachineTransProviders { get; } = ["Baidu", "Tencent", "Google", "DeepL"];
         public IReadOnlyList<LanguageSettings> AvailableLanguages { get; }
         public LanguageSettings SelectedSourceLanguage

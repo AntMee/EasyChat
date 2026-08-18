@@ -48,38 +48,44 @@ public sealed class TextAssistUseCases : ITextAssistUseCases
             _ => config.TranslationPromptId
         };
 
-        if (config.FollowGlobal)
-        {
-            var provider = requiresAi
-                ? TranslationEngineNames.AiModel
-                : general.TranslationEngine ?? TranslationEngineNames.AiModel;
-            return new TextAssistProfile(
-                Map(general.SourceLanguage),
-                Map(general.TargetLanguage),
-                provider,
-                general.AiModelId,
-                general.MachineTranslationId ?? general.MachineTranslation,
-                UsesGlobalConfiguration: true,
-                PromptId: ResolvePromptId(promptId),
-                DetailedExplanation: operation == TextAssistOperation.Translation
-                                     && config.DetailedExplanation
-                                     && IsAiProvider(provider));
-        }
-
-        var model = settings.AiModel.ConfiguredModels.FirstOrDefault(candidate =>
+        var modelGlobal = TranslationConfigurationResolver.IsGlobal(config.AiModelId);
+        var model = modelGlobal
+            ? null
+            : settings.AiModel.ConfiguredModels.FirstOrDefault(candidate =>
                         string.Equals(candidate.Id, config.AiModelId, StringComparison.Ordinal))
                     ?? settings.AiModel.ConfiguredModels.FirstOrDefault();
-        if (!string.Equals(config.AiModelId, model?.Id, StringComparison.Ordinal))
+        if (!modelGlobal && !string.Equals(config.AiModelId, model?.Id, StringComparison.Ordinal))
             PersistResolvedModel(config, model?.Id);
-        var selectedProvider = requiresAi ? TranslationEngineNames.AiModel : config.Provider;
+        var promptGlobal = TranslationConfigurationResolver.IsGlobal(promptId);
+        var sourceGlobal = TranslationConfigurationResolver.IsGlobal(config.SourceLanguageId);
+        var targetGlobal = TranslationConfigurationResolver.IsGlobal(config.TargetLanguageId);
+        var selectedProvider = requiresAi
+            ? TranslationEngineNames.AiModel
+            : TranslationConfigurationResolver.ResolveProvider(
+                config.Provider,
+                general,
+                TranslationEngineNames.AiModel);
         return new TextAssistProfile(
-            _languages.Get(config.SourceLanguageId),
-            _languages.Get(config.TargetLanguageId),
+            sourceGlobal
+                ? Map(general.SourceLanguage)
+                : _languages.Get(TranslationConfigurationResolver.ResolveLanguageId(
+                    config.SourceLanguageId,
+                    general.SourceLanguage.Id)),
+            targetGlobal
+                ? Map(general.TargetLanguage)
+                : _languages.Get(TranslationConfigurationResolver.ResolveLanguageId(
+                    config.TargetLanguageId,
+                    general.TargetLanguage.Id)),
             selectedProvider,
-            model?.Id,
-            config.MachineProvider,
-            UsesGlobalConfiguration: false,
-            PromptId: ResolvePromptId(promptId),
+            modelGlobal
+                ? TranslationConfigurationResolver.ResolveAiModelId(config.AiModelId, general)
+                : model?.Id,
+            TranslationConfigurationResolver.ResolveMachineProvider(
+                config.MachineProvider,
+                general,
+                MachineTranslationProviderNames.Baidu),
+            UsesGlobalConfiguration: modelGlobal,
+            PromptId: ResolvePromptId(promptGlobal ? _settings.Current.Prompts.SelectedPromptId : promptId),
             DetailedExplanation: operation == TextAssistOperation.Translation
                                  && config.DetailedExplanation
                                  && IsAiProvider(selectedProvider));

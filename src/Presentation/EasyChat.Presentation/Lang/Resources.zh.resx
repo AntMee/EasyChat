@@ -120,6 +120,9 @@
     <data name="MachineTranslation" xml:space="preserve">
         <value>机器翻译</value>
     </data>
+    <data name="HomeMachineTab" xml:space="preserve">
+        <value>机器翻译</value>
+    </data>
     <data name="TransEngine" xml:space="preserve">
         <value>翻译引擎</value>
     </data>
@@ -1020,7 +1023,7 @@
   <data name="TextAssistNoVoice" xml:space="preserve"><value>没有可用的语音。</value></data>
   <data name="TextAssistInputPlaceholderText" xml:space="preserve"><value>输入文本...</value></data>
   <data name="TextAssistResultPlaceholder" xml:space="preserve"><value>等待开始</value></data>
-  <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局配置</value></data>
+  <data name="TextAssistFollowGlobal" xml:space="preserve"><value>跟随全局翻译配置</value></data>
   <data name="TextAssistRun" xml:space="preserve"><value>执行</value></data>
   <data name="TextAssistIssues" xml:space="preserve"><value>错误与修改建议</value></data>
   <data name="TextAssistCorrectedResult" xml:space="preserve"><value>修改结果</value></data>

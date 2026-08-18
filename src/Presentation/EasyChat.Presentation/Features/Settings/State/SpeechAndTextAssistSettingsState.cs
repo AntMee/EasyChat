@@ -1,18 +1,22 @@
 using EasyChat.Contracts.Settings;
+using EasyChat.Presentation.Foundation.Translation;
 using ReactiveUI;
 
 namespace EasyChat.Presentation.Features.Settings.State;
 
 public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
 {
-    private string _recognitionLanguage;
+    private string _recognitionLanguage = string.Empty;
     private bool _isTranslationEnabled;
     private bool _isTranslatedSpeechEnabled;
     private bool _isRealTimePreviewEnabled;
-    private string _targetLanguage;
-    private string _engineId;
+    private string _targetLanguage = string.Empty;
+    private string _engineId = string.Empty;
     private int _engineType;
     private string? _promptId;
+    private SpeechTranslationConfiguration _audioTranslationConfiguration;
+    private SpeechTranslationConfiguration _realtimeInterpretationConfiguration;
+    private SpeechTranslationMode _activeMode;
     private int _maxSentencesPerLine;
     private FloatingDisplayMode _floatingDisplayMode;
     private int _maxFloatingHistory;
@@ -40,14 +44,16 @@ public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
         Func<SettingsSection, EasyChat.Shared.Results.Result> commit)
         : base(SettingsSection.SpeechRecognition, commit)
     {
-        _recognitionLanguage = value.RecognitionLanguage;
-        _isTranslationEnabled = value.IsTranslationEnabled;
-        _isTranslatedSpeechEnabled = value.IsTranslatedSpeechEnabled;
-        _isRealTimePreviewEnabled = value.IsRealTimePreviewEnabled;
-        _targetLanguage = value.TargetLanguage;
-        _engineId = value.EngineId;
-        _engineType = value.EngineType;
-        _promptId = value.PromptId;
+        _audioTranslationConfiguration = value.AudioTranslationConfiguration
+            ?? ToModeConfiguration(value);
+        _realtimeInterpretationConfiguration = value.RealtimeInterpretationConfiguration
+            ?? _audioTranslationConfiguration with
+            {
+                IsTranslationEnabled = true,
+                IsTranslatedSpeechEnabled = true
+            };
+        _activeMode = SpeechTranslationMode.AudioTranslation;
+        ApplyModeConfiguration(_audioTranslationConfiguration, raiseChanges: false);
         _maxSentencesPerLine = value.MaxSentencesPerLine;
         _floatingDisplayMode = value.FloatingDisplayMode;
         _maxFloatingHistory = value.MaxFloatingHistory;
@@ -79,6 +85,7 @@ public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
     public string EngineId { get => _engineId; set => Set(ref _engineId, value); }
     public int EngineType { get => _engineType; set => Set(ref _engineType, value); }
     public string? PromptId { get => _promptId; set => Set(ref _promptId, value); }
+    public SpeechTranslationMode ActiveMode => _activeMode;
     public int MaxSentencesPerLine { get => _maxSentencesPerLine; set => Set(ref _maxSentencesPerLine, value); }
     public FloatingDisplayMode FloatingDisplayMode { get => _floatingDisplayMode; set => Set(ref _floatingDisplayMode, value); }
     public int MaxFloatingHistory { get => _maxFloatingHistory; set => Set(ref _maxFloatingHistory, value); }
@@ -101,67 +108,114 @@ public sealed class LiveSpeechRecognitionSettings : LiveSettingsSection
     public double WindowWidth { get => _windowWidth; set => Set(ref _windowWidth, value); }
     public double WindowHeight { get => _windowHeight; set => Set(ref _windowHeight, value); }
 
-    public SpeechRecognitionSettings ToContract() => new(
-        RecognitionLanguage, IsTranslationEnabled, IsRealTimePreviewEnabled, TargetLanguage,
-        EngineId, EngineType, MaxSentencesPerLine, FloatingDisplayMode, MaxFloatingHistory,
-        AutoClearInterval, MainSubtitleSource, PrimaryFontSize, PrimaryFontFamily,
-        PrimaryFontColor, SecondarySubtitleSource, SecondaryFontSize, SecondaryFontFamily,
-        SecondaryFontColor, BackgroundColor, SubtitleBackgroundColor, WindowOpacity,
-        IsFloatingWindowLocked, FloatingWindowOrientation, WindowX, WindowY, WindowWidth,
-        WindowHeight, PromptId, IsTranslatedSpeechEnabled);
-
-    public void Apply(SpeechRecognitionSettings value)
+    public void SetActiveMode(SpeechTranslationMode mode)
     {
-        ArgumentNullException.ThrowIfNull(value);
-        var changed = false;
+        if (_activeMode == mode)
+            return;
 
-        void SetValue<T>(ref T field, T next, string propertyName)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, next))
-                return;
-            field = next;
-            changed = true;
-            this.RaisePropertyChanged(propertyName);
-        }
-
-        SetValue(ref _recognitionLanguage, value.RecognitionLanguage, nameof(RecognitionLanguage));
-        SetValue(ref _isTranslationEnabled, value.IsTranslationEnabled, nameof(IsTranslationEnabled));
-        SetValue(ref _isTranslatedSpeechEnabled, value.IsTranslatedSpeechEnabled, nameof(IsTranslatedSpeechEnabled));
-        SetValue(ref _isRealTimePreviewEnabled, value.IsRealTimePreviewEnabled, nameof(IsRealTimePreviewEnabled));
-        SetValue(ref _targetLanguage, value.TargetLanguage, nameof(TargetLanguage));
-        SetValue(ref _engineId, value.EngineId, nameof(EngineId));
-        SetValue(ref _engineType, value.EngineType, nameof(EngineType));
-        SetValue(ref _promptId, value.PromptId, nameof(PromptId));
-        SetValue(ref _maxSentencesPerLine, value.MaxSentencesPerLine, nameof(MaxSentencesPerLine));
-        SetValue(ref _floatingDisplayMode, value.FloatingDisplayMode, nameof(FloatingDisplayMode));
-        SetValue(ref _maxFloatingHistory, value.MaxFloatingHistory, nameof(MaxFloatingHistory));
-        SetValue(ref _autoClearInterval, value.AutoClearInterval, nameof(AutoClearInterval));
-        SetValue(ref _mainSubtitleSource, value.MainSubtitleSource, nameof(MainSubtitleSource));
-        SetValue(ref _primaryFontSize, value.PrimaryFontSize, nameof(PrimaryFontSize));
-        SetValue(ref _primaryFontFamily, value.PrimaryFontFamily, nameof(PrimaryFontFamily));
-        SetValue(ref _primaryFontColor, value.PrimaryFontColor, nameof(PrimaryFontColor));
-        SetValue(ref _secondarySubtitleSource, value.SecondarySubtitleSource, nameof(SecondarySubtitleSource));
-        SetValue(ref _secondaryFontSize, value.SecondaryFontSize, nameof(SecondaryFontSize));
-        SetValue(ref _secondaryFontFamily, value.SecondaryFontFamily, nameof(SecondaryFontFamily));
-        SetValue(ref _secondaryFontColor, value.SecondaryFontColor, nameof(SecondaryFontColor));
-        SetValue(ref _backgroundColor, value.BackgroundColor, nameof(BackgroundColor));
-        SetValue(ref _subtitleBackgroundColor, value.SubtitleBackgroundColor, nameof(SubtitleBackgroundColor));
-        SetValue(ref _windowOpacity, value.WindowOpacity, nameof(WindowOpacity));
-        SetValue(ref _isFloatingWindowLocked, value.IsFloatingWindowLocked, nameof(IsFloatingWindowLocked));
-        SetValue(ref _floatingWindowOrientation, value.FloatingWindowOrientation, nameof(FloatingWindowOrientation));
-        SetValue(ref _windowX, value.WindowX, nameof(WindowX));
-        SetValue(ref _windowY, value.WindowY, nameof(WindowY));
-        SetValue(ref _windowWidth, value.WindowWidth, nameof(WindowWidth));
-        SetValue(ref _windowHeight, value.WindowHeight, nameof(WindowHeight));
-
-        if (changed)
-            Commit();
+        StoreActiveModeConfiguration();
+        _activeMode = mode;
+        ApplyModeConfiguration(GetModeConfiguration(mode), raiseChanges: true);
+        Commit();
     }
+
+    public SpeechRecognitionSettings ToContract() => ToContractForMode(_activeMode);
+
+    public SpeechRecognitionSettings ToContractForMode(SpeechTranslationMode mode)
+    {
+        StoreActiveModeConfiguration();
+        var active = GetModeConfiguration(mode);
+        return new SpeechRecognitionSettings(
+            active.RecognitionLanguage,
+            active.IsTranslationEnabled,
+            active.IsRealTimePreviewEnabled,
+            active.TargetLanguage,
+            active.EngineId,
+            active.EngineType,
+            MaxSentencesPerLine,
+            FloatingDisplayMode,
+            MaxFloatingHistory,
+            AutoClearInterval,
+            MainSubtitleSource,
+            PrimaryFontSize,
+            PrimaryFontFamily,
+            PrimaryFontColor,
+            SecondarySubtitleSource,
+            SecondaryFontSize,
+            SecondaryFontFamily,
+            SecondaryFontColor,
+            BackgroundColor,
+            SubtitleBackgroundColor,
+            WindowOpacity,
+            IsFloatingWindowLocked,
+            FloatingWindowOrientation,
+            WindowX,
+            WindowY,
+            WindowWidth,
+            WindowHeight,
+            active.PromptId,
+            active.IsTranslatedSpeechEnabled,
+            GetModeConfiguration(SpeechTranslationMode.AudioTranslation),
+            GetModeConfiguration(SpeechTranslationMode.RealtimeInterpretation));
+    }
+
+    private SpeechTranslationConfiguration GetModeConfiguration(SpeechTranslationMode mode) =>
+        mode == SpeechTranslationMode.AudioTranslation
+            ? _audioTranslationConfiguration
+            : _realtimeInterpretationConfiguration;
+
+    private void StoreActiveModeConfiguration()
+    {
+        var current = new SpeechTranslationConfiguration(
+            _recognitionLanguage,
+            _isTranslationEnabled,
+            _isTranslatedSpeechEnabled,
+            _isRealTimePreviewEnabled,
+            _targetLanguage,
+            _engineId,
+            _engineType,
+            _promptId);
+        if (_activeMode == SpeechTranslationMode.AudioTranslation)
+            _audioTranslationConfiguration = current;
+        else
+            _realtimeInterpretationConfiguration = current;
+    }
+
+    private void ApplyModeConfiguration(SpeechTranslationConfiguration configuration, bool raiseChanges)
+    {
+        _recognitionLanguage = configuration.RecognitionLanguage;
+        _isTranslationEnabled = configuration.IsTranslationEnabled;
+        _isTranslatedSpeechEnabled = configuration.IsTranslatedSpeechEnabled;
+        _isRealTimePreviewEnabled = configuration.IsRealTimePreviewEnabled;
+        _targetLanguage = configuration.TargetLanguage;
+        _engineId = configuration.EngineId;
+        _engineType = configuration.EngineType;
+        _promptId = configuration.PromptId;
+        if (!raiseChanges)
+            return;
+
+        foreach (var property in new[]
+                 {
+                     nameof(RecognitionLanguage), nameof(IsTranslationEnabled),
+                     nameof(IsTranslatedSpeechEnabled), nameof(IsRealTimePreviewEnabled),
+                     nameof(TargetLanguage), nameof(EngineId), nameof(EngineType), nameof(PromptId)
+                 })
+            this.RaisePropertyChanged(property);
+    }
+
+    private static SpeechTranslationConfiguration ToModeConfiguration(SpeechRecognitionSettings source) => new(
+        source.RecognitionLanguage,
+        source.IsTranslationEnabled,
+        source.IsTranslatedSpeechEnabled,
+        source.IsRealTimePreviewEnabled,
+        source.TargetLanguage,
+        source.EngineId,
+        source.EngineType,
+        source.PromptId);
 }
 
 public sealed class LiveTextAssistSettings : LiveSettingsSection
 {
-    private bool _followGlobal;
     private string _sourceLanguageId;
     private string _targetLanguageId;
     private string _provider;
@@ -178,7 +232,6 @@ public sealed class LiveTextAssistSettings : LiveSettingsSection
     public LiveTextAssistSettings(TextAssistSettings value, Func<SettingsSection, EasyChat.Shared.Results.Result> commit)
         : base(SettingsSection.TextAssist, commit)
     {
-        _followGlobal = value.FollowGlobal;
         _sourceLanguageId = value.SourceLanguageId;
         _targetLanguageId = value.TargetLanguageId;
         _provider = value.Provider;
@@ -193,7 +246,6 @@ public sealed class LiveTextAssistSettings : LiveSettingsSection
         _machineProvider = value.MachineProvider;
     }
 
-    public bool FollowGlobal { get => _followGlobal; set => Set(ref _followGlobal, value); }
     public string SourceLanguageId { get => _sourceLanguageId; set => Set(ref _sourceLanguageId, value); }
     public string TargetLanguageId { get => _targetLanguageId; set => Set(ref _targetLanguageId, value); }
     public string Provider { get => _provider; set => Set(ref _provider, value); }
@@ -208,7 +260,7 @@ public sealed class LiveTextAssistSettings : LiveSettingsSection
     public string MachineProvider { get => _machineProvider; set => Set(ref _machineProvider, value); }
 
     public TextAssistSettings ToContract() => new(
-        FollowGlobal, SourceLanguageId, TargetLanguageId, Provider, AiModelId,
+        SourceLanguageId, TargetLanguageId, Provider, AiModelId,
         TranslationPromptId, CorrectionPromptId, PolishPromptId, SummaryPromptId,
         DetailedExplanation, TranslationConfigurationExpanded, CorrectionConfigurationExpanded,
         MachineProvider);

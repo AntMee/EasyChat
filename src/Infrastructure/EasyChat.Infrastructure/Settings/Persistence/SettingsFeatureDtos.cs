@@ -300,13 +300,22 @@ internal sealed class SpeechRecognitionSettingsDto
     public string TargetLanguage { get; set; } = string.Empty;
 
     [JsonProperty]
-    public string EngineId { get; set; } = string.Empty;
+    public string EngineId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
     public int EngineType { get; set; }
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? PromptId { get; set; }
+
+    [JsonProperty]
+    public bool? FollowGlobalTranslationConfiguration { get; set; }
+
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public SpeechTranslationConfigurationDto? AudioTranslationConfiguration { get; set; }
+
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public SpeechTranslationConfigurationDto? RealtimeInterpretationConfiguration { get; set; }
 
     [JsonProperty]
     public int MaxSentencesPerLine { get; set; } = 1;
@@ -379,16 +388,19 @@ internal sealed class SelectionTranslationSettingsDto
     public bool Enabled { get; set; }
 
     [JsonProperty]
-    public string Provider { get; set; } = "AI";
+    public string Provider { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? MachineProvider { get; set; }
+    public string? MachineProvider { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? AiModelId { get; set; }
+    public string? AiModelId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? PromptId { get; set; }
+    public string? PromptId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
+
+    [JsonProperty]
+    public bool? FollowGlobalTranslationConfiguration { get; set; }
 
     [JsonProperty]
     public SelectionTriggerModeDto TriggerMode { get; set; } = SelectionTriggerModeDto.All;
@@ -451,7 +463,7 @@ internal sealed class TtsSettingsDto
 internal sealed class TextAssistSettingsDto
 {
     [JsonProperty]
-    public bool FollowGlobal { get; set; }
+    public bool? FollowGlobal { get; set; }
 
     [JsonProperty]
     public string SourceLanguageId { get; set; } = "auto";
@@ -460,22 +472,22 @@ internal sealed class TextAssistSettingsDto
     public string TargetLanguageId { get; set; } = "zh-Hans";
 
     [JsonProperty]
-    public string Provider { get; set; } = "AiModel";
+    public string Provider { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? AiModelId { get; set; }
+    public string? AiModelId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? TranslationPromptId { get; set; }
+    public string? TranslationPromptId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? CorrectionPromptId { get; set; }
+    public string? CorrectionPromptId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? PolishPromptId { get; set; }
+    public string? PolishPromptId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
-    public string? SummaryPromptId { get; set; }
+    public string? SummaryPromptId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 
     [JsonProperty]
     public bool DetailedExplanation { get; set; }
@@ -487,7 +499,35 @@ internal sealed class TextAssistSettingsDto
     public bool CorrectionConfigurationExpanded { get; set; } = true;
 
     [JsonProperty]
-    public string MachineProvider { get; set; } = "Baidu";
+    public string MachineProvider { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
+}
+
+[JsonObject(MemberSerialization.OptIn)]
+internal sealed class SpeechTranslationConfigurationDto
+{
+    [JsonProperty]
+    public string RecognitionLanguage { get; set; } = string.Empty;
+
+    [JsonProperty]
+    public bool IsTranslationEnabled { get; set; }
+
+    [JsonProperty]
+    public bool IsTranslatedSpeechEnabled { get; set; }
+
+    [JsonProperty]
+    public bool IsRealTimePreviewEnabled { get; set; } = true;
+
+    [JsonProperty]
+    public string TargetLanguage { get; set; } = string.Empty;
+
+    [JsonProperty]
+    public string EngineId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
+
+    [JsonProperty]
+    public int EngineType { get; set; }
+
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? PromptId { get; set; } = TranslationConfigurationOptionIds.FollowGlobal;
 }
 
 [JsonObject(MemberSerialization.OptIn)]

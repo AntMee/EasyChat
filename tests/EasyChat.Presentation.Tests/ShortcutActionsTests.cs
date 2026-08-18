@@ -85,7 +85,7 @@ public sealed class ShortcutActionsTests
                 "EdgeTTS",
                 new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)),
             new TextAssistSettings(
-                false, "auto", "zh-Hans", "AiModel", null,
+                "auto", "zh-Hans", "AiModel", null,
                 null, null, null, null, false, true, true, "Baidu"),
             new OcrSettings(false));
         var session = new SettingsSession(new StubSettingsUseCases(bundle));

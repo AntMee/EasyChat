@@ -67,8 +67,7 @@ public sealed class SettingsCoordinator : ISettingsUseCases
             {
                 General = migratedGeneral
                     ? original.General with { NativeLanguage = original.General.TargetLanguage }
-                    : original.General,
-                TextAssist = original.TextAssist with { FollowGlobal = false }
+                    : original.General
             };
 
             var machineWrite = await _persistence.WriteAsync(

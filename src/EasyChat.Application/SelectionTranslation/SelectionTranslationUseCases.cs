@@ -105,13 +105,16 @@ Emit events in exactly the documented order and always finish with `{"event":"do
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var config = _settings.Current.SelectionTranslation;
+        var general = _settings.Current.General;
         var resolved = _providers.CreatePreferredAi(
-            config.AiModelId,
+            TranslationConfigurationResolver.ResolveAiModelId(config.AiModelId, general),
             useGlobalFallback: true,
             useFirstFallback: true);
-        PersistResolvedModel(config, resolved.Configuration.Id);
+        if (config.AiModelId != TranslationConfigurationOptionIds.FollowGlobal)
+            PersistResolvedModel(config, resolved.Configuration.Id);
 
-        var configuredPrompt = _providers.ResolveOptionalPromptRole(config.PromptId);
+        var configuredPrompt = _providers.ResolveOptionalPromptRole(
+            TranslationConfigurationResolver.ResolvePromptId(config.PromptId, _settings.Current.Prompts));
         var prompt = SystemPromptTemplate
                      + (string.IsNullOrWhiteSpace(configuredPrompt)
                          ? string.Empty
@@ -173,8 +176,12 @@ Emit the documented word-mode events only; never emit sentence-mode translation_
         SelectionTranslationRequest request,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var providerName = _settings.Current.SelectionTranslation.MachineProvider
-                           ?? MachineTranslationProviderNames.Baidu;
+        var settings = _settings.Current;
+        var config = settings.SelectionTranslation;
+        var providerName = TranslationConfigurationResolver.ResolveMachineProvider(
+            config.MachineProvider,
+            settings.General,
+            MachineTranslationProviderNames.Baidu);
         var resolved = _providers.CreateMachine(null, providerName);
         _logger.LogInformation("Using machine selection translation provider: {Provider}", resolved.Configuration.Name);
         var translated = await resolved.Provider.TranslateAsync(
@@ -200,7 +207,11 @@ Emit the documented word-mode events only; never emit sentence-mode translation_
 
     private bool UsesMachineProvider()
     {
-        var provider = _settings.Current.SelectionTranslation.Provider;
+        var settings = _settings.Current;
+        var provider = TranslationConfigurationResolver.ResolveProvider(
+            settings.SelectionTranslation.Provider,
+            settings.General,
+            TranslationEngineNames.AiModel);
         return string.Equals(provider, TranslationEngineNames.MachineTrans, StringComparison.OrdinalIgnoreCase)
                || string.Equals(provider, "Machine", StringComparison.OrdinalIgnoreCase);
     }

@@ -12,6 +12,7 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
+using EasyChat.Presentation.Foundation.Translation;
 using LiveMarkdown.Avalonia;
 using Material.Icons;
 using Microsoft.Extensions.Logging;
@@ -171,7 +172,6 @@ namespace EasyChat.Presentation.Features.TextAssist
             ];
 
             var config = settings.TextAssist;
-            config.FollowGlobal = false;
             _sourceLanguageId = config.SourceLanguageId;
             _targetLanguageId = config.TargetLanguageId;
             _provider = config.Provider;
@@ -184,6 +184,35 @@ namespace EasyChat.Presentation.Features.TextAssist
             _isConfigurationExpanded = correction
                 ? config.CorrectionConfigurationExpanded
                 : config.TranslationConfigurationExpanded;
+
+            settings.AiModel.ConfiguredModels.CollectionChanged += (_, _) =>
+            {
+                this.RaisePropertyChanged(nameof(AiModelOptions));
+                this.RaisePropertyChanged(nameof(SelectedAiModelOption));
+            };
+            settings.Prompts.Entries.CollectionChanged += (_, _) =>
+            {
+                this.RaisePropertyChanged(nameof(PromptOptions));
+                this.RaisePropertyChanged(nameof(SelectedPromptOption));
+            };
+            settings.General.PropertyChanged += (_, _) =>
+            {
+                this.RaisePropertyChanged(nameof(SelectedSourceLanguage));
+                this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
+                this.RaisePropertyChanged(nameof(SelectedProvider));
+                this.RaisePropertyChanged(nameof(SelectedAiModel));
+                this.RaisePropertyChanged(nameof(SelectedMachineProvider));
+                this.RaisePropertyChanged(nameof(SelectedPromptId));
+                this.RaisePropertyChanged(nameof(SelectedProviderOption));
+                this.RaisePropertyChanged(nameof(SelectedAiModelOption));
+                this.RaisePropertyChanged(nameof(SelectedMachineProviderOption));
+                this.RaisePropertyChanged(nameof(SelectedPromptOption));
+            };
+            settings.Prompts.PropertyChanged += (_, _) =>
+            {
+                this.RaisePropertyChanged(nameof(SelectedPromptId));
+                this.RaisePropertyChanged(nameof(SelectedPromptOption));
+            };
 
             RunCommand = ReactiveCommand.CreateFromTask(ExecuteAsync);
             CancelCommand = ReactiveCommand.Create(Cancel);
@@ -198,6 +227,30 @@ namespace EasyChat.Presentation.Features.TextAssist
         public ObservableCollection<PromptEntryState> PromptEntries { get; }
         public IReadOnlyList<string> MachineProviders { get; }
         public IReadOnlyList<string> AvailableProviders { get; } = [TranslationEngineNames.AiModel, TranslationEngineNames.MachineTrans];
+        public IReadOnlyList<TranslationConfigurationOption> TranslationEngineOptions { get; } =
+        [
+            TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal),
+            new(TranslationEngineNames.AiModel, Resources.AIEngine, false, MaterialIconKind.Robot),
+            new(TranslationEngineNames.MachineTrans, Resources.MachineTranslation, false, MaterialIconKind.Translate)
+        ];
+        public IEnumerable<TranslationConfigurationOption> AiModelOptions =>
+            new[] { TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal) }
+                .Concat(AvailableAiModels.Select(model =>
+                    new TranslationConfigurationOption(model.Id, model.Name, false, MaterialIconKind.Robot)
+                    {
+                        ImageValue = model.ModelType
+                    }));
+        public IEnumerable<TranslationConfigurationOption> MachineProviderOptions =>
+            new[] { TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal) }
+                .Concat(MachineProviders.Select(provider =>
+                    new TranslationConfigurationOption(provider, provider, false, MaterialIconKind.Translate)
+                    {
+                        ImageValue = provider
+                    }));
+        public IEnumerable<TranslationConfigurationOption> PromptOptions =>
+            new[] { TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal) }
+                .Concat(PromptEntries.Select(prompt =>
+                    new TranslationConfigurationOption(prompt.Id, prompt.Name, false, MaterialIconKind.TextBox)));
         public ReactiveCommand<Unit, Unit> RunCommand { get; }
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
         public ReactiveCommand<Unit, Unit> ToggleConfigurationCommand { get; }
@@ -226,10 +279,17 @@ namespace EasyChat.Presentation.Features.TextAssist
 
         public LanguageSettings SelectedSourceLanguage
         {
-            get => Languages.FirstOrDefault(language => language.Id == _sourceLanguageId) ?? Languages.First(language => language.Id == "auto");
+            get
+            {
+                var id = _sourceLanguageId == TranslationConfigurationOption.FollowGlobalId
+                    ? _settings.General.SourceLanguage.Id
+                    : _sourceLanguageId;
+                return Languages.FirstOrDefault(language => language.Id == id)
+                       ?? Languages.First(language => language.Id == "auto");
+            }
             set
             {
-                if (value is null) return;
+                if (value is null || _sourceLanguageId == TranslationConfigurationOption.FollowGlobalId) return;
                 _sourceLanguageId = value.Id;
                 this.RaisePropertyChanged();
                 _settings.TextAssist.SourceLanguageId = value.Id;
@@ -238,10 +298,17 @@ namespace EasyChat.Presentation.Features.TextAssist
 
         public LanguageSettings SelectedTargetLanguage
         {
-            get => Languages.FirstOrDefault(language => language.Id == _targetLanguageId) ?? Languages.First(language => language.Id == "zh-Hans");
+            get
+            {
+                var id = _targetLanguageId == TranslationConfigurationOption.FollowGlobalId
+                    ? _settings.General.TargetLanguage.Id
+                    : _targetLanguageId;
+                return Languages.FirstOrDefault(language => language.Id == id)
+                       ?? Languages.First(language => language.Id == "zh-Hans");
+            }
             set
             {
-                if (value is null) return;
+                if (value is null || _targetLanguageId == TranslationConfigurationOption.FollowGlobalId) return;
                 _targetLanguageId = value.Id;
                 this.RaisePropertyChanged();
                 _settings.TextAssist.TargetLanguageId = value.Id;
@@ -250,14 +317,37 @@ namespace EasyChat.Presentation.Features.TextAssist
 
         public string SelectedProvider
         {
-            get => _provider;
+            get => _provider == TranslationConfigurationOption.FollowGlobalId
+                ? _settings.General.TransEngine ?? TranslationEngineNames.AiModel
+                : _provider;
             set
             {
                 if (_provider == value) return;
                 this.RaiseAndSetIfChanged(ref _provider, value);
                 this.RaisePropertyChanged(nameof(IsAiProvider));
                 this.RaisePropertyChanged(nameof(IsMachineProvider));
+                this.RaisePropertyChanged(nameof(SelectedProviderOption));
                 _settings.TextAssist.Provider = value;
+            }
+        }
+
+        public TranslationConfigurationOption SelectedProviderOption
+        {
+            get => _provider == TranslationConfigurationOption.FollowGlobalId
+                ? TranslationEngineOptions[0]
+                : TranslationEngineOptions.First(option => option.Id == _provider);
+            set
+            {
+                if (value.IsGlobal)
+                {
+                    _provider = TranslationConfigurationOption.FollowGlobalId;
+                    _settings.TextAssist.Provider = _provider;
+                    this.RaisePropertyChanged(nameof(SelectedProvider));
+                    this.RaisePropertyChanged(nameof(SelectedProviderOption));
+                    return;
+                }
+
+                SelectedProvider = value.Id;
             }
         }
 
@@ -266,40 +356,131 @@ namespace EasyChat.Presentation.Features.TextAssist
 
         public CustomAiModelState? SelectedAiModel
         {
-            get => _selectedAiModel;
+            get => _settings.TextAssist.AiModelId == TranslationConfigurationOption.FollowGlobalId
+                ? AvailableAiModels.FirstOrDefault(model => model.Id == _settings.General.UsingAiModelId)
+                  ?? AvailableAiModels.FirstOrDefault(model => model.Name == _settings.General.UsingAiModel)
+                : _selectedAiModel;
             set
             {
-                if (ReferenceEquals(_selectedAiModel, value)) return;
+                if (ReferenceEquals(_selectedAiModel, value)
+                    && _settings.TextAssist.AiModelId == value?.Id)
+                    return;
                 this.RaiseAndSetIfChanged(ref _selectedAiModel, value);
+                this.RaisePropertyChanged(nameof(SelectedAiModelOption));
                 _settings.TextAssist.AiModelId = value?.Id;
+            }
+        }
+
+        public TranslationConfigurationOption SelectedAiModelOption
+        {
+            get => _settings.TextAssist.AiModelId == TranslationConfigurationOption.FollowGlobalId
+                ? AiModelOptions.First(option => option.IsGlobal)
+                : AiModelOptions.FirstOrDefault(option => option.Id == _selectedAiModel?.Id)
+                  ?? AiModelOptions.First(option => option.IsGlobal);
+            set
+            {
+                if (value.IsGlobal)
+                {
+                    _settings.TextAssist.AiModelId = TranslationConfigurationOption.FollowGlobalId;
+                    this.RaisePropertyChanged(nameof(SelectedAiModel));
+                    this.RaisePropertyChanged(nameof(SelectedAiModelOption));
+                    return;
+                }
+
+                SelectedAiModel = AvailableAiModels.FirstOrDefault(model => model.Id == value.Id);
             }
         }
 
         public string SelectedMachineProvider
         {
-            get => _machineProvider;
+            get => _machineProvider == TranslationConfigurationOption.FollowGlobalId
+                ? _settings.General.UsingMachineTransId ?? _settings.General.UsingMachineTrans ?? _machineProvider
+                : _machineProvider;
             set
             {
                 if (_machineProvider == value) return;
                 this.RaiseAndSetIfChanged(ref _machineProvider, value);
+                this.RaisePropertyChanged(nameof(SelectedMachineProviderOption));
                 _settings.TextAssist.MachineProvider = value;
+            }
+        }
+
+        public TranslationConfigurationOption SelectedMachineProviderOption
+        {
+            get => _machineProvider == TranslationConfigurationOption.FollowGlobalId
+                ? MachineProviderOptions.First(option => option.IsGlobal)
+                : MachineProviderOptions.FirstOrDefault(option => option.Id == _machineProvider)
+                  ?? MachineProviderOptions.First(option => option.IsGlobal);
+            set
+            {
+                if (value.IsGlobal)
+                {
+                    _machineProvider = TranslationConfigurationOption.FollowGlobalId;
+                    _settings.TextAssist.MachineProvider = _machineProvider;
+                    this.RaisePropertyChanged(nameof(SelectedMachineProvider));
+                    this.RaisePropertyChanged(nameof(SelectedMachineProviderOption));
+                    return;
+                }
+
+                SelectedMachineProvider = value.Id;
             }
         }
 
         public string? SelectedPromptId
         {
-            get => _selectedPromptId;
+            get => IsPromptGlobal
+                ? _settings.Prompts.SelectedPromptId
+                : _selectedPromptId;
             set
             {
-                if (_selectedPromptId == value) return;
+                var currentId = _correction
+                    ? _settings.TextAssist.CorrectionPromptId
+                    : _settings.TextAssist.TranslationPromptId;
+                if (currentId == value) return;
                 this.RaiseAndSetIfChanged(ref _selectedPromptId, value);
+                this.RaisePropertyChanged(nameof(SelectedPromptOption));
                 if (_correction) _settings.TextAssist.CorrectionPromptId = value;
                 else _settings.TextAssist.TranslationPromptId = value;
             }
         }
 
+        public TranslationConfigurationOption SelectedPromptOption
+        {
+            get => IsPromptGlobal
+                ? PromptOptions.First(option => option.IsGlobal)
+                : PromptOptions.FirstOrDefault(option => option.Id == _selectedPromptId)
+                  ?? PromptOptions.First(option => option.IsGlobal);
+            set
+            {
+                if (value.IsGlobal)
+                {
+                    SetPromptGlobal();
+                    return;
+                }
+
+                SelectedPromptId = value.Id;
+            }
+        }
+
+        private bool IsPromptGlobal => (_correction
+            ? _settings.TextAssist.CorrectionPromptId
+            : _settings.TextAssist.TranslationPromptId) is null or ""
+            || (_correction
+                ? _settings.TextAssist.CorrectionPromptId
+                : _settings.TextAssist.TranslationPromptId) == TranslationConfigurationOption.FollowGlobalId;
+
+        private void SetPromptGlobal()
+        {
+            _selectedPromptId = TranslationConfigurationOption.FollowGlobalId;
+            if (_correction) _settings.TextAssist.CorrectionPromptId = _selectedPromptId;
+            else _settings.TextAssist.TranslationPromptId = _selectedPromptId;
+            this.RaisePropertyChanged(nameof(SelectedPromptId));
+            this.RaisePropertyChanged(nameof(SelectedPromptOption));
+        }
+
         protected TextAssistProfile ResolveProfile(TextAssistOperation operation)
         {
+            var usesGlobal = _settings.TextAssist.AiModelId == TranslationConfigurationOption.FollowGlobalId;
             var provider = operation == TextAssistOperation.Translation
                 ? SelectedProvider
                 : TranslationEngineNames.AiModel;
@@ -309,7 +490,7 @@ namespace EasyChat.Presentation.Features.TextAssist
                 provider,
                 SelectedAiModel?.Id,
                 SelectedMachineProvider,
-                UsesGlobalConfiguration: false,
+                UsesGlobalConfiguration: usesGlobal,
                 PromptId: SelectedPromptId,
                 DetailedExplanation: operation == TextAssistOperation.Translation && IsAiProvider && _settings.TextAssist.DetailedExplanation);
         }

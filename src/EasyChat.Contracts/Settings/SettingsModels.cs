@@ -3,6 +3,11 @@ using EasyChat.Contracts.ImageTranslation;
 
 namespace EasyChat.Contracts.Settings;
 
+public static class TranslationConfigurationOptionIds
+{
+    public const string FollowGlobal = "__follow_global_translation_configuration__";
+}
+
 public sealed record SettingsBundle(
     GeneralSettings General,
     AiModelSettings AiModel,
@@ -314,7 +319,29 @@ public sealed record SpeechRecognitionSettings(
     double WindowWidth,
     double WindowHeight,
     string? PromptId = null,
-    bool IsTranslatedSpeechEnabled = false);
+    bool IsTranslatedSpeechEnabled = false,
+    SpeechTranslationConfiguration? AudioTranslationConfiguration = null,
+    SpeechTranslationConfiguration? RealtimeInterpretationConfiguration = null);
+
+public enum SpeechTranslationMode
+{
+    AudioTranslation = 0,
+    RealtimeInterpretation = 1
+}
+
+/// <summary>
+/// Per-mode translation choices for live speech. A field may use
+/// <see cref="TranslationConfigurationOptionIds.FollowGlobal"/> independently.
+/// </summary>
+public sealed record SpeechTranslationConfiguration(
+    string RecognitionLanguage,
+    bool IsTranslationEnabled,
+    bool IsTranslatedSpeechEnabled,
+    bool IsRealTimePreviewEnabled,
+    string TargetLanguage,
+    string EngineId,
+    int EngineType,
+    string? PromptId);
 
 /// <summary>A persisted application list entry for the selection blacklist/whitelist.</summary>
 public sealed record SelectionAppEntrySettings(
@@ -347,7 +374,6 @@ public sealed record TtsSettings(
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ProviderVoicePreferences);
 
 public sealed record TextAssistSettings(
-    bool FollowGlobal,
     string SourceLanguageId,
     string TargetLanguageId,
     string Provider,

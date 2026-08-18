@@ -14,13 +14,21 @@ using EasyChat.Presentation.Features.Speech;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Foundation.Navigation;
+using EasyChat.Presentation.Foundation.Translation;
 using Material.Icons;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 
 namespace EasyChat.Presentation.Features.Speech;
 
-public sealed record SpeechEngineOption(string Name, string Id, bool IsMachine);
+public sealed record SpeechEngineOption(string Name, string Id, bool IsMachine, bool IsGlobal = false)
+{
+    public object? ImageValue { get; init; }
+
+    public MaterialIconKind Icon => IsGlobal
+        ? MaterialIconKind.LinkVariant
+        : IsMachine ? MaterialIconKind.Translate : MaterialIconKind.Robot;
+}
 
 public sealed class SpeechAudioSourceItem : ReactiveObject, IDisposable
 {
@@ -131,7 +139,6 @@ public enum SpeechSessionMode
 
 internal sealed class SpeechModeSnapshot
 {
-    public required SpeechRecognitionSettings Settings { get; set; }
     public HashSet<AudioCaptureSourceReference> Sources { get; } = [];
 }
 
@@ -302,24 +309,16 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _uriLauncher = uriLauncher;
         _hotkeyController.Attach(this);
         _speechModeTabIndex = 0;
-        _modeSnapshots[0] = new SpeechModeSnapshot
-        {
-            Settings = settings.SpeechRecognition.ToContract() with { IsTranslatedSpeechEnabled = false }
-        };
-        _modeSnapshots[1] = new SpeechModeSnapshot
-        {
-            Settings = settings.SpeechRecognition.ToContract() with
-            {
-                IsTranslationEnabled = true,
-                IsTranslatedSpeechEnabled = true
-            }
-        };
+        _modeSnapshots[0] = new SpeechModeSnapshot();
+        _modeSnapshots[1] = new SpeechModeSnapshot();
+        settings.SpeechRecognition.SetActiveMode(SpeechTranslationMode.AudioTranslation);
 
         RecognitionLanguages = [];
         EngineOptions = [];
         TargetLanguages = [];
         PromptEntries = settings.Prompts.Entries;
-        if (!PromptEntries.Any(prompt => prompt.Id == settings.SpeechRecognition.PromptId))
+        if (!UsesGlobalPrompt(settings.SpeechRecognition.PromptId)
+            && !PromptEntries.Any(prompt => prompt.Id == settings.SpeechRecognition.PromptId))
         {
             settings.SpeechRecognition.PromptId =
                 PromptEntries.FirstOrDefault(prompt => prompt.Id == settings.Prompts.SelectedPromptId)?.Id
@@ -367,12 +366,32 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         _subtitleWindow.VisibilityChanged += OnSubtitleWindowVisibilityChanged;
         _models.ModelsChanged += OnModelsChanged;
         _settings.AiModel.ConfiguredModels.CollectionChanged += (_, _) => LoadEngineOptions();
+        _settings.Prompts.Entries.CollectionChanged += (_, _) =>
+        {
+            this.RaisePropertyChanged(nameof(PromptOptions));
+            this.RaisePropertyChanged(nameof(SelectedPromptOption));
+        };
+        _settings.General.PropertyChanged += (_, _) =>
+        {
+            if (_settings.SpeechRecognition.EngineId == TranslationConfigurationOption.FollowGlobalId
+                || UsesGlobalPrompt(_settings.SpeechRecognition.PromptId))
+                RaiseGlobalTranslationConfigurationProperties();
+        };
+        _settings.Prompts.PropertyChanged += (_, _) =>
+        {
+            if (UsesGlobalPrompt(_settings.SpeechRecognition.PromptId))
+                this.RaisePropertyChanged(nameof(SelectedPromptId));
+        };
     }
 
     public ObservableCollection<SpeechRecognitionModel> RecognitionLanguages { get; }
     public ObservableCollection<SpeechEngineOption> EngineOptions { get; }
     public ObservableCollection<LanguageSettings> TargetLanguages { get; }
     public ObservableCollection<PromptEntryState> PromptEntries { get; }
+    public IEnumerable<TranslationConfigurationOption> PromptOptions =>
+        new[] { TranslationConfigurationOption.FollowGlobal(Resources.TextAssistFollowGlobal) }
+            .Concat(PromptEntries.Select(prompt =>
+                new TranslationConfigurationOption(prompt.Id, prompt.Name, false, MaterialIconKind.TextBox)));
     public ObservableCollection<string> AvailableFonts { get; }
     public ObservableCollection<SpeechAudioSourceItem> AudioSources { get; }
     public ObservableCollection<SpeechSubtitleItemViewModel> SubtitleItems { get; }
@@ -422,16 +441,26 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     }
     public SpeechEngineOption? SelectedEngineOption
     {
-        get => _selectedEngineOption;
+        get => _settings.SpeechRecognition.EngineId == TranslationConfigurationOption.FollowGlobalId
+            ? EngineOptions.FirstOrDefault(option => option.IsGlobal)
+            : _selectedEngineOption;
         set
         {
-            if (_selectedEngineOption == value) return;
-            this.RaiseAndSetIfChanged(ref _selectedEngineOption, value);
-            if (value is not null)
+            if (value?.IsGlobal == true)
             {
-                _settings.SpeechRecognition.EngineId = value.Id;
-                _settings.SpeechRecognition.EngineType = value.IsMachine ? 0 : 1;
+                _settings.SpeechRecognition.EngineId = TranslationConfigurationOption.FollowGlobalId;
+                this.RaisePropertyChanged(nameof(SelectedEngineOption));
+                this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible));
+                this.RaisePropertyChanged(nameof(IsPromptSelectionVisible));
+                return;
             }
+
+            if (_selectedEngineOption == value
+                && _settings.SpeechRecognition.EngineId == value?.Id)
+                return;
+            _settings.SpeechRecognition.EngineId = value?.Id ?? string.Empty;
+            _settings.SpeechRecognition.EngineType = value?.IsMachine == true ? 0 : 1;
+            this.RaiseAndSetIfChanged(ref _selectedEngineOption, value);
             this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible));
             this.RaisePropertyChanged(nameof(IsPromptSelectionVisible));
             UpdateTargetLanguages(commitSelection: true);
@@ -453,6 +482,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     {
         get
         {
+            if (UsesGlobalPrompt(_settings.SpeechRecognition.PromptId))
+                return _settings.Prompts.SelectedPromptId;
+
             var configured = _settings.SpeechRecognition.PromptId;
             if (PromptEntries.Any(prompt => prompt.Id == configured))
                 return configured;
@@ -466,10 +498,30 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
                 return;
             _settings.SpeechRecognition.PromptId = value;
             this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(SelectedPromptOption));
         }
     }
 
     public bool IsTranslationEnabled { get => _settings.SpeechRecognition.IsTranslationEnabled; set { Set(value, _settings.SpeechRecognition.IsTranslationEnabled, next => _settings.SpeechRecognition.IsTranslationEnabled = next); this.RaisePropertyChanged(nameof(IsRealTimePreviewVisible)); this.RaisePropertyChanged(nameof(IsPromptSelectionVisible)); this.RaisePropertyChanged(nameof(IsAudioTranslationTargetLanguageVisible)); } }
+    public TranslationConfigurationOption SelectedPromptOption
+    {
+        get => UsesGlobalPrompt(_settings.SpeechRecognition.PromptId)
+            ? PromptOptions.First(option => option.IsGlobal)
+            : PromptOptions.FirstOrDefault(option => option.Id == SelectedPromptId)
+              ?? PromptOptions.First(option => option.IsGlobal);
+        set
+        {
+            if (value.IsGlobal)
+            {
+                _settings.SpeechRecognition.PromptId = TranslationConfigurationOption.FollowGlobalId;
+                this.RaisePropertyChanged(nameof(SelectedPromptId));
+                this.RaisePropertyChanged(nameof(SelectedPromptOption));
+                return;
+            }
+
+            SelectedPromptId = value.Id;
+        }
+    }
     public bool IsTranslatedSpeechEnabled
     {
         get => _settings.SpeechRecognition.IsTranslatedSpeechEnabled;
@@ -569,6 +621,10 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
             CaptureCurrentModeSnapshot();
             this.RaiseAndSetIfChanged(ref _speechModeTabIndex, normalized);
+            _settings.SpeechRecognition.SetActiveMode(
+                normalized == 0
+                    ? SpeechTranslationMode.AudioTranslation
+                    : SpeechTranslationMode.RealtimeInterpretation);
             RestoreModeSnapshot();
 
             this.RaisePropertyChanged(nameof(IsVoiceTranslationMode));
@@ -584,9 +640,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         IsLiveCaptionsMode && IsTranslationEnabled;
     public bool IsRealTimePreviewEnabled { get => _settings.SpeechRecognition.IsRealTimePreviewEnabled; set => Set(value, _settings.SpeechRecognition.IsRealTimePreviewEnabled, next => _settings.SpeechRecognition.IsRealTimePreviewEnabled = next); }
     public bool IsRealTimePreviewVisible =>
-        ShouldShowRealTimePreview(IsTranslationEnabled, SelectedEngineOption?.IsMachine == true);
+        ShouldShowRealTimePreview(IsTranslationEnabled, ResolveEffectiveEngine()?.IsMachine == true);
     public bool IsPromptSelectionVisible =>
-        IsTranslationEnabled && SelectedEngineOption?.IsMachine == false;
+        IsTranslationEnabled && ResolveEffectiveEngine()?.IsMachine == false;
     public int AutoClearInterval { get => _settings.SpeechRecognition.AutoClearInterval; set => Set(value, _settings.SpeechRecognition.AutoClearInterval, next => _settings.SpeechRecognition.AutoClearInterval = next); }
     public int MaxSentencesPerLine { get => _settings.SpeechRecognition.MaxSentencesPerLine; set => Set(value, _settings.SpeechRecognition.MaxSentencesPerLine, next => _settings.SpeechRecognition.MaxSentencesPerLine = next); }
     public FloatingDisplayMode FloatingDisplayMode { get => _settings.SpeechRecognition.FloatingDisplayMode; set => Set(value, _settings.SpeechRecognition.FloatingDisplayMode, next => _settings.SpeechRecognition.FloatingDisplayMode = next); }
@@ -752,7 +808,11 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         out SpeechRecognitionCommand command)
     {
         var snapshot = _modeSnapshots[(int)mode];
-        var modelId = snapshot.Settings.RecognitionLanguage;
+        var modeSettings = _settings.SpeechRecognition.ToContractForMode(
+            mode == SpeechSessionMode.AudioTranslation
+                ? SpeechTranslationMode.AudioTranslation
+                : SpeechTranslationMode.RealtimeInterpretation);
+        var modelId = modeSettings.RecognitionLanguage;
         if (string.IsNullOrWhiteSpace(modelId))
             modelId = SelectedRecognitionModel?.Id;
         if (string.IsNullOrWhiteSpace(modelId))
@@ -776,7 +836,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
             modelId,
             modelId,
             sources,
-            snapshot.Settings with { RecognitionLanguage = modelId },
+            modeSettings with { RecognitionLanguage = modelId },
             CompleteOnCancellation: mode == SpeechSessionMode.RealtimeInterpretation,
             SubtitleOrigin: mode == SpeechSessionMode.RealtimeInterpretation
                 ? SpeechSubtitleOrigin.RealtimeInterpretation
@@ -1183,24 +1243,23 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         var snapshot = _modeSnapshots[_speechModeTabIndex];
         if (snapshot is null)
             return;
-        snapshot.Settings = _settings.SpeechRecognition.ToContract();
         CaptureCurrentModeSources();
     }
 
     private void RestoreModeSnapshot()
     {
-        var snapshot = _modeSnapshots[_speechModeTabIndex];
-        _settings.SpeechRecognition.Apply(snapshot.Settings);
+        var settings = _settings.SpeechRecognition.ToContract();
         _selectedRecognitionModel = RecognitionLanguages.FirstOrDefault(model =>
-            model.Id == snapshot.Settings.RecognitionLanguage);
-        _selectedTargetLanguage = TargetLanguages.FirstOrDefault(language =>
-            language.Id == snapshot.Settings.TargetLanguage);
-        _selectedEngineOption = EngineOptions.FirstOrDefault(option =>
-            option.Id == snapshot.Settings.EngineId
-            && option.IsMachine == (snapshot.Settings.EngineType == 0));
+            model.Id == settings.RecognitionLanguage);
+        _selectedTargetLanguage = null;
+        _selectedEngineOption = settings.EngineId == TranslationConfigurationOption.FollowGlobalId
+            ? ResolveGlobalEngineOption()
+            : EngineOptions.FirstOrDefault(option =>
+                option.Id == settings.EngineId
+                && option.IsMachine == (settings.EngineType == 0));
         this.RaisePropertyChanged(nameof(SelectedRecognitionModel));
-        this.RaisePropertyChanged(nameof(SelectedTargetLanguage));
         this.RaisePropertyChanged(nameof(SelectedEngineOption));
+        UpdateTargetLanguages(commitSelection: false);
         ApplyAudioSourcesForCurrentMode();
         RaiseModePropertiesChanged();
     }
@@ -1209,10 +1268,12 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     {
         foreach (var property in new[]
                  {
-                     nameof(IsTranslationEnabled), nameof(IsTranslatedSpeechEnabled),
-                     nameof(IsRealTimePreviewEnabled), nameof(IsRealTimePreviewVisible),
-                     nameof(IsAudioTranslationTargetLanguageVisible),
-                     nameof(IsPromptSelectionVisible), nameof(SelectedPromptId),
+                      nameof(IsTranslationEnabled), nameof(IsTranslatedSpeechEnabled),
+                      nameof(IsRealTimePreviewEnabled), nameof(IsRealTimePreviewVisible),
+                      nameof(IsAudioTranslationTargetLanguageVisible),
+                      nameof(IsPromptSelectionVisible), nameof(SelectedPromptId),
+                      nameof(SelectedPromptOption),
+                      nameof(SelectedEngineOption),
                      nameof(AudioTranslationText), nameof(RealtimeInterpretationText)
                  })
             this.RaisePropertyChanged(property);
@@ -1231,19 +1292,34 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
 
     private void LoadEngineOptions()
     {
-        var selectedId = _selectedEngineOption?.Id ?? _settings.SpeechRecognition.EngineId;
+        var configuredId = _settings.SpeechRecognition.EngineId;
+        var selectedId = _selectedEngineOption?.Id
+                         ?? (configuredId == TranslationConfigurationOption.FollowGlobalId
+                             ? string.Empty
+                             : configuredId);
         var selectedMachine = _selectedEngineOption?.IsMachine
-                              ?? _settings.SpeechRecognition.EngineType == 0;
+                              ?? (configuredId != TranslationConfigurationOption.FollowGlobalId
+                                  && _settings.SpeechRecognition.EngineType == 0);
         EngineOptions.Clear();
+        EngineOptions.Add(new SpeechEngineOption(
+            Resources.TextAssistFollowGlobal,
+            TranslationConfigurationOption.FollowGlobalId,
+            IsMachine: false,
+            IsGlobal: true));
         foreach (var option in CreateMachineEngineOptions(_settings.MachineTranslation))
             EngineOptions.Add(option);
         foreach (var model in _settings.AiModel.ConfiguredModels)
-            EngineOptions.Add(new SpeechEngineOption(model.Name, model.Id, false));
-        _selectedEngineOption = ResolveAndSynchronizeEngineOption(
-            EngineOptions,
-            selectedId,
-            selectedMachine,
-            _settings.SpeechRecognition);
+            EngineOptions.Add(new SpeechEngineOption(model.Name, model.Id, false)
+            {
+                ImageValue = model.ModelType
+            });
+        _selectedEngineOption = configuredId == TranslationConfigurationOption.FollowGlobalId
+            ? ResolveGlobalEngineOption()
+            : ResolveAndSynchronizeEngineOption(
+                EngineOptions,
+                selectedId,
+                selectedMachine,
+                _settings.SpeechRecognition);
         var engineFellBack = !MatchesEngineSelection(
             _selectedEngineOption,
             selectedId,
@@ -1254,13 +1330,66 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         UpdateTargetLanguages(commitSelection: engineFellBack);
     }
 
+    private SpeechEngineOption? ResolveGlobalEngineOption()
+    {
+        var general = _settings.General;
+        var useMachine = string.Equals(
+            general.TransEngine,
+            TranslationEngineNames.MachineTrans,
+            StringComparison.OrdinalIgnoreCase);
+        var id = useMachine
+            ? general.UsingMachineTransId ?? general.UsingMachineTrans
+            : general.UsingAiModelId ?? general.UsingAiModel;
+        return EngineOptions.FirstOrDefault(option =>
+                   !option.IsGlobal
+                   && option.IsMachine == useMachine
+                   && (string.Equals(option.Id, id, StringComparison.Ordinal)
+                       || string.Equals(option.Name, id, StringComparison.OrdinalIgnoreCase)))
+               ?? EngineOptions.FirstOrDefault(option => !option.IsGlobal && option.IsMachine == useMachine);
+    }
+
+    private SpeechEngineOption? ResolveEffectiveEngine() =>
+        _settings.SpeechRecognition.EngineId == TranslationConfigurationOption.FollowGlobalId
+            ? ResolveGlobalEngineOption()
+            : _selectedEngineOption;
+
+    private static bool UsesGlobalPrompt(string? promptId) =>
+        string.IsNullOrWhiteSpace(promptId)
+        || promptId == TranslationConfigurationOption.FollowGlobalId;
+
+    private void RaiseGlobalTranslationConfigurationProperties()
+    {
+        foreach (var property in new[]
+                 {
+                     nameof(SelectedEngineOption),
+                     nameof(SelectedPromptId),
+                     nameof(SelectedPromptOption),
+                     nameof(IsRealTimePreviewVisible),
+                     nameof(IsPromptSelectionVisible)
+                 })
+            this.RaisePropertyChanged(property);
+        UpdateTargetLanguages(commitSelection: false);
+    }
+
     internal static IReadOnlyList<SpeechEngineOption> CreateMachineEngineOptions(
         LiveMachineTranslationSettings settings) =>
     [
-        new(MachineTranslationProviderNames.Baidu, settings.Baidu.Id, IsMachine: true),
-        new(MachineTranslationProviderNames.Tencent, settings.Tencent.Id, IsMachine: true),
-        new(MachineTranslationProviderNames.Google, settings.Google.Id, IsMachine: true),
+        new(MachineTranslationProviderNames.Baidu, settings.Baidu.Id, IsMachine: true)
+        {
+            ImageValue = settings.Baidu.Id
+        },
+        new(MachineTranslationProviderNames.Tencent, settings.Tencent.Id, IsMachine: true)
+        {
+            ImageValue = settings.Tencent.Id
+        },
+        new(MachineTranslationProviderNames.Google, settings.Google.Id, IsMachine: true)
+        {
+            ImageValue = settings.Google.Id
+        },
         new(MachineTranslationProviderNames.DeepL, settings.DeepL.Id, IsMachine: true)
+        {
+            ImageValue = settings.DeepL.Id
+        }
     ];
 
     internal static SpeechEngineOption? ResolveAndSynchronizeEngineOption(
@@ -1269,14 +1398,14 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         bool selectedMachine,
         LiveSpeechRecognitionSettings settings)
     {
-        var selected = options.FirstOrDefault(option =>
+        var selected = options.Where(option => !option.IsGlobal).FirstOrDefault(option =>
                            option.Id == selectedId && option.IsMachine == selectedMachine)
                        ?? (selectedMachine
-                           ? options.FirstOrDefault(option =>
+                           ? options.Where(option => !option.IsGlobal).FirstOrDefault(option =>
                                option.IsMachine
                                && option.Name.Equals(selectedId, StringComparison.OrdinalIgnoreCase))
                            : null)
-                       ?? options.FirstOrDefault();
+                       ?? options.FirstOrDefault(option => !option.IsGlobal);
         if (selected is null)
             return null;
 
@@ -1293,6 +1422,7 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
         string selectedId,
         bool selectedMachine) =>
         option is not null
+        && !option.IsGlobal
         && (string.Equals(option.Id, selectedId, StringComparison.Ordinal)
             || (selectedMachine
                 && option.Name.Equals(selectedId, StringComparison.OrdinalIgnoreCase)))
@@ -1333,8 +1463,9 @@ public sealed class SpeechRecognitionViewModel : NavigationPageViewModel, IDispo
     {
         var targetId = _selectedTargetLanguage?.Id ?? _settings.SpeechRecognition.TargetLanguage;
         TargetLanguages.Clear();
+        var effectiveEngine = ResolveEffectiveEngine();
         foreach (var language in _languages.All.Where(language =>
-                     SupportsTargetLanguage(language, _selectedEngineOption)))
+                     SupportsTargetLanguage(language, effectiveEngine)))
         {
             TargetLanguages.Add(language);
         }
