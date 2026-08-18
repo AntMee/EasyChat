@@ -8,6 +8,7 @@ using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using EasyChat.Presentation.Features.Translation.Models;
+using EasyChat.Presentation.Foundation.Localization;
 using LiveMarkdown.Avalonia;
 using Markdig;
 using ReactiveUI;
@@ -25,6 +26,8 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
     private string? _sentenceTranslationSnapshot;
     private string _sourceLanguageId = "auto";
     private string _targetLanguageId = "zh-Hans";
+    private string _configuredSourceLanguageId = "auto";
+    private string _configuredTargetLanguageId = "zh-Hans";
     private bool _isLoading;
     private bool _isWordMode;
     private bool _canNavigateBack;
@@ -105,6 +108,8 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         }
     }
     public ObservableCollection<TextToken> SourceTokens { get => _sourceTokens; private set => this.RaiseAndSetIfChanged(ref _sourceTokens, value); }
+    public string SourceLanguageDisplay => DisplayLanguage(_configuredSourceLanguageId);
+    public string TargetLanguageDisplay => DisplayLanguage(_configuredTargetLanguageId);
     public bool ShowDictionarySkeleton => IsWordMode && IsLoading && (DictionaryResult is null || DictionaryResult.Parts.Count == 0);
     public bool ShowTranslationSkeleton => !IsWordMode && IsLoading && string.IsNullOrEmpty(TranslationResult);
     public bool ShowBackButton { get => _showBackButton; private set => this.RaiseAndSetIfChanged(ref _showBackButton, value); }
@@ -125,8 +130,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
 
     public async Task InitializeAsync(string text, string sourceLanguageId, string targetLanguageId)
     {
-        _sourceLanguageId = string.IsNullOrWhiteSpace(sourceLanguageId) ? "auto" : sourceLanguageId;
-        _targetLanguageId = string.IsNullOrWhiteSpace(targetLanguageId) ? "zh-Hans" : targetLanguageId;
+        SetLanguageDirection(sourceLanguageId, targetLanguageId);
         SourceText = text;
         _sentenceTranslationSnapshot = null;
         await Dispatcher.UIThread.InvokeAsync(() => TranslationMarkdown.Clear());
@@ -147,8 +151,7 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
 
     public async Task InitializeDictionaryAsync(string text, string sourceLanguageId, string targetLanguageId)
     {
-        _sourceLanguageId = string.IsNullOrWhiteSpace(sourceLanguageId) ? "auto" : sourceLanguageId;
-        _targetLanguageId = string.IsNullOrWhiteSpace(targetLanguageId) ? "zh-Hans" : targetLanguageId;
+        SetLanguageDirection(sourceLanguageId, targetLanguageId);
         SourceText = text;
         IsWordMode = true;
         _canNavigateBack = false;
@@ -182,6 +185,22 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
             : _translation.StreamAsync(request);
         await foreach (var item in stream)
             await Dispatcher.UIThread.InvokeAsync(() => Apply(item, canNavigateBack, dictionary));
+    }
+
+    private void SetLanguageDirection(string sourceLanguageId, string targetLanguageId)
+    {
+        _sourceLanguageId = string.IsNullOrWhiteSpace(sourceLanguageId) ? "auto" : sourceLanguageId;
+        _targetLanguageId = string.IsNullOrWhiteSpace(targetLanguageId) ? "zh-Hans" : targetLanguageId;
+        _configuredSourceLanguageId = _sourceLanguageId;
+        _configuredTargetLanguageId = _targetLanguageId;
+        this.RaisePropertyChanged(nameof(SourceLanguageDisplay));
+        this.RaisePropertyChanged(nameof(TargetLanguageDisplay));
+    }
+
+    private string DisplayLanguage(string languageId)
+    {
+        var language = _languages.Get(languageId);
+        return LanguageDisplayNames.ForUi(language.NativeName, language.EnglishName);
     }
 
     private void Apply(SelectionTranslationEvent item, bool canNavigateBack, bool lookup)
