@@ -395,7 +395,7 @@ namespace EasyChat.Presentation.Features.Settings.Translation
             };
             Name = type == AiModelType.Custom
                 ? string.Empty
-                : AiModelTypeConverters.GetNames(type).ChineseName;
+                : AiModelTypeConverters.GetDisplayName(type);
         }
     }
 }
