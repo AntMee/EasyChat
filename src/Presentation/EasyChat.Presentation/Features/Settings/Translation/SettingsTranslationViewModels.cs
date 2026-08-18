@@ -86,10 +86,7 @@ namespace EasyChat.Presentation.Features.Settings.Translation
 
         public string Title => _existing is null ? Resources.AddModel : Resources.EditModel;
         public string ButtonText => _existing is null ? Resources.Add : Resources.Save;
-        public List<AiModelType> AvailableModelTypes { get; } = Enum
-            .GetValues<AiModelType>()
-            .OrderBy(type => type == AiModelType.Custom)
-            .ToList();
+        public List<AiModelType> AvailableModelTypes { get; } = Enum.GetValues<AiModelType>().ToList();
         public ObservableCollection<string> AvailableModels { get; } = [];
 
         public AiModelType SelectedModelType
@@ -367,35 +364,38 @@ namespace EasyChat.Presentation.Features.Settings.Translation
 
         private void UpdateDefaults(AiModelType type)
         {
-            (ApiUrl, Model, Name) = type switch
+            (ApiUrl, Model) = type switch
             {
-                AiModelType.OpenAi => ("https://api.openai.com/v1", string.Empty, "OpenAI"),
-                AiModelType.Gemini => ("https://generativelanguage.googleapis.com/v1beta/openai/", string.Empty, "Gemini"),
-                AiModelType.Claude => ("https://api.anthropic.com/v1/", string.Empty, "Claude"),
-                AiModelType.DeepSeek => ("https://api.deepseek.com/v1", string.Empty, "DeepSeek"),
-                AiModelType.Qwen => ("https://dashscope.aliyuncs.com/compatible-mode/v1", string.Empty, "通义千问"),
-                AiModelType.Zhipu => ("https://open.bigmodel.cn/api/paas/v4/", string.Empty, "智谱 AI"),
-                AiModelType.Moonshot => ("https://api.moonshot.cn/v1", string.Empty, "月之暗面 Kimi"),
-                AiModelType.Doubao => ("https://ark.cn-beijing.volces.com/api/v3", string.Empty, "字节跳动豆包"),
-                AiModelType.MiniMax => ("https://api.minimaxi.com/v1", string.Empty, "MiniMax"),
-                AiModelType.Hunyuan => ("https://api.hunyuan.cloud.tencent.com/v1", string.Empty, "腾讯混元"),
-                AiModelType.Grok => ("https://api.x.ai/v1", string.Empty, "Grok"),
-                AiModelType.Mistral => ("https://api.mistral.ai/v1", string.Empty, "Mistral AI"),
-                AiModelType.Qianfan => ("https://qianfan.baidubce.com/v2", string.Empty, "百度千帆"),
-                AiModelType.Spark => ("https://spark-api-open.xf-yun.com/v1", string.Empty, "讯飞星火"),
-                AiModelType.StepFun => ("https://api.stepfun.com/v1", string.Empty, "阶跃星辰"),
-                AiModelType.ModelScope => ("https://api-inference.modelscope.cn/v1", string.Empty, "魔搭 ModelScope"),
-                AiModelType.SiliconFlow => ("https://api.siliconflow.cn/v1", string.Empty, "硅基流动"),
-                AiModelType.XiaomiMimo => ("https://api.xiaomimimo.com/v1", string.Empty, "小米 MiMo"),
-                AiModelType.OpenRouter => ("https://openrouter.ai/api/v1", string.Empty, "OpenRouter"),
-                AiModelType.Together => ("https://api.together.xyz/v1", string.Empty, "Together AI"),
-                AiModelType.Fireworks => ("https://api.fireworks.ai/inference/v1", string.Empty, "Fireworks AI"),
-                AiModelType.Groq => ("https://api.groq.com/openai/v1", string.Empty, "Groq"),
-                AiModelType.Cerebras => ("https://api.cerebras.ai/v1", string.Empty, "Cerebras"),
-                AiModelType.DeepInfra => ("https://api.deepinfra.com/v1/openai", string.Empty, "DeepInfra"),
-                AiModelType.NvidiaNim => ("https://integrate.api.nvidia.com/v1", string.Empty, "NVIDIA NIM"),
-                _ => ("https://api.openai.com/v1", string.Empty, string.Empty)
+                AiModelType.OpenAi => ("https://api.openai.com/v1", string.Empty),
+                AiModelType.Gemini => ("https://generativelanguage.googleapis.com/v1beta/openai/", string.Empty),
+                AiModelType.Claude => ("https://api.anthropic.com/v1/", string.Empty),
+                AiModelType.DeepSeek => ("https://api.deepseek.com/v1", string.Empty),
+                AiModelType.Qwen => ("https://dashscope.aliyuncs.com/compatible-mode/v1", string.Empty),
+                AiModelType.Zhipu => ("https://open.bigmodel.cn/api/paas/v4/", string.Empty),
+                AiModelType.Moonshot => ("https://api.moonshot.cn/v1", string.Empty),
+                AiModelType.Doubao => ("https://ark.cn-beijing.volces.com/api/v3", string.Empty),
+                AiModelType.MiniMax => ("https://api.minimaxi.com/v1", string.Empty),
+                AiModelType.Hunyuan => ("https://api.hunyuan.cloud.tencent.com/v1", string.Empty),
+                AiModelType.Grok => ("https://api.x.ai/v1", string.Empty),
+                AiModelType.Mistral => ("https://api.mistral.ai/v1", string.Empty),
+                AiModelType.Qianfan => ("https://qianfan.baidubce.com/v2", string.Empty),
+                AiModelType.Spark => ("https://spark-api-open.xf-yun.com/v1", string.Empty),
+                AiModelType.StepFun => ("https://api.stepfun.com/v1", string.Empty),
+                AiModelType.ModelScope => ("https://api-inference.modelscope.cn/v1", string.Empty),
+                AiModelType.SiliconFlow => ("https://api.siliconflow.cn/v1", string.Empty),
+                AiModelType.XiaomiMimo => ("https://api.xiaomimimo.com/v1", string.Empty),
+                AiModelType.OpenRouter => ("https://openrouter.ai/api/v1", string.Empty),
+                AiModelType.Together => ("https://api.together.xyz/v1", string.Empty),
+                AiModelType.Fireworks => ("https://api.fireworks.ai/inference/v1", string.Empty),
+                AiModelType.Groq => ("https://api.groq.com/openai/v1", string.Empty),
+                AiModelType.Cerebras => ("https://api.cerebras.ai/v1", string.Empty),
+                AiModelType.DeepInfra => ("https://api.deepinfra.com/v1/openai", string.Empty),
+                AiModelType.NvidiaNim => ("https://integrate.api.nvidia.com/v1", string.Empty),
+                _ => ("https://api.openai.com/v1", string.Empty)
             };
+            Name = type == AiModelType.Custom
+                ? string.Empty
+                : AiModelTypeConverters.GetNames(type).ChineseName;
         }
     }
 }

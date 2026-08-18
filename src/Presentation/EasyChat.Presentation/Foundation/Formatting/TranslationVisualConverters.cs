@@ -21,42 +21,48 @@ public static class AiModelTypeConverters
     public static readonly IValueConverter IsGemini = new AiModelTypeMatchConverter(AiModelType.Gemini);
     public static readonly IValueConverter IsClaude = new AiModelTypeMatchConverter(AiModelType.Claude);
 
-    public static string GetDisplayName(AiModelType modelType) => modelType switch
+    public static string GetDisplayName(AiModelType modelType, CultureInfo? uiCulture = null)
     {
-        AiModelType.OpenAi => "OpenAI",
-        AiModelType.Gemini => "Gemini",
-        AiModelType.Claude => "Claude",
-        AiModelType.DeepSeek => "DeepSeek",
-        AiModelType.Qwen => "通义千问",
-        AiModelType.Zhipu => "智谱 AI",
-        AiModelType.Moonshot => "月之暗面 Kimi",
-        AiModelType.Doubao => "字节跳动豆包",
-        AiModelType.MiniMax => "MiniMax",
-        AiModelType.Hunyuan => "腾讯混元",
-        AiModelType.Grok => "Grok",
-        AiModelType.Mistral => "Mistral AI",
-        AiModelType.Qianfan => "百度千帆",
-        AiModelType.Spark => "讯飞星火",
-        AiModelType.StepFun => "阶跃星辰",
-        AiModelType.ModelScope => "魔搭 ModelScope",
-        AiModelType.SiliconFlow => "硅基流动",
-        AiModelType.XiaomiMimo => "小米 MiMo",
-        AiModelType.OpenRouter => "OpenRouter",
-        AiModelType.Together => "Together AI",
-        AiModelType.Fireworks => "Fireworks AI",
-        AiModelType.Groq => "Groq",
-        AiModelType.Cerebras => "Cerebras",
-        AiModelType.DeepInfra => "DeepInfra",
-        AiModelType.NvidiaNim => "NVIDIA NIM",
-        AiModelType.Custom => Resources.CustomModel,
-        _ => Resources.Unknown
+        var (chineseName, englishName) = GetNames(modelType);
+        return LanguageDisplayNames.ForUi(chineseName, englishName, uiCulture);
+    }
+
+    public static (string ChineseName, string EnglishName) GetNames(AiModelType modelType) => modelType switch
+    {
+        AiModelType.OpenAi => ("OpenAI", "OpenAI"),
+        AiModelType.Gemini => ("Gemini", "Gemini"),
+        AiModelType.Claude => ("Claude", "Claude"),
+        AiModelType.DeepSeek => ("DeepSeek", "DeepSeek"),
+        AiModelType.Qwen => ("通义千问", "Qwen"),
+        AiModelType.Zhipu => ("智谱 AI", "Zhipu AI"),
+        AiModelType.Moonshot => ("月之暗面 Kimi", "Moonshot Kimi"),
+        AiModelType.Doubao => ("字节跳动豆包", "ByteDance Doubao"),
+        AiModelType.MiniMax => ("MiniMax", "MiniMax"),
+        AiModelType.Hunyuan => ("腾讯混元", "Tencent Hunyuan"),
+        AiModelType.Grok => ("Grok", "Grok"),
+        AiModelType.Mistral => ("Mistral AI", "Mistral AI"),
+        AiModelType.Qianfan => ("百度千帆", "Baidu Qianfan"),
+        AiModelType.Spark => ("讯飞星火", "iFlytek Spark"),
+        AiModelType.StepFun => ("阶跃星辰", "StepFun"),
+        AiModelType.ModelScope => ("魔搭 ModelScope", "ModelScope"),
+        AiModelType.SiliconFlow => ("硅基流动", "SiliconFlow"),
+        AiModelType.XiaomiMimo => ("小米 MiMo", "Xiaomi MiMo"),
+        AiModelType.OpenRouter => ("OpenRouter", "OpenRouter"),
+        AiModelType.Together => ("Together AI", "Together AI"),
+        AiModelType.Fireworks => ("Fireworks AI", "Fireworks AI"),
+        AiModelType.Groq => ("Groq", "Groq"),
+        AiModelType.Cerebras => ("Cerebras", "Cerebras"),
+        AiModelType.DeepInfra => ("DeepInfra", "DeepInfra"),
+        AiModelType.NvidiaNim => ("NVIDIA NIM", "NVIDIA NIM"),
+        AiModelType.Custom => ("自定义", "Custom"),
+        _ => ("未知", "Unknown")
     };
 }
 
 public sealed class AiModelTypeToDisplayNameConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is AiModelType modelType ? AiModelTypeConverters.GetDisplayName(modelType) : null;
+        value is AiModelType modelType ? AiModelTypeConverters.GetDisplayName(modelType, culture) : null;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
