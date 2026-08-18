@@ -9,12 +9,35 @@ internal sealed class WindowsApplicationAutoStartService : IApplicationAutoStart
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "EasyChat";
 
+    private readonly WindowsScheduledAutoStartTask _scheduledTask = new();
+
     public Result<bool> GetEnabled()
     {
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false);
-            return key?.GetValue(ValueName) is string value && !string.IsNullOrWhiteSpace(value);
+            if (_scheduledTask.IsEnabled())
+                return true;
+
+            using (var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false))
+            {
+                if (key?.GetValue(ValueName) is not string legacyValue || string.IsNullOrWhiteSpace(legacyValue))
+                    return false;
+            }
+
+            var processPath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(processPath))
+            {
+                return Result<bool>.Failure(new Error(
+                    "autostart.process-path-unavailable",
+                    "Unable to determine the application executable path."));
+            }
+
+            var migration = _scheduledTask.SetEnabled(true, processPath);
+            if (migration.IsFailure)
+                return Result<bool>.Failure(migration.Error);
+
+            DeleteLegacyRunEntry();
+            return true;
         }
         catch (Exception exception)
         {
@@ -26,30 +49,30 @@ internal sealed class WindowsApplicationAutoStartService : IApplicationAutoStart
     {
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
-            if (!enabled)
-            {
-                key.DeleteValue(ValueName, throwOnMissingValue: false);
-                return Result.Success();
-            }
-
             var processPath = Environment.ProcessPath;
-            if (string.IsNullOrWhiteSpace(processPath))
+            if (enabled && string.IsNullOrWhiteSpace(processPath))
             {
                 return Result.Failure(new Error(
                     "autostart.process-path-unavailable",
                     "Unable to determine the application executable path."));
             }
 
-            key.SetValue(
-                ValueName,
-                $"\"{processPath}\" {ApplicationStartupArguments.AutoStart}",
-                RegistryValueKind.String);
+            var task = _scheduledTask.SetEnabled(enabled, processPath ?? string.Empty);
+            if (task.IsFailure)
+                return task;
+
+            DeleteLegacyRunEntry();
             return Result.Success();
         }
         catch (Exception exception)
         {
             return Result.Failure(new Error("autostart.write-failed", exception.Message));
         }
+    }
+
+    private static void DeleteLegacyRunEntry()
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
+        key.DeleteValue(ValueName, throwOnMissingValue: false);
     }
 }
