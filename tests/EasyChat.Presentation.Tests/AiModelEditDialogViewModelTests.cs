@@ -25,6 +25,43 @@ public sealed class AiModelEditDialogViewModelTests
     }
 
     [TestMethod]
+    public void KnownProviders_UseTheDocumentedOpenAiCompatibleApiBaseUrls()
+    {
+        var viewModel = CreateViewModel(new RecordingCatalog([]));
+        var providers = new Dictionary<AiModelType, (string ApiUrl, string Name)>
+        {
+            [AiModelType.Qwen] = ("https://dashscope.aliyuncs.com/compatible-mode/v1", "通义千问"),
+            [AiModelType.Zhipu] = ("https://open.bigmodel.cn/api/paas/v4/", "智谱 AI"),
+            [AiModelType.Moonshot] = ("https://api.moonshot.cn/v1", "月之暗面 Kimi"),
+            [AiModelType.Doubao] = ("https://ark.cn-beijing.volces.com/api/v3", "字节跳动豆包"),
+            [AiModelType.MiniMax] = ("https://api.minimaxi.com/v1", "MiniMax"),
+            [AiModelType.Hunyuan] = ("https://api.hunyuan.cloud.tencent.com/v1", "腾讯混元"),
+            [AiModelType.Qianfan] = ("https://qianfan.baidubce.com/v2", "百度千帆"),
+            [AiModelType.Spark] = ("https://spark-api-open.xf-yun.com/v1", "讯飞星火"),
+            [AiModelType.StepFun] = ("https://api.stepfun.com/v1", "阶跃星辰"),
+            [AiModelType.ModelScope] = ("https://api-inference.modelscope.cn/v1", "魔搭 ModelScope"),
+            [AiModelType.SiliconFlow] = ("https://api.siliconflow.cn/v1", "硅基流动"),
+            [AiModelType.XiaomiMimo] = ("https://api.xiaomimimo.com/v1", "小米 MiMo"),
+            [AiModelType.OpenRouter] = ("https://openrouter.ai/api/v1", "OpenRouter"),
+            [AiModelType.Together] = ("https://api.together.xyz/v1", "Together AI"),
+            [AiModelType.Fireworks] = ("https://api.fireworks.ai/inference/v1", "Fireworks AI"),
+            [AiModelType.Groq] = ("https://api.groq.com/openai/v1", "Groq"),
+            [AiModelType.Cerebras] = ("https://api.cerebras.ai/v1", "Cerebras"),
+            [AiModelType.DeepInfra] = ("https://api.deepinfra.com/v1/openai", "DeepInfra"),
+            [AiModelType.NvidiaNim] = ("https://integrate.api.nvidia.com/v1", "NVIDIA NIM")
+        };
+
+        foreach (var (provider, expected) in providers)
+        {
+            viewModel.SelectedModelType = provider;
+
+            Assert.AreEqual(expected.ApiUrl, viewModel.ApiUrl, provider.ToString());
+            Assert.AreEqual(expected.Name, viewModel.Name, provider.ToString());
+            Assert.AreEqual(string.Empty, viewModel.Model, provider.ToString());
+        }
+    }
+
+    [TestMethod]
     public async Task ModelTypeChange_SelectsModelReturnedByFetch()
     {
         var existing = new CustomAiModelState(

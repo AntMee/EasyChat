@@ -99,7 +99,7 @@
                                                                    FontWeight="SemiBold"
                                                                    TextTrimming="CharacterEllipsis"
                                                                    Foreground="{DynamicResource ForegroundColor}" />
-                                                        <TextBlock Text="{Binding ModelType}"
+                                                        <TextBlock Text="{Binding ModelType, Converter={x:Static converts:AiModelTypeConverters.ToDisplayName}}"
                                                                    Classes="Muted" />
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="2"

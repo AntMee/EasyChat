@@ -14,11 +14,52 @@ namespace EasyChat.Presentation.Foundation.Formatting;
 public static class AiModelTypeConverters
 {
     public static readonly IValueConverter ToIcon = new AiModelTypeToIconConverter();
+    public static readonly IValueConverter ToDisplayName = new AiModelTypeToDisplayNameConverter();
     public static readonly IValueConverter HasIcon = new AiModelTypeHasIconConverter();
     public static readonly IValueConverter HasNoIcon = new AiModelTypeHasNoIconConverter();
     public static readonly IValueConverter IsOpenAi = new AiModelTypeMatchConverter(AiModelType.OpenAi);
     public static readonly IValueConverter IsGemini = new AiModelTypeMatchConverter(AiModelType.Gemini);
     public static readonly IValueConverter IsClaude = new AiModelTypeMatchConverter(AiModelType.Claude);
+
+    public static string GetDisplayName(AiModelType modelType) => modelType switch
+    {
+        AiModelType.OpenAi => "OpenAI",
+        AiModelType.Gemini => "Gemini",
+        AiModelType.Claude => "Claude",
+        AiModelType.DeepSeek => "DeepSeek",
+        AiModelType.Qwen => "通义千问",
+        AiModelType.Zhipu => "智谱 AI",
+        AiModelType.Moonshot => "月之暗面 Kimi",
+        AiModelType.Doubao => "字节跳动豆包",
+        AiModelType.MiniMax => "MiniMax",
+        AiModelType.Hunyuan => "腾讯混元",
+        AiModelType.Grok => "Grok",
+        AiModelType.Mistral => "Mistral AI",
+        AiModelType.Qianfan => "百度千帆",
+        AiModelType.Spark => "讯飞星火",
+        AiModelType.StepFun => "阶跃星辰",
+        AiModelType.ModelScope => "魔搭 ModelScope",
+        AiModelType.SiliconFlow => "硅基流动",
+        AiModelType.XiaomiMimo => "小米 MiMo",
+        AiModelType.OpenRouter => "OpenRouter",
+        AiModelType.Together => "Together AI",
+        AiModelType.Fireworks => "Fireworks AI",
+        AiModelType.Groq => "Groq",
+        AiModelType.Cerebras => "Cerebras",
+        AiModelType.DeepInfra => "DeepInfra",
+        AiModelType.NvidiaNim => "NVIDIA NIM",
+        AiModelType.Custom => Resources.CustomModel,
+        _ => Resources.Unknown
+    };
+}
+
+public sealed class AiModelTypeToDisplayNameConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is AiModelType modelType ? AiModelTypeConverters.GetDisplayName(modelType) : null;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
 }
 
 public sealed class AiModelTypeHasIconConverter : IValueConverter
@@ -51,6 +92,27 @@ public sealed class AiModelTypeToIconConverter : IValueConverter
                 AiModelType.Gemini => "gemini.png",
                 AiModelType.Claude => "claude.png",
                 AiModelType.DeepSeek => "deepseek.png",
+                AiModelType.Qwen => "qwen.png",
+                AiModelType.Zhipu => "zhipu.png",
+                AiModelType.Moonshot => "kimi.png",
+                AiModelType.Doubao => "doubao.png",
+                AiModelType.MiniMax => "minimax.png",
+                AiModelType.Hunyuan => "hunyuan.png",
+                AiModelType.Grok => "grok.png",
+                AiModelType.Mistral => "mistral.png",
+                AiModelType.Qianfan => "qianfan.png",
+                AiModelType.Spark => "spark.png",
+                AiModelType.StepFun => "stepfun.png",
+                AiModelType.ModelScope => "modelscope.png",
+                AiModelType.SiliconFlow => "siliconflow.png",
+                AiModelType.XiaomiMimo => "xiaomi.png",
+                AiModelType.OpenRouter => "openrouter.png",
+                AiModelType.Together => "together.png",
+                AiModelType.Fireworks => "fireworks.png",
+                AiModelType.Groq => "groq.png",
+                AiModelType.Cerebras => "cerebras.png",
+                AiModelType.DeepInfra => "deepinfra.png",
+                AiModelType.NvidiaNim => "nvidia.png",
                 AiModelType.Custom => "custom.png",
                 _ => null
             })
@@ -222,6 +284,28 @@ internal static class AssetIconLoader
         _ when engine?.Contains("OpenAI", StringComparison.OrdinalIgnoreCase) == true => "openai.png",
         _ when engine?.Contains("Gemini", StringComparison.OrdinalIgnoreCase) == true => "gemini.png",
         _ when engine?.Contains("Claude", StringComparison.OrdinalIgnoreCase) == true => "claude.png",
+        _ when engine?.Contains("DeepSeek", StringComparison.OrdinalIgnoreCase) == true => "deepseek.png",
+        _ when engine?.Contains("通义", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("Qwen", StringComparison.OrdinalIgnoreCase) == true => "qwen.png",
+        _ when engine?.Contains("智谱", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("GLM", StringComparison.OrdinalIgnoreCase) == true => "zhipu.png",
+        _ when engine?.Contains("月之暗面", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("Kimi", StringComparison.OrdinalIgnoreCase) == true => "kimi.png",
+        _ when engine?.Contains("豆包", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("Doubao", StringComparison.OrdinalIgnoreCase) == true => "doubao.png",
+        _ when engine?.Contains("MiniMax", StringComparison.OrdinalIgnoreCase) == true => "minimax.png",
+        _ when engine?.Contains("混元", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("Hunyuan", StringComparison.OrdinalIgnoreCase) == true => "hunyuan.png",
+        _ when engine?.Contains("Grok", StringComparison.OrdinalIgnoreCase) == true => "grok.png",
+        _ when engine?.Contains("Mistral", StringComparison.OrdinalIgnoreCase) == true => "mistral.png",
+        _ when engine?.Contains("千帆", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("Qianfan", StringComparison.OrdinalIgnoreCase) == true => "qianfan.png",
+        _ when engine?.Contains("星火", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("Spark", StringComparison.OrdinalIgnoreCase) == true => "spark.png",
+        _ when engine?.Contains("阶跃", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("StepFun", StringComparison.OrdinalIgnoreCase) == true => "stepfun.png",
+        _ when engine?.Contains("魔搭", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("ModelScope", StringComparison.OrdinalIgnoreCase) == true => "modelscope.png",
+        _ when engine?.Contains("硅基", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("SiliconFlow", StringComparison.OrdinalIgnoreCase) == true => "siliconflow.png",
+        _ when engine?.Contains("小米", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("MiMo", StringComparison.OrdinalIgnoreCase) == true => "xiaomi-mimo.png",
+        _ when engine?.Contains("OpenRouter", StringComparison.OrdinalIgnoreCase) == true => "openrouter.png",
+        _ when engine?.Contains("Together", StringComparison.OrdinalIgnoreCase) == true => "together.png",
+        _ when engine?.Contains("Fireworks", StringComparison.OrdinalIgnoreCase) == true => "fireworks.png",
+        _ when engine?.Contains("Groq", StringComparison.OrdinalIgnoreCase) == true => "groq.png",
+        _ when engine?.Contains("Cerebras", StringComparison.OrdinalIgnoreCase) == true => "cerebras.png",
+        _ when engine?.Contains("DeepInfra", StringComparison.OrdinalIgnoreCase) == true => "deepinfra.png",
+        _ when engine?.Contains("NVIDIA NIM", StringComparison.OrdinalIgnoreCase) == true || engine?.Contains("NIM", StringComparison.OrdinalIgnoreCase) == true => "nvidia-nim.png",
         _ => null
     };
 

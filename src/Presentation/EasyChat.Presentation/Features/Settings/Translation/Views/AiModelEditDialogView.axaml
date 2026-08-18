@@ -45,7 +45,7 @@
                                     <Image Source="{Binding Converter={x:Static converts:AiModelTypeConverters.ToIcon}}"
                                            Stretch="UniformToFill" />
                                 </Border>
-                                <TextBlock Text="{Binding}"
+                                <TextBlock Text="{Binding Converter={x:Static converts:AiModelTypeConverters.ToDisplayName}}"
                                            VerticalAlignment="Center"
                                            Foreground="{DynamicResource ForegroundColor}" />
                             </StackPanel>

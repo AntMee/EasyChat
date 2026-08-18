@@ -40,7 +40,28 @@ public enum AiModelType
     Gemini = 1,
     Claude = 2,
     DeepSeek = 3,
-    Custom = 4
+    Custom = 4,
+    Qwen = 5,
+    Zhipu = 6,
+    Moonshot = 7,
+    Doubao = 8,
+    MiniMax = 9,
+    Hunyuan = 10,
+    Grok = 11,
+    Mistral = 12,
+    Qianfan = 13,
+    Spark = 14,
+    StepFun = 15,
+    ModelScope = 16,
+    SiliconFlow = 17,
+    XiaomiMimo = 18,
+    OpenRouter = 19,
+    Together = 20,
+    Fireworks = 21,
+    Groq = 22,
+    Cerebras = 23,
+    DeepInfra = 24,
+    NvidiaNim = 25
 }
 
 public enum TextAssistShortcutMode
