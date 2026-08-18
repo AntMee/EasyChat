@@ -22,6 +22,14 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
     private const string TextAssistFileName = "TextAssist.json";
     private const string OcrFileName = "Ocr.json";
 
+    // Older settings files may contain null for fields that were introduced as
+    // non-nullable values. Ignore those values so the DTO's compatibility
+    // defaults remain in effect during deserialization.
+    private static readonly JsonSerializerSettings ReadSerializerSettings = new()
+    {
+        NullValueHandling = NullValueHandling.Ignore
+    };
+
     private readonly Func<string> _configurationDirectory;
     private readonly ISettingsFileStore _fileStore;
     private readonly BuiltInPromptAssetReader _builtInPromptAssetReader;
@@ -315,7 +323,7 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var dto = JsonConvert.DeserializeObject<T>(json)
+        var dto = JsonConvert.DeserializeObject<T>(json, ReadSerializerSettings)
                   ?? throw new JsonSerializationException(
                       $"Configuration file '{fileName}' deserialized to null.");
         cancellationToken.ThrowIfCancellationRequested();
@@ -345,7 +353,7 @@ public sealed class JsonSettingsPersistenceGateway : ISettingsPersistenceGateway
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var dto = JsonConvert.DeserializeObject<PromptSettingsDto>(json)
+        var dto = JsonConvert.DeserializeObject<PromptSettingsDto>(json, ReadSerializerSettings)
                   ?? throw new JsonSerializationException(
                       $"Configuration file '{fileName}' deserialized to null.");
         cancellationToken.ThrowIfCancellationRequested();

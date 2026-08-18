@@ -785,6 +785,9 @@ internal static class SettingsPersistenceMapper
 
     private static TextAssistSettingsDto ToDto(TextAssistSettings source) => new()
     {
+        // FollowGlobal is a legacy compatibility flag. The normalized contract
+        // stores inheritance through the individual option identifiers instead.
+        FollowGlobal = null,
         SourceLanguageId = source.SourceLanguageId,
         TargetLanguageId = source.TargetLanguageId,
         Provider = source.Provider,

@@ -462,7 +462,8 @@ internal sealed class TtsSettingsDto
 [JsonObject(MemberSerialization.OptIn)]
 internal sealed class TextAssistSettingsDto
 {
-    [JsonProperty]
+    // Legacy aggregate flag; current defaults are represented by the option IDs below.
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public bool? FollowGlobal { get; set; }
 
     [JsonProperty]
