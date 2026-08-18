@@ -16,6 +16,12 @@ public enum SelectionTranslationSource
     Machine
 }
 
+public enum SelectionTranslationConfigurationScope
+{
+    Selection,
+    Global
+}
+
 public sealed record SelectionTranslationRequest(
     string Text,
     TranslationLanguage Source,
@@ -102,7 +108,19 @@ public interface ISelectionTranslationUseCases
         SelectionTranslationRequest request,
         CancellationToken cancellationToken = default);
 
+    IAsyncEnumerable<SelectionTranslationEvent> StreamAsync(
+        SelectionTranslationRequest request,
+        SelectionTranslationConfigurationScope configurationScope,
+        CancellationToken cancellationToken = default) =>
+        StreamAsync(request, cancellationToken);
+
     IAsyncEnumerable<SelectionTranslationEvent> StreamDictionaryAsync(
         SelectionTranslationRequest request,
         CancellationToken cancellationToken = default);
+
+    IAsyncEnumerable<SelectionTranslationEvent> StreamDictionaryAsync(
+        SelectionTranslationRequest request,
+        SelectionTranslationConfigurationScope configurationScope,
+        CancellationToken cancellationToken = default) =>
+        StreamDictionaryAsync(request, cancellationToken);
 }

@@ -1,5 +1,6 @@
 using Avalonia.Threading;
 using EasyChat.Contracts.Platform;
+using EasyChat.Contracts.SelectionTranslation;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
 using ShadUI;
@@ -63,7 +64,8 @@ public sealed class ScreenshotResultCoordinator(
             text,
             completionPoint,
             showCloseButton: true,
-            cancellationToken);
+            cancellationToken: cancellationToken,
+            configurationScope: SelectionTranslationConfigurationScope.Global);
 
     public ValueTask<ScreenshotImageResultSession> OpenImageAsync(
         ImageFrame image,

@@ -72,7 +72,7 @@ Emit events in exactly the documented order and always finish with `{"event":"do
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var source = UsesMachineProvider()
+        var source = UsesMachineProvider(SelectionTranslationConfigurationScope.Selection)
             ? SelectionTranslationSource.Machine
             : SelectionTranslationSource.Ai;
         var accumulator = new SelectionTranslationResultAccumulator(request.Text, source);
@@ -83,38 +83,60 @@ Emit events in exactly the documented order and always finish with `{"event":"do
 
     public IAsyncEnumerable<SelectionTranslationEvent> StreamAsync(
         SelectionTranslationRequest request,
+        CancellationToken cancellationToken = default) =>
+        StreamAsync(request, SelectionTranslationConfigurationScope.Selection, cancellationToken);
+
+    public IAsyncEnumerable<SelectionTranslationEvent> StreamAsync(
+        SelectionTranslationRequest request,
+        SelectionTranslationConfigurationScope configurationScope,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return UsesMachineProvider()
-            ? StreamMachineAsync(request, cancellationToken)
-            : StreamAiAsync(request, forceWordMode: false, cancellationToken);
+        return UsesMachineProvider(configurationScope)
+            ? StreamMachineAsync(request, cancellationToken, configurationScope, forceWordMode: false)
+            : StreamAiAsync(request, false, configurationScope, cancellationToken);
     }
 
     public IAsyncEnumerable<SelectionTranslationEvent> StreamDictionaryAsync(
         SelectionTranslationRequest request,
+        CancellationToken cancellationToken = default) =>
+        StreamDictionaryAsync(request, SelectionTranslationConfigurationScope.Selection, cancellationToken);
+
+    public IAsyncEnumerable<SelectionTranslationEvent> StreamDictionaryAsync(
+        SelectionTranslationRequest request,
+        SelectionTranslationConfigurationScope configurationScope,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return StreamAiAsync(request, forceWordMode: true, cancellationToken);
+        return UsesMachineProvider(configurationScope)
+            ? StreamMachineAsync(request, cancellationToken, configurationScope, forceWordMode: true)
+            : StreamAiAsync(request, true, configurationScope, cancellationToken);
     }
 
     private async IAsyncEnumerable<SelectionTranslationEvent> StreamAiAsync(
         SelectionTranslationRequest request,
         bool forceWordMode,
+        SelectionTranslationConfigurationScope configurationScope,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var config = _settings.Current.SelectionTranslation;
-        var general = _settings.Current.General;
+        var settings = _settings.Current;
+        var config = configurationScope == SelectionTranslationConfigurationScope.Selection
+            ? settings.SelectionTranslation
+            : null;
+        var general = settings.General;
         var resolved = _providers.CreatePreferredAi(
-            TranslationConfigurationResolver.ResolveAiModelId(config.AiModelId, general),
+            config is null
+                ? general.AiModelId ?? general.AiModel
+                : TranslationConfigurationResolver.ResolveAiModelId(config.AiModelId, general),
             useGlobalFallback: true,
             useFirstFallback: true);
-        if (config.AiModelId != TranslationConfigurationOptionIds.FollowGlobal)
+        if (config is not null && config.AiModelId != TranslationConfigurationOptionIds.FollowGlobal)
             PersistResolvedModel(config, resolved.Configuration.Id);
 
         var configuredPrompt = _providers.ResolveOptionalPromptRole(
-            TranslationConfigurationResolver.ResolvePromptId(config.PromptId, _settings.Current.Prompts));
+            config is null
+                ? null
+                : TranslationConfigurationResolver.ResolvePromptId(config.PromptId, settings.Prompts));
         var prompt = SystemPromptTemplate
                      + (string.IsNullOrWhiteSpace(configuredPrompt)
                          ? string.Empty
@@ -174,14 +196,22 @@ Emit the documented word-mode events only; never emit sentence-mode translation_
 
     private async IAsyncEnumerable<SelectionTranslationEvent> StreamMachineAsync(
         SelectionTranslationRequest request,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken,
+        SelectionTranslationConfigurationScope configurationScope,
+        bool forceWordMode)
     {
         var settings = _settings.Current;
-        var config = settings.SelectionTranslation;
-        var providerName = TranslationConfigurationResolver.ResolveMachineProvider(
-            config.MachineProvider,
-            settings.General,
-            MachineTranslationProviderNames.Baidu);
+        var config = configurationScope == SelectionTranslationConfigurationScope.Selection
+            ? settings.SelectionTranslation
+            : null;
+        var providerName = config is null
+            ? settings.General.MachineTranslationId
+              ?? settings.General.MachineTranslation
+              ?? MachineTranslationProviderNames.Baidu
+            : TranslationConfigurationResolver.ResolveMachineProvider(
+                config.MachineProvider,
+                settings.General,
+                MachineTranslationProviderNames.Baidu);
         var resolved = _providers.CreateMachine(null, providerName);
         _logger.LogInformation("Using machine selection translation provider: {Provider}", resolved.Configuration.Name);
         var translated = await resolved.Provider.TranslateAsync(
@@ -191,7 +221,7 @@ Emit the documented word-mode events only; never emit sentence-mode translation_
                 ResolveLanguageCode(request.Target, resolved.Configuration.Name)),
             cancellationToken).ConfigureAwait(false);
 
-        if (!request.Text.Trim().Contains(' ') && request.Text.Length < 20)
+        if (forceWordMode || (!request.Text.Trim().Contains(' ') && request.Text.Length < 20))
         {
             yield return new SelectionTranslationStartedEvent(SelectionTranslationMode.Word);
             yield return new SelectionTranslationWordHeaderEvent(request.Text, null);
@@ -205,13 +235,15 @@ Emit the documented word-mode events only; never emit sentence-mode translation_
         yield return new SelectionTranslationCompletedEvent();
     }
 
-    private bool UsesMachineProvider()
+    private bool UsesMachineProvider(SelectionTranslationConfigurationScope configurationScope)
     {
         var settings = _settings.Current;
-        var provider = TranslationConfigurationResolver.ResolveProvider(
-            settings.SelectionTranslation.Provider,
-            settings.General,
-            TranslationEngineNames.AiModel);
+        var provider = configurationScope == SelectionTranslationConfigurationScope.Global
+            ? settings.General.TranslationEngine ?? TranslationEngineNames.AiModel
+            : TranslationConfigurationResolver.ResolveProvider(
+                settings.SelectionTranslation.Provider,
+                settings.General,
+                TranslationEngineNames.AiModel);
         return string.Equals(provider, TranslationEngineNames.MachineTrans, StringComparison.OrdinalIgnoreCase)
                || string.Equals(provider, "Machine", StringComparison.OrdinalIgnoreCase);
     }

@@ -23,6 +23,14 @@ public interface ITranslationWindowCoordinator
         bool showCloseButton = true,
         CancellationToken cancellationToken = default);
 
+    ValueTask ShowSentenceAsync(
+        string text,
+        PhysicalScreenPoint? anchor,
+        bool showCloseButton,
+        SelectionTranslationConfigurationScope configurationScope,
+        CancellationToken cancellationToken = default) =>
+        ShowSentenceAsync(text, anchor, showCloseButton, cancellationToken);
+
     ValueTask ShowDictionaryAsync(
         string text,
         string sourceLanguageId,
@@ -61,13 +69,26 @@ public sealed class TranslationWindowCoordinator(
         string text,
         PhysicalScreenPoint? anchor = null,
         bool showCloseButton = true,
+        CancellationToken cancellationToken = default) =>
+        await ShowSentenceAsync(
+            text,
+            anchor,
+            showCloseButton,
+            SelectionTranslationConfigurationScope.Selection,
+            cancellationToken);
+
+    public async ValueTask ShowSentenceAsync(
+        string text,
+        PhysicalScreenPoint? anchor,
+        bool showCloseButton,
+        SelectionTranslationConfigurationScope configurationScope,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(text))
             return;
 
         var window = await ShowShellAsync(anchor, centerOnScreen: false, showCloseButton, cancellationToken);
-        await window.ViewModel.InitializeAsync(text);
+        await window.ViewModel.InitializeAsync(text, configurationScope);
         if (anchor is { } point)
             await OnUiAsync(() => PositionNearIfUnadjusted(window.View, point), cancellationToken);
     }

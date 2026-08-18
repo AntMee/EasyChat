@@ -37,6 +37,8 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
     private bool _isSourceTtsLoading;
     private bool _isResultTtsLoading;
     private int _loadingOperations;
+    private SelectionTranslationConfigurationScope _configurationScope =
+        SelectionTranslationConfigurationScope.Selection;
     private DictionaryResultViewModel? _dictionaryResult;
     private ObservableCollection<TextToken> _sourceTokens = [];
 
@@ -123,13 +125,21 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
     public ReactiveCommand<object?, Unit> PlaySourceAudioCommand { get; }
     public ReactiveCommand<object?, Unit> PlayTargetAudioCommand { get; }
 
-    public Task InitializeAsync(string text) => InitializeAsync(
+    public Task InitializeAsync(
+        string text,
+        SelectionTranslationConfigurationScope configurationScope = SelectionTranslationConfigurationScope.Selection) => InitializeAsync(
         text,
         _settings.General.SourceLanguage.Id,
-        _settings.General.TargetLanguage.Id);
+        _settings.General.TargetLanguage.Id,
+        configurationScope);
 
-    public async Task InitializeAsync(string text, string sourceLanguageId, string targetLanguageId)
+    public async Task InitializeAsync(
+        string text,
+        string sourceLanguageId,
+        string targetLanguageId,
+        SelectionTranslationConfigurationScope configurationScope = SelectionTranslationConfigurationScope.Selection)
     {
+        _configurationScope = configurationScope;
         SetLanguageDirection(sourceLanguageId, targetLanguageId);
         SourceText = text;
         _sentenceTranslationSnapshot = null;
@@ -149,8 +159,13 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
         }
     }
 
-    public async Task InitializeDictionaryAsync(string text, string sourceLanguageId, string targetLanguageId)
+    public async Task InitializeDictionaryAsync(
+        string text,
+        string sourceLanguageId,
+        string targetLanguageId,
+        SelectionTranslationConfigurationScope configurationScope = SelectionTranslationConfigurationScope.Selection)
     {
+        _configurationScope = configurationScope;
         SetLanguageDirection(sourceLanguageId, targetLanguageId);
         SourceText = text;
         IsWordMode = true;
@@ -181,8 +196,8 @@ public sealed class TranslationDictionaryWindowViewModel : EasyChat.Presentation
             _languages.Get(_sourceLanguageId),
             _languages.Get(_targetLanguageId));
         var stream = dictionary
-            ? _translation.StreamDictionaryAsync(request)
-            : _translation.StreamAsync(request);
+            ? _translation.StreamDictionaryAsync(request, configurationScope: _configurationScope)
+            : _translation.StreamAsync(request, configurationScope: _configurationScope);
         await foreach (var item in stream)
             await Dispatcher.UIThread.InvokeAsync(() => Apply(item, canNavigateBack, dictionary));
     }
