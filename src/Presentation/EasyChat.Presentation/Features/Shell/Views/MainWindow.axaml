@@ -61,11 +61,6 @@
 
     </shad:Window.Styles>
 
-    <Design.DataContext>
-        <!-- ReSharper disable once Xaml.ConstructorWarning -->
-        <vm:MainWindowViewModel />
-    </Design.DataContext>
-
     <shad:Window.LogoContent>
         <Border Width="28" Height="28"
                 CornerRadius="8"

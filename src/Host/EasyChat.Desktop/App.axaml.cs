@@ -20,7 +20,7 @@ using ShadUI;
 namespace EasyChat.Desktop;
 
 public sealed partial class App(
-    Func<DesktopUiContext> createUiContext,
+    Func<DesktopUiContext>? createUiContext,
     Action<Action>? registerActivationHandler = null,
     bool startInTray = false) : Avalonia.Application
 {
@@ -28,9 +28,9 @@ public sealed partial class App(
     private const int TrayMenuGlyphSize = 34;
 
     public App()
-        : this(null!, null) =>
-        throw new InvalidOperationException(
-            "App must be created by DesktopApplication with explicit dependencies.");
+        : this(null, null)
+    {
+    }
 
     private DesktopUiContext? _ui;
     private TrayIcon? _trayIcon;
@@ -48,6 +48,13 @@ public sealed partial class App(
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            if (createUiContext is null)
+            {
+                desktop.MainWindow = new MainWindow();
+                base.OnFrameworkInitializationCompleted();
+                return;
+            }
+
             var ui = createUiContext();
             _ui = ui;
             _desktop = desktop;
