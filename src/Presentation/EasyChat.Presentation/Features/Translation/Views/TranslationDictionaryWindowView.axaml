@@ -238,10 +238,14 @@
                     </Grid>
                 </Border>
                 
-                <!-- Main content grows to its natural height, then scrolls like the original dictionary window. -->
+                <!-- Main content fills the available window height and scrolls only when needed. -->
                 <Panel Grid.Row="1">
                     <Border Background="{DynamicResource CardBackgroundColor}">
-                        <ScrollViewer x:Name="ContentScrollViewer" MaxHeight="400"
+                        <ScrollViewer x:Name="ContentScrollViewer"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch"
+                                      HorizontalContentAlignment="Stretch"
+                                      VerticalContentAlignment="Top"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
                     <Panel>
