@@ -41,7 +41,7 @@ public sealed class AiModelEditDialogViewModelTests
             [AiModelType.StepFun] = ("https://api.stepfun.com/v1", "阶跃星辰"),
             [AiModelType.ModelScope] = ("https://api-inference.modelscope.cn/v1", "魔搭 ModelScope"),
             [AiModelType.SiliconFlow] = ("https://api.siliconflow.cn/v1", "硅基流动"),
-            [AiModelType.XiaomiMimo] = ("https://api.xiaomimimo.com/v1", "小米 MiMo"),
+            [AiModelType.XiaomiMimo] = ("https://api.xiaomimimo.com/v1", "XiaoMi"),
             [AiModelType.OpenRouter] = ("https://openrouter.ai/api/v1", "OpenRouter"),
             [AiModelType.Together] = ("https://api.together.xyz/v1", "Together AI"),
             [AiModelType.Fireworks] = ("https://api.fireworks.ai/inference/v1", "Fireworks AI"),

@@ -57,18 +57,21 @@
             <StackPanel>
                 <TextBlock Classes="Small" Margin="0,0,0,6" Text="{x:Static lang:Resources.ModelName}" />
                 <TextBox Text="{Binding Name}"
+                         MaxWidth="396"
                          Classes="Clearable" />
             </StackPanel>
 
             <StackPanel>
                 <TextBlock Classes="Small" Margin="0,0,0,6" Text="API URL" />
                 <TextBox Text="{Binding ApiUrl}"
+                         MaxWidth="396"
                          Classes="Clearable" />
             </StackPanel>
 
             <StackPanel>
                 <TextBlock Classes="Small" Margin="0,0,0,6" Text="API Key" />
                 <TextBox Text="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         MaxWidth="396"
                          PasswordChar="*"
                          Classes="Clearable" />
             </StackPanel>
@@ -104,9 +107,7 @@
                                 Focusable="False"
                                 IsTabStop="False"
                                 shad:ButtonAssist.HoverBackground="Transparent"
-                                Click="OnModelDropDownButtonClick"
-                                ToolTip.Tip="{x:Static lang:Resources.SelectModelPlaceholder}"
-                                ToolTip.Placement="Top">
+                                Click="OnModelDropDownButtonClick">
                             <Panel>
                                 <avalonia:MaterialIcon Kind="ChevronDown"
                                                        Width="16" Height="16"
@@ -144,6 +145,7 @@
 
             <shad:Card IsVisible="{Binding IsModelConfirmationRequired}"
                        HasShadow="False"
+                       MaxWidth="350"
                        Padding="10,8"
                        Background="{DynamicResource GhostColor}"
                        BorderBrush="{DynamicResource WarningColor}">
@@ -153,6 +155,7 @@
                                            Foreground="{DynamicResource WarningColor}" />
                     <TextBlock Grid.Column="1"
                                Text="{Binding ModelConfirmationMessage}"
+                               MaxWidth="350"
                                TextWrapping="Wrap"
                                Foreground="{DynamicResource ForegroundColor}" />
                 </Grid>

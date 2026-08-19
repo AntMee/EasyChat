@@ -46,7 +46,7 @@ public static class AiModelTypeConverters
         AiModelType.StepFun => ("阶跃星辰", "StepFun"),
         AiModelType.ModelScope => ("魔搭 ModelScope", "ModelScope"),
         AiModelType.SiliconFlow => ("硅基流动", "SiliconFlow"),
-        AiModelType.XiaomiMimo => ("小米 MiMo", "Xiaomi MiMo"),
+        AiModelType.XiaomiMimo => ("小米", "XiaoMi"),
         AiModelType.OpenRouter => ("OpenRouter", "OpenRouter"),
         AiModelType.Together => ("Together AI", "Together AI"),
         AiModelType.Fireworks => ("Fireworks AI", "Fireworks AI"),
