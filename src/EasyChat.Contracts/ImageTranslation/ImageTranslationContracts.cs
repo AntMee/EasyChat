@@ -18,7 +18,10 @@ public sealed record ImageTranslationResult(
     int DetectedBlockCount,
     int TranslatedBlockCount);
 
-public sealed record ImageTranslationOverlay(OcrTextRegion Region, string Translation);
+public sealed record ImageTranslationOverlay(
+    OcrTextRegion Region,
+    string Translation,
+    IReadOnlyList<OcrTextRegion>? EraseRegions = null);
 
 public enum ImageTextEraseMode
 {
@@ -47,7 +50,9 @@ public sealed record ImageRegionTranslationRequest(
 
 public sealed record ImageRegionTranslation(
     int RegionIndex,
-    string Translation);
+    string Translation,
+    OcrTextRegion? RenderRegion = null,
+    IReadOnlyList<OcrTextRegion>? EraseRegions = null);
 
 public sealed record ImageRegionTranslationResult(
     IReadOnlyList<ImageRegionTranslation> Translations,

@@ -143,6 +143,11 @@ internal static class WindowsOpenCvImageBackgroundCleaner
 {
     private const int AotGanInputSize = 512;
     private const double TexturedBackgroundEdgeDensity = 0.035;
+    private const double FlatBackgroundMaximumStdDev = 6;
+    private const int FlatBackgroundMinimumValidPixels = 64;
+    private const int FlatBackgroundColorTolerance = 12;
+    private const int FlatBackgroundMaximumExpansionDistance = 360;
+    private const double FlatBackgroundMinimumInlierRatio = 0.75;
     private const int FsrBestMaximumPixels = 4_096;
     private const int FsrFastMaximumPixels = 65_536;
 
@@ -183,6 +188,8 @@ internal static class WindowsOpenCvImageBackgroundCleaner
             .OrderBy(value => value)
             .ToArray();
         var medianHeight = heights[heights.Length / 2];
+        if (mode == ImageTextEraseMode.Fast)
+            ExpandFlatBackgroundEdges(bgr, mask, medianHeight);
 
         using var inpainted = mode switch
         {
@@ -191,7 +198,7 @@ internal static class WindowsOpenCvImageBackgroundCleaner
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown image erase mode.")
         };
 
-        var stride = checked(source.Width * 4);
+        var stride = source.Stride;
         var outputPixels = sourcePixels.ToArray();
         for (var row = 0; row < source.Height; row++)
         for (var column = 0; column < source.Width; column++)
@@ -223,50 +230,213 @@ internal static class WindowsOpenCvImageBackgroundCleaner
         {
             using var sourceRegion = new Mat(bgr, region);
             using var maskedRegion = new Mat(mask, region);
-            using var reconstructed = new Mat();
-            var strategy = SelectFastInpaintStrategy(
-                sourceRegion,
-                maskedRegion,
-                region.Width * region.Height);
-
-            switch (strategy)
-            {
-                case FastInpaintStrategy.Telea:
-                    Cv2.Inpaint(
-                        sourceRegion,
-                        maskedRegion,
-                        reconstructed,
-                        Math.Max(3, medianHeight / 10d),
-                        InpaintMethod.Telea);
-                    break;
-
-                case FastInpaintStrategy.FsrFast:
-                    InpaintFsr(
-                        sourceRegion,
-                        maskedRegion,
-                        reconstructed,
-                        InpaintTypes.FSR_FAST,
-                        FsrFastMaximumPixels);
-                    break;
-
-                case FastInpaintStrategy.FsrBest:
-                    InpaintFsr(
-                        sourceRegion,
-                        maskedRegion,
-                        reconstructed,
-                        InpaintTypes.FSR_BEST,
-                        FsrBestMaximumPixels);
-                    break;
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(strategy), strategy, "Unknown fast inpaint strategy.");
-            }
-
+            var localTextHeight = GetMaskHeight(maskedRegion, medianHeight);
+            using var reconstructed = TryFillFlatBackground(sourceRegion, maskedRegion)
+                                      ?? InpaintTexturedBackground(
+                                          sourceRegion,
+                                          maskedRegion,
+                                          region.Width * region.Height,
+                                          localTextHeight);
             using var outputRegion = new Mat(inpainted, region);
             reconstructed.CopyTo(outputRegion, maskedRegion);
         }
 
         return inpainted;
+    }
+
+    private static Mat? TryFillFlatBackground(Mat source, Mat erasedMask)
+    {
+        if (!TryEstimateFlatBackground(source, erasedMask, out var background))
+            return null;
+
+        var result = source.Clone();
+        using var fill = new Mat(source.Size(), source.Type(), background);
+        fill.CopyTo(result, erasedMask);
+        return result;
+    }
+
+    private static void ExpandFlatBackgroundEdges(Mat source, Mat mask, double medianHeight)
+    {
+        var expansion = Math.Clamp((int)Math.Round(medianHeight * 0.06), 1, 2);
+        using var kernel = Cv2.GetStructuringElement(
+            MorphShapes.Rect,
+            new Size(expansion * 2 + 1, expansion * 2 + 1));
+        var components = GetInpaintRegions(mask, 0).ToArray();
+        var contextPadding = Math.Clamp((int)Math.Round(medianHeight * 1.5), 18, 64);
+
+        foreach (var component in components)
+        {
+            var context = ExpandAndClamp(component, contextPadding, source.Size());
+            using var sourceRegion = new Mat(source, context);
+            using var maskedRegion = new Mat(mask, context);
+            if (!TryEstimateFlatBackground(sourceRegion, maskedRegion, out var background))
+                continue;
+
+            using var expanded = new Mat();
+            Cv2.Dilate(maskedRegion, expanded, kernel);
+            for (var y = 0; y < expanded.Rows; y++)
+            for (var x = 0; x < expanded.Cols; x++)
+            {
+                if (maskedRegion.At<byte>(y, x) != 0
+                    || expanded.At<byte>(y, x) == 0)
+                    continue;
+
+                var pixel = sourceRegion.At<Vec3b>(y, x);
+                var distance = ColorDistance(pixel, background);
+                if (distance < FlatBackgroundColorTolerance
+                    || distance > FlatBackgroundMaximumExpansionDistance)
+                    continue;
+
+                mask.At<byte>(context.Y + y, context.X + x) = 255;
+            }
+        }
+    }
+
+    private static bool TryEstimateFlatBackground(
+        Mat source,
+        Mat erasedMask,
+        out Scalar background)
+    {
+        background = default;
+        using var validMask = new Mat();
+        Cv2.BitwiseNot(erasedMask, validMask);
+        var validPixelCount = Cv2.CountNonZero(validMask);
+        if (validPixelCount < FlatBackgroundMinimumValidPixels)
+            return false;
+
+        var blueHistogram = new int[256];
+        var greenHistogram = new int[256];
+        var redHistogram = new int[256];
+        for (var y = 0; y < source.Rows; y++)
+        for (var x = 0; x < source.Cols; x++)
+        {
+            if (validMask.At<byte>(y, x) == 0)
+                continue;
+
+            var pixel = source.At<Vec3b>(y, x);
+            blueHistogram[pixel.Item0]++;
+            greenHistogram[pixel.Item1]++;
+            redHistogram[pixel.Item2]++;
+        }
+
+        var median = new Vec3d(
+            FindHistogramMedian(blueHistogram, validPixelCount),
+            FindHistogramMedian(greenHistogram, validPixelCount),
+            FindHistogramMedian(redHistogram, validPixelCount));
+        var inlierCount = 0;
+        var sums = new Vec3d();
+        var squaredSums = new Vec3d();
+        for (var y = 0; y < source.Rows; y++)
+        for (var x = 0; x < source.Cols; x++)
+        {
+            if (validMask.At<byte>(y, x) == 0)
+                continue;
+
+            var pixel = source.At<Vec3b>(y, x);
+            if (Math.Abs(pixel.Item0 - median.Item0) > FlatBackgroundColorTolerance
+                || Math.Abs(pixel.Item1 - median.Item1) > FlatBackgroundColorTolerance
+                || Math.Abs(pixel.Item2 - median.Item2) > FlatBackgroundColorTolerance)
+                continue;
+
+            inlierCount++;
+            sums.Item0 += pixel.Item0;
+            sums.Item1 += pixel.Item1;
+            sums.Item2 += pixel.Item2;
+            squaredSums.Item0 += pixel.Item0 * pixel.Item0;
+            squaredSums.Item1 += pixel.Item1 * pixel.Item1;
+            squaredSums.Item2 += pixel.Item2 * pixel.Item2;
+        }
+
+        if (inlierCount < validPixelCount * FlatBackgroundMinimumInlierRatio)
+            return false;
+
+        var blueMean = sums.Item0 / inlierCount;
+        var greenMean = sums.Item1 / inlierCount;
+        var redMean = sums.Item2 / inlierCount;
+        var blueVariance = Math.Max(0, squaredSums.Item0 / inlierCount - blueMean * blueMean);
+        var greenVariance = Math.Max(0, squaredSums.Item1 / inlierCount - greenMean * greenMean);
+        var redVariance = Math.Max(0, squaredSums.Item2 / inlierCount - redMean * redMean);
+        var maximumStandardDeviation = Math.Sqrt(Math.Max(
+            blueVariance,
+            Math.Max(greenVariance, redVariance)));
+        if (maximumStandardDeviation > FlatBackgroundMaximumStdDev)
+            return false;
+
+        background = new Scalar(blueMean, greenMean, redMean);
+        return true;
+    }
+
+    private static int FindHistogramMedian(IReadOnlyList<int> histogram, int sampleCount)
+    {
+        var midpoint = (sampleCount - 1) / 2;
+        var cumulative = 0;
+        for (var value = 0; value < histogram.Count; value++)
+        {
+            cumulative += histogram[value];
+            if (cumulative > midpoint)
+                return value;
+        }
+
+        return histogram.Count - 1;
+    }
+
+    private static double ColorDistance(Vec3b pixel, Scalar background)
+    {
+        var blue = pixel.Item0 - background.Val0;
+        var green = pixel.Item1 - background.Val1;
+        var red = pixel.Item2 - background.Val2;
+        return Math.Sqrt(blue * blue + green * green + red * red);
+    }
+
+    private static Mat InpaintTexturedBackground(
+        Mat source,
+        Mat erasedMask,
+        int pixelCount,
+        double medianHeight)
+    {
+        var strategy = SelectFastInpaintStrategy(source, erasedMask, pixelCount);
+        var reconstructed = new Mat();
+        switch (strategy)
+        {
+            case FastInpaintStrategy.Telea:
+                Cv2.Inpaint(
+                    source,
+                    erasedMask,
+                    reconstructed,
+                    Math.Max(3, medianHeight / 10d),
+                    InpaintMethod.Telea);
+                break;
+
+            case FastInpaintStrategy.FsrFast:
+                InpaintFsr(
+                    source,
+                    erasedMask,
+                    reconstructed,
+                    InpaintTypes.FSR_FAST,
+                    FsrFastMaximumPixels);
+                break;
+
+            case FastInpaintStrategy.FsrBest:
+                InpaintFsr(
+                    source,
+                    erasedMask,
+                    reconstructed,
+                    InpaintTypes.FSR_BEST,
+                    FsrBestMaximumPixels);
+                break;
+
+            default:
+                reconstructed.Dispose();
+                throw new ArgumentOutOfRangeException(nameof(strategy), strategy, "Unknown fast inpaint strategy.");
+        }
+
+        return reconstructed;
+    }
+
+    private static double GetMaskHeight(Mat mask, double fallback)
+    {
+        var bounds = Cv2.BoundingRect(mask);
+        return bounds.Height > 0 ? bounds.Height : Math.Max(1, fallback);
     }
 
     private static void InpaintFsr(

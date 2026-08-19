@@ -67,7 +67,7 @@ public sealed class ScreenshotUseCases(
             : TryGetTranslationLanguage(sourceLanguage.Id)
               ?? _languages.Get(general.SourceLanguage.Id);
         var request = new TranslationRequest(
-            text,
+            NormalizeOcrTextForTranslation(text),
             source,
             _languages.Get(general.TargetLanguage.Id));
         await foreach (var item in _translation.StreamAsync(request, cancellationToken)
@@ -111,5 +111,13 @@ public sealed class ScreenshotUseCases(
         {
             return null;
         }
+    }
+
+    private static string NormalizeOcrTextForTranslation(string text)
+    {
+        var lines = text
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return string.Join(" ", lines);
     }
 }

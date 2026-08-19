@@ -20,6 +20,19 @@ public sealed class AvaloniaImageTranslationRendererTests
     }
 
     [TestMethod]
+    public void CalculatePreferredFontSize_UsesOriginalLineHeightForMergedParagraphs()
+    {
+        var mergedBounds = new Rect(0, 0, 300, 120);
+
+        var fontSize = AvaloniaImageTranslationRenderer.CalculatePreferredFontSize(
+            mergedBounds,
+            0,
+            sourceLineCount: 3);
+
+        Assert.AreEqual(mergedBounds.Height / 3 * 0.72, fontSize, 0.001);
+    }
+
+    [TestMethod]
     public void SelectContrastingForeground_UsesBlackForAnUnreadableLightForegroundOnLightBackground()
     {
         var selected = AvaloniaImageTranslationRenderer.SelectContrastingForeground(

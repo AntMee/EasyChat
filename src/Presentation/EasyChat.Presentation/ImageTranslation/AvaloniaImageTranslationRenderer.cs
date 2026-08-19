@@ -51,7 +51,9 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
             overlay => AnalyzeStyle(source, overlay.Region));
         var backgroundFrame = await _backgroundCleaner.RemoveTextAsync(
             source,
-            renderable.Select(overlay => overlay.Region).ToArray(),
+            renderable
+                .SelectMany(overlay => overlay.EraseRegions ?? [overlay.Region])
+                .ToArray(),
             options.EraseMode,
             cancellationToken).ConfigureAwait(false);
 
@@ -77,7 +79,10 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
                     overlay.Translation,
                     boxWidth,
                     boxHeight,
-                    CalculatePreferredFontSize(new Rect(0, 0, boxWidth, boxHeight), overlay.Region.Angle),
+                    CalculatePreferredFontSize(
+                        new Rect(0, 0, boxWidth, boxHeight),
+                        overlay.Region.Angle,
+                        CountSourceLines(overlay.Region.Text)),
                     brush);
                 var center = new Point(
                     geometry.Center.X * pixelToDip.X,
@@ -114,6 +119,24 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         // The short edge is text height for both horizontal and rotated text.
         return Math.Max(MinimumFontSize, originalBounds.Height * NominalFontHeightRatio);
     }
+
+    internal static double CalculatePreferredFontSize(
+        Rect originalBounds,
+        double angle,
+        int sourceLineCount)
+    {
+        var lineCount = Math.Max(1, sourceLineCount);
+        return CalculatePreferredFontSize(
+            new Rect(
+                originalBounds.X,
+                originalBounds.Y,
+                originalBounds.Width,
+                originalBounds.Height / lineCount),
+            angle);
+    }
+
+    private static int CountSourceLines(string text) =>
+        Math.Max(1, text.Replace("\r", string.Empty, StringComparison.Ordinal).Count(character => character == '\n') + 1);
 
     public static bool IsLayoutWithinBox(
         double layoutWidth,

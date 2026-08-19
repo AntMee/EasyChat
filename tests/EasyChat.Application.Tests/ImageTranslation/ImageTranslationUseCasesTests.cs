@@ -78,6 +78,172 @@ public sealed class ImageTranslationUseCasesTests
         Assert.AreEqual("fallback:second", result.Translations.Single(item => item.RegionIndex == 1).Translation);
     }
 
+    [TestMethod]
+    public async Task TranslateAsync_TranslatesEachRegionIndividually()
+    {
+        var renderer = new FakeRenderer();
+        var translator = new FakeTranslationUseCases();
+        var useCases = new ImageTranslationUseCases(
+            translator,
+            new FakeSettingsUseCases(MachineTranslationSettings()),
+            renderer);
+        var image = new ImageFrame(2, 2, 8, 96, 96, new byte[16]);
+
+        await useCases.TranslateAsync(new ImageTranslationRequest(
+            image,
+            new OcrRecognitionResult(
+            [
+                Region("first line", 10, 0),
+                Region("second line", 10, 5),
+                Region("third line", 10, 10)
+            ]),
+            null,
+            new TranslationLanguage("zh-Hans", "Chinese")));
+
+        CollectionAssert.AreEqual(
+            new[] { "first line", "second line", "third line" },
+            translator.Requests);
+        Assert.HasCount(3, renderer.Overlays);
+        CollectionAssert.AreEqual(
+            new[] { "translated:first line", "translated:second line", "translated:third line" },
+            renderer.Overlays.Select(overlay => overlay.Translation).ToArray());
+        Assert.IsTrue(renderer.Overlays.All(overlay => overlay.EraseRegions is null));
+    }
+
+    [TestMethod]
+    public async Task TranslateAsync_KeepsSeparateColumnsAsSeparateTranslationGroups()
+    {
+        var renderer = new FakeRenderer();
+        var translator = new FakeTranslationUseCases();
+        var useCases = new ImageTranslationUseCases(
+            translator,
+            new FakeSettingsUseCases(MachineTranslationSettings()),
+            renderer);
+        var image = new ImageFrame(2, 2, 8, 96, 96, new byte[16]);
+
+        await useCases.TranslateAsync(new ImageTranslationRequest(
+            image,
+            new OcrRecognitionResult(
+            [
+                Region("left top", 0, 0),
+                Region("right top", 100, 0),
+                Region("left bottom", 0, 5),
+                Region("right bottom", 100, 5)
+            ]),
+            null,
+            new TranslationLanguage("zh-Hans", "Chinese")));
+
+        CollectionAssert.AreEquivalent(
+            new[] { "left top", "right top", "left bottom", "right bottom" },
+            translator.Requests);
+        Assert.HasCount(4, renderer.Overlays);
+        CollectionAssert.AreEquivalent(
+            new[]
+            {
+                "translated:left top",
+                "translated:right top",
+                "translated:left bottom",
+                "translated:right bottom"
+            },
+            renderer.Overlays.Select(overlay => overlay.Translation).ToArray());
+    }
+
+    [TestMethod]
+    public async Task TranslateAsync_DoesNotCollapseAdjacentLines()
+    {
+        var renderer = new FakeRenderer();
+        var useCases = new ImageTranslationUseCases(
+            new CollapsingTranslationUseCases(),
+            new FakeSettingsUseCases(MachineTranslationSettings()),
+            renderer);
+        var image = new ImageFrame(2, 2, 8, 96, 96, new byte[16]);
+
+        var result = await useCases.TranslateAsync(new ImageTranslationRequest(
+            image,
+            new OcrRecognitionResult(
+            [
+                Region("first line", 10, 0),
+                Region("second line", 10, 5),
+                Region("third line", 10, 10)
+            ]),
+            null,
+            new TranslationLanguage("zh-Hans", "Chinese")));
+
+        Assert.HasCount(3, renderer.Overlays);
+        CollectionAssert.AreEqual(
+            new[] { "translated:first line", "translated:second line", "translated:third line" },
+            renderer.Overlays.Select(overlay => overlay.Translation).ToArray());
+        Assert.AreEqual(3, result.TranslatedBlockCount);
+    }
+
+    [TestMethod]
+    public async Task TranslateRegionsAsync_CombinesOnlySelectedAdjacentRegions()
+    {
+        var translator = new CollapsingTranslationUseCases();
+        var useCases = new ImageTranslationUseCases(
+            translator,
+            new FakeSettingsUseCases(MachineTranslationSettings()),
+            new FakeRenderer());
+        var recognition = new OcrRecognitionResult(
+        [
+                Region("first line", 10, 0),
+                Region("second line", 10, 5),
+                Region("third line", 10, 10)
+        ]);
+
+        var result = await useCases.TranslateRegionsAsync(
+            new ImageRegionTranslationRequest(
+                recognition,
+                [0, 1],
+                new TranslationLanguage("en", "English"),
+                new TranslationLanguage("zh-Hans", "Chinese")));
+
+        CollectionAssert.AreEqual(
+            new[] { "first line\nsecond line" },
+            translator.Requests);
+        Assert.HasCount(1, result.Translations);
+        Assert.AreEqual(0, result.Translations[0].RegionIndex);
+        Assert.IsNotNull(result.Translations[0].RenderRegion);
+        Assert.IsNotNull(result.Translations[0].EraseRegions);
+        Assert.HasCount(2, result.Translations[0].EraseRegions!);
+        Assert.IsFalse(translator.Requests[0].Contains("third line", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task TranslateAsync_DoesNotJoinNearbyTitleAndBodyRegions()
+    {
+        var renderer = new FakeRenderer();
+        var translator = new FakeTranslationUseCases();
+        var useCases = new ImageTranslationUseCases(
+            translator,
+            new FakeSettingsUseCases(MachineTranslationSettings()),
+            renderer);
+        var image = new ImageFrame(2, 2, 8, 96, 96, new byte[16]);
+
+        await useCases.TranslateAsync(new ImageTranslationRequest(
+            image,
+            new OcrRecognitionResult(
+            [
+                Region("Title", 10, 0),
+                Region("Body", 10, 8)
+            ]),
+            null,
+            new TranslationLanguage("zh-Hans", "Chinese")));
+
+        CollectionAssert.AreEqual(
+            new[] { "Title", "Body" },
+            translator.Requests);
+        Assert.HasCount(2, renderer.Overlays);
+    }
+
+    private static SettingsBundle MachineTranslationSettings() => SettingsTestData.CreateBundle() with
+    {
+        General = SettingsTestData.CreateBundle().General with
+        {
+            TranslationEngine = TranslationEngineNames.MachineTrans
+        }
+    };
+
     private static OcrTextRegion Region(string text, double x, double y) =>
         new(text,
         [
@@ -110,8 +276,10 @@ public sealed class ImageTranslationUseCasesTests
 
     private sealed class FakeTranslationUseCases : ITranslationUseCases
     {
+        public List<string> Requests { get; } = [];
+
         public ITranslationSession Prepare(TranslationProviderSelection? provider = null) =>
-            new FakeTranslationSession();
+            new FakeTranslationSession(Requests);
 
         public Task<Result<TranslationResponse>> TranslateAsync(
             TranslationRequest request,
@@ -128,14 +296,17 @@ public sealed class ImageTranslationUseCasesTests
         }
     }
 
-    private sealed class FakeTranslationSession : ITranslationSession
+    private sealed class FakeTranslationSession(ICollection<string>? requests = null) : ITranslationSession
     {
         public bool SupportsIdentifiedStreaming => false;
 
         public Task<TranslationResponse> TranslateAsync(
             TranslationRequest request,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult(new TranslationResponse($"translated:{request.Text}"));
+            CancellationToken cancellationToken = default)
+        {
+            requests?.Add(request.Text);
+            return Task.FromResult(new TranslationResponse($"translated:{request.Text}"));
+        }
 
         public async IAsyncEnumerable<TranslationEvent> StreamAsync(
             TranslationRequest request,
@@ -166,6 +337,56 @@ public sealed class ImageTranslationUseCasesTests
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public async IAsyncEnumerable<TranslationEvent> StreamAsync(
+            TranslationRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+    }
+
+    private sealed class CollapsingTranslationUseCases : ITranslationUseCases
+    {
+        public List<string> Requests { get; } = [];
+
+        public ITranslationSession Prepare(TranslationProviderSelection? provider = null) =>
+            new CollapsingTranslationSession(Requests);
+
+        public Task<Result<TranslationResponse>> TranslateAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public async IAsyncEnumerable<TranslationEvent> StreamAsync(
+            TranslationRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+    }
+
+    private sealed class CollapsingTranslationSession(ICollection<string> requests) : ITranslationSession
+    {
+        public bool SupportsIdentifiedStreaming => false;
+
+        public Task<TranslationResponse> TranslateAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            requests.Add(request.Text);
+            return Task.FromResult(new TranslationResponse(
+                $"translated:{request.Text.Replace("\n", " ", StringComparison.Ordinal)}"));
+        }
+
+        public async IAsyncEnumerable<TranslationEvent> StreamAsync(
+            TranslationRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            yield break;
+        }
+
+        public async IAsyncEnumerable<IdentifiedTranslationDelta> StreamIdentifiedAsync(
             TranslationRequest request,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {

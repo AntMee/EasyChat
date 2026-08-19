@@ -119,7 +119,7 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly object _stateGate = new();
     private readonly Dictionary<int, string> _active = [];
-    private readonly Dictionary<int, OcrTextRegion> _regions = [];
+    private readonly Dictionary<int, OverlayRegion> _regions = [];
     private readonly LinkedList<EditDelta> _undo = [];
     private readonly LinkedList<EditDelta> _redo = [];
     private long _historyTextBytes;
@@ -174,11 +174,11 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
             }
 
             Dictionary<int, string> current;
-            Dictionary<int, OcrTextRegion> regions;
+            Dictionary<int, OverlayRegion> regions;
             lock (_stateGate)
             {
                 current = new Dictionary<int, string>(_active);
-                regions = new Dictionary<int, OcrTextRegion>(_regions);
+                regions = new Dictionary<int, OverlayRegion>(_regions);
             }
 
             var before = new Dictionary<int, string?>();
@@ -191,7 +191,9 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
                 before[item.RegionIndex] = previous;
                 after[item.RegionIndex] = item.Translation;
                 current[item.RegionIndex] = item.Translation;
-                regions[item.RegionIndex] = recognition.Regions[item.RegionIndex];
+                regions[item.RegionIndex] = new OverlayRegion(
+                    item.RenderRegion ?? recognition.Regions[item.RegionIndex],
+                    item.EraseRegions);
             }
 
             if (after.Count == 0)
@@ -321,7 +323,7 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
             ThrowIfDisposed();
             EditDelta? delta;
             Dictionary<int, string> current;
-            Dictionary<int, OcrTextRegion> regions;
+            Dictionary<int, OverlayRegion> regions;
             lock (_stateGate)
             {
                 var source = undo ? _undo : _redo;
@@ -329,7 +331,7 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
                 if (delta is null)
                     return CurrentWithoutRendering();
                 current = new Dictionary<int, string>(_active);
-                regions = new Dictionary<int, OcrTextRegion>(_regions);
+                regions = new Dictionary<int, OverlayRegion>(_regions);
             }
 
             Apply(current, undo ? delta.Before : delta.After);
@@ -367,7 +369,7 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
 
     private async Task<Result<ImageTranslationEditResult>> RenderResultAsync(
         IReadOnlyDictionary<int, string> active,
-        IReadOnlyDictionary<int, OcrTextRegion> regions,
+        IReadOnlyDictionary<int, OverlayRegion> regions,
         IReadOnlyList<string> warnings,
         CancellationToken cancellationToken)
     {
@@ -375,7 +377,10 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
             return CreateOriginalResult(warnings);
         var overlays = active
             .OrderBy(item => item.Key)
-            .Select(item => new ImageTranslationOverlay(regions[item.Key], item.Value))
+            .Select(item => new ImageTranslationOverlay(
+                regions[item.Key].RenderRegion,
+                item.Value,
+                regions[item.Key].EraseRegions))
             .ToArray();
         var rendered = await _renderer.RenderAsync(
                 OriginalImage,
@@ -480,4 +485,8 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
             .Where(value => value is not null)
             .Sum(value => checked((long)value!.Length * sizeof(char)));
     }
+
+    private sealed record OverlayRegion(
+        OcrTextRegion RenderRegion,
+        IReadOnlyList<OcrTextRegion>? EraseRegions);
 }
