@@ -399,8 +399,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         {
             await foreach (var item in _screenshots.TranslateTextAsync(
                                SourceText,
-                               _activeLanguage,
-                               request.Token))
+                               cancellationToken: request.Token))
             {
                 if (generation != _translationGeneration || request.IsCancellationRequested || _disposed)
                     return;
