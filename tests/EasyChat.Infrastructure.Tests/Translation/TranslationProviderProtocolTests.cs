@@ -134,12 +134,47 @@ public sealed class TranslationProviderProtocolTests
     }
 
     [TestMethod]
+    [DataRow("gemini-2.5-flash", false, "none")]
+    [DataRow("gemini-2.5-pro", false, "minimal")]
+    [DataRow("gemini-3-flash", false, "minimal")]
+    [DataRow("gemini-2.5-flash", true, "high")]
+    public void GoogleProtocol_MapsThinkingToggleToSupportedReasoningEffort(
+        string model,
+        bool enableThinking,
+        string expectedEffort)
+    {
+        Assert.AreEqual(
+            expectedEffort,
+            GoogleAiTranslationProvider.ResolveReasoningEffort(model, enableThinking));
+    }
+
+    [TestMethod]
+    public void GoogleProtocol_PreservesExplicitLowReasoningEffort()
+    {
+        var request = new ChatTranslationProviderRequest(
+            "system prompt",
+            "user text",
+            ReasoningEffort: ChatReasoningEffort.Low);
+
+        Assert.AreEqual(
+            "low",
+            GoogleAiTranslationProvider.ResolveReasoningEffort(
+                "gemini-2.5-flash",
+                enableThinking: true,
+                request));
+    }
+
+    [TestMethod]
     public void ProviderFactory_MapsResolvedOptionsToTechnologyAdapters()
     {
         var factory = new TranslationProviderFactory(NullLoggerFactory.Instance);
         var ai = factory.Create(new AiTranslationProviderOptions(
             new AiTranslationProviderConfiguration(
                 "ai", "AI", "OpenAi", "https://api.example.com", "key", "model", false, false),
+            null));
+        var googleAi = factory.Create(new AiTranslationProviderOptions(
+            new AiTranslationProviderConfiguration(
+                "google-ai", "Google", "Google", "https://api.example.com", "key", "model", false, false),
             null));
         var baidu = factory.Create(new MachineTranslationProviderOptions(
             new BaiduTranslationProviderConfiguration("baidu", false, "id", "key"),
@@ -159,6 +194,7 @@ public sealed class TranslationProviderProtocolTests
             "request failed"));
 
         Assert.IsInstanceOfType<OpenAiTranslationProvider>(ai);
+        Assert.IsInstanceOfType<GoogleAiTranslationProvider>(googleAi);
         Assert.IsInstanceOfType<BaiduTranslationProvider>(baidu);
         Assert.IsInstanceOfType<TencentTranslationProvider>(tencent);
         Assert.IsInstanceOfType<GoogleTranslationProvider>(google);

@@ -2,6 +2,7 @@ using EasyChat.Contracts.AiModels;
 using EasyChat.Contracts.Settings;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Settings.Translation;
+using EasyChat.Presentation.Foundation.Formatting;
 using EasyChat.Presentation.Foundation.UiHost;
 using ShadUI;
 
@@ -30,6 +31,7 @@ public sealed class AiModelEditDialogViewModelTests
         var viewModel = CreateViewModel(new RecordingCatalog([]));
         var providers = new Dictionary<AiModelType, (string ApiUrl, string Name)>
         {
+            [AiModelType.Google] = ("https://generativelanguage.googleapis.com/v1beta/openai/", "Google"),
             [AiModelType.Qwen] = ("https://dashscope.aliyuncs.com/compatible-mode/v1", "通义千问"),
             [AiModelType.Zhipu] = ("https://open.bigmodel.cn/api/paas/v4/", "智谱 AI"),
             [AiModelType.Moonshot] = ("https://api.moonshot.cn/v1", "月之暗面 Kimi"),
@@ -56,7 +58,7 @@ public sealed class AiModelEditDialogViewModelTests
             viewModel.SelectedModelType = provider;
 
             Assert.AreEqual(expected.ApiUrl, viewModel.ApiUrl, provider.ToString());
-            Assert.AreEqual(expected.Name, viewModel.Name, provider.ToString());
+            Assert.AreEqual(AiModelTypeConverters.GetDisplayName(provider), viewModel.Name, provider.ToString());
             Assert.AreEqual(string.Empty, viewModel.Model, provider.ToString());
         }
     }

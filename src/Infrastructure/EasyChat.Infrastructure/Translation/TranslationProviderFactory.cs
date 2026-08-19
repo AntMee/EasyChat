@@ -1,3 +1,4 @@
+using EasyChat.Contracts.Settings;
 using EasyChat.Contracts.Translation;
 using EasyChat.Infrastructure.Translation.Baidu;
 using EasyChat.Infrastructure.Translation.DeepL;
@@ -21,6 +22,16 @@ public sealed class TranslationProviderFactory : ITranslationProviderFactory
     {
         ArgumentNullException.ThrowIfNull(options);
         var provider = options.Provider;
+        if (string.Equals(provider.ModelType, nameof(AiModelType.Google), StringComparison.Ordinal))
+        {
+            return new GoogleAiTranslationProvider(
+                provider.ApiUrl,
+                provider.ApiKey,
+                provider.Model,
+                options.Proxy,
+                provider.EnableThinking);
+        }
+
         return new OpenAiTranslationProvider(
             provider.ApiUrl,
             provider.ApiKey,

@@ -13,7 +13,7 @@ internal enum ClosingBehaviorDto
 internal enum AiModelTypeDto
 {
     OpenAi = 0,
-    Gemini = 1,
+    Google = 1,
     Claude = 2,
     DeepSeek = 3,
     Custom = 4,

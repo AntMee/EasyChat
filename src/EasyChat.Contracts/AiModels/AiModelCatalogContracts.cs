@@ -3,7 +3,7 @@ namespace EasyChat.Contracts.AiModels;
 public enum AiModelCatalogProvider
 {
     OpenAiCompatible,
-    Gemini,
+    Google,
     Claude
 }
 

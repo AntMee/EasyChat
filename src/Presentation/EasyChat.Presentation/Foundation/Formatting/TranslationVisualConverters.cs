@@ -18,7 +18,7 @@ public static class AiModelTypeConverters
     public static readonly IValueConverter HasIcon = new AiModelTypeHasIconConverter();
     public static readonly IValueConverter HasNoIcon = new AiModelTypeHasNoIconConverter();
     public static readonly IValueConverter IsOpenAi = new AiModelTypeMatchConverter(AiModelType.OpenAi);
-    public static readonly IValueConverter IsGemini = new AiModelTypeMatchConverter(AiModelType.Gemini);
+    public static readonly IValueConverter IsGoogle = new AiModelTypeMatchConverter(AiModelType.Google);
     public static readonly IValueConverter IsClaude = new AiModelTypeMatchConverter(AiModelType.Claude);
 
     public static string GetDisplayName(AiModelType modelType, CultureInfo? uiCulture = null)
@@ -30,7 +30,7 @@ public static class AiModelTypeConverters
     public static (string ChineseName, string EnglishName) GetNames(AiModelType modelType) => modelType switch
     {
         AiModelType.OpenAi => ("OpenAI", "OpenAI"),
-        AiModelType.Gemini => ("Gemini", "Gemini"),
+        AiModelType.Google => ("Google", "Google"),
         AiModelType.Claude => ("Claude", "Claude"),
         AiModelType.DeepSeek => ("DeepSeek", "DeepSeek"),
         AiModelType.Qwen => ("通义千问", "Qwen"),
@@ -95,7 +95,7 @@ public sealed class AiModelTypeToIconConverter : IValueConverter
             ? AssetIconLoader.Load(modelType switch
             {
                 AiModelType.OpenAi => "openai.png",
-                AiModelType.Gemini => "gemini.png",
+                AiModelType.Google => "gemini.png",
                 AiModelType.Claude => "claude.png",
                 AiModelType.DeepSeek => "deepseek.png",
                 AiModelType.Qwen => "qwen.png",

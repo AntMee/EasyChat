@@ -273,7 +273,7 @@ namespace EasyChat.Presentation.Features.Settings.Translation
             {
                 var provider = SelectedModelType switch
                 {
-                    AiModelType.Gemini => AiModelCatalogProvider.Gemini,
+                    AiModelType.Google => AiModelCatalogProvider.Google,
                     AiModelType.Claude => AiModelCatalogProvider.Claude,
                     _ => AiModelCatalogProvider.OpenAiCompatible
                 };
@@ -367,7 +367,7 @@ namespace EasyChat.Presentation.Features.Settings.Translation
             (ApiUrl, Model) = type switch
             {
                 AiModelType.OpenAi => ("https://api.openai.com/v1", string.Empty),
-                AiModelType.Gemini => ("https://generativelanguage.googleapis.com/v1beta/openai/", string.Empty),
+                AiModelType.Google => ("https://generativelanguage.googleapis.com/v1beta/openai/", string.Empty),
                 AiModelType.Claude => ("https://api.anthropic.com/v1/", string.Empty),
                 AiModelType.DeepSeek => ("https://api.deepseek.com/v1", string.Empty),
                 AiModelType.Qwen => ("https://dashscope.aliyuncs.com/compatible-mode/v1", string.Empty),

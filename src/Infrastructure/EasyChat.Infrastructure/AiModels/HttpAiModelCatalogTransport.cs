@@ -19,7 +19,7 @@ public sealed class HttpAiModelCatalogTransport : IAiModelCatalogTransport
         ArgumentNullException.ThrowIfNull(request);
 
         var apiBase = request.ApiUrl.TrimEnd('/');
-        if (request.Provider == AiModelCatalogProvider.Gemini &&
+        if (request.Provider == AiModelCatalogProvider.Google &&
             apiBase.EndsWith("/openai", StringComparison.OrdinalIgnoreCase))
         {
             apiBase = apiBase[..^"/openai".Length];
@@ -27,7 +27,7 @@ public sealed class HttpAiModelCatalogTransport : IAiModelCatalogTransport
 
         var endpoint = $"{apiBase}/models";
         using var httpRequest = new HttpRequestMessage(HttpMethod.Get, endpoint);
-        if (request.Provider == AiModelCatalogProvider.Gemini &&
+        if (request.Provider == AiModelCatalogProvider.Google &&
             !string.IsNullOrWhiteSpace(request.ApiKey))
         {
             httpRequest.RequestUri = new Uri($"{endpoint}?key={Uri.EscapeDataString(request.ApiKey)}");
