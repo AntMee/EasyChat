@@ -149,7 +149,12 @@ function Get-VelopackLocaleOverrides {
         [string] $Locale
     )
 
-    $toolStore = Join-Path $env:USERPROFILE '.dotnet\tools\.store\vpk\1.2.0'
+    $toolStore = if ([string]::IsNullOrWhiteSpace($env:VELOPACK_TOOL_STORE)) {
+        Join-Path $env:USERPROFILE '.dotnet\tools\.store\vpk\1.2.0'
+    }
+    else {
+        $env:VELOPACK_TOOL_STORE
+    }
     $nativeModule = Get-ChildItem -LiteralPath $toolStore -Recurse -Filter 'velopack_wix_x64.dll' |
         Select-Object -First 1
     if ($null -eq $nativeModule) {
@@ -293,9 +298,17 @@ try {
 
         'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Browse'', ''[_BrowseProperty]'', ''[WIXUI_INSTALLDIR]'', ''1'', 1)',
         'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Browse'', ''NewDialog'', ''BrowseDlg'', ''1'', 2)',
-        'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Back'', ''NewDialog'', ''InstallScopeDlg'', ''1'', 1)',
+        # PerMachine packages skip InstallScopeDlg. Keep the directory dialog
+        # on the main install path and return to WelcomeDlg when going back.
+        'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Back'', ''NewDialog'', ''WelcomeDlg'', ''1'', 1)',
+        # Normalize the selected parent into <parent>\EasyChat. MSI directory
+        # properties may have a trailing slash, so recognize both forms.
+        'INSERT INTO `CustomAction` (`Action`, `Type`, `Source`, `Target`) VALUES (''SetEasyChatInstallFolder'', 51, ''INSTALLFOLDER'', ''[INSTALLFOLDER]\EasyChat'')',
+        # Sync the indirect PathEdit value before evaluating the suffix. The
+        # custom action then writes the normalized directory property directly.
         'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Next'', ''SetTargetPath'', ''[WIXUI_INSTALLDIR]'', ''1'', 1)',
-        'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Next'', ''NewDialog'', ''VerifyReadyDlg'', ''1'', 2)',
+        'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Next'', ''DoAction'', ''SetEasyChatInstallFolder'', ''NOT (INSTALLFOLDER ~>> "\EasyChat" OR INSTALLFOLDER ~>> "\EasyChat\")'', 2)',
+        'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Next'', ''NewDialog'', ''VerifyReadyDlg'', ''1'', 3)',
         'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallDirDlg'', ''Cancel'', ''SpawnDialog'', ''CancelDlg'', ''1'', 1)',
 
         'DELETE FROM `ControlEvent` WHERE `Dialog_`=''BrowseDlg'' AND `Control_`=''OK'' AND `Event`=''DoAction'' AND `Argument`=''RustValidatePath''',
@@ -305,6 +318,8 @@ try {
         'DELETE FROM `ControlEvent` WHERE `Dialog_`=''BrowseDlg'' AND `Control_`=''Cancel'' AND `Event`=''EndDialog'' AND `Argument`=''Return''',
         'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''BrowseDlg'', ''Cancel'', ''NewDialog'', ''InstallDirDlg'', ''1'', 2)',
 
+        'DELETE FROM `ControlEvent` WHERE `Dialog_`=''WelcomeDlg'' AND `Control_`=''Next'' AND `Event`=''NewDialog'' AND `Argument`=''VerifyReadyDlg'' AND `Condition`=''NOT Installed''',
+        'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''WelcomeDlg'', ''Next'', ''NewDialog'', ''InstallDirDlg'', ''NOT Installed'', 3)',
         'DELETE FROM `ControlEvent` WHERE `Dialog_`=''InstallScopeDlg'' AND `Control_`=''Next'' AND `Event`=''NewDialog'' AND `Argument`=''VerifyReadyDlg''',
         'INSERT INTO `ControlEvent` (`Dialog_`, `Control_`, `Event`, `Argument`, `Condition`, `Ordering`) VALUES (''InstallScopeDlg'', ''Next'', ''NewDialog'', ''InstallDirDlg'', ''1'', 8)',
         'DELETE FROM `ControlEvent` WHERE `Dialog_`=''VerifyReadyDlg'' AND `Control_`=''Back'' AND `Event`=''NewDialog'' AND `Argument`=''InstallScopeDlg''',
