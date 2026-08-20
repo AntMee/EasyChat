@@ -31,6 +31,33 @@ public sealed class SettingViewLayoutTests
     }
 
     [TestMethod]
+    public void TranslationSettings_ModelCardsBindToLiveModelState()
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(
+            root,
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "Settings",
+            "Views",
+            "TranslationSettingsView.axaml");
+        var document = XDocument.Load(path);
+
+        var bindings = document.Descendants()
+            .Where(element => element.Name.LocalName == "TextBlock")
+            .Select(element => element.Attribute("Text")?.Value)
+            .ToList();
+
+        CollectionAssert.Contains(bindings, "{Binding Model.Name}");
+        CollectionAssert.Contains(
+            bindings,
+            "{Binding Model.ModelType, Converter={x:Static converts:AiModelTypeConverters.ToDisplayName}}");
+        CollectionAssert.Contains(bindings, "{Binding Model.ApiUrl}");
+    }
+
+    [TestMethod]
     public void SpeechSettings_AsrModelDownloadsUseCollapsibleListBindings()
     {
         var root = FindRepositoryRoot();

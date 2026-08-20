@@ -95,11 +95,11 @@
                                                                Stretch="Uniform" />
                                                     </Border>
                                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Name}"
+                                                        <TextBlock Text="{Binding Model.Name}"
                                                                    FontWeight="SemiBold"
                                                                    TextTrimming="CharacterEllipsis"
                                                                    Foreground="{DynamicResource ForegroundColor}" />
-                                                        <TextBlock Text="{Binding ModelType, Converter={x:Static converts:AiModelTypeConverters.ToDisplayName}}"
+                                                        <TextBlock Text="{Binding Model.ModelType, Converter={x:Static converts:AiModelTypeConverters.ToDisplayName}}"
                                                                    Classes="Muted" />
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="2"
@@ -156,7 +156,7 @@
                                                                VerticalAlignment="Center"
                                                                MinWidth="36" />
                                                     <TextBlock Grid.Column="1"
-                                                               Text="{Binding ApiUrl}"
+                                                               Text="{Binding Model.ApiUrl}"
                                                                Classes="Muted"
                                                                Foreground="{DynamicResource MutedColor}"
                                                                TextTrimming="CharacterEllipsis"
