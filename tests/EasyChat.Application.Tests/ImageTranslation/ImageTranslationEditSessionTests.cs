@@ -95,9 +95,9 @@ public sealed class ImageTranslationEditSessionTests
     }
 
     [TestMethod]
-    public async Task UndoRedoAndRestoreAlwaysRenderFromOriginalFrame()
+    public async Task UndoRedoUseCachedRenderedImages()
     {
-        var renderer = new RecordingRenderer();
+        var renderer = new RenderingRenderer();
         var factory = CreateFactory(
             new ImageTranslationMemoryBudget(),
             new IncrementingTranslations(),
@@ -115,7 +115,30 @@ public sealed class ImageTranslationEditSessionTests
         Assert.IsTrue(undone.Value.IsOriginal);
         Assert.IsFalse(redone.Value.IsOriginal);
         Assert.IsTrue(restored.Value.IsOriginal);
-        Assert.IsTrue(renderer.Backgrounds.All(background => ReferenceEquals(background, original)));
+        Assert.AreEqual(1, renderer.RenderCount);
+        await session.DisposeAsync();
+    }
+
+    [TestMethod]
+    public async Task UndoRestoresThePreviousRenderedImageWithoutRerendering()
+    {
+        var renderer = new RenderingRenderer();
+        var factory = CreateFactory(
+            new ImageTranslationMemoryBudget(),
+            new IncrementingTranslations(),
+            renderer);
+        var session = factory.Create(Frame()).Value;
+        var recognition = new OcrRecognitionResult([Region("source")]);
+
+        var first = await session.TranslateAsync(recognition, [0], OcrLanguages.English);
+        var second = await session.TranslateAsync(recognition, [0], OcrLanguages.English);
+        var undone = await session.UndoAsync();
+
+        Assert.IsTrue(first.IsSuccess);
+        Assert.IsTrue(second.IsSuccess);
+        Assert.IsTrue(undone.IsSuccess);
+        Assert.AreEqual(2, renderer.RenderCount);
+        Assert.AreSame(first.Value.Image, undone.Value.Image);
         await session.DisposeAsync();
     }
 
@@ -201,6 +224,31 @@ public sealed class ImageTranslationEditSessionTests
             Backgrounds.Add(background);
             LastOverlays = overlays;
             return Task.FromResult(new ImageTranslationRenderResult(background, [], overlays.Count));
+        }
+    }
+
+    private sealed class RenderingRenderer : IImageTranslationRenderer
+    {
+        public int RenderCount { get; private set; }
+
+        public Task<ImageTranslationRenderResult> RenderAsync(
+            ImageFrame background,
+            IReadOnlyList<ImageTranslationOverlay> overlays,
+            ImageTranslationRenderOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            RenderCount++;
+            var pixels = background.Pixels.ToArray();
+            pixels[0] = (byte)RenderCount;
+            var image = new ImageFrame(
+                background.Width,
+                background.Height,
+                background.Stride,
+                background.DpiX,
+                background.DpiY,
+                pixels,
+                background.PixelFormat);
+            return Task.FromResult(new ImageTranslationRenderResult(image, [], overlays.Count));
         }
     }
 

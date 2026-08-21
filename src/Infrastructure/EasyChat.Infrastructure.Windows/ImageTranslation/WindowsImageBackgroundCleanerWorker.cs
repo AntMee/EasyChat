@@ -146,7 +146,6 @@ internal static class WindowsOpenCvImageBackgroundCleaner
     private const double FlatBackgroundMaximumStdDev = 6;
     private const int FlatBackgroundMinimumValidPixels = 64;
     private const int FlatBackgroundColorTolerance = 12;
-    private const int FlatBackgroundMaximumExpansionDistance = 360;
     private const double FlatBackgroundMinimumInlierRatio = 0.75;
     private const int FsrBestMaximumPixels = 4_096;
     private const int FsrFastMaximumPixels = 65_536;
@@ -188,13 +187,18 @@ internal static class WindowsOpenCvImageBackgroundCleaner
             .OrderBy(value => value)
             .ToArray();
         var medianHeight = heights[heights.Length / 2];
+        // Keep the write mask exact. Fast-mode edge expansion is useful as
+        // inpainting context, but must never leak repaired pixels outside the
+        // original OCR polygons.
+        using var writeMask = mask.Clone();
+        using var inpaintMask = mask.Clone();
         if (mode == ImageTextEraseMode.Fast)
-            ExpandFlatBackgroundEdges(bgr, mask, medianHeight);
+            ExpandFlatBackgroundEdges(bgr, inpaintMask, medianHeight);
 
         using var inpainted = mode switch
         {
-            ImageTextEraseMode.Fast => InpaintFast(bgr, mask, medianHeight),
-            ImageTextEraseMode.Precise => InpaintAotGan(bgr, mask, modelDirectory, medianHeight),
+            ImageTextEraseMode.Fast => InpaintFast(bgr, inpaintMask, medianHeight),
+            ImageTextEraseMode.Precise => InpaintAotGan(bgr, inpaintMask, modelDirectory, medianHeight),
             _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown image erase mode.")
         };
 
@@ -203,7 +207,7 @@ internal static class WindowsOpenCvImageBackgroundCleaner
         for (var row = 0; row < source.Height; row++)
         for (var column = 0; column < source.Width; column++)
         {
-            if (mask.At<byte>(row, column) == 0)
+            if (writeMask.At<byte>(row, column) == 0)
                 continue;
 
             var pixel = inpainted.At<Vec3b>(row, column);
@@ -283,8 +287,10 @@ internal static class WindowsOpenCvImageBackgroundCleaner
 
                 var pixel = sourceRegion.At<Vec3b>(y, x);
                 var distance = ColorDistance(pixel, background);
-                if (distance < FlatBackgroundColorTolerance
-                    || distance > FlatBackgroundMaximumExpansionDistance)
+                // Only include pixels that already match the estimated local
+                // background. Never absorb nearby glyphs or unrelated artwork
+                // into the inpaint mask.
+                if (distance > FlatBackgroundColorTolerance)
                     continue;
 
                 mask.At<byte>(context.Y + y, context.X + x) = 255;

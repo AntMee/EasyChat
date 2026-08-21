@@ -122,6 +122,8 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
     private readonly Dictionary<int, OverlayRegion> _regions = [];
     private readonly LinkedList<EditDelta> _undo = [];
     private readonly LinkedList<EditDelta> _redo = [];
+    private readonly Dictionary<EditDelta, CachedImage> _renderedImages =
+        new(ReferenceEqualityComparer.Instance);
     private long _historyTextBytes;
     private bool _disposed;
 
@@ -183,17 +185,22 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
 
             var before = new Dictionary<int, string?>();
             var after = new Dictionary<int, string?>();
+            var beforeRegions = new Dictionary<int, OverlayRegion?>();
+            var afterRegions = new Dictionary<int, OverlayRegion?>();
             foreach (var item in translated.Translations)
             {
                 var previous = current.GetValueOrDefault(item.RegionIndex);
                 if (string.Equals(previous, item.Translation, StringComparison.Ordinal))
                     continue;
                 before[item.RegionIndex] = previous;
+                beforeRegions[item.RegionIndex] = regions.GetValueOrDefault(item.RegionIndex);
                 after[item.RegionIndex] = item.Translation;
                 current[item.RegionIndex] = item.Translation;
-                regions[item.RegionIndex] = new OverlayRegion(
+                var overlayRegion = new OverlayRegion(
                     item.RenderRegion ?? recognition.Regions[item.RegionIndex],
                     item.EraseRegions);
+                afterRegions[item.RegionIndex] = overlayRegion;
+                regions[item.RegionIndex] = overlayRegion;
             }
 
             if (after.Count == 0)
@@ -210,7 +217,9 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
                 Replace(_active, current);
                 Replace(_regions, regions);
                 ClearHistory(_redo);
-                PushUndo(new EditDelta(before, after));
+                var delta = new EditDelta(before, after, beforeRegions, afterRegions);
+                PushUndo(delta);
+                CacheRenderedImage(delta, rendered.Value.Image);
             }
             return Result<ImageTranslationEditResult>.Success(rendered.Value with
             {
@@ -250,14 +259,21 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
         {
             ThrowIfDisposed();
             Dictionary<int, string?> before;
+            Dictionary<int, OverlayRegion?> beforeRegions;
             lock (_stateGate)
             {
                 if (_active.Count == 0)
                     return CreateOriginalResult();
                 before = _active.ToDictionary(item => item.Key, item => (string?)item.Value);
+                beforeRegions = _regions.ToDictionary(item => item.Key, item => (OverlayRegion?)item.Value);
                 _active.Clear();
+                _regions.Clear();
                 ClearHistory(_redo);
-                PushUndo(new EditDelta(before, before.Keys.ToDictionary(key => key, _ => (string?)null)));
+                PushUndo(new EditDelta(
+                    before,
+                    before.Keys.ToDictionary(key => key, _ => (string?)null),
+                    beforeRegions,
+                    beforeRegions.Keys.ToDictionary(key => key, _ => (OverlayRegion?)null)));
                 return CreateOriginalResult();
             }
         }
@@ -300,8 +316,8 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
             {
                 _active.Clear();
                 _regions.Clear();
-                _undo.Clear();
-                _redo.Clear();
+                ClearHistory(_undo);
+                ClearHistory(_redo);
                 _historyTextBytes = 0;
             }
             _budget.Release(_retainedBytes);
@@ -322,6 +338,8 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
         {
             ThrowIfDisposed();
             EditDelta? delta;
+            EditDelta? targetDelta;
+            ImageFrame? cachedImage;
             Dictionary<int, string> current;
             Dictionary<int, OverlayRegion> regions;
             lock (_stateGate)
@@ -330,15 +348,35 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
                 delta = source.Last?.Value;
                 if (delta is null)
                     return CurrentWithoutRendering();
+                targetDelta = undo ? _undo.Last?.Previous?.Value : delta;
+                cachedImage = targetDelta is not null
+                              && _renderedImages.TryGetValue(targetDelta, out var cached)
+                    ? cached.Image
+                    : null;
                 current = new Dictionary<int, string>(_active);
                 regions = new Dictionary<int, OverlayRegion>(_regions);
             }
 
             Apply(current, undo ? delta.Before : delta.After);
-            var rendered = await RenderResultAsync(current, regions, [], cancellationToken)
-                .ConfigureAwait(false);
-            if (rendered.IsFailure)
-                return rendered;
+            ApplyRegions(regions, undo ? delta.BeforeRegions : delta.AfterRegions);
+            Result<ImageTranslationEditResult> rendered;
+            if (cachedImage is not null)
+            {
+                rendered = Result<ImageTranslationEditResult>.Success(new ImageTranslationEditResult(
+                    cachedImage,
+                    [],
+                    false,
+                    false,
+                    false,
+                    current.Count));
+            }
+            else
+            {
+                rendered = await RenderResultAsync(current, regions, [], cancellationToken)
+                    .ConfigureAwait(false);
+                if (rendered.IsFailure)
+                    return rendered;
+            }
 
             lock (_stateGate)
             {
@@ -347,6 +385,9 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
                 source.RemoveLast();
                 target.AddLast(delta);
                 Replace(_active, current);
+                Replace(_regions, regions);
+                if (targetDelta is not null && cachedImage is null && !rendered.Value.IsOriginal)
+                    CacheRenderedImage(targetDelta, rendered.Value.Image);
                 var value = rendered.Value with
                 {
                     CanUndo = _undo.Count > 0,
@@ -441,6 +482,7 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
             if (oldest is null)
                 break;
             _historyTextBytes -= oldest.Value.TextBytes;
+            ReleaseCachedImage(oldest.Value);
             _undo.RemoveFirst();
         }
     }
@@ -448,13 +490,49 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
     private void ClearHistory(LinkedList<EditDelta> history)
     {
         foreach (var delta in history)
+        {
             _historyTextBytes -= delta.TextBytes;
+            ReleaseCachedImage(delta);
+        }
         history.Clear();
+    }
+
+    private void CacheRenderedImage(EditDelta delta, ImageFrame image)
+    {
+        if (ReferenceEquals(image, OriginalImage)
+            || _renderedImages.ContainsKey(delta))
+            return;
+
+        var bytes = checked((long)image.Stride * image.Height);
+        if (!_budget.TryReserve(bytes))
+            return;
+
+        _renderedImages[delta] = new CachedImage(image, bytes);
+    }
+
+    private void ReleaseCachedImage(EditDelta delta)
+    {
+        if (!_renderedImages.Remove(delta, out var cached))
+            return;
+        _budget.Release(cached.Bytes);
     }
 
     private static void Apply(
         IDictionary<int, string> target,
         IReadOnlyDictionary<int, string?> values)
+    {
+        foreach (var item in values)
+        {
+            if (item.Value is null)
+                target.Remove(item.Key);
+            else
+                target[item.Key] = item.Value;
+        }
+    }
+
+    private static void ApplyRegions(
+        IDictionary<int, OverlayRegion> target,
+        IReadOnlyDictionary<int, OverlayRegion?> values)
     {
         foreach (var item in values)
         {
@@ -479,12 +557,16 @@ internal sealed class ImageTranslationEditSession : IImageTranslationEditSession
 
     private sealed record EditDelta(
         IReadOnlyDictionary<int, string?> Before,
-        IReadOnlyDictionary<int, string?> After)
+        IReadOnlyDictionary<int, string?> After,
+        IReadOnlyDictionary<int, OverlayRegion?> BeforeRegions,
+        IReadOnlyDictionary<int, OverlayRegion?> AfterRegions)
     {
         public long TextBytes { get; } = Before.Values.Concat(After.Values)
             .Where(value => value is not null)
             .Sum(value => checked((long)value!.Length * sizeof(char)));
     }
+
+    private sealed record CachedImage(ImageFrame Image, long Bytes);
 
     private sealed record OverlayRegion(
         OcrTextRegion RenderRegion,

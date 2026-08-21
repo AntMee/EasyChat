@@ -119,8 +119,8 @@ public sealed class WindowsOpenCvImageBackgroundCleanerTests
                 pixels[offset + 2] = 255;
             }
         }
-        // Gray edge pixels model antialiasing; a separate solid-white glyph next
-        // to the selected region must remain untouched.
+        // Gray edge pixels model antialiasing; all pixels outside the selected
+        // polygon, including neighboring glyphs, must remain untouched.
         for (var y = 40; y < 56; y++)
         {
             foreach (var x in new[] { 31, 97 })
@@ -176,9 +176,9 @@ public sealed class WindowsOpenCvImageBackgroundCleanerTests
             foreach (var x in new[] { 31, 97 })
             {
                 var offset = (y * width + x) * 4;
-                Assert.IsLessThanOrEqualTo(8, result.Pixels.Span[offset]);
-                Assert.IsLessThanOrEqualTo(8, result.Pixels.Span[offset + 1]);
-                Assert.IsLessThanOrEqualTo(8, result.Pixels.Span[offset + 2]);
+                Assert.AreEqual((byte)160, result.Pixels.Span[offset]);
+                Assert.AreEqual((byte)160, result.Pixels.Span[offset + 1]);
+                Assert.AreEqual((byte)160, result.Pixels.Span[offset + 2]);
             }
 
             var neighboringTextOffset = (y * width + 99) * 4;
