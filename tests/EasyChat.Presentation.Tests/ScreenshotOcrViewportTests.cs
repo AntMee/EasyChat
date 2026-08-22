@@ -1,5 +1,7 @@
 using Avalonia;
 using EasyChat.Contracts.Ocr;
+using EasyChat.Contracts.Platform;
+using EasyChat.Presentation.Features.ScreenshotOcr;
 using EasyChat.Presentation.Features.ScreenshotOcr.Controls;
 
 namespace EasyChat.Presentation.Tests;
@@ -46,6 +48,24 @@ public sealed class ScreenshotOcrViewportTests
         var selected = index.Query(new Rect(10, 5, 100, 100));
 
         CollectionAssert.AreEquivalent(new[] { 0, 1 }, selected.ToArray());
+    }
+
+    [TestMethod]
+    public void RecognitionValidationDropsMalformedRegionsButKeepsValidOnes()
+    {
+        var valid = Region("valid", 10, 10, 20, 10);
+        var malformed = new OcrTextRegion(
+            "malformed",
+            [new ImagePoint(double.NaN, 0), new ImagePoint(20, 0), new ImagePoint(20, 10)],
+            0);
+        var image = new ImageFrame(100, 100, 400, 96, 96, new byte[40_000]);
+
+        var result = ScreenshotOcrWindowViewModel.ValidateRecognition(
+            new OcrRecognitionResult([malformed, valid]),
+            image);
+
+        Assert.HasCount(1, result.Regions);
+        Assert.AreSame(valid, result.Regions[0]);
     }
 
     [TestMethod]

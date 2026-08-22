@@ -324,7 +324,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
                 enableRotation: true,
                 CandidateLanguage.Language,
                 request.Token);
-            ValidateRecognition(recognition, image);
+            recognition = ValidateRecognition(recognition, image);
             if (generation != _ocrGeneration || request.IsCancellationRequested || _disposed)
                 return;
 
@@ -559,7 +559,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
                 enableRotation: true,
                 CandidateLanguage.Language,
                 request.Token);
-            ValidateRecognition(recognition, _editSession.OriginalImage);
+            recognition = ValidateRecognition(recognition, _editSession.OriginalImage);
             if (generation != _ocrGeneration || request.IsCancellationRequested || _disposed)
                 return;
 
@@ -705,7 +705,7 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         return $"OCR model '{packageText}' is not installed. Open Settings > OCR Models.";
     }
 
-    private static void ValidateRecognition(
+    internal static OcrRecognitionResult ValidateRecognition(
         OcrRecognitionResult recognition,
         ImageFrame image)
     {
@@ -713,16 +713,17 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
         ArgumentNullException.ThrowIfNull(image);
         if (recognition.Regions.Count > MaximumRegionCount)
             throw new InvalidDataException($"OCR returned more than {MaximumRegionCount:N0} text regions.");
+
+        var validRegions = new List<OcrTextRegion>(recognition.Regions.Count);
         long textBytes = 0;
         for (var index = 0; index < recognition.Regions.Count; index++)
         {
             var region = recognition.Regions[index];
-            textBytes = checked(textBytes
-                                + (long)(region.Text?.Length ?? 0) * sizeof(char)
-                                + (index == 0 ? 0 : sizeof(char)));
-            if (textBytes > MaximumTextBytes)
-                throw new InvalidDataException("OCR text exceeds the 8 MiB workspace limit.");
-            if (region.Polygon.Count is < 3 or > 64 || region.Polygon.Any(point =>
+
+            // A malformed region should not discard otherwise usable OCR output.
+            if (region is null
+                || region.Polygon is not { Count: >= 3 and <= 64 }
+                || region.Polygon.Any(point =>
                     !double.IsFinite(point.X)
                     || !double.IsFinite(point.Y)
                     || point.X < -1
@@ -730,9 +731,20 @@ public sealed class ScreenshotOcrWindowViewModel : ViewModelBase, IAsyncDisposab
                     || point.X > image.Width + 1
                     || point.Y > image.Height + 1))
             {
-                throw new InvalidDataException("OCR returned an invalid text polygon.");
+                continue;
             }
+
+            textBytes = checked(textBytes
+                                + (long)(region.Text?.Length ?? 0) * sizeof(char)
+                                + (validRegions.Count == 0 ? 0 : sizeof(char)));
+            if (textBytes > MaximumTextBytes)
+                throw new InvalidDataException("OCR text exceeds the 8 MiB workspace limit.");
+            validRegions.Add(region);
         }
+
+        return validRegions.Count == recognition.Regions.Count
+            ? recognition
+            : new OcrRecognitionResult(validRegions);
     }
 
     private static IReadOnlyList<ScreenshotOcrLanguageOption> CreateLanguageOptions(
