@@ -1,0 +1,111 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
+        xmlns:icon="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+        x:Class="EasyChat.Presentation.Features.Capture.Views.LongScreenshotResultDialog"
+        Width="720"
+        Height="620"
+        MinWidth="600"
+        MinHeight="360"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Normal"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        TransparencyLevelHint="Transparent"
+        CornerRadius="16"
+        CanResize="True"
+        Topmost="True"
+        ShowActivated="True"
+        Background="Transparent">
+    <Window.Styles>
+        <Style Selector="Button.CaptureToolbarButton">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SmCornerRadius}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.CaptureToolbarButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor30}" />
+        </Style>
+        <Style Selector="Button.CaptureToolbarButton:pressed">
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+        </Style>
+    </Window.Styles>
+    <Border Margin="0"
+            Background="{DynamicResource CardBackgroundColor}"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="1"
+            BoxShadow="{DynamicResource Shadow}"
+            CornerRadius="{DynamicResource LgCornerRadius}">
+        <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+            <TextBlock Grid.Row="0"
+                       Margin="6,2,6,10"
+                       Text="{x:Static lang:Resources.LongScreenshot_Review}"
+                       Foreground="{DynamicResource ForegroundColor}"
+                       FontWeight="SemiBold" />
+            <Border Grid.Row="1"
+                    Background="#17191C"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource SmCornerRadius}"
+                    ClipToBounds="True">
+                <controls:OcrImageViewport x:Name="ImageViewport" IsPanOnly="True" />
+            </Border>
+            <Border Grid.Row="2"
+                    Margin="0,10,0,0"
+                    Padding="6"
+                    HorizontalAlignment="Center"
+                    Background="{DynamicResource CardBackgroundColor}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource LgCornerRadius}">
+                <StackPanel Orientation="Horizontal" Spacing="3">
+                    <Button Classes="Icon CaptureToolbarButton" Click="ZoomOut_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ZoomOutTooltip}">
+                        <icon:MaterialIcon Kind="MagnifyMinusOutline" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <TextBlock x:Name="ZoomText" Width="48" VerticalAlignment="Center" TextAlignment="Center" Foreground="{DynamicResource ForegroundColor}" FontSize="12" />
+                    <Button Classes="Icon CaptureToolbarButton" Click="ZoomIn_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ZoomInTooltip}">
+                        <icon:MaterialIcon Kind="MagnifyPlusOutline" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <Border Width="1" Height="22" Margin="3,0" Background="{DynamicResource BorderColor}" />
+                    <Button Classes="Icon CaptureToolbarButton" Click="Confirm_OnClick" ToolTip.Tip="{x:Static lang:Resources.Confirm}">
+                        <icon:MaterialIcon Kind="Check" Width="19" Height="19" Foreground="{DynamicResource PrimaryColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="Copy_OnClick" ToolTip.Tip="{x:Static lang:Resources.Copy}">
+                        <icon:MaterialIcon Kind="ContentCopy" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="CopyTranslated_OnClick" ToolTip.Tip="{x:Static lang:Resources.CopyTranslated}">
+                        <icon:MaterialIcon Kind="Translate" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="CopyBilingual_OnClick" ToolTip.Tip="{x:Static lang:Resources.CopyBilingual}">
+                        <icon:MaterialIcon Kind="Translate" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="CopyImageTranslated_OnClick" ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_CopyImageTooltip}">
+                        <icon:MaterialIcon Kind="ImageEditOutline" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="Ocr_OnClick" ToolTip.Tip="OCR">
+                        <icon:MaterialIcon Kind="TextRecognition" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="LongScreenshot_OnClick" ToolTip.Tip="{x:Static lang:Resources.LongScreenshot}">
+                        <icon:MaterialIcon Kind="Mouse" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                    </Button>
+                    <Border Width="1" Height="22" Margin="3,0" Background="{DynamicResource BorderColor}" />
+                    <Button Classes="Icon CaptureToolbarButton" Click="Reset_OnClick" ToolTip.Tip="{x:Static lang:Resources.Reset}">
+                        <icon:MaterialIcon Kind="Refresh" Width="19" Height="19" Foreground="{DynamicResource MutedColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="Cancel_OnClick" ToolTip.Tip="{x:Static lang:Resources.Cancel}">
+                        <icon:MaterialIcon Kind="Close" Width="19" Height="19" Foreground="{DynamicResource DestructiveColor}" />
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

@@ -769,6 +769,39 @@
     <data name="Screenshot_Hint" xml:space="preserve">
         <value>Select the area to translate. Right-click or ESC to cancel.</value>
     </data>
+    <data name="LongScreenshot" xml:space="preserve">
+        <value>Long screenshot</value>
+    </data>
+    <data name="LongScreenshot_StartHint" xml:space="preserve">
+        <value>Choose a direction, then click Start</value>
+    </data>
+    <data name="LongScreenshot_ScrollHint" xml:space="preserve">
+        <value>Scroll down, then click Stop</value>
+    </data>
+    <data name="LongScreenshot_ScrollVerticalHint" xml:space="preserve">
+        <value>Scroll vertically, then click Stop</value>
+    </data>
+    <data name="LongScreenshot_ScrollHorizontalHint" xml:space="preserve">
+        <value>Scroll horizontally, then click Stop</value>
+    </data>
+    <data name="LongScreenshot_Vertical" xml:space="preserve">
+        <value>Vertical long screenshot</value>
+    </data>
+    <data name="LongScreenshot_Horizontal" xml:space="preserve">
+        <value>Horizontal long screenshot</value>
+    </data>
+    <data name="LongScreenshot_Progress" xml:space="preserve">
+        <value>{0} frames - {1} px</value>
+    </data>
+    <data name="LongScreenshot_Stop" xml:space="preserve">
+        <value>Stop</value>
+    </data>
+  <data name="LongScreenshot_Stopping" xml:space="preserve">
+    <value>Stopping...</value>
+  </data>
+  <data name="LongScreenshot_Review" xml:space="preserve">
+    <value>Review the screenshot, then click the check icon</value>
+  </data>
     <data name="Confirm" xml:space="preserve">
         <value>Confirm</value>
     </data>

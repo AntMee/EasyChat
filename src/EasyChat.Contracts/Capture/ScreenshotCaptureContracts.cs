@@ -9,7 +9,8 @@ public enum CaptureOverlayAction
     CopyTranslated = 2,
     CopyBilingual = 3,
     CopyImageTranslated = 4,
-    OcrWorkbench = 5
+    OcrWorkbench = 5,
+    CopyLongScreenshot = 6
 }
 
 public enum CaptureToolbarMode

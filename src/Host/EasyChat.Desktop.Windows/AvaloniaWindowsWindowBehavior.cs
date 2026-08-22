@@ -26,6 +26,15 @@ internal sealed class AvaloniaWindowsWindowBehavior(
         return ValueTask.CompletedTask;
     }
 
+    public ValueTask<bool> TrySetExcludedFromCaptureAsync(
+        Window window,
+        bool enabled,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(windows.TrySetExcludedFromCapture(GetHandle(window), enabled));
+    }
+
     private static nint GetHandle(Window window) =>
         window.TryGetPlatformHandle()?.Handle
         ?? throw new InvalidOperationException("The Avalonia window does not have a native handle yet.");

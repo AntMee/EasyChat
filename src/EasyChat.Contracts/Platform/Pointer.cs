@@ -37,7 +37,8 @@ public enum KeyboardKey
     Shift,
     LeftMeta,
     RightMeta,
-    C
+    C,
+    Escape
 }
 
 public interface IKeyboardState

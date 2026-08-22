@@ -36,6 +36,7 @@ public sealed class WindowsKeyboardState : IKeyboardState
         KeyboardKey.LeftMeta => 0x5B,
         KeyboardKey.RightMeta => 0x5C,
         KeyboardKey.C => 0x43,
+        KeyboardKey.Escape => 0x1B,
         _ => throw new ArgumentOutOfRangeException(nameof(key), key, null)
     };
 

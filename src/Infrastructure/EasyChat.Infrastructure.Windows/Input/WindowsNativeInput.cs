@@ -219,6 +219,8 @@ internal sealed class WindowsWindowStyleBackend
     private const int NoActivate = 0x08000000;
     private const int Transparent = 0x00000020;
     private const int Layered = 0x00080000;
+    private const uint DisplayAffinityNone = 0x00000000;
+    private const uint ExcludeFromCapture = 0x00000011;
 
     public void ConfigureNoActivate(IntPtr window, ILogger logger)
     {
@@ -254,9 +256,30 @@ internal sealed class WindowsWindowStyleBackend
         }
     }
 
+    public bool TrySetExcludedFromCapture(IntPtr window, bool enabled)
+    {
+        if (window == IntPtr.Zero)
+            return false;
+
+        try
+        {
+            return SetWindowDisplayAffinity(
+                window,
+                enabled ? ExcludeFromCapture : DisplayAffinityNone);
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr window, int index);
 
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr window, int index, int newStyle);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowDisplayAffinity(IntPtr window, uint displayAffinity);
 }

@@ -74,6 +74,13 @@ public partial class ImageTranslationResultWindow : ShadUI.Window
         SaveButton.IsEnabled = true;
     }
 
+    internal void MarkReady()
+    {
+        LoadingPanel.IsVisible = false;
+        CopyButton.IsEnabled = true;
+        SaveButton.IsEnabled = true;
+    }
+
     internal void ShowFailure(string message)
     {
         ShowWarnings([message]);

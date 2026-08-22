@@ -2447,6 +2447,83 @@ namespace EasyChat.Presentation.Lang {
             }
         }
 
+        /// <summary>Looks up a localized string similar to Long screenshot.</summary>
+        public static string LongScreenshot {
+            get {
+                return ResourceManager.GetString("LongScreenshot", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Choose a direction, then click Start.</summary>
+        public static string LongScreenshot_StartHint {
+            get {
+                return ResourceManager.GetString("LongScreenshot_StartHint", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Scroll down, then click Stop.</summary>
+        public static string LongScreenshot_ScrollHint {
+            get {
+                return ResourceManager.GetString("LongScreenshot_ScrollHint", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Scroll vertically, then click Stop.</summary>
+        public static string LongScreenshot_ScrollVerticalHint {
+            get {
+                return ResourceManager.GetString("LongScreenshot_ScrollVerticalHint", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Scroll horizontally, then click Stop.</summary>
+        public static string LongScreenshot_ScrollHorizontalHint {
+            get {
+                return ResourceManager.GetString("LongScreenshot_ScrollHorizontalHint", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Vertical long screenshot.</summary>
+        public static string LongScreenshot_Vertical {
+            get {
+                return ResourceManager.GetString("LongScreenshot_Vertical", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Horizontal long screenshot.</summary>
+        public static string LongScreenshot_Horizontal {
+            get {
+                return ResourceManager.GetString("LongScreenshot_Horizontal", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to {0} frames - {1} px.</summary>
+        public static string LongScreenshot_Progress {
+            get {
+                return ResourceManager.GetString("LongScreenshot_Progress", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Stop.</summary>
+        public static string LongScreenshot_Stop {
+            get {
+                return ResourceManager.GetString("LongScreenshot_Stop", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Stopping....</summary>
+        public static string LongScreenshot_Stopping {
+            get {
+                return ResourceManager.GetString("LongScreenshot_Stopping", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up a localized string similar to Review the screenshot, then click the check icon.</summary>
+        public static string LongScreenshot_Review {
+            get {
+                return ResourceManager.GetString("LongScreenshot_Review", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up the localized explanation for selecting and mixing audio sources.
         /// </summary>

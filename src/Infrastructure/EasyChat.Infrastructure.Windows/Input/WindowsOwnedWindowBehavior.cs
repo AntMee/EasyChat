@@ -21,4 +21,11 @@ public sealed class WindowsOwnedWindowBehavior(ILogger<WindowsOwnedWindowBehavio
             throw new ArgumentException("A native window handle is required.", nameof(window));
         _native.SetClickThrough(window, enabled);
     }
+
+    public bool TrySetExcludedFromCapture(nint window, bool enabled)
+    {
+        if (window == nint.Zero)
+            return false;
+        return _native.TrySetExcludedFromCapture(window, enabled);
+    }
 }

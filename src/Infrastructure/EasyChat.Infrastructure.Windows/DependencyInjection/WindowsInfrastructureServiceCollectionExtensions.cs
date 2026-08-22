@@ -1,3 +1,4 @@
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.ImageTranslation;
 using EasyChat.Contracts.Ocr;
 using EasyChat.Contracts.Platform;
@@ -27,6 +28,7 @@ public static class WindowsInfrastructureServiceCollectionExtensions
         services.AddSingleton<IApplicationAutoStartService, WindowsApplicationAutoStartService>();
         services.AddSingleton<IScreenCapture, WindowsScreenCapture>();
         services.AddSingleton<IScreenCatalog, WindowsScreenCatalog>();
+        services.AddSingleton<ILongScreenshotStitcher, OpenCvLongScreenshotStitcher>();
         services.AddSingleton<IGlobalHotkeys, WindowsGlobalHotkeys>();
         services.AddSingleton<IWindowFocus, WindowsWindowFocus>();
         services.AddSingleton<IWindowInputTransparency, WindowsWindowInputTransparency>();

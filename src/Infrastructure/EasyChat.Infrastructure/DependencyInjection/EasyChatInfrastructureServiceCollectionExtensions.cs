@@ -1,5 +1,6 @@
 using EasyChat.Contracts.ApplicationData;
 using EasyChat.Contracts.AiModels;
+using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Settings.Persistence;
 using EasyChat.Contracts.Speech;
@@ -8,6 +9,7 @@ using EasyChat.Contracts.Translation;
 using EasyChat.Contracts.Updates;
 using EasyChat.Infrastructure.ApplicationData;
 using EasyChat.Infrastructure.AiModels;
+using EasyChat.Infrastructure.Capture;
 using EasyChat.Infrastructure.Network;
 using EasyChat.Infrastructure.Settings.Persistence;
 using EasyChat.Infrastructure.Speech;
@@ -45,6 +47,7 @@ public static class EasyChatInfrastructureServiceCollectionExtensions
     {
         services.AddSingleton(applicationData);
         services.AddSingleton<IApplicationDataPaths>(applicationData);
+        services.AddSingleton<ILongScreenshotStitcher, ManagedLongScreenshotStitcher>();
         services.AddSingleton<IApplicationDataStore>(applicationData);
         services.AddSingleton<ISettingsPersistenceGateway>(
             provider => new JsonSettingsPersistenceGateway(

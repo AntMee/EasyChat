@@ -1,0 +1,108 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icon="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
+        x:Class="EasyChat.Presentation.Features.Capture.Views.LongScreenshotProgressView"
+        Width="260"
+        Height="320"
+        MinWidth="220"
+        MinHeight="220"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        WindowState="Normal"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        CanResize="False"
+        Topmost="True"
+        ShowActivated="False"
+        Background="{DynamicResource CardBackgroundColor}"
+        KeyDown="InputElement_OnKeyDown">
+    <Window.Styles>
+        <Style Selector="Button.CaptureToolbarButton">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource SmCornerRadius}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Button.CaptureToolbarButton:pointerover">
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor30}" />
+        </Style>
+        <Style Selector="Button.CaptureToolbarButton:pressed">
+            <Setter Property="Background" Value="{DynamicResource BorderColor30}" />
+        </Style>
+        <Style Selector="ComboBox.DirectionComboBox">
+            <Setter Property="MinWidth" Value="138" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+    </Window.Styles>
+    <Border Margin="0"
+            Background="{DynamicResource CardBackgroundColor}"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="1"
+            BoxShadow="{DynamicResource Shadow}"
+            CornerRadius="{DynamicResource LgCornerRadius}">
+        <Grid RowDefinitions="Auto,*,Auto" MinHeight="0">
+            <Grid Grid.Row="0" Margin="16,12,12,8">
+                <StackPanel Spacing="1" VerticalAlignment="Center">
+                    <TextBlock x:Name="StatusTextBlock"
+                               Foreground="{DynamicResource ForegroundColor}"
+                               FontWeight="SemiBold" />
+                    <TextBlock x:Name="DetailTextBlock"
+                               Foreground="{DynamicResource MutedColor}"
+                               FontSize="12" />
+                </StackPanel>
+            </Grid>
+            <Border Grid.Row="1" Margin="10,0" Background="{DynamicResource GhostColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" ClipToBounds="True" CornerRadius="{DynamicResource LgCornerRadius}">
+                <Image x:Name="PreviewImage" Margin="6" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+            </Border>
+            <Border Grid.Row="2" Margin="10,8" Padding="6" Background="{DynamicResource CardBackgroundColor}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="{DynamicResource LgCornerRadius}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="3">
+                    <ComboBox x:Name="DirectionComboBox"
+                              Classes="DirectionComboBox"
+                              SelectionChanged="DirectionComboBox_OnSelectionChanged">
+                        <ComboBoxItem>
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <icon:MaterialIcon Kind="PanVertical"
+                                                   Width="18"
+                                                   Height="18"
+                                                   Foreground="{DynamicResource ForegroundColor}" />
+                                <TextBlock Text="{x:Static lang:Resources.LongScreenshot_Vertical}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ComboBoxItem>
+                        <ComboBoxItem>
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <icon:MaterialIcon Kind="PanHorizontal"
+                                                   Width="18"
+                                                   Height="18"
+                                                   Foreground="{DynamicResource ForegroundColor}" />
+                                <TextBlock Text="{x:Static lang:Resources.LongScreenshot_Horizontal}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ComboBoxItem>
+                    </ComboBox>
+                    <Border x:Name="DirectionSeparator" Width="1" Height="22" Margin="3,0" Background="{DynamicResource BorderColor}" />
+                    <Button x:Name="StartButton" Classes="Icon CaptureToolbarButton" Click="StartButton_OnClick" ToolTip.Tip="{x:Static lang:Resources.LongScreenshot}">
+                        <icon:MaterialIcon Kind="Play" Width="19" Height="19" Foreground="{DynamicResource PrimaryColor}" />
+                    </Button>
+                    <Button x:Name="StopButton" Classes="Icon CaptureToolbarButton" Click="StopButton_OnClick" ToolTip.Tip="{x:Static lang:Resources.LongScreenshot_Stop}">
+                        <icon:MaterialIcon Kind="Stop" Width="19" Height="19" Foreground="{DynamicResource DestructiveColor}" />
+                    </Button>
+                    <Button x:Name="RetryButton" Classes="Icon CaptureToolbarButton" Click="RetryButton_OnClick" ToolTip.Tip="{x:Static lang:Resources.Reset}">
+                        <icon:MaterialIcon Kind="Refresh" Width="19" Height="19" Foreground="{DynamicResource MutedColor}" />
+                    </Button>
+                    <Button Classes="Icon CaptureToolbarButton" Click="CancelButton_OnClick" ToolTip.Tip="{x:Static lang:Resources.Cancel}">
+                        <icon:MaterialIcon Kind="Close" Width="19" Height="19" Foreground="{DynamicResource DestructiveColor}" />
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

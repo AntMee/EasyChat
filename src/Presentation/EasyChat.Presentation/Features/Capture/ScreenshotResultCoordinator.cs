@@ -34,12 +34,14 @@ public sealed class ScreenshotResultCoordinator(
     SettingsSession settings,
     ITranslationWindowCoordinator translationWindow,
     IClipboardText clipboard,
+    IClipboardImage clipboardImage,
     ToastManager toasts,
     ILoggerFactory loggerFactory)
 {
     private readonly SettingsSession _settings = settings;
     private readonly ITranslationWindowCoordinator _translationWindow = translationWindow;
     private readonly IClipboardText _clipboard = clipboard;
+    private readonly IClipboardImage _clipboardImage = clipboardImage;
     private readonly ToastManager _toasts = toasts;
     private readonly ILoggerFactory _loggerFactory = loggerFactory;
 
@@ -70,6 +72,7 @@ public sealed class ScreenshotResultCoordinator(
     public ValueTask<ScreenshotImageResultSession> OpenImageAsync(
         ImageFrame image,
         PhysicalScreenPoint completionPoint,
+        bool ready = false,
         CancellationToken cancellationToken = default) =>
         OnUiAsync(() =>
         {
@@ -80,6 +83,8 @@ public sealed class ScreenshotResultCoordinator(
                 _loggerFactory.CreateLogger<ImageTranslationResultWindow>());
             var session = new ScreenshotImageResultSession(view);
             session.ObserveLifetime();
+            if (ready)
+                view.MarkReady();
             view.Show();
             return session;
         }, cancellationToken);
@@ -123,6 +128,16 @@ public sealed class ScreenshotResultCoordinator(
         await OnUiAsync(() => ShowMessage(
             result.IsSuccess ? "Copied" : "Copy Error",
             result.IsSuccess ? "Text copied to clipboard." : result.Error.Message), cancellationToken);
+    }
+
+    public async ValueTask CopyImageAsync(
+        ImageFrame image,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _clipboardImage.WriteAsync(image, cancellationToken).ConfigureAwait(false);
+        await OnUiAsync(() => ShowMessage(
+            result.IsSuccess ? "Copied" : "Copy Error",
+            result.IsSuccess ? "Image copied to clipboard." : result.Error.Message), cancellationToken);
     }
 
     public ValueTask ShowMessageAsync(

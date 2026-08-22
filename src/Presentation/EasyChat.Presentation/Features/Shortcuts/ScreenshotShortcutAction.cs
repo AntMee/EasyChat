@@ -67,6 +67,15 @@ public sealed class ScreenshotShortcutAction(
         ScreenshotImageResultSession? imageWindow = null;
         try
         {
+            if (action == CaptureOverlayAction.CopyLongScreenshot)
+            {
+                await _results.OpenImageAsync(
+                    image,
+                    completionPoint,
+                    ready: true);
+                return;
+            }
+
             if (action == CaptureOverlayAction.OcrWorkbench)
             {
                 await _ocrWorkbench.OpenAsync(image, completionPoint);
@@ -84,7 +93,8 @@ public sealed class ScreenshotShortcutAction(
                 imageWindow = await _results.OpenImageAsync(
                     image,
                     completionPoint,
-                    imageCancellation.Token);
+                    ready: false,
+                    cancellationToken: imageCancellation.Token);
             }
 
             var cancellationToken = imageCancellation?.Token ?? CancellationToken.None;

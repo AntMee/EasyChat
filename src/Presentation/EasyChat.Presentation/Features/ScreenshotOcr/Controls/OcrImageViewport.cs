@@ -19,6 +19,8 @@ public sealed class OcrImageViewport : Decorator
     private static readonly IBrush BusyDotDimBrush = new SolidColorBrush(Color.FromArgb(95, 255, 255, 255));
     public static readonly StyledProperty<bool> IsSelectionBusyProperty =
         AvaloniaProperty.Register<OcrImageViewport, bool>(nameof(IsSelectionBusy));
+    public static readonly StyledProperty<bool> IsPanOnlyProperty =
+        AvaloniaProperty.Register<OcrImageViewport, bool>(nameof(IsPanOnly));
 
     private Bitmap? _bitmap;
     private OcrRegionSpatialIndex _index = OcrRegionSpatialIndex.Empty;
@@ -70,6 +72,23 @@ public sealed class OcrImageViewport : Decorator
             ResetView();
         else
             InvalidateVisual();
+    }
+
+    public bool IsPanOnly
+    {
+        get => GetValue(IsPanOnlyProperty);
+        set => SetValue(IsPanOnlyProperty, value);
+    }
+
+    public void ClearBitmap()
+    {
+        CloseTextSelector();
+        _bitmap = null;
+        _zoom = 1;
+        _pan = default;
+        _selected.Clear();
+        _hovered = null;
+        InvalidateVisual();
     }
 
     public void SetRegions(IReadOnlyList<OcrTextRegion> regions)
@@ -167,6 +186,7 @@ public sealed class OcrImageViewport : Decorator
         var point = e.GetCurrentPoint(this);
         var position = e.GetPosition(this);
         if (point.Properties.IsMiddleButtonPressed
+            || (IsPanOnly && point.Properties.IsLeftButtonPressed)
             || (_spacePressed && point.Properties.IsLeftButtonPressed))
         {
             _isPanning = true;

@@ -1,0 +1,20 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="EasyChat.Presentation.Features.Capture.Views.LongScreenshotSelectionBorderView"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        WindowState="Normal"
+        WindowDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        CanResize="False"
+        Focusable="False"
+        Topmost="True"
+        ShowActivated="False"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent">
+    <Border Margin="0"
+            Background="Transparent"
+            BorderBrush="{DynamicResource PrimaryColor}"
+            BorderThickness="2"
+            IsHitTestVisible="False" />
+</Window>

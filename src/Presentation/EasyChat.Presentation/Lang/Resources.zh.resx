@@ -727,6 +727,39 @@
     <data name="Screenshot_Hint" xml:space="preserve">
         <value>请框选需要翻译的区域。右键或ESC取消。</value>
     </data>
+    <data name="LongScreenshot" xml:space="preserve">
+        <value>长截图</value>
+    </data>
+    <data name="LongScreenshot_StartHint" xml:space="preserve">
+        <value>请选择滚动方向，然后点击开始</value>
+    </data>
+    <data name="LongScreenshot_ScrollHint" xml:space="preserve">
+        <value>请向下滚动页面，完成后点击停止</value>
+    </data>
+    <data name="LongScreenshot_ScrollVerticalHint" xml:space="preserve">
+        <value>请纵向滚动页面，完成后点击停止</value>
+    </data>
+    <data name="LongScreenshot_ScrollHorizontalHint" xml:space="preserve">
+        <value>请横向滚动页面，完成后点击停止</value>
+    </data>
+    <data name="LongScreenshot_Vertical" xml:space="preserve">
+        <value>纵向长截图</value>
+    </data>
+    <data name="LongScreenshot_Horizontal" xml:space="preserve">
+        <value>横向长截图</value>
+    </data>
+    <data name="LongScreenshot_Progress" xml:space="preserve">
+        <value>{0} 帧 - {1} 像素</value>
+    </data>
+    <data name="LongScreenshot_Stop" xml:space="preserve">
+        <value>停止</value>
+    </data>
+    <data name="LongScreenshot_Stopping" xml:space="preserve">
+        <value>正在停止</value>
+    </data>
+    <data name="LongScreenshot_Review" xml:space="preserve">
+        <value>请确认截图，完成后点击勾选</value>
+    </data>
     <data name="Confirm" xml:space="preserve">
         <value>确认</value>
     </data>

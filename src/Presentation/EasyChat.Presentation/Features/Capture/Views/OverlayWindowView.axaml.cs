@@ -8,6 +8,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using EasyChat.Contracts.Capture;
 using EasyChat.Contracts.Platform;
+using EasyChat.Presentation.Features.ScreenshotOcr.Controls;
 using Key = Avalonia.Input.Key;
 
 namespace EasyChat.Presentation.Features.Capture.Views;
@@ -18,6 +19,10 @@ public partial class OverlayWindowView : Window
     private readonly bool _regionOnly;
     private readonly CaptureOverlayAction _defaultAction = CaptureOverlayAction.Translation;
     private readonly Image? _capturedScreenImage;
+    private readonly Border? _longScreenshotResultBorder;
+    private readonly OcrImageViewport? _longScreenshotViewport;
+    private readonly Border? _longScreenshotZoomBorder;
+    private readonly TextBlock? _longScreenshotZoomText;
     private readonly Rectangle? _selectionRectangle;
     private readonly Border? _hintBorder;
     private readonly TextBlock? _hintTextBlock;
@@ -34,6 +39,7 @@ public partial class OverlayWindowView : Window
     private bool _releasingPointerCapture;
     private bool _opened;
     private bool _closed;
+    private bool _longScreenshotResultReview;
 
     public OverlayWindowView() => InitializeComponent();
 
@@ -64,6 +70,11 @@ public partial class OverlayWindowView : Window
 
         _capturedScreenImage = Require<Image>("CapturedScreenImage");
         _capturedScreenImage.Source = capturedImage;
+        _longScreenshotResultBorder = Require<Border>("LongScreenshotResultBorder");
+        _longScreenshotViewport = Require<OcrImageViewport>("LongScreenshotViewport");
+        _longScreenshotZoomBorder = Require<Border>("LongScreenshotZoomBorder");
+        _longScreenshotZoomText = Require<TextBlock>("LongScreenshotZoomText");
+        _longScreenshotViewport.ZoomChanged += OnLongScreenshotZoomChanged;
         _selectionRectangle = Require<Rectangle>("SelectionRectangle");
         _hintBorder = Require<Border>("HintBorder");
         _hintTextBlock = Require<TextBlock>("HintTextBlock");
@@ -72,6 +83,7 @@ public partial class OverlayWindowView : Window
         _copyButton = Require<Control>("CopyButton");
         _copyButton.IsVisible = toolbarMode == CaptureToolbarMode.Full;
         Require<Control>("OcrButton").IsVisible = toolbarMode == CaptureToolbarMode.Full;
+        Require<Control>("LongScreenshotButton").IsVisible = toolbarMode == CaptureToolbarMode.Full;
         _handles =
         [
             Require<Border>("HandleTopLeft"),
@@ -134,6 +146,12 @@ public partial class OverlayWindowView : Window
             return;
 
         _toolbarBorder.IsVisible = false;
+        _longScreenshotResultReview = false;
+        if (_longScreenshotResultBorder is not null)
+            _longScreenshotResultBorder.IsVisible = false;
+        if (_longScreenshotZoomBorder is not null)
+            _longScreenshotZoomBorder.IsVisible = false;
+        _longScreenshotViewport?.ClearBitmap();
         if (_copyMenuBorder is not null)
             _copyMenuBorder.IsVisible = false;
         HideHandles();
@@ -175,6 +193,64 @@ public partial class OverlayWindowView : Window
         ReleasePointerCapture();
         if (_capturedScreenImage is not null)
             _capturedScreenImage.Source = null;
+        _longScreenshotViewport?.ClearBitmap();
+        if (_longScreenshotViewport is not null)
+            _longScreenshotViewport.ZoomChanged -= OnLongScreenshotZoomChanged;
+    }
+
+    internal void HideSessionWindow()
+    {
+        if (_opened && !_closed && IsVisible)
+            Hide();
+    }
+
+    internal void ShowSessionWindow()
+    {
+        if (_opened && !_closed && !IsVisible)
+            Show();
+    }
+
+    internal void RenderLongScreenshotResult(
+        PhysicalScreenRegion selection,
+        Bitmap image,
+        bool showToolbar,
+        bool showImage)
+    {
+        if (_selectionRectangle is null || _toolbarBorder is null ||
+            _longScreenshotResultBorder is null || _longScreenshotViewport is null)
+            return;
+        _selection = selection;
+        _mode = CaptureSelectionMode.Done;
+        _longScreenshotResultReview = true;
+        _hintBorder!.IsVisible = false;
+        _selectionRectangle.IsVisible = false;
+        HideHandles();
+        _longScreenshotResultBorder.IsVisible = false;
+        if (_longScreenshotZoomBorder is not null)
+            _longScreenshotZoomBorder.IsVisible = false;
+        if (!showImage)
+            return;
+        _longScreenshotViewport.SetBitmap(image);
+        var visible = Intersect(selection, Screen.Bounds);
+        if (visible is not { } region)
+            return;
+        var local = ToClientRect(region);
+        Canvas.SetLeft(_longScreenshotResultBorder, local.X);
+        Canvas.SetTop(_longScreenshotResultBorder, local.Y);
+        _longScreenshotResultBorder.Width = local.Width;
+        _longScreenshotResultBorder.Height = local.Height;
+        _longScreenshotResultBorder.IsVisible = true;
+        if (_longScreenshotZoomBorder is not null)
+        {
+            _longScreenshotZoomBorder.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var zoomSize = _longScreenshotZoomBorder.DesiredSize;
+            Canvas.SetLeft(_longScreenshotZoomBorder, local.X + 10);
+            Canvas.SetTop(_longScreenshotZoomBorder, local.Bottom - zoomSize.Height - 10);
+            _longScreenshotZoomBorder.IsVisible = true;
+        }
+        OnLongScreenshotZoomChanged(100);
+        if (showToolbar)
+            UpdateToolbarPosition(local);
     }
 
     internal void CloseSessionWindow()
@@ -192,6 +268,8 @@ public partial class OverlayWindowView : Window
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (_screen is null)
+            return;
+        if (_longScreenshotResultReview)
             return;
 
         var current = e.GetCurrentPoint(this);
@@ -220,6 +298,8 @@ public partial class OverlayWindowView : Window
     {
         if (_screen is null)
             return;
+        if (_longScreenshotResultReview)
+            return;
 
         var logical = e.GetPosition(this);
         var physical = ToPhysicalPoint(logical);
@@ -233,6 +313,8 @@ public partial class OverlayWindowView : Window
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (_screen is null)
+            return;
+        if (_longScreenshotResultReview)
             return;
         if (_mode is not (
                 CaptureSelectionMode.Selecting or
@@ -257,7 +339,7 @@ public partial class OverlayWindowView : Window
     private void OnPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
         _capturedPointer = null;
-        if (_releasingPointerCapture || _sessionClosing)
+        if (_releasingPointerCapture || _sessionClosing || _longScreenshotResultReview)
             return;
         if (_mode is CaptureSelectionMode.Selecting or
             CaptureSelectionMode.Resizing or
@@ -288,6 +370,12 @@ public partial class OverlayWindowView : Window
         ActionRequested?.Invoke(this, _defaultAction);
     public void OcrButton_OnClick(object? sender, RoutedEventArgs e) =>
         ActionRequested?.Invoke(this, CaptureOverlayAction.OcrWorkbench);
+    public void LongScreenshotButton_OnClick(object? sender, RoutedEventArgs e) =>
+        ActionRequested?.Invoke(this, CaptureOverlayAction.CopyLongScreenshot);
+    public void LongScreenshotZoomOut_OnClick(object? sender, RoutedEventArgs e) =>
+        _longScreenshotViewport?.ZoomOut();
+    public void LongScreenshotZoomIn_OnClick(object? sender, RoutedEventArgs e) =>
+        _longScreenshotViewport?.ZoomIn();
     public void CopyOriginal_OnClick(object? sender, RoutedEventArgs e) =>
         ActionRequested?.Invoke(this, CaptureOverlayAction.CopyOriginal);
     public void CopyTranslated_OnClick(object? sender, RoutedEventArgs e) =>
@@ -298,6 +386,12 @@ public partial class OverlayWindowView : Window
         ActionRequested?.Invoke(this, CaptureOverlayAction.CopyImageTranslated);
     public void ResetButton_OnClick(object? sender, RoutedEventArgs e) => ResetRequested?.Invoke();
     public void CancelButton_OnClick(object? sender, RoutedEventArgs e) => CancelRequested?.Invoke();
+
+    private void OnLongScreenshotZoomChanged(double value)
+    {
+        if (_longScreenshotZoomText is not null)
+            _longScreenshotZoomText.Text = $"{value:0}%";
+    }
 
     private Rect ToClientRect(PhysicalScreenRegion region)
     {

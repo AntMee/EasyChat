@@ -6,6 +6,8 @@ using EasyChat.Contracts.Capture;
 using EasyChat.Infrastructure.Windows.Capture;
 using EasyChat.Infrastructure.Windows.Input;
 using EasyChat.Presentation.Features.Capture;
+using EasyChat.Presentation.Foundation.Platform;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EasyChat.Desktop.Windows.Capture;
 
@@ -64,7 +66,11 @@ internal static class WindowsScreenshotWorker
             var overlays = new CaptureOverlayCoordinator(
                 new WindowsScreenCatalog(),
                 new WindowsScreenCapture(),
-                new WindowsPointerPosition());
+                new WindowsPointerPosition(),
+                new WindowsWindowFocus(),
+                new WindowsKeyboardState(),
+                new OpenCvLongScreenshotStitcher(),
+                CreateWindowBehavior());
             AppBuilder.Configure(() => new ScreenshotCaptureWorkerApp(
                     overlays,
                     ReceiveAsync,
@@ -91,4 +97,8 @@ internal static class WindowsScreenshotWorker
             }
         }
     }
+
+    private static IPlatformWindowBehavior CreateWindowBehavior() =>
+        new AvaloniaWindowsWindowBehavior(
+            new WindowsOwnedWindowBehavior(NullLogger<WindowsOwnedWindowBehavior>.Instance));
 }

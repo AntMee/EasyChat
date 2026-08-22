@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
         xmlns:icon="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:controls="using:EasyChat.Presentation.Features.ScreenshotOcr.Controls"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="EasyChat.Presentation.Features.Capture.Views.OverlayWindowView"
         Closed="TopLevel_OnClosed" KeyDown="InputElement_OnKeyDown"
@@ -53,6 +54,42 @@
                Stretch="Fill"
                IsHitTestVisible="False" />
         <Canvas Name="MainCanvas">
+        <Border x:Name="LongScreenshotResultBorder"
+                Background="#17191C"
+                BorderBrush="{DynamicResource PrimaryColor}"
+                BorderThickness="2"
+                CornerRadius="8"
+                ClipToBounds="True"
+                IsVisible="False">
+            <controls:OcrImageViewport x:Name="LongScreenshotViewport"
+                                       IsPanOnly="True" />
+        </Border>
+        <Border x:Name="LongScreenshotZoomBorder"
+                Background="{DynamicResource CardBackgroundColor}"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="1"
+                CornerRadius="7"
+                Padding="3"
+                IsVisible="False">
+            <StackPanel Orientation="Horizontal" Spacing="1">
+                <Button Classes="Icon CaptureToolbarButton"
+                        Click="LongScreenshotZoomOut_OnClick"
+                        ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ZoomOutTooltip}">
+                    <icon:MaterialIcon Kind="MagnifyMinusOutline" Width="17" Height="17" Foreground="{DynamicResource ForegroundColor}" />
+                </Button>
+                <TextBlock x:Name="LongScreenshotZoomText"
+                           Width="48"
+                           VerticalAlignment="Center"
+                           TextAlignment="Center"
+                           Foreground="{DynamicResource ForegroundColor}"
+                           FontSize="12" />
+                <Button Classes="Icon CaptureToolbarButton"
+                        Click="LongScreenshotZoomIn_OnClick"
+                        ToolTip.Tip="{x:Static lang:Resources.ScreenshotOcr_ZoomInTooltip}">
+                    <icon:MaterialIcon Kind="MagnifyPlusOutline" Width="17" Height="17" Foreground="{DynamicResource ForegroundColor}" />
+                </Button>
+            </StackPanel>
+        </Border>
         <!-- Main Selection Box -->
         <Rectangle x:Name="SelectionRectangle"
                    Stroke="{DynamicResource PrimaryColor}"
@@ -109,6 +146,12 @@
                         Click="OcrButton_OnClick"
                         ToolTip.Tip="OCR">
                     <icon:MaterialIcon Kind="TextRecognition" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
+                </Button>
+                <Button x:Name="LongScreenshotButton"
+                        Classes="Icon CaptureToolbarButton"
+                        Click="LongScreenshotButton_OnClick"
+                        ToolTip.Tip="{x:Static lang:Resources.LongScreenshot}">
+                    <icon:MaterialIcon Kind="Mouse" Width="19" Height="19" Foreground="{DynamicResource ForegroundColor}" />
                 </Button>
 
                 <Border Width="1" Height="22" Margin="3,0" Background="{DynamicResource BorderColor}" />
