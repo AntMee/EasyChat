@@ -56,61 +56,69 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            await EnsureWorkerAsync(cancellationToken).ConfigureAwait(false);
-            var process = _process
-                          ?? throw new InvalidOperationException("Screenshot worker was not initialized.");
-            using var cancellationRegistration = cancellationToken.Register(
-                static state => TryTerminate((Process)state!),
-                process);
-            ScreenshotSelection? selection = null;
-            var responseReceived = false;
-            try
+            // A worker can disappear while the application is idle (for example
+            // after a desktop/session transition). Rebuild it and retry once so
+            // the first hotkey press is still the one that starts capture.
+            for (var attempt = 0; ; attempt++)
             {
-                ScreenshotWorkerProtocol.WriteRequest(_writer!, request);
-                selection = await Task.Run(
-                        () => ScreenshotWorkerProtocol.Read(_reader!),
-                        CancellationToken.None)
-                    .WaitAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                responseReceived = true;
-                return selection;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception exception) when (exception is IOException
-                                              or EndOfStreamException
-                                              or InvalidDataException
-                                              or ObjectDisposedException)
-            {
-                throw;
-            }
-            finally
-            {
-                // A successful capture owns large managed and native buffers
-                // (Avalonia bitmaps, GDI surfaces and OpenCV allocations).
-                // Recycle that worker, then leave a fresh one warm for the
-                // next shortcut. A Cancelled response is deliberately kept:
-                // it produced no screenshot buffers and the worker is already
-                // back in its receive loop.
-                if (selection is not null)
+                try
                 {
-                    ResetWorker();
+                    await EnsureWorkerAsync(cancellationToken).ConfigureAwait(false);
+                    var process = _process
+                                  ?? throw new InvalidOperationException("Screenshot worker was not initialized.");
+                    using var cancellationRegistration = cancellationToken.Register(
+                        static state => TryTerminate((Process)state!),
+                        process);
+                    ScreenshotSelection? selection;
                     try
                     {
-                        if (!_disposed)
-                            await EnsureWorkerAsync(CancellationToken.None).ConfigureAwait(false);
+                        ScreenshotWorkerProtocol.WriteRequest(_writer!, request);
+                        selection = await Task.Run(
+                                () => ScreenshotWorkerProtocol.Read(_reader!),
+                                CancellationToken.None)
+                            .WaitAsync(cancellationToken)
+                            .ConfigureAwait(false);
                     }
-                    catch
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception) when (IsRecoverableWorkerFailure(exception))
                     {
                         ResetWorker();
+                        if (attempt == 0)
+                            continue;
+                        throw;
                     }
+
+                    // A successful capture owns large managed and native buffers
+                    // (Avalonia bitmaps, GDI surfaces and OpenCV allocations).
+                    // Recycle that worker, then leave a fresh one warm for the
+                    // next shortcut. A cancelled response is deliberately kept:
+                    // it produced no screenshot buffers and the worker is already
+                    // back in its receive loop.
+                    if (selection is not null)
+                    {
+                        ResetWorker();
+                        try
+                        {
+                            if (!_disposed)
+                                await EnsureWorkerAsync(CancellationToken.None).ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            ResetWorker();
+                        }
+                    }
+
+                    return selection;
                 }
-                else if (!responseReceived)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    // A transport/process failure leaves the worker state
-                    // unknown and cannot be safely reused.
+                    throw;
+                }
+                catch (Exception exception) when (IsRecoverableWorkerFailure(exception) && attempt == 0)
+                {
                     ResetWorker();
                 }
             }
@@ -273,6 +281,14 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
         }
         process.Dispose();
     }
+
+    private static bool IsRecoverableWorkerFailure(Exception exception) =>
+        exception is IOException
+            or EndOfStreamException
+            or InvalidDataException
+            or ObjectDisposedException
+            or TimeoutException
+            or InvalidOperationException;
 
     private static bool TryWaitForExit(Process process, int milliseconds)
     {
