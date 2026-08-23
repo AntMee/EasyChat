@@ -48,7 +48,7 @@ public sealed class WindowsGlobalHotkeys : IHoldGlobalHotkeys, IDisposable
         {
             var nativeRegistration = _backend.Register(
                 binding,
-                () => callback(callbackToken).GetAwaiter().GetResult());
+                () => DispatchCallback(callback, callbackToken));
 
             if (!nativeRegistration.IsSuccessful)
             {
@@ -168,6 +168,38 @@ public sealed class WindowsGlobalHotkeys : IHoldGlobalHotkeys, IDisposable
     {
         if (Interlocked.Exchange(ref _disposed, 1) == 0)
             _backend.Dispose();
+    }
+
+    private static void DispatchCallback(
+        Func<CancellationToken, ValueTask> callback,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var pending = callback(cancellationToken);
+            if (!pending.IsCompletedSuccessfully)
+                _ = ObserveCallbackAsync(pending);
+        }
+        catch
+        {
+            // A callback must not take down the global hotkey event loop.
+        }
+    }
+
+    private static async Task ObserveCallbackAsync(ValueTask callback)
+    {
+        try
+        {
+            await callback.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch
+        {
+            // The action owns user-facing error handling; keep the hotkey
+            // event loop independent from an individual action failure.
+        }
     }
 
     private sealed class WindowsHotkeyRegistration : IHotkeyRegistration

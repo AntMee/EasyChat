@@ -25,15 +25,24 @@ public static class AvaloniaImageFrames
                 nameof(destinationRowBytes),
                 "The destination stride is smaller than a pixel row.");
 
+        if (MemoryMarshal.TryGetArray(frame.Pixels, out var segment) && segment.Array is not null)
+        {
+            for (var row = 0; row < frame.Height; row++)
+                Marshal.Copy(
+                    segment.Array,
+                    segment.Offset + row * frame.Stride,
+                    destination + row * destinationRowBytes,
+                    rowBytes);
+            return;
+        }
+
         var source = frame.Pixels.Span;
         for (var row = 0; row < frame.Height; row++)
-        {
             Marshal.Copy(
                 source.Slice(row * frame.Stride, rowBytes).ToArray(),
                 0,
                 destination + row * destinationRowBytes,
                 rowBytes);
-        }
     }
 
     public static Bitmap ToBitmap(ImageFrame frame)

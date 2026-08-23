@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -72,7 +73,10 @@ public sealed partial class ScreenshotCaptureWorkerApp : Avalonia.Application
             WarmUpOverlayWindow();
             _ready();
             while (await _receive() is { } command)
+            {
                 await CaptureAsync(command);
+                TrimCaptureMemory();
+            }
         }
         finally
         {
@@ -144,6 +148,23 @@ public sealed partial class ScreenshotCaptureWorkerApp : Avalonia.Application
         {
             _fail(exception);
         }
+    }
+
+    private static void TrimCaptureMemory()
+    {
+        // Long screenshots temporarily allocate large frame/result buffers.
+        // Reclaim them between commands, rather than making the next capture
+        // pay the GC cost and appear to be the point where memory is released.
+        const long largeCaptureThreshold = 64L * 1024 * 1024;
+        if (GC.GetTotalMemory(forceFullCollection: false) < largeCaptureThreshold)
+            return;
+
+        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(
+            GC.MaxGeneration,
+            GCCollectionMode.Forced,
+            blocking: true,
+            compacting: true);
     }
 
     private void ApplyPrimaryColor(string value)

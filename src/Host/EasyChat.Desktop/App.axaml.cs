@@ -82,12 +82,19 @@ public sealed partial class App(
             ui.Settings.Changed += OnSettingsChanged;
             UpdateTrayIcon(ui.Settings.General.ClosingBehavior);
             ui.Interactions.Start();
-            _ = WarmUpScreenshotCaptureAsync(ui.ScreenshotCapture);
 #if !DEBUG
             _ = CheckForUpdatesAsync();
 #endif
         }
         base.OnFrameworkInitializationCompleted();
+        if (_ui is { } initializedUi)
+        {
+            // Start the screenshot worker after Avalonia has completed its
+            // lifetime/window initialization, while keeping startup non-blocking.
+            Dispatcher.UIThread.Post(
+                () => _ = WarmUpScreenshotCaptureAsync(initializedUi.ScreenshotCapture),
+                DispatcherPriority.Background);
+        }
 #if DEBUG
         if (_desktop is not null)
         {

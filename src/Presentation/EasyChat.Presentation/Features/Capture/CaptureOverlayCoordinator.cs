@@ -83,7 +83,15 @@ public sealed class CaptureOverlayCoordinator(
                     cancellationToken);
                 using var cancellationRegistration = cancellationToken.Register(() =>
                     Dispatcher.UIThread.Post(() => session.Cancel(cancellationToken)));
-                return await completion.ConfigureAwait(false);
+                var escapeMonitor = MonitorEscapeAsync(session, completion);
+                try
+                {
+                    return await completion.ConfigureAwait(false);
+                }
+                finally
+                {
+                    await escapeMonitor.ConfigureAwait(false);
+                }
             }
             finally
             {
@@ -167,6 +175,30 @@ public sealed class CaptureOverlayCoordinator(
             DispatcherPriority.Normal,
             cancellationToken);
     }
+
+    private async Task MonitorEscapeAsync(
+        CaptureOverlaySession session,
+        Task<CaptureOverlayOutcome?> completion)
+    {
+        var wasPressed = _keyboard.IsPressed(KeyboardKey.Escape);
+        while (!completion.IsCompleted)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(25)).ConfigureAwait(false);
+            var isPressed = _keyboard.IsPressed(KeyboardKey.Escape);
+            if (isPressed && !wasPressed)
+            {
+                // Finish closes Avalonia windows and must run on the UI thread.
+                // The keyboard state itself is safe to sample from this poller.
+                var cancelled = await OnUiAsync(
+                        session.TryCancelFromEscape,
+                        CancellationToken.None)
+                    .ConfigureAwait(false);
+                if (cancelled)
+                    return;
+            }
+            wasPressed = isPressed;
+        }
+    }
 }
 
 internal sealed class CaptureOverlaySession : IDisposable
@@ -205,7 +237,6 @@ internal sealed class CaptureOverlaySession : IDisposable
     private LongScreenshotResultDialog? _longScreenshotResultDialog;
     private LongScreenshotDirection _longScreenshotDirection = LongScreenshotDirection.Vertical;
     private int _longScreenshotFrameCount;
-    private IReadOnlyList<ImageFrame>? _longScreenshotFrames;
     private LongScreenshotAccumulator? _longScreenshotAccumulator;
     private PhysicalScreenRegion? _longScreenshotSelection;
     public CaptureOverlaySession(
@@ -323,6 +354,14 @@ internal sealed class CaptureOverlaySession : IDisposable
             _completion.TrySetCanceled(cancellationToken);
         else
             _completion.TrySetException(closeFailure);
+    }
+
+    internal bool TryCancelFromEscape()
+    {
+        if (_finished)
+            return false;
+        Finish(null);
+        return true;
     }
 
     public void Dispose()
@@ -579,9 +618,8 @@ internal sealed class CaptureOverlaySession : IDisposable
                 _longScreenshotDirection,
                 _stitcher);
             _longScreenshotAccumulator = accumulator;
-            _longScreenshotFrames = accumulator.Frames;
             _longScreenshotSelection = selectedPhysical;
-            _longScreenshotFrameCount = accumulator.Frames.Count;
+            _longScreenshotFrameCount = accumulator.Count;
             _longScreenshotStarted = false;
             combined = null;
 
@@ -593,7 +631,7 @@ internal sealed class CaptureOverlaySession : IDisposable
             _longScreenshotProgress.StopRequested += OnLongScreenshotStopRequested;
             _longScreenshotProgress.CancelRequested += OnLongScreenshotCancelRequested;
             _longScreenshotProgress.DirectionChanged += OnLongScreenshotDirectionChanged;
-            ShowLongScreenshotPreview(accumulator.Current, accumulator.Frames.Count, selectedPhysical);
+            ShowLongScreenshotPreview(accumulator, selectedPhysical);
 
             HideAll();
             ShowLongScreenshotSelectionBorder(selectedPhysical);
@@ -630,14 +668,14 @@ internal sealed class CaptureOverlaySession : IDisposable
                 // the stitcher; keep waiting for the next user scroll. The
                 // frame budget is therefore based on accepted frames, not
                 // polling attempts.
-                while (accumulator.Frames.Count < LongScreenshotComposer.MaximumFrames)
+                while (accumulator.Count < LongScreenshotComposer.MaximumFrames)
                 {
                     if (_keyboard.IsPressed(KeyboardKey.Escape))
                         _completeLongScreenshotRequested = true;
                     if (_completeLongScreenshotRequested || _finished)
                         break;
 
-                    var captured = await WaitForUserViewportChangeAsync(selectedPhysical, accumulator.Frames[^1])
+                    var captured = await WaitForUserViewportChangeAsync(selectedPhysical, accumulator.Last)
                         .ConfigureAwait(true);
                     if (captured.IsFailure)
                         throw new InvalidOperationException(captured.Error.Message);
@@ -647,9 +685,8 @@ internal sealed class CaptureOverlaySession : IDisposable
                     var appended = accumulator.Append(captured.Value);
                     if (!appended)
                         continue;
-                    _longScreenshotFrames = accumulator.Frames;
-                    _longScreenshotFrameCount = accumulator.Frames.Count;
-                    ShowLongScreenshotPreview(accumulator.Current, accumulator.Frames.Count, selectedPhysical);
+                    _longScreenshotFrameCount = accumulator.Count;
+                    ShowLongScreenshotPreview(accumulator, selectedPhysical);
                 }
 
                 if (_finished)
@@ -659,8 +696,7 @@ internal sealed class CaptureOverlaySession : IDisposable
                 break;
             }
 
-            combined = accumulator.Current;
-            var image = LongScreenshotComposer.ToBitmap(combined);
+            var image = accumulator.CreateBitmap();
             ShowLongScreenshotResultReview(selectedPhysical, image);
             image = null;
         }
@@ -682,7 +718,6 @@ internal sealed class CaptureOverlaySession : IDisposable
                 _longScreenshotProgress = null;
             }
             _longScreenshotAccumulator = null;
-            _longScreenshotFrames = null;
             _longScreenshotStart = null;
             _longScreenshotStarted = false;
             CloseLongScreenshotSelectionBorder();
@@ -690,13 +725,12 @@ internal sealed class CaptureOverlaySession : IDisposable
     }
 
     private void ShowLongScreenshotPreview(
-        ImageFrame previewFrame,
-        int frameCount,
+        LongScreenshotAccumulator accumulator,
         PhysicalScreenRegion selectedPhysical)
     {
         if (_longScreenshotProgress is null)
             return;
-        var preview = LongScreenshotComposer.ToPreviewBitmap(previewFrame);
+        var preview = accumulator.CreatePreviewBitmap();
         var previewScreen = GetLongScreenshotPreviewScreen(selectedPhysical);
         _longScreenshotProgress.ShowCapturePreview(
             GetLongScreenshotPreviewPosition(selectedPhysical, previewScreen),
@@ -704,8 +738,8 @@ internal sealed class CaptureOverlaySession : IDisposable
             previewScreen.ScaleX,
             previewScreen.ScaleY,
             preview,
-            frameCount,
-            GetLongScreenshotDimension(previewFrame),
+            accumulator.Count,
+            accumulator.Dimension,
             _longScreenshotDirection,
             _longScreenshotFrameCount <= 1,
             _longScreenshotStarted);
@@ -890,9 +924,6 @@ internal sealed class CaptureOverlaySession : IDisposable
             : 0L;
     }
 
-    private int GetLongScreenshotDimension(ImageFrame frame) =>
-        _longScreenshotDirection == LongScreenshotDirection.Vertical ? frame.Height : frame.Width;
-
     private int GetLongScreenshotMaximumDimension() =>
         _longScreenshotDirection == LongScreenshotDirection.Vertical
             ? LongScreenshotComposer.MaximumHeight
@@ -905,16 +936,12 @@ internal sealed class CaptureOverlaySession : IDisposable
         _longScreenshotDirection = direction;
         if (_longScreenshotAccumulator is not null && _longScreenshotSelection is { } selection)
         {
-            var first = _longScreenshotAccumulator.Frames[0];
+            var first = _longScreenshotAccumulator.First;
             _longScreenshotAccumulator = LongScreenshotComposer.CreateAccumulator(
                 first,
                 direction,
                 _stitcher);
-            _longScreenshotFrames = _longScreenshotAccumulator.Frames;
-            ShowLongScreenshotPreview(
-                _longScreenshotAccumulator.Current,
-                _longScreenshotAccumulator.Frames.Count,
-                selection);
+            ShowLongScreenshotPreview(_longScreenshotAccumulator, selection);
         }
     }
 
@@ -934,18 +961,14 @@ internal sealed class CaptureOverlaySession : IDisposable
         if (_longScreenshotAccumulator is not null &&
             _longScreenshotFrameCount <= 1 &&
             _longScreenshotSelection is { } selection &&
-            _longScreenshotAccumulator.Frames.Count == 1)
+            _longScreenshotAccumulator.Count == 1)
         {
-            var first = _longScreenshotAccumulator.Frames[0];
+            var first = _longScreenshotAccumulator.First;
             _longScreenshotAccumulator = LongScreenshotComposer.CreateAccumulator(
                 first,
                 direction,
                 _stitcher);
-            _longScreenshotFrames = _longScreenshotAccumulator.Frames;
-            ShowLongScreenshotPreview(
-                _longScreenshotAccumulator.Current,
-                _longScreenshotAccumulator.Frames.Count,
-                selection);
+            ShowLongScreenshotPreview(_longScreenshotAccumulator, selection);
         }
         _longScreenshotProgress?.SetCaptureStarted();
         _longScreenshotStart?.TrySetResult(true);

@@ -572,7 +572,10 @@ public partial class OverlayWindowView : Window
     private void InputElement_OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
+        {
             CancelRequested?.Invoke();
+            e.Handled = true;
+        }
         else if (e.Key == Key.Enter && _toolbarBorder?.IsVisible == true)
             ActionRequested?.Invoke(this, _defaultAction);
     }

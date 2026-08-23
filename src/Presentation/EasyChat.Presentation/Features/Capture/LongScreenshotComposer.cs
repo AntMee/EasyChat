@@ -1,3 +1,7 @@
+using System.Buffers;
+using System.Runtime.InteropServices;
+using Avalonia;
+using Avalonia.Platform;
 using EasyChat.Contracts.Platform;
 using EasyChat.Contracts.Capture;
 using Avalonia.Media.Imaging;
@@ -439,12 +443,17 @@ internal static class LongScreenshotComposer
 
 internal sealed class LongScreenshotAccumulator
 {
-    private readonly List<ImageFrame> _frames = [];
-    private readonly List<int> _overlaps = [];
-    private readonly List<LongScreenshotPlacement> _placements = [];
+    private readonly List<Segment> _segments = [];
+    private readonly ImageFrame _first;
     private readonly LongScreenshotDirection _direction;
     private readonly ILongScreenshotStitcher? _stitcher;
-    private ImageFrame _current;
+    private readonly int _fixedDimension;
+    private readonly double _dpiX;
+    private readonly double _dpiY;
+    private ImageFrame _last;
+    private int _axisLength;
+    private int _count = 1;
+    private int _lastOffset;
 
     internal LongScreenshotAccumulator(
         ImageFrame first,
@@ -453,17 +462,135 @@ internal sealed class LongScreenshotAccumulator
     {
         _direction = direction;
         _stitcher = stitcher;
-        _frames.Add(first);
-        _current = first;
+        _fixedDimension = direction == LongScreenshotDirection.Vertical ? first.Width : first.Height;
+        _dpiX = first.DpiX;
+        _dpiY = first.DpiY;
+        _axisLength = direction == LongScreenshotDirection.Vertical ? first.Height : first.Width;
+        AddInitialSegment(first);
+        _first = CreateFrameFromSegment(_segments[0]);
+        // The initial segment is already a compact, tightly-strided copy. Reuse
+        // it for matching so the original capture can be collected immediately.
+        _last = _first;
     }
 
-    internal IReadOnlyList<ImageFrame> Frames => _frames;
-    internal ImageFrame Current => _current;
+    internal int Count => _count;
+    internal ImageFrame First => _first;
+    internal ImageFrame Last => _last;
+    internal int Dimension => _axisLength;
+    internal ImageFrame Current => Materialize();
+
+    internal Bitmap CreateBitmap()
+    {
+        var width = _direction == LongScreenshotDirection.Vertical ? _fixedDimension : _axisLength;
+        var height = _direction == LongScreenshotDirection.Vertical ? _axisLength : _fixedDimension;
+        var rowBytes = checked(width * 4);
+        var bitmap = new WriteableBitmap(
+            new PixelSize(width, height),
+            new Vector(_dpiX, _dpiY),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Opaque);
+        try
+        {
+            using var locked = bitmap.Lock();
+            foreach (var segment in _segments)
+            {
+                if (_direction == LongScreenshotDirection.Vertical)
+                {
+                    if (locked.RowBytes == rowBytes)
+                    {
+                        Marshal.Copy(
+                            segment.Pixels,
+                            0,
+                            locked.Address + segment.Start * locked.RowBytes,
+                            checked(segment.Stride * segment.Length));
+                    }
+                    else
+                    {
+                        for (var row = 0; row < segment.Length; row++)
+                            Marshal.Copy(
+                                segment.Pixels,
+                                row * segment.Stride,
+                                locked.Address + (segment.Start + row) * locked.RowBytes,
+                                rowBytes);
+                    }
+                }
+            }
+
+            if (_direction == LongScreenshotDirection.Horizontal)
+            {
+                var rowBuffer = ArrayPool<byte>.Shared.Rent(rowBytes);
+                try
+                {
+                    for (var row = 0; row < height; row++)
+                    {
+                        var destination = rowBuffer.AsSpan(0, rowBytes);
+                        destination.Clear();
+                        foreach (var segment in _segments)
+                            segment.Pixels.AsSpan(row * segment.Stride, segment.Stride)
+                                .CopyTo(destination.Slice(segment.Start * 4, segment.Stride));
+                        Marshal.Copy(
+                            rowBuffer,
+                            0,
+                            locked.Address + row * locked.RowBytes,
+                            rowBytes);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(rowBuffer);
+                }
+            }
+
+            return bitmap;
+        }
+        catch
+        {
+            bitmap.Dispose();
+            throw;
+        }
+    }
+
+    internal Bitmap CreatePreviewBitmap(int maximumWidth = 480, int maximumHeight = 560)
+    {
+        var width = _direction == LongScreenshotDirection.Vertical ? _fixedDimension : _axisLength;
+        var height = _direction == LongScreenshotDirection.Vertical ? _axisLength : _fixedDimension;
+        var scale = Math.Min(1d, Math.Min((double)maximumWidth / width, (double)maximumHeight / height));
+        var previewWidth = Math.Max(1, (int)Math.Round(width * scale));
+        var previewHeight = Math.Max(1, (int)Math.Round(height * scale));
+        var stride = checked(previewWidth * 4);
+        var pixelBytes = checked(stride * previewHeight);
+        var pixels = ArrayPool<byte>.Shared.Rent(pixelBytes);
+        try
+        {
+            for (var y = 0; y < previewHeight; y++)
+            {
+                var sourceY = Math.Min(height - 1, (int)(y / scale));
+                for (var x = 0; x < previewWidth; x++)
+                {
+                    var sourceX = Math.Min(width - 1, (int)(x / scale));
+                    ReadPixel(sourceX, sourceY).CopyTo(pixels.AsSpan(y * stride + x * 4, 4));
+                }
+            }
+
+            return LongScreenshotComposer.ToBitmap(
+                new ImageFrame(
+                    previewWidth,
+                    previewHeight,
+                    stride,
+                    _dpiX,
+                    _dpiY,
+                    pixels.AsMemory(0, pixelBytes)));
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(pixels);
+        }
+    }
 
     internal bool Append(ImageFrame frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
-        if (LongScreenshotComposer.IsSameViewport(_frames[^1], frame, _direction))
+        if (LongScreenshotComposer.IsSameViewport(_last, frame, _direction))
             return false;
 
         if (_stitcher is not null)
@@ -471,27 +598,17 @@ internal sealed class LongScreenshotAccumulator
             var axis = _direction == LongScreenshotDirection.Vertical
                 ? LongScreenshotAxis.Vertical
                 : LongScreenshotAxis.Horizontal;
-            var previousDimension = axis == LongScreenshotAxis.Vertical
-                ? _frames[^1].Height
-                : _frames[^1].Width;
-            var composedDimension = axis == LongScreenshotAxis.Vertical
-                ? _current.Height
-                : _current.Width;
+            var previousDimension = axis == LongScreenshotAxis.Vertical ? _last.Height : _last.Width;
+            var composedDimension = _axisLength;
             var referenceDimension = Math.Min(
                 composedDimension,
                 checked(Math.Max(previousDimension, previousDimension * 2)));
             var referenceStart = composedDimension - referenceDimension;
-            var reference = LongScreenshotComposer.TakeTail(
-                _current,
-                _direction,
-                referenceDimension);
+            var reference = GetTail(referenceDimension);
             var match = _stitcher.Match(reference, frame, axis);
             if (match.IsDuplicate)
                 return false;
 
-            var previousOffset = _placements.Count == 0
-                ? 0
-                : _placements[^1].Offset;
             var currentDimension = axis == LongScreenshotAxis.Vertical ? frame.Height : frame.Width;
             var matchedOverlap = Math.Clamp(
                 match.Overlap,
@@ -500,9 +617,9 @@ internal sealed class LongScreenshotAccumulator
             var offset = checked(referenceStart + referenceDimension - matchedOverlap);
             // A manually scrolled viewport must move forward. A bad local match
             // can otherwise move the composition backwards and duplicate content.
-            if (_placements.Count > 0 && offset <= previousOffset)
-                offset = previousOffset + 1;
-            var fixedDimension = axis == LongScreenshotAxis.Vertical ? _frames[0].Width : _frames[0].Height;
+            if (_count > 1 && offset <= _lastOffset)
+                offset = _lastOffset + 1;
+            var fixedDimension = axis == LongScreenshotAxis.Vertical ? _first.Width : _first.Height;
             var maximumDimension = Math.Min(
                 axis == LongScreenshotAxis.Vertical
                     ? LongScreenshotComposer.MaximumHeight
@@ -511,36 +628,315 @@ internal sealed class LongScreenshotAccumulator
             if (offset + currentDimension > maximumDimension)
                 return false;
             match = match with { Offset = offset };
-            _frames.Add(frame);
-            _placements.Add(match);
-            _current = _stitcher.Compose(_frames, _placements, axis);
+            ApplyFrame(frame, offset, match.Overlap, match.SeamStart, match.SeamLength);
+            _last = frame;
+            _lastOffset = offset;
+            _count++;
             return true;
         }
 
-        var overlap = LongScreenshotComposer.FindOverlap(_frames[^1], frame, _direction);
-        _frames.Add(frame);
-        _overlaps.Add(overlap);
-        _current = LongScreenshotComposer.Compose(_frames, _direction, _overlaps);
+        var overlap = LongScreenshotComposer.FindOverlap(_last, frame, _direction);
+        var frameStart = _axisLength - overlap;
+        ApplyFrame(frame, frameStart, overlap, -1, 0);
+        _last = frame;
+        _count++;
         return true;
     }
 
-    internal void RemoveLast()
+    private void AddInitialSegment(ImageFrame frame)
     {
-        if (_frames.Count <= 1)
-            return;
-        _frames.RemoveAt(_frames.Count - 1);
-        if (_stitcher is not null)
+        if (_direction == LongScreenshotDirection.Vertical)
         {
-            _placements.RemoveAt(_placements.Count - 1);
-            var axis = _direction == LongScreenshotDirection.Vertical
-                ? LongScreenshotAxis.Vertical
-                : LongScreenshotAxis.Horizontal;
-            _current = _stitcher.Compose(_frames, _placements, axis);
+            var stride = checked(frame.Width * 4);
+            var pixels = new byte[checked(stride * frame.Height)];
+            for (var row = 0; row < frame.Height; row++)
+                frame.Pixels.Span.Slice(row * frame.Stride, stride)
+                    .CopyTo(pixels.AsSpan(row * stride, stride));
+            _segments.Add(new Segment(0, frame.Height, stride, pixels));
+            return;
+        }
+
+        var compactStride = checked(frame.Width * 4);
+        var compact = new byte[checked(compactStride * frame.Height)];
+        for (var row = 0; row < frame.Height; row++)
+            frame.Pixels.Span.Slice(row * frame.Stride, compactStride)
+                .CopyTo(compact.AsSpan(row * compactStride, compactStride));
+        _segments.Add(new Segment(0, frame.Width, compactStride, compact));
+    }
+
+    private void ApplyFrame(
+        ImageFrame frame,
+        int frameStart,
+        int overlap,
+        int seamStart,
+        int seamLength)
+    {
+        var existingLength = _axisLength;
+        var transitionStart = seamStart >= 0
+            ? Math.Clamp(seamStart, 0, overlap)
+            : overlap;
+        var transitionLength = seamStart >= 0
+            ? Math.Clamp(seamLength, 0, overlap - transitionStart)
+            : 0;
+        var transitionEnd = transitionStart + transitionLength;
+
+        if (_direction == LongScreenshotDirection.Vertical)
+        {
+            for (var row = 0; row < frame.Height; row++)
+            {
+                var destination = frameStart + row;
+                if (destination < 0 || destination >= existingLength)
+                    continue;
+                if (row < transitionStart)
+                    continue;
+                var source = frame.Pixels.Span.Slice(row * frame.Stride, frame.Width * 4);
+                if (row < transitionEnd && transitionLength > 0)
+                {
+                    var weight = (row - transitionStart + 1d) / (transitionLength + 1d);
+                    BlendRow(destination, source, weight);
+                }
+                else
+                {
+                    WriteRow(destination, source);
+                }
+            }
+
+            var sourceStart = Math.Max(0, existingLength - frameStart);
+            if (frameStart > existingLength)
+            {
+                AddZeroSegment(frameStart - existingLength);
+                _axisLength = frameStart;
+            }
+            if (sourceStart < frame.Height)
+                AddRows(frame, sourceStart, frame.Height - sourceStart);
+            _axisLength = Math.Max(existingLength, checked(frameStart + frame.Height));
+            return;
+        }
+
+        for (var column = 0; column < frame.Width; column++)
+        {
+            var destination = frameStart + column;
+            if (destination < 0 || destination >= existingLength)
+                continue;
+            if (column < transitionStart)
+                continue;
+            if (column < transitionEnd && transitionLength > 0)
+            {
+                var weight = (column - transitionStart + 1d) / (transitionLength + 1d);
+                BlendColumn(destination, frame, column, weight);
+            }
+            else
+            {
+                WriteColumn(destination, frame, column);
+            }
+        }
+
+        var sourceColumn = Math.Max(0, existingLength - frameStart);
+        if (frameStart > existingLength)
+        {
+            AddZeroSegment(frameStart - existingLength);
+            _axisLength = frameStart;
+        }
+        if (sourceColumn < frame.Width)
+            AddColumns(frame, sourceColumn, frame.Width - sourceColumn);
+        _axisLength = Math.Max(existingLength, checked(frameStart + frame.Width));
+    }
+
+    private void AddRows(ImageFrame frame, int sourceRow, int rows)
+    {
+        var stride = checked(_fixedDimension * 4);
+        var pixels = new byte[checked(stride * rows)];
+        for (var row = 0; row < rows; row++)
+            frame.Pixels.Span.Slice((sourceRow + row) * frame.Stride, stride)
+                .CopyTo(pixels.AsSpan(row * stride, stride));
+        _segments.Add(new Segment(_axisLength, rows, stride, pixels));
+    }
+
+    private void AddColumns(ImageFrame frame, int sourceColumn, int columns)
+    {
+        var stride = checked(columns * 4);
+        var pixels = new byte[checked(stride * _fixedDimension)];
+        for (var row = 0; row < _fixedDimension; row++)
+            frame.Pixels.Span.Slice(row * frame.Stride + sourceColumn * 4, stride)
+                .CopyTo(pixels.AsSpan(row * stride, stride));
+        _segments.Add(new Segment(_axisLength, columns, stride, pixels));
+    }
+
+    private void AddZeroSegment(int length)
+    {
+        if (length <= 0)
+            return;
+        var stride = checked((_direction == LongScreenshotDirection.Vertical ? _fixedDimension : length) * 4);
+        var rows = _direction == LongScreenshotDirection.Vertical ? length : _fixedDimension;
+        _segments.Add(new Segment(_axisLength, length, stride, new byte[checked(stride * rows)]));
+    }
+
+    private void WriteRow(int destination, ReadOnlySpan<byte> source)
+    {
+        var segment = FindSegment(destination);
+        var row = destination - segment.Start;
+        source.CopyTo(segment.Pixels.AsSpan(row * segment.Stride, source.Length));
+    }
+
+    private void BlendRow(int destination, ReadOnlySpan<byte> source, double weight)
+    {
+        var segment = FindSegment(destination);
+        var row = destination - segment.Start;
+        var target = segment.Pixels.AsSpan(row * segment.Stride, source.Length);
+        for (var index = 0; index < source.Length; index++)
+            target[index] = (byte)Math.Round(target[index] * (1d - weight) + source[index] * weight);
+    }
+
+    private void WriteColumn(int destination, ImageFrame source, int sourceColumn)
+    {
+        var segment = FindSegment(destination);
+        var column = destination - segment.Start;
+        for (var row = 0; row < _fixedDimension; row++)
+        {
+            var sourceOffset = row * source.Stride + sourceColumn * 4;
+            var targetOffset = row * segment.Stride + column * 4;
+            source.Pixels.Span.Slice(sourceOffset, 4).CopyTo(segment.Pixels.AsSpan(targetOffset, 4));
+        }
+    }
+
+    private void BlendColumn(int destination, ImageFrame source, int sourceColumn, double weight)
+    {
+        var segment = FindSegment(destination);
+        var column = destination - segment.Start;
+        for (var row = 0; row < _fixedDimension; row++)
+        {
+            var sourceOffset = row * source.Stride + sourceColumn * 4;
+            var targetOffset = row * segment.Stride + column * 4;
+            for (var channel = 0; channel < 4; channel++)
+            {
+                var sourceValue = source.Pixels.Span[sourceOffset + channel];
+                var targetValue = segment.Pixels[targetOffset + channel];
+                segment.Pixels[targetOffset + channel] =
+                    (byte)Math.Round(targetValue * (1d - weight) + sourceValue * weight);
+            }
+        }
+    }
+
+    private Segment FindSegment(int coordinate)
+    {
+        var low = 0;
+        var high = _segments.Count - 1;
+        while (low <= high)
+        {
+            var index = low + ((high - low) >> 1);
+            var segment = _segments[index];
+            if (coordinate >= segment.Start && coordinate < segment.Start + segment.Length)
+                return segment;
+            if (coordinate < segment.Start)
+                high = index - 1;
+            else
+                low = index + 1;
+        }
+        throw new InvalidOperationException("The composed screenshot segment is missing.");
+    }
+
+    private ImageFrame GetTail(int length)
+    {
+        length = Math.Clamp(length, 1, _axisLength);
+        var start = _axisLength - length;
+        var segment = FindSegment(start);
+        if (start >= segment.Start && start + length <= segment.Start + segment.Length)
+        {
+            var local = start - segment.Start;
+            if (_direction == LongScreenshotDirection.Vertical)
+            {
+                var stride = segment.Stride;
+                return new ImageFrame(
+                    _fixedDimension,
+                    length,
+                    stride,
+                    _dpiX,
+                    _dpiY,
+                    segment.Pixels.AsMemory(local * stride));
+            }
+
+            if (local == 0 && length == segment.Length)
+            {
+                return new ImageFrame(
+                    length,
+                    _fixedDimension,
+                    segment.Stride,
+                    _dpiX,
+                    _dpiY,
+                    segment.Pixels);
+            }
+        }
+
+        var strideBytes = checked((_direction == LongScreenshotDirection.Vertical ? _fixedDimension : length) * 4);
+        var rows = _direction == LongScreenshotDirection.Vertical ? length : _fixedDimension;
+        var pixels = new byte[checked(strideBytes * rows)];
+        if (_direction == LongScreenshotDirection.Vertical)
+        {
+            for (var row = 0; row < length; row++)
+                ReadRow(start + row).CopyTo(pixels.AsSpan(row * strideBytes, strideBytes));
         }
         else
         {
-            _overlaps.RemoveAt(_overlaps.Count - 1);
-            _current = LongScreenshotComposer.Compose(_frames, _direction, _overlaps);
+            for (var row = 0; row < _fixedDimension; row++)
+                for (var column = 0; column < length; column++)
+                    ReadPixel(start + column, row).CopyTo(pixels.AsSpan(row * strideBytes + column * 4, 4));
         }
+        return new ImageFrame(
+            _direction == LongScreenshotDirection.Vertical ? _fixedDimension : length,
+            _direction == LongScreenshotDirection.Vertical ? length : _fixedDimension,
+            strideBytes,
+            _dpiX,
+            _dpiY,
+            pixels);
     }
+
+    private ReadOnlySpan<byte> ReadRow(int coordinate)
+    {
+        var segment = FindSegment(coordinate);
+        var row = coordinate - segment.Start;
+        return segment.Pixels.AsSpan(row * segment.Stride, segment.Stride);
+    }
+
+    private ReadOnlySpan<byte> ReadPixel(int x, int y)
+    {
+        var coordinate = _direction == LongScreenshotDirection.Vertical ? y : x;
+        var segment = FindSegment(coordinate);
+        var local = coordinate - segment.Start;
+        var offset = _direction == LongScreenshotDirection.Vertical
+            ? local * segment.Stride + x * 4
+            : y * segment.Stride + local * 4;
+        return segment.Pixels.AsSpan(offset, 4);
+    }
+
+    private ImageFrame Materialize()
+    {
+        var width = _direction == LongScreenshotDirection.Vertical ? _fixedDimension : _axisLength;
+        var height = _direction == LongScreenshotDirection.Vertical ? _axisLength : _fixedDimension;
+        var stride = checked(width * 4);
+        var pixels = new byte[checked(stride * height)];
+        foreach (var segment in _segments)
+        {
+            if (_direction == LongScreenshotDirection.Vertical)
+            {
+                for (var row = 0; row < segment.Length; row++)
+                    segment.Pixels.AsSpan(row * segment.Stride, stride)
+                        .CopyTo(pixels.AsSpan((segment.Start + row) * stride, stride));
+            }
+            else
+            {
+                for (var row = 0; row < height; row++)
+                    segment.Pixels.AsSpan(row * segment.Stride, segment.Stride)
+                        .CopyTo(pixels.AsSpan(row * stride + segment.Start * 4, segment.Stride));
+            }
+        }
+        return new ImageFrame(width, height, stride, _dpiX, _dpiY, pixels);
+    }
+
+    private ImageFrame CreateFrameFromSegment(Segment segment) =>
+        _direction == LongScreenshotDirection.Vertical
+            ? new ImageFrame(_fixedDimension, segment.Length, segment.Stride, _dpiX, _dpiY, segment.Pixels)
+            : new ImageFrame(segment.Length, _fixedDimension, segment.Stride, _dpiX, _dpiY, segment.Pixels);
+
+    private sealed record Segment(int Start, int Length, int Stride, byte[] Pixels);
+
 }

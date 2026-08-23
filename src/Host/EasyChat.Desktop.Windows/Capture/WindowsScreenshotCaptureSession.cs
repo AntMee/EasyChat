@@ -62,18 +62,21 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
             using var cancellationRegistration = cancellationToken.Register(
                 static state => TryTerminate((Process)state!),
                 process);
+            ScreenshotSelection? selection = null;
+            var responseReceived = false;
             try
             {
                 ScreenshotWorkerProtocol.WriteRequest(_writer!, request);
-                return await Task.Run(
+                selection = await Task.Run(
                         () => ScreenshotWorkerProtocol.Read(_reader!),
                         CancellationToken.None)
                     .WaitAsync(cancellationToken)
                     .ConfigureAwait(false);
+                responseReceived = true;
+                return selection;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                ResetWorker();
                 throw;
             }
             catch (Exception exception) when (exception is IOException
@@ -81,8 +84,35 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
                                               or InvalidDataException
                                               or ObjectDisposedException)
             {
-                ResetWorker();
                 throw;
+            }
+            finally
+            {
+                // A successful capture owns large managed and native buffers
+                // (Avalonia bitmaps, GDI surfaces and OpenCV allocations).
+                // Recycle that worker, then leave a fresh one warm for the
+                // next shortcut. A Cancelled response is deliberately kept:
+                // it produced no screenshot buffers and the worker is already
+                // back in its receive loop.
+                if (selection is not null)
+                {
+                    ResetWorker();
+                    try
+                    {
+                        if (!_disposed)
+                            await EnsureWorkerAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        ResetWorker();
+                    }
+                }
+                else if (!responseReceived)
+                {
+                    // A transport/process failure leaves the worker state
+                    // unknown and cannot be safely reused.
+                    ResetWorker();
+                }
             }
         }
         finally
@@ -232,7 +262,11 @@ internal sealed class WindowsScreenshotCaptureSession : IScreenshotCaptureSessio
         if (_process is not { } process)
             return;
         _process = null;
-        if (!TryWaitForExit(process, milliseconds: 250))
+        // The worker is disposable after its response has been received. Kill
+        // it first so its large native/managed allocations start returning to
+        // the OS before the replacement worker is initialized.
+        TryTerminate(process);
+        if (!TryWaitForExit(process, milliseconds: 500))
         {
             TryTerminate(process);
             TryWaitForExit(process, milliseconds: 5000);
