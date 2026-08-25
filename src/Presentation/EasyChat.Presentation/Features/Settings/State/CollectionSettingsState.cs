@@ -34,7 +34,22 @@ public sealed class PromptEntryState : LiveSettingsSection
             }
         }
     }
-    public bool IsDefault { get => _isDefault; set => Set(ref _isDefault, value); }
+    public bool IsDefault
+    {
+        get => _isDefault;
+        set => SetDefaultState(value, commit: true);
+    }
+
+    internal bool SetDefaultState(bool value, bool commit)
+    {
+        if (_isDefault == value)
+            return false;
+
+        this.RaiseAndSetIfChanged(ref _isDefault, value, nameof(IsDefault));
+        if (commit)
+            Commit();
+        return true;
+    }
     public string RolePreview => Role.Length > 100 ? Role[..100] + "..." : Role;
     public string ContentPreview => RolePreview;
     public PromptEntrySettings ToContract() => new(Id, Name, Role, IsDefault);
@@ -50,12 +65,43 @@ public sealed class LivePromptSettings : LiveSettingsSection
         _selectedPromptId = value.SelectedPromptId;
         Entries = new ObservableCollection<PromptEntryState>(
             value.Entries.Select(entry => new PromptEntryState(entry, commit)));
-        Entries.CollectionChanged += (_, _) => Commit();
+        SynchronizeDefaultPrompt();
+        Entries.CollectionChanged += OnEntriesChanged;
     }
 
-    public string SelectedPromptId { get => _selectedPromptId; set => Set(ref _selectedPromptId, value); }
+    public string SelectedPromptId
+    {
+        get => _selectedPromptId;
+        set
+        {
+            if (_selectedPromptId == value)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _selectedPromptId, value, nameof(SelectedPromptId));
+            SynchronizeDefaultPrompt();
+            Commit();
+        }
+    }
+
     public ObservableCollection<PromptEntryState> Entries { get; }
     public PromptSettings ToContract() => new(SelectedPromptId, Entries.Select(entry => entry.ToContract()).ToArray());
+
+    private void OnEntriesChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        SynchronizeDefaultPrompt();
+        Commit();
+    }
+
+    private void SynchronizeDefaultPrompt()
+    {
+        var selected = Entries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, _selectedPromptId, StringComparison.Ordinal));
+        if (selected is null)
+            return;
+
+        foreach (var entry in Entries)
+            entry.SetDefaultState(ReferenceEquals(entry, selected), commit: false);
+    }
 }
 
 public sealed class ShortcutParameterState
