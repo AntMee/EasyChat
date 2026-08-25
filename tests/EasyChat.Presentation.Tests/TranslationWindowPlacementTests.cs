@@ -8,9 +8,9 @@ namespace EasyChat.Presentation.Tests;
 public sealed class TranslationWindowPlacementTests
 {
     [TestMethod]
-    [DataRow(0, 0, 1920, 1040, 1.5, 1300, 300, 450, 350, 595, 330)]
-    [DataRow(-2560, -1400, 2560, 1360, 2.0, -100, -100, 450, 350, -1040, -840)]
-    public void Near_UsesPhysicalWindowExtentsAndPreservesNegativeOrigins(
+    [DataRow(0, 0, 1920, 1040, 1.5, 1300, 300, 450, 350, 1245, 330)]
+    [DataRow(-2560, -1400, 2560, 1360, 2.0, -100, -100, 450, 350, -900, -740)]
+    public void Near_ClampsToTheNearestVisiblePosition(
         int areaX,
         int areaY,
         int areaWidth,
@@ -46,5 +46,31 @@ public sealed class TranslationWindowPlacementTests
             logicalOffset: 20);
 
         Assert.AreEqual(new PixelPoint(-1920, -1080), result);
+    }
+
+    [TestMethod]
+    public void ClampToArea_RepositionsAWindowThatGrewBeyondTheWorkingArea()
+    {
+        var result = TranslationWindowPlacement.ClampToArea(
+            new PixelRect(0, 0, 1920, 1040),
+            scaling: 1.5,
+            new PixelPoint(1300, 800),
+            logicalWidth: 450,
+            logicalHeight: 350);
+
+        Assert.AreEqual(new PixelPoint(1245, 515), result);
+    }
+
+    [TestMethod]
+    public void ClampToArea_RepositionsWithinANegativeOriginWorkingArea()
+    {
+        var result = TranslationWindowPlacement.ClampToArea(
+            new PixelRect(-2560, -1400, 2560, 1360),
+            scaling: 2,
+            new PixelPoint(-600, -200),
+            logicalWidth: 450,
+            logicalHeight: 350);
+
+        Assert.AreEqual(new PixelPoint(-900, -740), result);
     }
 }

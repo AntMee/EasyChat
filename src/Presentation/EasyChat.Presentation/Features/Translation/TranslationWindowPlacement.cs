@@ -20,14 +20,25 @@ internal static class TranslationWindowPlacement
         var left = checked(anchor.X + offset);
         var top = checked(anchor.Y + offset);
 
-        if ((long)left + width > area.Right)
-            left = checked(anchor.X - width - offset);
-        if ((long)top + height > area.Bottom)
-            top = checked(anchor.Y - height - offset);
-
         return new PixelPoint(
             Math.Clamp(left, area.X, Math.Max(area.X, area.Right - width)),
             Math.Clamp(top, area.Y, Math.Max(area.Y, area.Bottom - height)));
+    }
+
+    public static PixelPoint ClampToArea(
+        PixelRect area,
+        double scaling,
+        PixelPoint position,
+        double logicalWidth,
+        double logicalHeight)
+    {
+        var effectiveScaling = double.IsFinite(scaling) && scaling > 0 ? scaling : 1;
+        var width = ToPhysicalSize(logicalWidth, effectiveScaling, area.Width);
+        var height = ToPhysicalSize(logicalHeight, effectiveScaling, area.Height);
+
+        return new PixelPoint(
+            Math.Clamp(position.X, area.X, Math.Max(area.X, area.Right - width)),
+            Math.Clamp(position.Y, area.Y, Math.Max(area.Y, area.Bottom - height)));
     }
 
     private static int ToPhysicalSize(double logicalSize, double scaling, int maximum)
