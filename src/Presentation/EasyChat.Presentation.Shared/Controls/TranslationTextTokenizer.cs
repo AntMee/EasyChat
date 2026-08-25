@@ -1,7 +1,5 @@
 using System.Text.RegularExpressions;
-using EasyChat.Presentation.Features.Translation.Models;
-
-namespace EasyChat.Presentation.Features.Translation;
+namespace EasyChat.Presentation.Shared.Controls;
 
 public static partial class TranslationTextTokenizer
 {

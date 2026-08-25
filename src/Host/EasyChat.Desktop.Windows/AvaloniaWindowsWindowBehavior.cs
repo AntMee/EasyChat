@@ -16,6 +16,15 @@ internal sealed class AvaloniaWindowsWindowBehavior(
         return ValueTask.CompletedTask;
     }
 
+    public ValueTask BringToFrontWithoutActivatingAsync(
+        Window window,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        windows.BringToFrontWithoutActivating(GetHandle(window));
+        return ValueTask.CompletedTask;
+    }
+
     public ValueTask SetClickThroughAsync(
         Window window,
         bool enabled,

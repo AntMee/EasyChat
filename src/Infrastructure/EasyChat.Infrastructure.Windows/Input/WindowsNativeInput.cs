@@ -256,6 +256,31 @@ internal sealed class WindowsWindowStyleBackend
         }
     }
 
+    public void BringToFrontWithoutActivating(IntPtr window, ILogger logger)
+    {
+        if (window == IntPtr.Zero)
+        {
+            logger.LogWarning("BringToFrontWithoutActivating called with null handle");
+            return;
+        }
+
+        try
+        {
+            SetWindowPos(
+                window,
+                Topmost,
+                0,
+                0,
+                0,
+                0,
+                NoMove | NoSize | NoActivatePosition);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to bring window to the top without activating it");
+        }
+    }
+
     public bool TrySetExcludedFromCapture(IntPtr window, bool enabled)
     {
         if (window == IntPtr.Zero)
@@ -278,6 +303,23 @@ internal sealed class WindowsWindowStyleBackend
 
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr window, int index, int newStyle);
+
+    private const uint NoMove = 0x0002;
+    private const uint NoSize = 0x0001;
+    private const uint NoZOrder = 0x0004;
+    private const uint NoActivatePosition = 0x0010;
+    private static readonly IntPtr Topmost = new(-1);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        IntPtr window,
+        IntPtr insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

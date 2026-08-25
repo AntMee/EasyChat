@@ -226,6 +226,9 @@ internal sealed class InputSettingsDto
 
     [JsonProperty]
     public bool FollowGlobalLanguage { get; set; } = true;
+
+    [JsonProperty]
+    public bool IsPreviewEnabled { get; set; }
 }
 
 [JsonObject(MemberSerialization.OptIn)]
@@ -462,7 +465,7 @@ internal sealed class TtsSettingsDto
 [JsonObject(MemberSerialization.OptIn)]
 internal sealed class TextAssistSettingsDto
 {
-    // Legacy aggregate flag; current defaults are represented by the option IDs below.
+    // Previous aggregate flag; current defaults are represented by the option IDs below.
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public bool? FollowGlobal { get; set; }
 

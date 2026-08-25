@@ -6,6 +6,7 @@ using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Foundation.Localization;
 using EasyChat.Presentation.Features.Input;
 using EasyChat.Presentation.Features.Input.Views;
+using EasyChat.Presentation.Features.Translation;
 using Microsoft.Extensions.Logging;
 
 namespace EasyChat.Presentation.Features.Input;
@@ -19,9 +20,11 @@ public sealed class TypingWindowFactory(
     SettingsSession settings,
     TranslationLanguageOptions languages,
     IInputTranslationUseCases inputTranslation,
+    ITranslationWindowCoordinator translationWindows,
     ILoggerFactory loggerFactory) : ITypingWindowFactory
 {
-    public void Show(ExternalTargetToken target, ShortcutParameterSettings? shortcut = null) =>
+    public void Show(ExternalTargetToken target, ShortcutParameterSettings? shortcut = null)
+    {
         Dispatcher.UIThread.Post(() =>
         {
             var viewModel = new TypingViewModel(
@@ -30,7 +33,9 @@ public sealed class TypingWindowFactory(
                 settings,
                 languages,
                 inputTranslation,
+                translationWindows,
                 loggerFactory.CreateLogger<TypingViewModel>());
             new TypingView(viewModel, settings).Show();
         });
+    }
 }

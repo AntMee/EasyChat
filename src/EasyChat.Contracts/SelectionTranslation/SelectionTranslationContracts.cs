@@ -25,7 +25,8 @@ public enum SelectionTranslationConfigurationScope
 public sealed record SelectionTranslationRequest(
     string Text,
     TranslationLanguage Source,
-    TranslationLanguage Target);
+    TranslationLanguage Target,
+    TranslationLanguage? AnnotationLanguage = null);
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "event")]
 [JsonDerivedType(typeof(SelectionTranslationStartedEvent), "start")]
@@ -36,7 +37,7 @@ public sealed record SelectionTranslationRequest(
 [JsonDerivedType(typeof(SelectionTranslationFormEvent), "form")]
 [JsonDerivedType(typeof(SelectionTranslationTipsEvent), "tips")]
 [JsonDerivedType(typeof(SelectionTranslationExampleEvent), "example")]
-[JsonDerivedType(typeof(SelectionTranslationKeywordEvent), "keyword")]
+[JsonDerivedType(typeof(SelectionTranslationWordEvent), "word")]
 [JsonDerivedType(typeof(SelectionTranslationCompletedEvent), "done")]
 public abstract record SelectionTranslationEvent;
 
@@ -64,7 +65,13 @@ public sealed record SelectionTranslationTipsEvent(string Text)
 public sealed record SelectionTranslationExampleEvent(string Origin, string Translation)
     : SelectionTranslationEvent;
 
-public sealed record SelectionTranslationKeywordEvent(string Word, string Meaning)
+public sealed record SelectionTranslationWordEvent(
+    string Word,
+    string Meaning,
+    string? Phonetic = null,
+    [property: JsonPropertyName("part_of_speech")] string? PartOfSpeech = null,
+    IReadOnlyList<string>? Forms = null,
+    IReadOnlyList<string>? Meanings = null)
     : SelectionTranslationEvent;
 
 public sealed record SelectionTranslationCompletedEvent : SelectionTranslationEvent;
@@ -93,10 +100,16 @@ public sealed record SelectionSentenceResult(
     string? DetectedSourceLanguage,
     string Origin,
     string Translation,
-    IReadOnlyList<SelectionKeyword> Keywords)
+    IReadOnlyList<SelectionWord> Words)
     : SelectionTranslationResult(Source, DetectedSourceLanguage);
 
-public sealed record SelectionKeyword(string Word, string Meaning);
+public sealed record SelectionWord(
+    string Word,
+    string Meaning,
+    string? Phonetic = null,
+    string? PartOfSpeech = null,
+    IReadOnlyList<string>? Forms = null,
+    IReadOnlyList<string>? Meanings = null);
 
 public interface ISelectionTranslationUseCases
 {
@@ -113,6 +126,12 @@ public interface ISelectionTranslationUseCases
         SelectionTranslationConfigurationScope configurationScope,
         CancellationToken cancellationToken = default) =>
         StreamAsync(request, cancellationToken);
+
+    IAsyncEnumerable<SelectionTranslationEvent> StreamSentenceAsync(
+        SelectionTranslationRequest request,
+        SelectionTranslationConfigurationScope configurationScope,
+        CancellationToken cancellationToken = default) =>
+        StreamAsync(request, configurationScope, cancellationToken);
 
     IAsyncEnumerable<SelectionTranslationEvent> StreamDictionaryAsync(
         SelectionTranslationRequest request,

@@ -1,14 +1,15 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:lang="clr-namespace:EasyChat.Presentation.Lang"
         xmlns:vm="clr-namespace:EasyChat.Presentation.Features.Input"
-        xmlns:converters="clr-namespace:EasyChat.Presentation.Foundation.Formatting"
         xmlns:controls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
+        xmlns:shad="clr-namespace:ShadUI;assembly=ShadUI"
         xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="148"
-        Width="720" Height="148" MinWidth="640"
+        Width="720" MinWidth="640" MinHeight="148" MaxHeight="560"
+        SizeToContent="Height"
         x:Class="EasyChat.Presentation.Features.Input.Views.TypingView"
         x:DataType="vm:TypingViewModel"
         WindowStartupLocation="CenterScreen"
@@ -26,9 +27,14 @@
             CornerRadius="16"
             ClipToBounds="True">
         <Border x:Name="MainCard"
-                Padding="0" Background="{DynamicResource DialogBackgroundColor}" BorderThickness="0" CornerRadius="16" ClipToBounds="True">
-            <Grid RowDefinitions="*,Auto">
-                <TextBox Name="InputBox"
+                Padding="0"
+                Background="{DynamicResource DialogBackgroundColor}"
+                BorderThickness="0"
+                CornerRadius="16"
+                ClipToBounds="True">
+            <!-- Keep the original input row independent from the optional preview row. -->
+            <Grid RowDefinitions="Auto,Auto,Auto">
+                <TextBox x:Name="InputBox"
                          Grid.Row="0"
                          Margin="10,6,10,4"
                          Padding="4,2"
@@ -41,19 +47,74 @@
                          Background="Transparent"
                          FontSize="15"
                          MinWidth="600"
-                         MinHeight="40"
+                         MinHeight="80"
                          TextWrapping="Wrap"
                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          KeyDown="InputBox_OnKeyDown" />
 
-                <!-- Action bar: language controls left, Submit primary + Close right -->
-                <Border Grid.Row="1"
+                <Border x:Name="PreviewContainer"
+                        Grid.Row="1"
+                        IsVisible="{Binding IsPreviewEnabled}"
+                        BorderBrush="{DynamicResource BorderColor}"
+                        BorderThickness="0,1,0,1"
+                        ClipToBounds="True">
+                    <Grid>
+                        <Border Background="{DynamicResource CardBackgroundColor}"
+                                Opacity="0.84"
+                                IsHitTestVisible="False" />
+                        <StackPanel Margin="12,8"
+                                    Spacing="4">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <ScrollViewer x:Name="PreviewScroller"
+                                          Grid.Column="0"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalContentAlignment="Stretch"
+                                          VerticalContentAlignment="Top">
+                                <controls:VirtualizedTokenDisplay
+                                     Tokens="{Binding PreviewTokens}"
+                                     WordOverviews="{Binding PreviewWordOverviews}"
+                                     WordClickedCommand="{Binding PreviewWordClickedCommand}"
+                                     WordLookupOpening="OnPreviewWordLookupOpening"
+                                     ToolTip.ShowDelay="0"
+                                    HorizontalAlignment="Stretch"
+                                    LineHeight="24"
+                                    Foreground="{DynamicResource ForegroundColor}"
+                                    NonWordForeground="{DynamicResource MutedColor}"
+                                    UnderlineColor="{DynamicResource PrimaryColor}"
+                                    FontSize="15" />
+                            </ScrollViewer>
+                            <shad:Loading Grid.Column="1"
+                                          Width="16"
+                                          Height="16"
+                                          Margin="10,0,0,0"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Top"
+                                          ZIndex="1"
+                                          Foreground="{DynamicResource PrimaryColor}"
+                                          IsVisible="{Binding IsPreviewLoading}" />
+                        </Grid>
+                        <TextBlock Text="{Binding PreviewError}"
+                                   IsVisible="{Binding HasPreviewError}"
+                                   Foreground="{DynamicResource ErrorColor}"
+                                   TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="FooterContainer"
+                        Grid.Row="2"
                         Background="{DynamicResource EcDialogFooterBrush}"
                         BorderBrush="{DynamicResource BorderColor}"
                         BorderThickness="0,1,0,0"
-                        Padding="12,8" CornerRadius="0,0,16,16">
+                        Padding="12,8"
+                        CornerRadius="0,0,16,16">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
                             <CheckBox IsChecked="{Binding FollowGlobalLanguage}"
                                       ToolTip.Tip="{x:Static lang:Resources.FollowConfig}"
                                       AutomationProperties.Name="{x:Static lang:Resources.FollowConfig}"
@@ -66,13 +127,18 @@
                             <Border Background="Transparent"
                                     ToolTip.Tip="{x:Static lang:Resources.TypingFollowConfigTooltip}"
                                     VerticalAlignment="Center">
-                                <avalonia:MaterialIcon Kind="InformationOutline" Width="15" Height="15" Opacity="0.55"
+                                <avalonia:MaterialIcon Kind="InformationOutline"
+                                                       Width="15"
+                                                       Height="15"
+                                                       Opacity="0.55"
                                                        Foreground="{DynamicResource MutedColor}" />
                             </Border>
-
                         </StackPanel>
 
-                        <Grid Grid.Column="1" ColumnDefinitions="*,34,*" ColumnSpacing="8" MinWidth="0">
+                        <Grid Grid.Column="1"
+                              ColumnDefinitions="*,34,*"
+                              ColumnSpacing="8"
+                              MinWidth="0">
                             <controls:LanguageSelector Grid.Column="0"
                                                        IsEnabled="{Binding !FollowGlobalLanguage}"
                                                        Languages="{Binding SourceLanguages}"
@@ -80,16 +146,16 @@
                                                        MinWidth="0"
                                                        HorizontalAlignment="Stretch"
                                                        VerticalAlignment="Center" />
-
-                            <Button Grid.Column="1" Classes="Icon"
-                                    Width="34" Height="34"
+                            <Button Grid.Column="1"
+                                    Classes="Icon"
+                                    Width="34"
+                                    Height="34"
                                     IsEnabled="{Binding !FollowGlobalLanguage}"
                                     Command="{Binding SwapLanguagesCommand}"
                                     ToolTip.Tip="{x:Static lang:Resources.HomeSwapLanguages}"
                                     VerticalAlignment="Center">
                                 <avalonia:MaterialIcon Kind="SwapHorizontal" Width="14" Height="14" />
                             </Button>
-
                             <controls:LanguageSelector Grid.Column="2"
                                                        IsEnabled="{Binding !FollowGlobalLanguage}"
                                                        Languages="{Binding TargetLanguages}"
@@ -104,14 +170,36 @@
                                     Spacing="8"
                                     VerticalAlignment="Center">
                             <Button Classes="Icon"
-                                    Width="34" Height="34" Padding="0"
+                                    Width="34"
+                                    Height="34"
+                                    Padding="0"
                                     Click="OnCloseClick"
                                     ToolTip.Tip="{x:Static lang:Resources.Close}"
                                     AutomationProperties.Name="{x:Static lang:Resources.Close}">
                                 <avalonia:MaterialIcon Kind="Close" Width="15" Height="15" />
                             </Button>
+                            <ToggleButton Classes="Icon"
+                                          Width="34"
+                                          Height="34"
+                                          Padding="0"
+                                          IsChecked="{Binding IsPreviewEnabled, Mode=TwoWay}"
+                                          ToolTip.Tip="{x:Static lang:Resources.InputPreview}"
+                                          AutomationProperties.Name="{x:Static lang:Resources.InputPreview}">
+                                <Panel>
+                                    <avalonia:MaterialIcon Kind="Eye"
+                                                           Width="15"
+                                                           Height="15"
+                                                           IsVisible="{Binding !IsPreviewEnabled}" />
+                                    <avalonia:MaterialIcon Kind="EyeOff"
+                                                           Width="15"
+                                                           Height="15"
+                                                           IsVisible="{Binding IsPreviewEnabled}" />
+                                </Panel>
+                            </ToggleButton>
                             <Button Classes="Primary"
-                                    Width="34" Height="34" Padding="0"
+                                    Width="34"
+                                    Height="34"
+                                    Padding="0"
                                     Click="OnSubmitClick"
                                     ToolTip.Tip="{x:Static lang:Resources.Action_InputTranslate}"
                                     AutomationProperties.Name="{x:Static lang:Resources.Action_InputTranslate}">

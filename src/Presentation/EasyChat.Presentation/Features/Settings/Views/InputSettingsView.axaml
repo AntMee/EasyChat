@@ -118,6 +118,29 @@
 
             <Border Classes="SettingsSearchRow"
                     Classes.SearchResult="{Binding IsSearchMode}"
+                    IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='preview 预览'}">
+                <Grid ColumnDefinitions="*,420"
+                      MinHeight="40"
+                      Margin="8,0"
+                      ColumnSpacing="16">
+                    <TextBlock Text="{x:Static lang:Resources.InputPreview}"
+                               Classes="Small"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ContentControl Classes="SettingsField" Grid.Column="1"
+                                    MinWidth="180"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Stretch">
+                        <ToggleSwitch IsChecked="{Binding InputConf.IsPreviewEnabled}"
+                                      OnContent=""
+                                      OffContent=""
+                                      HorizontalAlignment="Left" />
+                    </ContentControl>
+                </Grid>
+            </Border>
+
+            <Border Classes="SettingsSearchRow"
+                    Classes.SearchResult="{Binding IsSearchMode}"
                     IsVisible="{Binding SearchText, Converter={x:Static converts:SettingsFieldVisibleConverter.Instance}, ConverterParameter='key send delay delay key 按键发送延迟 发送 延迟'}">
             <Grid ColumnDefinitions="*,420"
                   MinHeight="40"

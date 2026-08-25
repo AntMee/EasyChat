@@ -43,9 +43,10 @@ internal static class WindowsWindowQuery
             || (style & ExNoActivate) != 0;
     }
 
-    public static IntPtr GetFocusedWindow()
+    public static IntPtr GetFocusedWindow() => GetFocusedWindow(GetForegroundWindow());
+
+    public static IntPtr GetFocusedWindow(IntPtr foreground)
     {
-        var foreground = GetForegroundWindow();
         if (foreground == IntPtr.Zero)
             return IntPtr.Zero;
 

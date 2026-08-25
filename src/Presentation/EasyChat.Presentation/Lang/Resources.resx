@@ -1067,6 +1067,24 @@ Machine translation: faster; lower quality; no phonetics, examples, or tips.</va
   <data name="ReverseTranslateLanguageTip" xml:space="preserve">
     <value>Swap source and target languages for input translation.</value>
   </data>
+  <data name="InputPreview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="PreviewMeaning" xml:space="preserve">
+    <value>Meaning</value>
+  </data>
+  <data name="PreviewPhonetic" xml:space="preserve">
+    <value>Phonetic</value>
+  </data>
+  <data name="PreviewPartOfSpeech" xml:space="preserve">
+    <value>Part of speech</value>
+  </data>
+  <data name="PreviewForms" xml:space="preserve">
+    <value>Forms</value>
+  </data>
+  <data name="PreviewFailed" xml:space="preserve">
+    <value>Preview failed.</value>
+  </data>
     <data name="TypingFollowConfigTooltip" xml:space="preserve">
         <value>When enabled, source and target languages will sync with global configuration.</value>
     </data>

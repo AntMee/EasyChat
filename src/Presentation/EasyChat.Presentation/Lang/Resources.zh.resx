@@ -1043,6 +1043,24 @@
   <data name="ReverseTranslateLanguageTip" xml:space="preserve">
     <value>输入翻译时交换源语言和目标语言（例如当源语言设置成英语但你输入的是中文时）。</value>
   </data>
+  <data name="InputPreview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="PreviewMeaning" xml:space="preserve">
+    <value>释义</value>
+  </data>
+  <data name="PreviewPhonetic" xml:space="preserve">
+    <value>音标</value>
+  </data>
+  <data name="PreviewPartOfSpeech" xml:space="preserve">
+    <value>词性</value>
+  </data>
+  <data name="PreviewForms" xml:space="preserve">
+    <value>形式</value>
+  </data>
+  <data name="PreviewFailed" xml:space="preserve">
+    <value>预览失败。</value>
+  </data>
     <data name="TypingFollowConfigTooltip" xml:space="preserve">
         <value>开启后，源语言和目标语言将跟随全局配置。</value>
     </data>

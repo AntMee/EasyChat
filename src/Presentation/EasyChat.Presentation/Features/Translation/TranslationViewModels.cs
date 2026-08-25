@@ -7,7 +7,7 @@ using EasyChat.Contracts.Translation;
 using EasyChat.Presentation.Lang;
 using EasyChat.Presentation.Features.Settings.State;
 using EasyChat.Presentation.Features.Translation;
-using EasyChat.Presentation.Features.Translation.Models;
+using EasyChat.Presentation.Shared.Controls;
 using EasyChat.Presentation.Foundation.Localization;
 using LiveMarkdown.Avalonia;
 using Markdig;

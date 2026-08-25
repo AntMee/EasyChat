@@ -44,11 +44,15 @@ namespace EasyChat.Presentation.Features.Translation.Views
         {
             try
             {
+                // ShowActivated only controls the initial Show call. The persistent Win32
+                // style keeps later dictionary clicks from activating this HWND and replacing
+                // the input window's active TSF composition client.
                 await _platformWindowBehavior!.ConfigureNoActivateAsync(this);
+                await _platformWindowBehavior!.BringToFrontWithoutActivatingAsync(this);
             }
             catch (Exception exception)
             {
-                _logger?.LogWarning(exception, "Unable to configure the translation window as non-activating.");
+                _logger?.LogWarning(exception, "Unable to bring the translation window to the front.");
             }
         }
 

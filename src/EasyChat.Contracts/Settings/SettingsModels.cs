@@ -287,7 +287,8 @@ public sealed record InputSettings(
     bool ReverseTranslateLanguage,
     string TypingSourceLanguage,
     string TypingTargetLanguage,
-    bool FollowGlobalLanguage);
+    bool FollowGlobalLanguage,
+    bool IsPreviewEnabled = false);
 
 public sealed record ScreenshotSettings(
     string? Mode,

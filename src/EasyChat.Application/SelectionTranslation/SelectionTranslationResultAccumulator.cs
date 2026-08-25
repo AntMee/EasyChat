@@ -11,7 +11,7 @@ public sealed class SelectionTranslationResultAccumulator
     private readonly List<SelectionWordDefinition> _definitions = [];
     private readonly List<SelectionWordForm> _forms = [];
     private readonly List<SelectionWordExample> _examples = [];
-    private readonly List<SelectionKeyword> _keywords = [];
+    private readonly List<SelectionWord> _words = [];
     private SelectionTranslationMode? _mode;
     private string? _detectedSourceLanguage;
     private string? _word;
@@ -59,8 +59,14 @@ public sealed class SelectionTranslationResultAccumulator
             case SelectionTranslationExampleEvent example:
                 _examples.Add(new SelectionWordExample(example.Origin, example.Translation));
                 break;
-            case SelectionTranslationKeywordEvent keyword:
-                _keywords.Add(new SelectionKeyword(keyword.Word, keyword.Meaning));
+            case SelectionTranslationWordEvent word:
+                _words.Add(new SelectionWord(
+                    word.Word,
+                    word.Meaning,
+                    word.Phonetic,
+                    word.PartOfSpeech,
+                    word.Forms,
+                    word.Meanings));
                 break;
             case SelectionTranslationCompletedEvent:
                 _completed = true;
@@ -90,6 +96,6 @@ public sealed class SelectionTranslationResultAccumulator
                 _detectedSourceLanguage,
                 _sourceText,
                 _translation.ToString(),
-                _keywords);
+                _words);
     }
 }

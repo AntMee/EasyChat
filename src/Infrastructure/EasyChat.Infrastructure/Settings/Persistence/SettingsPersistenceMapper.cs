@@ -429,7 +429,8 @@ internal static class SettingsPersistenceMapper
         source.ReverseTranslateLanguage,
         source.TypingSourceLanguage,
         source.TypingTargetLanguage,
-        source.FollowGlobalLanguage);
+        source.FollowGlobalLanguage,
+        source.IsPreviewEnabled);
 
     private static InputSettingsDto ToDto(InputSettings source) => new()
     {
@@ -441,7 +442,8 @@ internal static class SettingsPersistenceMapper
         ReverseTranslateLanguage = source.ReverseTranslateLanguage,
         TypingSourceLanguage = source.TypingSourceLanguage,
         TypingTargetLanguage = source.TypingTargetLanguage,
-        FollowGlobalLanguage = source.FollowGlobalLanguage
+        FollowGlobalLanguage = source.FollowGlobalLanguage,
+        IsPreviewEnabled = source.IsPreviewEnabled
     };
 
     private static ScreenshotSettings ToContract(ScreenshotSettingsDto source) => new(

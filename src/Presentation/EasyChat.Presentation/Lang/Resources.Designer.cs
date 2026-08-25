@@ -2023,6 +2023,60 @@ namespace EasyChat.Presentation.Lang {
                 return ResourceManager.GetString("ReverseTranslateLanguageTip", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Preview.
+        /// </summary>
+        public static string InputPreview {
+            get {
+                return ResourceManager.GetString("InputPreview", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Meaning.
+        /// </summary>
+        public static string PreviewMeaning {
+            get {
+                return ResourceManager.GetString("PreviewMeaning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Phonetic.
+        /// </summary>
+        public static string PreviewPhonetic {
+            get {
+                return ResourceManager.GetString("PreviewPhonetic", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Part of speech.
+        /// </summary>
+        public static string PreviewPartOfSpeech {
+            get {
+                return ResourceManager.GetString("PreviewPartOfSpeech", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Forms.
+        /// </summary>
+        public static string PreviewForms {
+            get {
+                return ResourceManager.GetString("PreviewForms", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Preview failed.
+        /// </summary>
+        public static string PreviewFailed {
+            get {
+                return ResourceManager.GetString("PreviewFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Save.

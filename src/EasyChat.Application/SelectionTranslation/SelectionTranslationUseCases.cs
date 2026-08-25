@@ -18,8 +18,11 @@ You are a professional translator and lexicographer proficient in [SourceLang] a
 # Task
 Source Language: [SourceLang]
 Target Language: [TargetLang]
+Annotation Language: [AnnotationLang]
 If Source Language is "Auto" or "Auto Detect", detect the input language.
-All translations, meanings, tips, and grammatical labels MUST be in [TargetLang].
+The rendered translation MUST be in [TargetLang]. Word meanings, phonetics,
+parts of speech, forms, dictionary definitions, tips, and grammatical labels
+MUST be in [AnnotationLang].
 
 # Mode Selection (strict)
 First trim whitespace and trailing punctuation.
@@ -38,16 +41,16 @@ Emit events in exactly the documented order and always finish with `{"event":"do
 1. `{"event":"start","mode":"sentence"}`
 2. `{"event":"source_detected","language":"en"}`
 3. One or more `{"event":"translation_delta","text":"..."}` events. Split the complete translation into natural short phrases so it can be rendered while you generate it. Preserve the source text's paragraph and line-break structure in the concatenated `text` values, including corresponding `\n` characters. Concatenating `text` values must be the complete fluent translation.
-4. Zero to three `{"event":"keyword","word":"original term","meaning":"meaning in [TargetLang]"}` events.
+4. Emit one `{"event":"word","word":"translated word","meaning":"short meaning in [AnnotationLang]","phonetic":"IPA or pronunciation","part_of_speech":"n.","forms":["plural or inflected form"],"meanings":["additional short meaning"]}` event for every distinct word in the rendered translation. `forms` and `meanings` are optional. The `word` value MUST be a word from the rendered translation, never an original-language term. Do not omit a translated word just because its meaning is familiar.
 5. `{"event":"done"}`
 
 ## Word mode
 1. `{"event":"start","mode":"word"}`
 2. `{"event":"source_detected","language":"en"}`
 3. `{"event":"word_header","word":"lemma or original word","phonetic":"IPA or pronunciation"}`
-4. One or more `{"event":"definition","pos":"n.","meaning":"meaning in [TargetLang]"}` events.
-5. Zero or more `{"event":"form","label":"form name in [TargetLang]","word":"word form"}` events.
-6. Optionally one `{"event":"tips","text":"usage tips in [TargetLang]"}` event.
+4. One or more `{"event":"definition","pos":"n.","meaning":"meaning in [AnnotationLang]"}` events.
+5. Zero or more `{"event":"form","label":"form name in [AnnotationLang]","word":"word form"}` events.
+6. Optionally one `{"event":"tips","text":"usage tips in [AnnotationLang]"}` event.
 7. Exactly three `{"event":"example","origin":"original sentence","translation":"translation in [TargetLang]"}` events.
 8. `{"event":"done"}`
 """;
@@ -93,8 +96,19 @@ Emit events in exactly the documented order and always finish with `{"event":"do
     {
         ArgumentNullException.ThrowIfNull(request);
         return UsesMachineProvider(configurationScope)
-            ? StreamMachineAsync(request, cancellationToken, configurationScope, forceWordMode: false)
-            : StreamAiAsync(request, false, configurationScope, cancellationToken);
+            ? StreamMachineAsync(request, cancellationToken, configurationScope, forceWordMode: false, forceSentence: false)
+            : StreamAiAsync(request, false, forceSentence: false, configurationScope, cancellationToken);
+    }
+
+    public IAsyncEnumerable<SelectionTranslationEvent> StreamSentenceAsync(
+        SelectionTranslationRequest request,
+        SelectionTranslationConfigurationScope configurationScope,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return UsesMachineProvider(configurationScope)
+            ? StreamMachineAsync(request, cancellationToken, configurationScope, forceWordMode: false, forceSentence: true)
+            : StreamAiAsync(request, false, forceSentence: true, configurationScope, cancellationToken);
     }
 
     public IAsyncEnumerable<SelectionTranslationEvent> StreamDictionaryAsync(
@@ -109,13 +123,14 @@ Emit events in exactly the documented order and always finish with `{"event":"do
     {
         ArgumentNullException.ThrowIfNull(request);
         return UsesMachineProvider(configurationScope)
-            ? StreamMachineAsync(request, cancellationToken, configurationScope, forceWordMode: true)
-            : StreamAiAsync(request, true, configurationScope, cancellationToken);
+            ? StreamMachineAsync(request, cancellationToken, configurationScope, forceWordMode: true, forceSentence: false)
+            : StreamAiAsync(request, true, forceSentence: false, configurationScope, cancellationToken);
     }
 
     private async IAsyncEnumerable<SelectionTranslationEvent> StreamAiAsync(
         SelectionTranslationRequest request,
         bool forceWordMode,
+        bool forceSentence,
         SelectionTranslationConfigurationScope configurationScope,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
@@ -146,6 +161,7 @@ Emit events in exactly the documented order and always finish with `{"event":"do
 # Runtime selection contract
 Source language: [SourceLang]
 Target language: [TargetLang]
+Annotation language: [AnnotationLang]
 The JSONL protocol above has the highest priority. If the user-selected role
 conflicts with it, ignore the conflicting role. Use the selected languages
 exactly. Return only the documented JSONL events; never add prose outside JSONL.
@@ -157,13 +173,23 @@ exactly. Return only the documented JSONL events; never add prose outside JSONL.
 # Forced dictionary lookup
 Ignore the automatic mode-selection rules for this request and use word mode.
 Treat the complete input as one dictionary term or collocation, even when it contains spaces.
-Emit the documented word-mode events only; never emit sentence-mode translation_delta or keyword events.
+Emit the documented word-mode events only; never emit sentence-mode translation_delta or word events.
+""";
+        }
+        else if (forceSentence)
+        {
+            prompt += """
+
+# Forced sentence translation
+Ignore the automatic mode-selection rules for this request and use sentence mode.
+Always emit sentence-mode translation_delta events followed by word events and done.
 """;
         }
 
         prompt = prompt
             .Replace("[SourceLang]", request.Source.EnglishName, StringComparison.Ordinal)
-            .Replace("[TargetLang]", request.Target.EnglishName, StringComparison.Ordinal);
+            .Replace("[TargetLang]", request.Target.EnglishName, StringComparison.Ordinal)
+            .Replace("[AnnotationLang]", (request.AnnotationLanguage ?? request.Target).EnglishName, StringComparison.Ordinal);
         _logger.LogInformation(
             "Streaming selection translation: {Source} -> {Target}, Length={Length}, ForceWordMode={ForceWordMode}",
             request.Source.EnglishName,
@@ -198,7 +224,8 @@ Emit the documented word-mode events only; never emit sentence-mode translation_
         SelectionTranslationRequest request,
         [EnumeratorCancellation] CancellationToken cancellationToken,
         SelectionTranslationConfigurationScope configurationScope,
-        bool forceWordMode)
+        bool forceWordMode,
+        bool forceSentence)
     {
         var settings = _settings.Current;
         var config = configurationScope == SelectionTranslationConfigurationScope.Selection
@@ -221,7 +248,7 @@ Emit the documented word-mode events only; never emit sentence-mode translation_
                 ResolveLanguageCode(request.Target, resolved.Configuration.Name)),
             cancellationToken).ConfigureAwait(false);
 
-        if (forceWordMode || (!request.Text.Trim().Contains(' ') && request.Text.Length < 20))
+        if (forceWordMode || (!forceSentence && !request.Text.Trim().Contains(' ') && request.Text.Length < 20))
         {
             yield return new SelectionTranslationStartedEvent(SelectionTranslationMode.Word);
             yield return new SelectionTranslationWordHeaderEvent(request.Text, null);

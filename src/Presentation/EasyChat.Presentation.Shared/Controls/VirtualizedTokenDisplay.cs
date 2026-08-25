@@ -8,9 +8,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
-using EasyChat.Presentation.Features.Translation.Models;
 
-namespace EasyChat.Presentation.Features.Translation.Controls;
+namespace EasyChat.Presentation.Shared.Controls;
 
 /// <summary>
 /// A high-performance control for displaying text tokens with interactive hover effects.
@@ -26,6 +25,16 @@ public class VirtualizedTokenDisplay : Control
 
     public static readonly StyledProperty<ICommand?> WordClickedCommandProperty =
         AvaloniaProperty.Register<VirtualizedTokenDisplay, ICommand?>(nameof(WordClickedCommand));
+
+    public static readonly StyledProperty<IReadOnlyDictionary<string, string>?> WordOverviewsProperty =
+        AvaloniaProperty.Register<VirtualizedTokenDisplay, IReadOnlyDictionary<string, string>?>(nameof(WordOverviews));
+
+    /// <summary>
+    /// Raised immediately before a word lookup command is executed.
+    /// Hosts can use this to preserve transient UI state while the command opens
+    /// another window.
+    /// </summary>
+    public event EventHandler? WordLookupOpening;
 
     public static readonly StyledProperty<double> FontSizeProperty =
         AvaloniaProperty.Register<VirtualizedTokenDisplay, double>(nameof(FontSize), 15);
@@ -64,6 +73,12 @@ public class VirtualizedTokenDisplay : Control
     {
         get => GetValue(WordClickedCommandProperty);
         set => SetValue(WordClickedCommandProperty, value);
+    }
+
+    public IReadOnlyDictionary<string, string>? WordOverviews
+    {
+        get => GetValue(WordOverviewsProperty);
+        set => SetValue(WordOverviewsProperty, value);
     }
 
     public double FontSize
@@ -144,6 +159,9 @@ public class VirtualizedTokenDisplay : Control
     private double _underlineScale;
     private DispatcherTimer? _animationTimer;
     private DateTime _animationStartTime;
+    private Point _lastPointerPosition;
+    private bool _hasPointerPosition;
+    private int _pressedTokenIndex = -1;
     private const double AnimationDurationMs = 250;
     private static readonly CircularEaseOut EaseOut = new();
 
@@ -156,6 +174,7 @@ public class VirtualizedTokenDisplay : Control
             ForegroundProperty,
             NonWordForegroundProperty,
             UnderlineColorProperty,
+            WordOverviewsProperty,
             FontSizeProperty,
             FontFamilyProperty,
             FontWeightProperty);
@@ -189,7 +208,13 @@ public class VirtualizedTokenDisplay : Control
         {
             _layoutDirty = true;
             InvalidateMeasure();
+
+            if (change.Property == TokensProperty)
+                ScheduleHoverRefresh();
         }
+
+        if (change.Property == WordOverviewsProperty)
+            ScheduleHoverRefresh();
     }
 
     #region Measure & Arrange
@@ -351,6 +376,13 @@ public class VirtualizedTokenDisplay : Control
         base.OnPointerMoved(e);
 
         var position = e.GetPosition(this);
+        _lastPointerPosition = position;
+        _hasPointerPosition = true;
+        UpdateHover(position, forceRefresh: false);
+    }
+
+    private void UpdateHover(Point position, bool forceRefresh)
+    {
         var hitIndex = HitTestToken(position);
 
         // Only process word tokens for hover effect
@@ -359,7 +391,8 @@ public class VirtualizedTokenDisplay : Control
             hitIndex = -1;
         }
 
-        if (hitIndex != _hoveredTokenIndex)
+        var tokenChanged = hitIndex != _hoveredTokenIndex;
+        if (tokenChanged)
         {
             _hoveredTokenIndex = hitIndex;
 
@@ -376,6 +409,50 @@ public class VirtualizedTokenDisplay : Control
                 Cursor = Cursor.Default;
             }
         }
+
+        // Do not close and reopen the tooltip for every pointer-move event. Avalonia
+        // restarts the tooltip timer when its open state changes, so doing that here
+        // makes the overview flicker or never become visible on a stationary token.
+        if (hitIndex >= 0 && (tokenChanged || forceRefresh))
+            ShowOverview(_layoutCache[hitIndex].Token.Text, hitIndex);
+        else if (hitIndex < 0)
+            HideOverviewInstance();
+    }
+
+    private void ScheduleHoverRefresh()
+    {
+        if (!_hasPointerPosition)
+            return;
+
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (_hasPointerPosition)
+                    UpdateHover(_lastPointerPosition, forceRefresh: true);
+            },
+            DispatcherPriority.Render);
+    }
+
+    private void ShowOverview(string word, int tokenIndex)
+    {
+        var overview = ResolveOverview(word);
+        ToolTip.SetTip(this, overview);
+        if (string.IsNullOrWhiteSpace(overview))
+        {
+            ToolTip.SetIsOpen(this, false);
+            return;
+        }
+
+        // Open immediately. ShowDelay is disabled in XAML; keeping the operation
+        // synchronous avoids a pointer event racing the tooltip service.
+        if (_hasPointerPosition && _hoveredTokenIndex == tokenIndex)
+            ToolTip.SetIsOpen(this, true);
+    }
+
+    private void HideOverviewInstance()
+    {
+        ToolTip.SetTip(this, null);
+        ToolTip.SetIsOpen(this, false);
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
@@ -388,6 +465,9 @@ public class VirtualizedTokenDisplay : Control
             StartUnderlineAnimation(false);
             Cursor = Cursor.Default;
         }
+
+        _hasPointerPosition = false;
+        HideOverviewInstance();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -401,16 +481,38 @@ public class VirtualizedTokenDisplay : Control
 
             if (hitIndex >= 0 && _layoutCache[hitIndex].Token.IsWord)
             {
-                var command = WordClickedCommand;
-                var word = _layoutCache[hitIndex].Token.Text;
-
-                if (command?.CanExecute(word) == true)
-                {
-                    command.Execute(word);
-                    e.Handled = true;
-                }
+                _pressedTokenIndex = hitIndex;
+                e.Pointer.Capture(this);
+                e.Handled = true;
             }
         }
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+
+        var pressedIndex = _pressedTokenIndex;
+        _pressedTokenIndex = -1;
+        e.Pointer.Capture(null);
+        if (pressedIndex < 0)
+            return;
+
+        var releaseIndex = HitTestToken(e.GetPosition(this));
+        if (releaseIndex != pressedIndex
+            || !_layoutCache[pressedIndex].Token.IsWord
+            || e.InitialPressMouseButton != MouseButton.Left)
+            return;
+
+        var command = WordClickedCommand;
+        if (command is null)
+            return;
+
+        // Execute after the release so a parent ScrollViewer cannot consume the
+        // pressed event before the dictionary command is invoked.
+        WordLookupOpening?.Invoke(this, EventArgs.Empty);
+        command.Execute(_layoutCache[pressedIndex].Token.Text);
+        e.Handled = true;
     }
 
     private int HitTestToken(Point position)
@@ -423,6 +525,13 @@ public class VirtualizedTokenDisplay : Control
             }
         }
         return -1;
+    }
+
+    private string? ResolveOverview(string word)
+    {
+        if (WordOverviews is null || !WordOverviews.TryGetValue(word, out var overview))
+            return null;
+        return string.IsNullOrWhiteSpace(overview) ? null : overview;
     }
 
     #endregion

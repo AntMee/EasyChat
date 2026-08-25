@@ -7,7 +7,7 @@
         xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         xmlns:lang="using:EasyChat.Presentation.Lang"
         xmlns:vm="using:EasyChat.Presentation.Features.Translation"
-        xmlns:controls="clr-namespace:EasyChat.Presentation.Features.Translation.Controls"
+        xmlns:controls="clr-namespace:EasyChat.Presentation.Shared.Controls;assembly=EasyChat.Presentation.Shared"
         mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="400"
         x:Class="EasyChat.Presentation.Features.Translation.Views.TranslationDictionaryWindowView"
         x:DataType="vm:TranslationDictionaryWindowViewModel"
