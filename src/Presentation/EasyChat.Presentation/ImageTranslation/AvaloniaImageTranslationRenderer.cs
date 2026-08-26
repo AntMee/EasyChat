@@ -13,7 +13,10 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
 {
     private const double MinimumFontSize = 1;
     private const double MinimumReadableFontSize = 8;
-    private const double NominalFontHeightRatio = 0.72;
+    private const double DesiredInkHeightRatio = 0.90;
+    private const double MinimumMeasuredInkRatio = 0.60;
+    private const double FontMeasurementSize = 100;
+    private const int MaximumFontMeasurementCharacters = 128;
     private const double MinimumFittedFontScale = 0.70;
     private const double MaximumPreferredHeightRatio = 1.0;
     private const double MinimumTextContrastRatio = 2.2;
@@ -63,6 +66,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         using var background = AvaloniaImageFrames.ToBitmap(backgroundFrame);
         using var output = new RenderTargetBitmap(background.PixelSize, background.Dpi);
         var pixelToDip = PixelToDipScale(background.PixelSize, background.Size);
+        var alignments = ImageTextAlignmentAnalyzer.Analyze(renderable);
         using (var context = output.CreateDrawingContext())
         {
             context.DrawImage(background, new Rect(background.Size));
@@ -70,8 +74,9 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var geometry = GetGeometry(overlay.Region);
-                var boxWidth = Math.Max(1, geometry.BoxWidth * pixelToDip.X);
-                var boxHeight = Math.Max(1, geometry.BoxHeight * pixelToDip.Y);
+                var orientedScale = GetOrientedScale(overlay.Region.Angle, pixelToDip);
+                var boxWidth = Math.Max(1, geometry.BoxWidth * orientedScale.X);
+                var boxHeight = Math.Max(1, geometry.BoxHeight * orientedScale.Y);
                 var style = styles[overlay];
                 var foreground = EnsureLegibleForeground(
                     style.Foreground,
@@ -83,10 +88,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
                     overlay.Translation,
                     boxWidth,
                     boxHeight,
-                    CalculatePreferredFontSize(
-                        new Rect(0, 0, boxWidth, boxHeight),
-                        overlay.Region.Angle,
-                        CountSourceLines(overlay.Region.Text)),
+                    CalculateSourceLineHeight(overlay, pixelToDip),
                     brush,
                     typeface);
                 var center = new Point(
@@ -96,12 +98,16 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
                              * Matrix.CreateTranslation(center.X, center.Y);
                 using (context.PushTransform(matrix))
                 {
-                    var y = -layout.Height / 2;
+                    var verticalOffset = CalculateVerticalOrigin(layout.InkBounds);
                     foreach (var line in layout.Lines)
                     {
-                        var x = -boxWidth / 2;
-                        context.DrawText(line.Formatted, new Point(x, y));
-                        y += line.Height;
+                        var x = CalculateLineOriginX(
+                            alignments[overlay],
+                            boxWidth,
+                            line.InkBounds);
+                        context.DrawText(
+                            line.Formatted,
+                            new Point(x, verticalOffset + line.OffsetY));
                     }
                 }
             }
@@ -122,7 +128,10 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
     {
         // GetGeometry already normalizes the OCR polygon into a long and short edge.
         // The short edge is text height for both horizontal and rotated text.
-        return Math.Max(MinimumFontSize, originalBounds.Height * NominalFontHeightRatio);
+        return CalculatePreferredFontSize(
+            originalBounds.Height,
+            targetInkHeight: FontMeasurementSize,
+            measurementFontSize: FontMeasurementSize);
     }
 
     internal static double CalculatePreferredFontSize(
@@ -140,6 +149,20 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
             angle);
     }
 
+    internal static double CalculatePreferredFontSize(
+        double sourceLineHeight,
+        double targetInkHeight,
+        double measurementFontSize)
+    {
+        var measuredRatio = measurementFontSize > 0 && targetInkHeight > 0
+            ? targetInkHeight / measurementFontSize
+            : 1;
+        measuredRatio = Math.Max(MinimumMeasuredInkRatio, measuredRatio);
+        return Math.Max(
+            MinimumFontSize,
+            sourceLineHeight * DesiredInkHeightRatio / measuredRatio);
+    }
+
     private static int CountSourceLines(string text) =>
         Math.Max(1, text.Replace("\r", string.Empty, StringComparison.Ordinal).Count(character => character == '\n') + 1);
 
@@ -154,29 +177,81 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         string text,
         double width,
         double height,
-        double preferredFontSize,
+        double sourceLineHeight,
         IBrush brush,
         Typeface typeface)
     {
+        var measurement = Measure(
+            NormalizeForMeasurement(text),
+            FontMeasurementSize,
+            brush,
+            typeface);
+        var preferredFontSize = CalculatePreferredFontSize(
+            sourceLineHeight,
+            measurement.InkBounds.Height,
+            FontMeasurementSize);
         var initialFontSize = Math.Max(MinimumFontSize, preferredFontSize);
         // Preserve the original visual scale first. We only shrink enough to make a
         // normal translation fit; an unusually long translation may extend beyond
         // the OCR box rather than becoming unreadably small.
-        var minimumFontSize = Math.Min(
-            initialFontSize,
-            Math.Max(MinimumReadableFontSize, initialFontSize * MinimumFittedFontScale));
+        var minimumFontSize = CalculateMinimumFittedFontSize(initialFontSize);
         var fontSize = initialFontSize;
 
         while (true)
         {
             var lines = WrapText(text, width, fontSize, brush, typeface);
-            var totalWidth = lines.Count == 0 ? 0 : lines.Max(line => line.Width);
-            var totalHeight = lines.Sum(line => line.Height);
-            if (totalHeight <= height * MaximumPreferredHeightRatio || fontSize <= minimumFontSize)
-                return new TextLayout(lines, totalWidth, totalHeight);
+            var layout = CreateTextLayout(lines);
+            if (layout.InkBounds.Height <= height * MaximumPreferredHeightRatio
+                || fontSize <= minimumFontSize)
+            {
+                return layout;
+            }
 
             fontSize = Math.Max(minimumFontSize, fontSize * 0.94);
         }
+    }
+
+    private static string NormalizeForMeasurement(string text)
+    {
+        var normalized = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        if (normalized.Length <= MaximumFontMeasurementCharacters)
+            return normalized;
+
+        var sample = new StringBuilder(MaximumFontMeasurementCharacters);
+        foreach (var rune in normalized.EnumerateRunes().Take(MaximumFontMeasurementCharacters))
+            sample.Append(rune);
+        return sample.ToString();
+    }
+
+    private static TextLayout CreateTextLayout(IReadOnlyList<TextLine> measuredLines)
+    {
+        if (measuredLines.Count == 0)
+            return new TextLayout([], new Rect());
+
+        var lines = new List<TextLine>(measuredLines.Count);
+        var offsetY = 0d;
+        var inkLeft = double.PositiveInfinity;
+        var inkTop = double.PositiveInfinity;
+        var inkRight = double.NegativeInfinity;
+        var inkBottom = double.NegativeInfinity;
+        foreach (var measured in measuredLines)
+        {
+            var line = measured with { OffsetY = offsetY };
+            lines.Add(line);
+            inkLeft = Math.Min(inkLeft, line.InkBounds.Left);
+            inkTop = Math.Min(inkTop, offsetY + line.InkBounds.Top);
+            inkRight = Math.Max(inkRight, line.InkBounds.Right);
+            inkBottom = Math.Max(inkBottom, offsetY + line.InkBounds.Bottom);
+            offsetY += line.Height;
+        }
+
+        return new TextLayout(
+            lines,
+            new Rect(
+                inkLeft,
+                inkTop,
+                Math.Max(0, inkRight - inkLeft),
+                Math.Max(0, inkBottom - inkTop)));
     }
 
     private static IReadOnlyList<TextLine> WrapText(
@@ -200,7 +275,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
             {
                 current.Append(character);
                 if (current.Length == 1
-                    || Measure(current.ToString(), fontSize, brush, typeface).Width <= maxWidth)
+                    || MeasureWidth(current.ToString(), fontSize, brush, typeface) <= maxWidth)
                     continue;
 
                 var split = LastWrapOpportunity(current);
@@ -240,6 +315,13 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         Typeface typeface) =>
         CreateTextLine(text, fontSize, brush, typeface);
 
+    private static double MeasureWidth(
+        string text,
+        double fontSize,
+        IBrush brush,
+        Typeface typeface) =>
+        Format(text, fontSize, brush, typeface).Width;
+
     private static FormattedText Format(
         string text,
         double fontSize,
@@ -262,7 +344,85 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         IBrush brush,
         Typeface typeface)
     {
-        return new TextLine(Format(text, fontSize, brush, typeface));
+        var formatted = Format(text, fontSize, brush, typeface);
+        return new TextLine(formatted, GetInkBounds(formatted), 0);
+    }
+
+    private static Rect GetInkBounds(FormattedText formatted)
+    {
+        var geometry = formatted.BuildGeometry(default);
+        if (geometry is not null && IsUsableInkBounds(geometry.Bounds))
+            return geometry.Bounds;
+
+        var extent = Math.Max(0, formatted.Extent);
+        var top = formatted.Height + formatted.OverhangAfter - extent;
+        return new Rect(0, top, Math.Max(0, formatted.Width), extent);
+    }
+
+    private static bool IsUsableInkBounds(Rect bounds) =>
+        double.IsFinite(bounds.X)
+        && double.IsFinite(bounds.Y)
+        && double.IsFinite(bounds.Width)
+        && double.IsFinite(bounds.Height)
+        && bounds.Width > 0
+        && bounds.Height > 0;
+
+    internal static double CalculateLineOriginX(
+        ImageTextAlignment alignment,
+        double boxWidth,
+        Rect inkBounds) =>
+        alignment switch
+        {
+            ImageTextAlignment.Left => -boxWidth / 2 - inkBounds.Left,
+            ImageTextAlignment.Right => boxWidth / 2 - inkBounds.Right,
+            _ => -(inkBounds.Left + inkBounds.Right) / 2
+        };
+
+    internal static double CalculateVerticalOrigin(Rect inkBounds) =>
+        -(inkBounds.Top + inkBounds.Bottom) / 2;
+
+    internal static double CalculateMinimumFittedFontSize(double initialFontSize) =>
+        Math.Min(
+            initialFontSize,
+            Math.Max(MinimumReadableFontSize, initialFontSize * MinimumFittedFontScale));
+
+    private static double CalculateSourceLineHeight(
+        ImageTranslationOverlay overlay,
+        Vector pixelToDip)
+    {
+        var regions = overlay.EraseRegions is { Count: > 0 }
+            ? overlay.EraseRegions
+            : [overlay.Region];
+        var heights = regions
+            .Select(region =>
+            {
+                var geometry = GetGeometry(region);
+                var scale = GetOrientedScale(region.Angle, pixelToDip).Y;
+                return geometry.BoxHeight * scale / CountSourceLines(region.Text);
+            })
+            .OrderBy(height => height)
+            .ToArray();
+        if (heights.Length == 0)
+            return MinimumFontSize;
+
+        var middle = heights.Length / 2;
+        return heights.Length % 2 == 0
+            ? (heights[middle - 1] + heights[middle]) / 2
+            : heights[middle];
+    }
+
+    private static Vector GetOrientedScale(double angle, Vector pixelToDip)
+    {
+        var radians = angle * Math.PI / 180d;
+        var cosine = Math.Cos(radians);
+        var sine = Math.Sin(radians);
+        return new Vector(
+            Math.Sqrt(
+                cosine * cosine * pixelToDip.X * pixelToDip.X
+                + sine * sine * pixelToDip.Y * pixelToDip.Y),
+            Math.Sqrt(
+                sine * sine * pixelToDip.X * pixelToDip.X
+                + cosine * cosine * pixelToDip.Y * pixelToDip.Y));
     }
 
     internal static Color SelectForegroundColor(Color surroundingBackground, IReadOnlyList<Color> regionPixels)
@@ -375,12 +535,9 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
 
     private sealed record RegionGeometry(Rect Bounds, Point Center, double BoxWidth, double BoxHeight);
 
-    private sealed record TextLayout(
-        IReadOnlyList<TextLine> Lines,
-        double Width,
-        double Height);
+    private sealed record TextLayout(IReadOnlyList<TextLine> Lines, Rect InkBounds);
 
-    private sealed record TextLine(FormattedText Formatted)
+    private sealed record TextLine(FormattedText Formatted, Rect InkBounds, double OffsetY)
     {
         public double Width => Formatted.Width;
         public double Height => Formatted.Height;

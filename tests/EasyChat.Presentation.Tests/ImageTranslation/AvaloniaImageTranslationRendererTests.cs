@@ -16,7 +16,7 @@ public sealed class AvaloniaImageTranslationRendererTests
         var rotated = AvaloniaImageTranslationRenderer.CalculatePreferredFontSize(bounds, 90);
 
         Assert.AreEqual(horizontal, rotated, 0.001);
-        Assert.AreEqual(bounds.Height * 0.72, rotated, 0.001);
+        Assert.AreEqual(bounds.Height * 0.90, rotated, 0.001);
     }
 
     [TestMethod]
@@ -29,7 +29,71 @@ public sealed class AvaloniaImageTranslationRendererTests
             0,
             sourceLineCount: 3);
 
-        Assert.AreEqual(mergedBounds.Height / 3 * 0.72, fontSize, 0.001);
+        Assert.AreEqual(mergedBounds.Height / 3 * 0.90, fontSize, 0.001);
+    }
+
+    [TestMethod]
+    public void CalculatePreferredFontSize_MatchesTheTargetInkHeightToTheSourceLine()
+    {
+        var fontSize = AvaloniaImageTranslationRenderer.CalculatePreferredFontSize(
+            sourceLineHeight: 32,
+            targetInkHeight: 90,
+            measurementFontSize: 100);
+
+        Assert.AreEqual(32, fontSize, 0.001);
+        Assert.IsGreaterThan(32 * 0.72, fontSize);
+    }
+
+    [TestMethod]
+    public void CalculatePreferredFontSize_CapsScalingForLowInkPunctuation()
+    {
+        var fontSize = AvaloniaImageTranslationRenderer.CalculatePreferredFontSize(
+            sourceLineHeight: 32,
+            targetInkHeight: 10,
+            measurementFontSize: 100);
+
+        Assert.AreEqual(48, fontSize, 0.001);
+    }
+
+    [TestMethod]
+    public void CalculateMinimumFittedFontSize_PreservesTheReadableShrinkFloor()
+    {
+        Assert.AreEqual(14, AvaloniaImageTranslationRenderer.CalculateMinimumFittedFontSize(20), 0.001);
+        Assert.AreEqual(8, AvaloniaImageTranslationRenderer.CalculateMinimumFittedFontSize(10), 0.001);
+        Assert.AreEqual(6, AvaloniaImageTranslationRenderer.CalculateMinimumFittedFontSize(6), 0.001);
+    }
+
+    [TestMethod]
+    public void CalculateLineOriginX_AlignsTheVisibleInkInsteadOfTheTextAdvanceBox()
+    {
+        var inkBounds = new Rect(5, 4, 20, 10);
+
+        var left = AvaloniaImageTranslationRenderer.CalculateLineOriginX(
+            ImageTextAlignment.Left,
+            100,
+            inkBounds);
+        var center = AvaloniaImageTranslationRenderer.CalculateLineOriginX(
+            ImageTextAlignment.Center,
+            100,
+            inkBounds);
+        var right = AvaloniaImageTranslationRenderer.CalculateLineOriginX(
+            ImageTextAlignment.Right,
+            100,
+            inkBounds);
+
+        Assert.AreEqual(-50, left + inkBounds.Left, 0.001);
+        Assert.AreEqual(0, center + (inkBounds.Left + inkBounds.Right) / 2, 0.001);
+        Assert.AreEqual(50, right + inkBounds.Right, 0.001);
+    }
+
+    [TestMethod]
+    public void CalculateVerticalOrigin_CentersTheVisibleInkAroundTheOcrRegion()
+    {
+        var inkBounds = new Rect(0, 7, 20, 12);
+
+        var origin = AvaloniaImageTranslationRenderer.CalculateVerticalOrigin(inkBounds);
+
+        Assert.AreEqual(0, origin + (inkBounds.Top + inkBounds.Bottom) / 2, 0.001);
     }
 
     [TestMethod]

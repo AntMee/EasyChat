@@ -420,21 +420,65 @@ public sealed class ImageTranslationUseCases : IImageTranslationUseCases
 
     private static OcrTextRegion MergeRegion(TranslationGroup group)
     {
-        var points = group.Blocks
-            .SelectMany(block => block.Region.Polygon)
+        var regions = group.Blocks
+            .Select(block => block.Region)
             .ToArray();
-        var bounds = GetBounds(new OcrTextRegion(string.Empty, points, 0));
-        var angle = group.Blocks.Average(block => block.Region.Angle);
+        return MergeRegions(regions, JoinSourceText(group.Blocks));
+    }
+
+    internal static OcrTextRegion MergeRegions(
+        IReadOnlyList<OcrTextRegion> regions,
+        string text)
+    {
+        ArgumentNullException.ThrowIfNull(regions);
+        ArgumentNullException.ThrowIfNull(text);
+        if (regions.Count == 0)
+            throw new ArgumentException("At least one OCR region is required.", nameof(regions));
+
+        var angle = CircularMeanAngle(regions.Select(region => region.Angle));
+        var radians = angle * Math.PI / 180d;
+        var cosine = Math.Cos(radians);
+        var sine = Math.Sin(radians);
+        var left = double.PositiveInfinity;
+        var top = double.PositiveInfinity;
+        var right = double.NegativeInfinity;
+        var bottom = double.NegativeInfinity;
+        foreach (var point in regions.SelectMany(region => region.Polygon))
+        {
+            var horizontal = point.X * cosine + point.Y * sine;
+            var vertical = -point.X * sine + point.Y * cosine;
+            left = Math.Min(left, horizontal);
+            top = Math.Min(top, vertical);
+            right = Math.Max(right, horizontal);
+            bottom = Math.Max(bottom, vertical);
+        }
+
+        ImagePoint Point(double horizontal, double vertical) =>
+            new(
+                horizontal * cosine - vertical * sine,
+                horizontal * sine + vertical * cosine);
+
         return new OcrTextRegion(
-            JoinSourceText(group.Blocks),
+            text,
             [
-                new ImagePoint(bounds.Left, bounds.Top),
-                new ImagePoint(bounds.Right, bounds.Top),
-                new ImagePoint(bounds.Right, bounds.Bottom),
-                new ImagePoint(bounds.Left, bounds.Bottom)
+                Point(left, top),
+                Point(right, top),
+                Point(right, bottom),
+                Point(left, bottom)
             ],
             angle,
-            group.Blocks.Min(block => block.Region.Confidence));
+            regions.Min(region => region.Confidence));
+    }
+
+    private static double CircularMeanAngle(IEnumerable<double> angles)
+    {
+        var values = angles.ToArray();
+        var sine = values.Sum(angle => Math.Sin(angle * Math.PI / 180d));
+        var cosine = values.Sum(angle => Math.Cos(angle * Math.PI / 180d));
+        if (Math.Abs(sine) < 0.000001 && Math.Abs(cosine) < 0.000001)
+            return NormalizeAngle(values[0]);
+
+        return NormalizeAngle(Math.Atan2(sine, cosine) * 180d / Math.PI);
     }
 
     private static double NormalizeAngle(double angle)

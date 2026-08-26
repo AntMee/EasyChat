@@ -210,6 +210,41 @@ public sealed class ImageTranslationUseCasesTests
     }
 
     [TestMethod]
+    public void MergeRegions_PreservesTheOrientedBoundsForRotatedText()
+    {
+        const double angle = 30;
+        var regions = new[]
+        {
+            RotatedRegion("first", 10, 0, 100, 20, angle, confidence: 0.95),
+            RotatedRegion("second", 10, 24, 70, 20, angle, confidence: 0.80)
+        };
+
+        var merged = ImageTranslationUseCases.MergeRegions(regions, "first\nsecond");
+        var bounds = ProjectedBounds(merged.Polygon, angle);
+
+        Assert.AreEqual(angle, merged.Angle, 0.001);
+        Assert.AreEqual(10, bounds.Left, 0.001);
+        Assert.AreEqual(110, bounds.Right, 0.001);
+        Assert.AreEqual(0, bounds.Top, 0.001);
+        Assert.AreEqual(44, bounds.Bottom, 0.001);
+        Assert.AreEqual(0.80, merged.Confidence, 0.001);
+    }
+
+    [TestMethod]
+    public void MergeRegions_UsesACircularMeanAcrossTheAngleBoundary()
+    {
+        var regions = new[]
+        {
+            RotatedRegion("first", 10, 0, 100, 20, 179),
+            RotatedRegion("second", 10, 24, 70, 20, -179)
+        };
+
+        var merged = ImageTranslationUseCases.MergeRegions(regions, "first\nsecond");
+
+        Assert.AreEqual(180, Math.Abs(merged.Angle), 0.001);
+    }
+
+    [TestMethod]
     public async Task TranslateAsync_DoesNotJoinNearbyTitleAndBodyRegions()
     {
         var renderer = new FakeRenderer();
@@ -253,6 +288,57 @@ public sealed class ImageTranslationUseCasesTests
             new ImagePoint(x, y + 4)
         ],
         0);
+
+    private static OcrTextRegion RotatedRegion(
+        string text,
+        double left,
+        double top,
+        double width,
+        double height,
+        double angle,
+        double confidence = 1)
+    {
+        var radians = angle * Math.PI / 180d;
+        var cosine = Math.Cos(radians);
+        var sine = Math.Sin(radians);
+        ImagePoint Point(double horizontal, double vertical) =>
+            new(
+                horizontal * cosine - vertical * sine,
+                horizontal * sine + vertical * cosine);
+
+        return new OcrTextRegion(
+            text,
+            [
+                Point(left, top),
+                Point(left + width, top),
+                Point(left + width, top + height),
+                Point(left, top + height)
+            ],
+            angle,
+            confidence);
+    }
+
+    private static ProjectedRegionBounds ProjectedBounds(
+        IReadOnlyList<ImagePoint> points,
+        double angle)
+    {
+        var radians = angle * Math.PI / 180d;
+        var cosine = Math.Cos(radians);
+        var sine = Math.Sin(radians);
+        var horizontal = points.Select(point => point.X * cosine + point.Y * sine).ToArray();
+        var vertical = points.Select(point => -point.X * sine + point.Y * cosine).ToArray();
+        return new ProjectedRegionBounds(
+            horizontal.Min(),
+            vertical.Min(),
+            horizontal.Max(),
+            vertical.Max());
+    }
+
+    private readonly record struct ProjectedRegionBounds(
+        double Left,
+        double Top,
+        double Right,
+        double Bottom);
 
     private sealed class FakeRenderer : IImageTranslationRenderer
     {
