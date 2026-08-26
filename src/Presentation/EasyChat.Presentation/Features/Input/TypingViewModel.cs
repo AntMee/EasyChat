@@ -19,6 +19,7 @@ public sealed class TypingViewModel : ReactiveObject, IDisposable
     private readonly ExternalTargetToken _target;
     private readonly ShortcutParameterSettings? _shortcut;
     private readonly SettingsSession _settings;
+    private readonly TranslationLanguageOptions _languages;
     private readonly IInputTranslationUseCases _inputTranslation;
     private readonly ITranslationWindowCoordinator _translationWindows;
     private readonly ILogger<TypingViewModel> _logger;
@@ -58,6 +59,7 @@ public sealed class TypingViewModel : ReactiveObject, IDisposable
         _target = target;
         _shortcut = shortcut;
         _settings = settings;
+        _languages = languages;
         _inputTranslation = inputTranslation;
         _translationWindows = translationWindows;
         _logger = logger;
@@ -430,19 +432,18 @@ public sealed class TypingViewModel : ReactiveObject, IDisposable
         switch (item)
         {
             case InputTranslationPreviewStartedEvent started:
-                _pendingPreviewSourceLanguageId = started.SourceLanguageId;
-                _pendingPreviewTargetLanguageId = started.TargetLanguageId;
+                _pendingPreviewSourceLanguageId = _languages.NormalizeId(started.SourceLanguageId);
+                _pendingPreviewTargetLanguageId = _languages.NormalizeId(started.TargetLanguageId);
                 break;
             case InputTranslationPreviewSourceDetectedEvent detected:
                 if (!string.IsNullOrWhiteSpace(detected.LanguageId))
-                    _pendingPreviewSourceLanguageId = detected.LanguageId;
+                    _pendingPreviewSourceLanguageId = _languages.NormalizeId(detected.LanguageId);
                 break;
             case InputTranslationPreviewDeltaEvent delta:
                 BeginPreviewResult();
                 PreviewTranslation += delta.Text;
                 PreviewTokens = new ObservableCollection<TextToken>(
                     TranslationTextTokenizer.Tokenize(PreviewTranslation, _previewTargetLanguageId));
-                EnsureFallbackWordOverviews();
                 break;
             case InputTranslationPreviewWordEvent word:
                 BeginPreviewResult();
@@ -522,22 +523,6 @@ public sealed class TypingViewModel : ReactiveObject, IDisposable
             [word] = overview
         };
         PreviewWordOverviews = updated;
-    }
-
-    private void EnsureFallbackWordOverviews()
-    {
-        if (PreviewTokens.Count == 0)
-            return;
-
-        var updated = new Dictionary<string, string>(PreviewWordOverviews, StringComparer.OrdinalIgnoreCase);
-        foreach (var token in PreviewTokens.Where(token => token.IsWord))
-        {
-            if (!updated.ContainsKey(token.Text))
-                updated[token.Text] = token.Text;
-        }
-
-        if (updated.Count != PreviewWordOverviews.Count)
-            PreviewWordOverviews = updated;
     }
 
     private static string? PreferValue(string? current, string? previous) =>

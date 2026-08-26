@@ -13,6 +13,16 @@ public sealed class TranslationLanguageOptions(ITranslationLanguageCatalog catal
         All.FirstOrDefault(language => language.Id == id)
         ?? throw new KeyNotFoundException($"Unknown translation language '{id}'.");
 
+    public string NormalizeId(string id)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        var language = All.FirstOrDefault(candidate =>
+                           string.Equals(candidate.Id, id, StringComparison.OrdinalIgnoreCase))
+                       ?? All.FirstOrDefault(candidate => candidate.ProviderCodes.Values.Any(code =>
+                           string.Equals(code, id, StringComparison.OrdinalIgnoreCase)));
+        return language?.Id ?? id;
+    }
+
     private static LanguageSettings ToSettings(TranslationLanguage language)
     {
         var localized = language.NativeName ?? language.EnglishName;

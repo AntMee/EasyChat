@@ -60,9 +60,6 @@
                         BorderThickness="0,1,0,1"
                         ClipToBounds="True">
                     <Grid>
-                        <Border Background="{DynamicResource CardBackgroundColor}"
-                                Opacity="0.84"
-                                IsHitTestVisible="False" />
                         <StackPanel Margin="12,8"
                                     Spacing="4">
                         <Grid ColumnDefinitions="*,Auto">
