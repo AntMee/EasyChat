@@ -69,15 +69,7 @@ public sealed class TextAssistTabLayoutTests
     [TestMethod]
     public void SelectionTextAssistResultWindow_ShowsSkeletonsForEmptyLoadingAreas()
     {
-        var document = XDocument.Load(Path.Combine(
-            FindRepositoryRoot(),
-            "src",
-            "Presentation",
-            "EasyChat.Presentation",
-            "Features",
-            "TextAssist",
-            "Views",
-            "TextAssistResultWindowView.axaml"));
+        var document = LoadSelectionTextAssistResultWindow();
 
         var skeletons = document.Descendants()
             .Where(element => element.Name.LocalName == "StackPanel"
@@ -95,6 +87,34 @@ public sealed class TextAssistTabLayoutTests
                 && element.Attribute("IsVisible")?.Value == "{Binding ShowLoadingIndicator}"),
             "The empty result area must use a skeleton instead of the centered loading spinner.");
     }
+
+    [TestMethod]
+    public void SelectionTextAssistResultWindow_InsetsScrollableContentFromOverlayScrollBars()
+    {
+        var document = LoadSelectionTextAssistResultWindow();
+        var resultScrollViewers = document.Descendants()
+            .Where(element => element.Name.LocalName == "ScrollViewer")
+            .ToArray();
+
+        Assert.HasCount(2, resultScrollViewers,
+            "The specialized and plain result layouts must each own one scroll viewport.");
+        Assert.IsTrue(resultScrollViewers.All(element =>
+                element.Attribute("Padding")?.Value == "0,0,12,0"),
+            "Scrollable result content must reserve space for the overlay vertical scroll bar.");
+        Assert.IsTrue(resultScrollViewers.All(element =>
+                element.Attribute("HorizontalScrollBarVisibility")?.Value == "Disabled"),
+            "Result text must wrap instead of introducing horizontal scrolling.");
+    }
+
+    private static XDocument LoadSelectionTextAssistResultWindow() => XDocument.Load(Path.Combine(
+        FindRepositoryRoot(),
+        "src",
+        "Presentation",
+        "EasyChat.Presentation",
+        "Features",
+        "TextAssist",
+        "Views",
+        "TextAssistResultWindowView.axaml"));
 
     private static string FindRepositoryRoot()
     {
