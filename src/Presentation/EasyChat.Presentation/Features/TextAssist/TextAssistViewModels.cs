@@ -1129,7 +1129,7 @@ namespace EasyChat.Presentation.Features.TextAssist
             {
                 if (_isBusy == value) return;
                 this.RaiseAndSetIfChanged(ref _isBusy, value);
-                this.RaisePropertyChanged(nameof(ShowLoadingIndicator));
+                this.RaisePropertyChanged(nameof(ShowLoadingSkeleton));
             }
         }
         public bool HasStreamingContent
@@ -1139,10 +1139,10 @@ namespace EasyChat.Presentation.Features.TextAssist
             {
                 if (_hasStreamingContent == value) return;
                 this.RaiseAndSetIfChanged(ref _hasStreamingContent, value);
-                this.RaisePropertyChanged(nameof(ShowLoadingIndicator));
+                this.RaisePropertyChanged(nameof(ShowLoadingSkeleton));
             }
         }
-        public bool ShowLoadingIndicator => IsBusy && !HasStreamingContent;
+        public bool ShowLoadingSkeleton => IsBusy && !HasStreamingContent;
         public bool ShowCorrectionLoadingIndicator => IsCorrection && IsBusy && !HasCorrectedResults;
         public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 

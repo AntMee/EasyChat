@@ -66,6 +66,36 @@ public sealed class TextAssistTabLayoutTests
         Assert.AreEqual("0,0,8,0", detailedNotesToggle.Attribute("Margin")?.Value);
     }
 
+    [TestMethod]
+    public void SelectionTextAssistResultWindow_ShowsSkeletonsForEmptyLoadingAreas()
+    {
+        var document = XDocument.Load(Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "Presentation",
+            "EasyChat.Presentation",
+            "Features",
+            "TextAssist",
+            "Views",
+            "TextAssistResultWindowView.axaml"));
+
+        var skeletons = document.Descendants()
+            .Where(element => element.Name.LocalName == "StackPanel"
+                              && element.Attribute("Classes")?.Value == "TextAssistResultSkeleton")
+            .ToArray();
+
+        Assert.HasCount(3, skeletons,
+            "Correction, polish, and plain text result layouts must each provide a loading skeleton.");
+        Assert.IsTrue(skeletons.All(element =>
+                element.Attribute("IsVisible")?.Value == "{Binding ShowLoadingSkeleton}"
+                || element.Parent?.Attribute("IsVisible")?.Value == "{Binding ShowLoadingSkeleton}"),
+            "Every result skeleton must be controlled by the empty-loading state.");
+        Assert.IsFalse(document.Descendants().Any(element =>
+                element.Name.LocalName == "Loading"
+                && element.Attribute("IsVisible")?.Value == "{Binding ShowLoadingIndicator}"),
+            "The empty result area must use a skeleton instead of the centered loading spinner.");
+    }
+
     private static string FindRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);
