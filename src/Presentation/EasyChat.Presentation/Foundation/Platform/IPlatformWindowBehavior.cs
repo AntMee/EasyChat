@@ -12,6 +12,14 @@ public interface IPlatformWindowBehavior
     /// </summary>
     ValueTask BringToFrontWithoutActivatingAsync(Window window, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Synchronously restores the platform text-input context to this process's
+    /// foreground window after a non-activating window closes.
+    /// </summary>
+    void RestoreForegroundTextInputContext()
+    {
+    }
+
     ValueTask SetClickThroughAsync(Window window, bool enabled, CancellationToken cancellationToken = default);
 
     /// <summary>

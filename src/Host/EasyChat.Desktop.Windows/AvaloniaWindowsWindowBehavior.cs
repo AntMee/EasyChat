@@ -25,6 +25,9 @@ internal sealed class AvaloniaWindowsWindowBehavior(
         return ValueTask.CompletedTask;
     }
 
+    public void RestoreForegroundTextInputContext() =>
+        windows.RestoreForegroundTextInputContext();
+
     public ValueTask SetClickThroughAsync(
         Window window,
         bool enabled,
