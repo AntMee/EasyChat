@@ -17,8 +17,8 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
     private const double MinimumFittedFontScale = 0.70;
     private const double MaximumPreferredHeightRatio = 1.0;
     private const double MinimumTextContrastRatio = 2.2;
-    private const double MinimumForegroundSeparation = 4;
     private readonly IImageBackgroundCleaner _backgroundCleaner;
+    private readonly ImageTextStyleAnalyzer _styleAnalyzer = new();
 
     public AvaloniaImageTranslationRenderer(IImageBackgroundCleaner backgroundCleaner)
     {
@@ -48,7 +48,10 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         // are not contaminated by the inpainted result.
         var styles = renderable.ToDictionary(
             overlay => overlay,
-            overlay => AnalyzeStyle(source, overlay.Region));
+            overlay => _styleAnalyzer.Analyze(
+                source,
+                overlay.Region,
+                overlay.EraseRegions));
         var backgroundFrame = await _backgroundCleaner.RemoveTextAsync(
             source,
             renderable
@@ -75,6 +78,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
                     backgroundFrame,
                     geometry.Bounds);
                 var brush = new SolidColorBrush(foreground);
+                var typeface = CreateTypeface(style.FontWeight);
                 var layout = CreateLayout(
                     overlay.Translation,
                     boxWidth,
@@ -83,7 +87,8 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
                         new Rect(0, 0, boxWidth, boxHeight),
                         overlay.Region.Angle,
                         CountSourceLines(overlay.Region.Text)),
-                    brush);
+                    brush,
+                    typeface);
                 var center = new Point(
                     geometry.Center.X * pixelToDip.X,
                     geometry.Center.Y * pixelToDip.Y);
@@ -95,7 +100,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
                     foreach (var line in layout.Lines)
                     {
                         var x = -boxWidth / 2;
-                        context.DrawText(Format(line.Text, line.FontSize, brush), new Point(x, y));
+                        context.DrawText(line.Formatted, new Point(x, y));
                         y += line.Height;
                     }
                 }
@@ -150,7 +155,8 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         double width,
         double height,
         double preferredFontSize,
-        IBrush brush)
+        IBrush brush,
+        Typeface typeface)
     {
         var initialFontSize = Math.Max(MinimumFontSize, preferredFontSize);
         // Preserve the original visual scale first. We only shrink enough to make a
@@ -163,7 +169,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
 
         while (true)
         {
-            var lines = WrapText(text, width, fontSize, brush);
+            var lines = WrapText(text, width, fontSize, brush, typeface);
             var totalWidth = lines.Count == 0 ? 0 : lines.Max(line => line.Width);
             var totalHeight = lines.Sum(line => line.Height);
             if (totalHeight <= height * MaximumPreferredHeightRatio || fontSize <= minimumFontSize)
@@ -177,14 +183,15 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         string text,
         double maxWidth,
         double fontSize,
-        IBrush brush)
+        IBrush brush,
+        Typeface typeface)
     {
         var lines = new List<TextLine>();
         foreach (var sourceLine in text.Replace("\r", string.Empty).Split('\n'))
         {
             if (sourceLine.Length == 0)
             {
-                lines.Add(Measure(string.Empty, fontSize, brush));
+                lines.Add(Measure(string.Empty, fontSize, brush, typeface));
                 continue;
             }
 
@@ -192,7 +199,8 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
             foreach (var character in sourceLine)
             {
                 current.Append(character);
-                if (current.Length == 1 || Measure(current.ToString(), fontSize, brush).Width <= maxWidth)
+                if (current.Length == 1
+                    || Measure(current.ToString(), fontSize, brush, typeface).Width <= maxWidth)
                     continue;
 
                 var split = LastWrapOpportunity(current);
@@ -200,7 +208,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
                     split = current.Length - 1;
                 var completed = current.ToString(0, split).TrimEnd();
                 if (completed.Length > 0)
-                    lines.Add(Measure(completed, fontSize, brush));
+                    lines.Add(Measure(completed, fontSize, brush, typeface));
 
                 var remaining = current.ToString(split, current.Length - split).TrimStart();
                 current.Clear();
@@ -208,7 +216,7 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
             }
 
             if (current.Length > 0)
-                lines.Add(Measure(current.ToString(), fontSize, brush));
+                lines.Add(Measure(current.ToString(), fontSize, brush, typeface));
         }
 
         return lines;
@@ -228,92 +236,37 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
     private static TextLine Measure(
         string text,
         double fontSize,
-        IBrush brush) =>
-        CreateTextLine(text, fontSize, brush);
+        IBrush brush,
+        Typeface typeface) =>
+        CreateTextLine(text, fontSize, brush, typeface);
 
-    private static FormattedText Format(string text, double fontSize, IBrush brush) =>
+    private static FormattedText Format(
+        string text,
+        double fontSize,
+        IBrush brush,
+        Typeface typeface) =>
         new(
             text,
             CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Microsoft YaHei UI"),
+            typeface,
             fontSize,
             brush);
 
-    private static TextLine CreateTextLine(string text, double fontSize, IBrush brush)
+    internal static Typeface CreateTypeface(FontWeight fontWeight) =>
+        new("Microsoft YaHei UI", FontStyle.Normal, fontWeight);
+
+    private static TextLine CreateTextLine(
+        string text,
+        double fontSize,
+        IBrush brush,
+        Typeface typeface)
     {
-        var formatted = Format(text, fontSize, brush);
-        return new TextLine(text, fontSize, formatted.Width, formatted.Height);
-    }
-
-    private static TextStyle AnalyzeStyle(ImageFrame frame, OcrTextRegion region)
-    {
-        var bounds = GetGeometry(region).Bounds;
-        var left = Math.Max(0, (int)Math.Floor(bounds.Left));
-        var top = Math.Max(0, (int)Math.Floor(bounds.Top));
-        var right = Math.Min(frame.Width, (int)Math.Ceiling(bounds.Right));
-        var bottom = Math.Min(frame.Height, (int)Math.Ceiling(bounds.Bottom));
-        var samples = new List<Color>();
-        var pixels = frame.Pixels.Span;
-        for (var y = top; y < bottom; y++)
-        {
-            for (var x = left; x < right; x++)
-            {
-                var offset = y * frame.Stride + x * 4;
-                var blue = pixels[offset];
-                var green = pixels[offset + 1];
-                var red = pixels[offset + 2];
-                samples.Add(Color.FromRgb(red, green, blue));
-            }
-        }
-
-        if (samples.Count == 0)
-            return TextStyle.Default;
-
-        var surroundingBackground = SampleSurroundingBackgroundColor(frame, bounds);
-        return new TextStyle(SelectForegroundColor(surroundingBackground, samples));
+        return new TextLine(Format(text, fontSize, brush, typeface));
     }
 
     internal static Color SelectForegroundColor(Color surroundingBackground, IReadOnlyList<Color> regionPixels)
-    {
-        ArgumentNullException.ThrowIfNull(regionPixels);
-        if (regionPixels.Count == 0)
-            return BestContrastingColor(surroundingBackground);
-
-        // OCR boxes are mostly background. Separate the local pixels into a
-        // background cluster and a text-colour cluster, anchored by the colour
-        // sampled outside the OCR box. This preserves subtle UI text colours.
-        var backgroundCenter = surroundingBackground;
-        var foregroundCenter = regionPixels
-            .OrderByDescending(color => ColorDistance(color, surroundingBackground))
-            .First();
-        for (var iteration = 0; iteration < 4; iteration++)
-        {
-            var backgroundCluster = new List<Color>();
-            var foregroundCluster = new List<Color>();
-            foreach (var color in regionPixels)
-            {
-                if (ColorDistance(color, backgroundCenter) <= ColorDistance(color, foregroundCenter))
-                    backgroundCluster.Add(color);
-                else
-                    foregroundCluster.Add(color);
-            }
-
-            if (backgroundCluster.Count == 0 || foregroundCluster.Count == 0)
-                break;
-
-            backgroundCenter = AverageColors(backgroundCluster);
-            foregroundCenter = AverageColors(foregroundCluster);
-        }
-
-        var selected = ColorDistance(foregroundCenter, surroundingBackground)
-                       >= ColorDistance(backgroundCenter, surroundingBackground)
-            ? foregroundCenter
-            : backgroundCenter;
-        return ColorDistance(selected, surroundingBackground) < MinimumForegroundSeparation
-            ? BestContrastingColor(surroundingBackground)
-            : selected;
-    }
+        => ImageTextStyleAnalyzer.SelectForegroundColor(surroundingBackground, regionPixels);
 
     private static Color EnsureLegibleForeground(Color candidate, ImageFrame background, Rect bounds) =>
         SelectContrastingForeground(candidate, SampleBackgroundColor(background, bounds));
@@ -330,39 +283,6 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         ContrastRatio(Colors.Black, background) >= ContrastRatio(Colors.White, background)
             ? Colors.Black
             : Colors.White;
-
-    private static Color SampleSurroundingBackgroundColor(ImageFrame frame, Rect bounds)
-    {
-        var padding = Math.Clamp(
-            (int)Math.Round(Math.Min(bounds.Width, bounds.Height) * 0.4),
-            2,
-            16);
-        var outerLeft = Math.Max(0, (int)Math.Floor(bounds.Left) - padding);
-        var outerTop = Math.Max(0, (int)Math.Floor(bounds.Top) - padding);
-        var outerRight = Math.Min(frame.Width, (int)Math.Ceiling(bounds.Right) + padding);
-        var outerBottom = Math.Min(frame.Height, (int)Math.Ceiling(bounds.Bottom) + padding);
-        var innerLeft = Math.Max(0, (int)Math.Floor(bounds.Left));
-        var innerTop = Math.Max(0, (int)Math.Floor(bounds.Top));
-        var innerRight = Math.Min(frame.Width, (int)Math.Ceiling(bounds.Right));
-        var innerBottom = Math.Min(frame.Height, (int)Math.Ceiling(bounds.Bottom));
-        var samples = new List<Color>();
-        var pixels = frame.Pixels.Span;
-        for (var y = outerTop; y < outerBottom; y++)
-        {
-            for (var x = outerLeft; x < outerRight; x++)
-            {
-                if (x >= innerLeft && x < innerRight && y >= innerTop && y < innerBottom)
-                    continue;
-
-                var offset = y * frame.Stride + x * 4;
-                samples.Add(Color.FromRgb(pixels[offset + 2], pixels[offset + 1], pixels[offset]));
-            }
-        }
-
-        return samples.Count == 0
-            ? SampleBackgroundColor(frame, bounds)
-            : AverageColors(samples);
-    }
 
     private static Color SampleBackgroundColor(ImageFrame frame, Rect bounds)
     {
@@ -419,25 +339,6 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
             : Math.Pow((value + 0.055) / 1.055, 2.4);
     }
 
-    private static Color AverageColors(IEnumerable<Color> colors)
-    {
-        var values = colors.ToArray();
-        return values.Length == 0
-            ? Colors.Gray
-            : Color.FromRgb(
-                (byte)Math.Clamp(Math.Round(values.Average(value => value.R)), 0, 255),
-                (byte)Math.Clamp(Math.Round(values.Average(value => value.G)), 0, 255),
-                (byte)Math.Clamp(Math.Round(values.Average(value => value.B)), 0, 255));
-    }
-
-    private static double ColorDistance(Color left, Color right)
-    {
-        var red = left.R - right.R;
-        var green = left.G - right.G;
-        var blue = left.B - right.B;
-        return Math.Sqrt(red * red + green * green + blue * blue);
-    }
-
     private static RegionGeometry GetGeometry(OcrTextRegion region)
     {
         var left = region.Polygon.Min(point => point.X);
@@ -479,11 +380,10 @@ public sealed class AvaloniaImageTranslationRenderer : IImageTranslationRenderer
         double Width,
         double Height);
 
-    private sealed record TextLine(string Text, double FontSize, double Width, double Height);
-
-    private sealed record TextStyle(Color Foreground)
+    private sealed record TextLine(FormattedText Formatted)
     {
-        public static TextStyle Default { get; } = new(Colors.Black);
+        public double Width => Formatted.Width;
+        public double Height => Formatted.Height;
     }
 
 }

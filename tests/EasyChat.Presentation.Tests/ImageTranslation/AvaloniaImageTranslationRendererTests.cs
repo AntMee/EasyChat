@@ -33,6 +33,14 @@ public sealed class AvaloniaImageTranslationRendererTests
     }
 
     [TestMethod]
+    public void CreateTypeface_PreservesTheSelectedWeightForMeasurementAndDrawing()
+    {
+        var typeface = AvaloniaImageTranslationRenderer.CreateTypeface(FontWeight.Bold);
+
+        Assert.AreEqual(FontWeight.Bold, typeface.Weight);
+    }
+
+    [TestMethod]
     public void SelectContrastingForeground_UsesBlackForAnUnreadableLightForegroundOnLightBackground()
     {
         var selected = AvaloniaImageTranslationRenderer.SelectContrastingForeground(
