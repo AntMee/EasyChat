@@ -7,6 +7,7 @@ namespace EasyChat.Infrastructure.Windows.Input;
 public sealed class WindowsOwnedWindowBehavior(ILogger<WindowsOwnedWindowBehavior> logger)
 {
     private readonly WindowsWindowStyleBackend _native = new();
+    private readonly WindowsInputMethodContextRestorer _inputMethod = new();
 
     public void ConfigureNoActivate(nint window)
     {
@@ -20,6 +21,12 @@ public sealed class WindowsOwnedWindowBehavior(ILogger<WindowsOwnedWindowBehavio
         if (window == nint.Zero)
             throw new ArgumentException("A native window handle is required.", nameof(window));
         _native.BringToFrontWithoutActivating(window, logger);
+    }
+
+    public void RestoreForegroundTextInputContext()
+    {
+        if (_inputMethod.TryRestoreForegroundWindow())
+            logger.LogDebug("Restored the foreground EasyChat window's text-input context.");
     }
 
     public void SetClickThrough(nint window, bool enabled)

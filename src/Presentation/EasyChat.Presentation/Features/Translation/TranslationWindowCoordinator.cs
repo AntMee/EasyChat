@@ -210,6 +210,10 @@ public sealed class TranslationWindowCoordinator(
     {
         if (sender is TranslationDictionaryWindowView window)
         {
+            // Avalonia raises Closed inside WM_DESTROY before clearing its process-wide
+            // IMM owner. Restore the still-active input window synchronously so the
+            // dictionary cleanup cannot detach that window's composition client.
+            platformWindowBehavior.RestoreForegroundTextInputContext();
             window.Closed -= OnCurrentClosed;
             window.SizeChanged -= OnWindowSizeChanged;
         }
